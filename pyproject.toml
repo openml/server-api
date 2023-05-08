@@ -22,3 +22,6 @@ dev = [
 [project.urls]
 "Homepage" = "https://github.com/openml/server-api"
 "Bug Tracker" = "https://github.com/openml/server-api/issues"
+
+[tool.ruff]
+select = ["B", "E", "F"]
