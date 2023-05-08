@@ -24,4 +24,4 @@ dev = [
 "Bug Tracker" = "https://github.com/openml/server-api/issues"
 
 [tool.ruff]
-select = ["B", "E", "F"]
+select = ["A", "ARG", "B", "COM", "C4", "E", "EM", "F", "I001", "PT", "PTH", "T20", "RET", "SIM"]
