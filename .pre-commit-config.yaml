@@ -1,0 +1,14 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+    -   id: check-ast
+    -   id: check-toml
+    -   id: check-yaml
+    -   id: check-added-large-files
+    -   id: check-builtin-literals
+
+    -   id: end-of-file-fixer
+    -   id: trailing-whitespace
+
+#    -   id: no-commit-to-branch

@@ -14,6 +14,11 @@ classifiers = [
 ]
 dependencies = []
 
+[project.optional-dependencies]
+dev = [
+    "pre-commit",
+]
+
 [project.urls]
 "Homepage" = "https://github.com/openml/server-api"
 "Bug Tracker" = "https://github.com/openml/server-api/issues"
