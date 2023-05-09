@@ -1,8 +1,6 @@
 from fastapi import FastAPI
+from routers import datasets
 
 app = FastAPI()
 
-
-@app.get("/dataset/{dataset_id}")
-def get_dataset(dataset_id: int) -> dict[str, int]:
-    return {"dataset_id": dataset_id}
+app.include_router(datasets.router)
