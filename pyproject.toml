@@ -1,8 +1,8 @@
 [project]
-name = "OpenML Server API"
+name = "openml-server-api"
 version = "0.0.1"
 authors = [
-  { name="Pieter Gijsbers", email="" },
+  { name="Pieter Gijsbers" },
 ]
 description = "The Python-based REST API for OpenML."
 readme = "README.md"
@@ -12,7 +12,10 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dependencies = []
+dependencies = [
+    "fastapi",
+    "uvicorn",
+]
 
 [project.optional-dependencies]
 dev = [
