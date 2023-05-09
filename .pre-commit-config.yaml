@@ -27,6 +27,8 @@ repos:
     rev: 'v1.2.0'
     hooks:
     -   id: mypy
+        additional_dependencies:
+            - fastapi
 
 -   repo: https://github.com/charliermarsh/ruff-pre-commit
     rev: v0.0.265
