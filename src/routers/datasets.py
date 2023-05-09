@@ -29,11 +29,11 @@ class DatasetStatus(StrEnum):
 
 
 class DatasetMetadata(BaseModel):
-    id_: int = Field(example=1)
+    id_: int = Field(example=1, alias="id")
     name: str = Field(example="Anneal")
     version: int = Field(example=2)
     description: str = Field(example="The original Annealing dataset from UCI.")
-    format_: DatasetFileFormat = Field(example=DatasetFileFormat.ARFF)
+    format_: DatasetFileFormat = Field(example=DatasetFileFormat.ARFF, alias="format")
     upload_date: datetime = Field(example=datetime(2014, 4, 6, 23, 19, 20))
     licence: DatasetLicence = Field(example=DatasetLicence.CC0)
     url: HttpUrl = Field(
