@@ -25,3 +25,7 @@ dev = [
 
 [tool.ruff]
 select = ["A", "ARG", "B", "COM", "C4", "E", "EM", "F", "I001", "PT", "PTH", "T20", "RET", "SIM"]
+
+[tool.mypy]
+strict = true
+ignore_missing_imports = true
