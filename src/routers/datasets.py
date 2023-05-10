@@ -5,6 +5,9 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field, HttpUrl
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
+# We add separate endpoints for old-style JSON responses,
+# so they don't clutter the schema of the new API, and are easily removed later.
+router_old_format = APIRouter(prefix="/old/datasets", tags=["datasets"])
 
 
 class DatasetFileFormat(StrEnum):
@@ -61,8 +64,8 @@ def get_dataset(_dataset_id: int) -> DatasetMetadata:
     return DatasetMetadata()  # type: ignore[call-arg]
 
 
-@router.get(
-    path="/data/{dataset_id}",
+@router_old_format.get(
+    path="/{dataset_id}",
     description="Get old-style wrapped meta-data for dataset with ID `dataset_id`.",
 )
 def get_dataset_wrapped(_dataset_id: int) -> dict[str, DatasetMetadata]:
