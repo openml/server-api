@@ -31,3 +31,6 @@ select = ["A", "ARG", "B", "COM", "C4", "E", "EM", "F", "I001", "PT", "PTH", "T2
 
 [tool.mypy]
 strict = true
+plugins = [
+    "pydantic.mypy"
+]
