@@ -35,6 +35,10 @@ class DcatAPObject(BaseModel, ABC):
         allow_population_by_field_name = True
 
 
+class DcatAPIdentifier(DcatAPObject):
+    """Identifying another DcatAPObject. Contains only an id."""
+
+
 class VCardIndividual(DcatAPObject):
     type_: str = Field(default="vcard:Individual", alias="@type", const=True)
     fn: str = Field(
@@ -60,8 +64,8 @@ class DcatLocation(DcatAPObject):
 
 class SpdxChecksum(DcatAPObject):
     type_: str = Field(default="spdx:Checksum", alias="@type", const=True)
-    algorithm: str = Field()
-    value: str = Field(alias="checksumValue")
+    algorithm: str = Field(alias="spdx:algorithm")
+    value: str = Field(alias="spdx:checksumValue")
 
 
 class XSDDateTime(BaseModel):
@@ -79,31 +83,35 @@ class DctPeriodOfTime(DcatAPObject):
     end_date: XSDDateTime | None = Field(alias="dcat:endDate", default=None)
 
 
-class DcatAPIdentifier(DcatAPObject):
-    """Identifying another DcatAPObject. Contains only an id."""
-
-
 class DcatAPDistribution(DcatAPObject):
     type_: str = Field(default="dcat:Distribution", alias="@type", const=True)
-    access_url: str = Field(alias="dcat:accessURL")
+    access_url: list[str] = Field(
+        alias="dcat:accessURL",
+        default_factory=list,
+        min_items=1,
+    )
     byte_size: int | None = Field(alias="dcat:byteSize", default=None)
     checksum: DcatAPIdentifier | None = Field(alias="spdx:checksum", default=None)
-    description: str | None = Field(alias="dct:description", default=None)
-    download_url: str | None = Field(alias="dcat:downloadURL", default=None)
+    description: list[str] = Field(alias="dct:description", default_factory=list)
+    download_url: list[str] = Field(alias="dcat:downloadURL", default_factory=list)
     format_: str | None = Field(alias="dct:format", default=None)
     license_: str | None = Field(alias="dct:license", default=None)
-    title: str | None = Field(alias="dct:title", default=None)
+    title: list[str] = Field(alias="dct:title", default_factory=list)
 
 
 class DcatAPDataset(DcatAPObject):
     type_: str = Field(default="dcat:Dataset", alias="@type", const=True)
-    description: str = Field(
+    description: list[str] = Field(
         alias="dct:description",
         description="A free-text account of the Dataset",
+        default_factory=list,
+        min_items=1,
     )
-    title: str = Field(
+    title: list[str] = Field(
         alias="dct:title",
         description="The name given to the Dataset",
+        default_factory=list,
+        min_items=1,
     )
     contact_point: list[DcatAPIdentifier] = Field(
         alias="dcat:contactPoint",
