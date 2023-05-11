@@ -61,7 +61,7 @@ class DcatLocation(DcatAPObject):
 class SpdxChecksum(DcatAPObject):
     type_: str = Field(default="spdx:Checksum", alias="@type", const=True)
     algorithm: str = Field()
-    checksumValue: str = Field()
+    value: str = Field(alias="checksumValue")
 
 
 class XSDDateTime(BaseModel):
