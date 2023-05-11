@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from schemas.datasets import DatasetSchema
 from schemas.datasets.convertor import openml_dataset_to_dcat
 from schemas.datasets.dcat import DcatApWrapper
 from schemas.datasets.openml import DatasetMetadata
@@ -36,9 +37,14 @@ DATASET_EXAMPLE = {
     path="/{dataset_id}",
     description="Get meta-data for dataset with ID `dataset_id`.",
 )
-def get_dataset(_dataset_id: int) -> DatasetMetadata | DcatApWrapper:
+def get_dataset(
+    _dataset_id: int,
+    schema: DatasetSchema,
+) -> DatasetMetadata | DcatApWrapper:
     example = DatasetMetadata.parse_obj(DATASET_EXAMPLE)
-    return openml_dataset_to_dcat(example)
+    if schema == DatasetSchema.DCAT_AP:
+        return openml_dataset_to_dcat(example)
+    return example
 
 
 @router_old_format.get(

@@ -6,11 +6,6 @@ from enum import StrEnum
 from pydantic import BaseModel, Field, HttpUrl
 
 
-class DatasetSchema(StrEnum):
-    DCAT_AP = "dcat-ap"
-    OPENML = "openml"
-
-
 class DatasetFileFormat(StrEnum):
     ARFF = "ARFF"
     PARQUET = "parquet"
