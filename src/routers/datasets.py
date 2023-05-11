@@ -1,8 +1,7 @@
-from datetime import datetime
-from enum import StrEnum
-
 from fastapi import APIRouter
-from pydantic import BaseModel, Field, HttpUrl
+from schemas.datasets.convertor import openml_dataset_to_dcat
+from schemas.datasets.dcat import DcatApWrapper
+from schemas.datasets.openml import DatasetMetadata
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 # We add separate endpoints for old-style JSON responses,
@@ -10,58 +9,35 @@ router = APIRouter(prefix="/datasets", tags=["datasets"])
 router_old_format = APIRouter(prefix="/old/datasets", tags=["datasets"])
 
 
-class DatasetFileFormat(StrEnum):
-    ARFF = "ARFF"
-    PARQUET = "parquet"
-
-
-class DatasetLicence(StrEnum):
-    CC0 = "Public"
-    OTHER = "other"
-
-
-class Visibility(StrEnum):
-    PUBLIC = "public"
-    PRIVATE = "private"
-
-
-class DatasetStatus(StrEnum):
-    ACTIVE = "active"
-    DEACTIVATED = "deactivated"
-    IN_PROCESSING = "in processing"
-
-
-class DatasetMetadata(BaseModel):
-    id_: int = Field(example=1, alias="id")
-    name: str = Field(example="Anneal")
-    version: int = Field(example=2)
-    description: str = Field(example="The original Annealing dataset from UCI.")
-    format_: DatasetFileFormat = Field(example=DatasetFileFormat.ARFF, alias="format")
-    upload_date: datetime = Field(example=datetime(2014, 4, 6, 23, 19, 20))
-    licence: DatasetLicence = Field(example=DatasetLicence.CC0)
-    url: HttpUrl = Field(
-        example="https://www.openml.org/data/download/1/dataset_1_anneal.arff",
-        description="URL of the dataset data file.",
-    )
-    file_id: int = Field(example=1)
-    default_target_attribute: str = Field(example="class")
-    version_label: str = Field(
-        example="2",
-        description="Not sure how this relates to `version`.",
-    )
-    tag: list[str] = Field(example=["study_1", "uci"])
-    visibility: Visibility = Field(example=Visibility.PUBLIC)
-    original_data_url: HttpUrl = Field(example="https://www.openml.org/d/2")
-    status: DatasetStatus = Field(example=DatasetStatus.ACTIVE)
-    md5_checksum: str = Field(example="d01f6ccd68c88b749b20bbe897de3713")
-
-
 @router.get(
     path="/{dataset_id}",
     description="Get meta-data for dataset with ID `dataset_id`.",
 )
-def get_dataset(_dataset_id: int) -> DatasetMetadata:
-    return DatasetMetadata()  # type: ignore[call-arg]
+def get_dataset(_dataset_id: int) -> DatasetMetadata | DcatApWrapper:
+    example = DatasetMetadata.parse_obj(
+        {
+            "id": 1,
+            "name": "Anneal",
+            "version": 2,
+            "description": "The original Annealing dataset from UCI.",
+            "format": "ARFF",
+            "upload_date": "2014-04-06T23:19:20",
+            "licence": "Public",
+            "url": "https://www.openml.org/data/download/1/dataset_1_anneal.arff",
+            "file_id": 1,
+            "default_target_attribute": "class",
+            "version_label": "2",
+            "tag": [
+                "study_1",
+                "uci",
+            ],
+            "visibility": "public",
+            "original_data_url": "https://www.openml.org/d/2",
+            "status": "active",
+            "md5_checksum": "d01f6ccd68c88b749b20bbe897de3713",
+        },
+    )
+    return openml_dataset_to_dcat(example)
 
 
 @router_old_format.get(
