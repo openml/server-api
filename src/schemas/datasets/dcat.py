@@ -21,7 +21,7 @@ from pydantic import BaseModel, Extra, Field
 
 class DcatAPContext(BaseModel):
     dcat: str = Field(default="http://www.w3.org/ns/dcat", const=True)
-    dct: str = Field(default="http://purl.org/dc/terms/", const=True)
+    dct: str = Field(default="https://purl.org/dc/terms/", const=True)
     vcard: str = Field(default="https://www.w3.org/2006/vcard/ns#", const=True)
 
 
@@ -99,16 +99,15 @@ class DcatAPDataset(DcatAPObject):
     type_: str = Field(default="dcat:Dataset", alias="@type", const=True)
     description: str = Field(
         alias="dct:description",
-        description="This property contains a free-text account of the Dataset",
+        description="A free-text account of the Dataset",
     )
     title: str = Field(
         alias="dct:title",
-        description="This property contains a name given to the Dataset",
+        description="The name given to the Dataset",
     )
     contact_point: list[DcatAPIdentifier] = Field(
         alias="dcat:contactPoint",
-        description="This property contains contact information that can be used for"
-        " sending comments about the Dataset.",
+        description="Contact information to send comments about the Dataset to.",
         default_factory=list,
     )
     distribution: list[DcatAPIdentifier] = Field(
@@ -118,8 +117,8 @@ class DcatAPDataset(DcatAPObject):
     keyword: list[str] = Field(alias="dcat:keyword", default_factory=list)
     publisher: DcatAPIdentifier | None = Field(
         alias="dct:publisher",
-        description="This property refers to an entity (organisation) responsible for "
-        "making the Dataset available.",
+        description="The entity (organisation) responsible "
+        "for making the Dataset available.",
     )
     temporal_coverage: list[DcatAPIdentifier] = Field(
         alias="dct:temporal",
@@ -128,14 +127,12 @@ class DcatAPDataset(DcatAPObject):
     )
     spatial_coverage: list[DcatAPIdentifier] = Field(
         alias="dct:spatial",
-        description="This property refers to a geographic region that "
-        "is covered by the Dataset.",
+        description="The geographic region that is covered by the Dataset.",
         default_factory=list,
     )
     theme: list[str] = Field(
         alias="dcat:theme",
-        description="This property refers to a category of the Dataset. "
-        "A Dataset may be associated with multiple themes.",
+        description="Any categories that may be associated with the Dataset.",
         default_factory=list,
     )
 
@@ -143,7 +140,7 @@ class DcatAPDataset(DcatAPObject):
     documentation: list[str] = Field(alias="foaf:page", default_factory=list)
     landing_page: list[str] = Field(
         alias="dcat:landingPage",
-        description="This property refers to a web page that provides access to "
+        description="The web page that provides access to "
         "the Dataset, its Distributions and/or additional information. "
         "It is intended to point to a landing page at the original data "
         "provider, not to a page on a site of a third party, "
