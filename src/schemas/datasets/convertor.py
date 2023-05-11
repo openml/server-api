@@ -3,6 +3,7 @@ from schemas.datasets.dcat import (
     DcatAPDistribution,
     DcatApWrapper,
     SpdxChecksum,
+    XSDDateTime,
 )
 from schemas.datasets.openml import DatasetMetadata
 
@@ -16,10 +17,8 @@ def openml_dataset_to_dcat(metadata: DatasetMetadata) -> DcatApWrapper:
 
     distribution = DcatAPDistribution(
         id_=metadata.url,
-        # issued=metadata.upload_date,
         format_=metadata.format_,
-        # language=metadata.language,
-        access_url=metadata.url,  # maybe openml.org/d/X instead?
+        access_url=metadata.original_data_url,
         checksum=checksum.id_,
         download_url=metadata.url,
         license_=metadata.licence,
@@ -30,7 +29,7 @@ def openml_dataset_to_dcat(metadata: DatasetMetadata) -> DcatApWrapper:
         description=metadata.description,
         title=metadata.name,
         version=metadata.version,
-        release_date=metadata.upload_date,
+        release_date=XSDDateTime(value_=metadata.upload_date),
         keyword=metadata.tag,
         distribution=[distribution],
         landing_page=[metadata.url],
