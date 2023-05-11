@@ -53,9 +53,9 @@ class VCardOrganisation(DcatAPObject):
 
 class DcatLocation(DcatAPObject):
     type_: str = Field(default="dct:Location", alias="@type", const=True)
-    bounding_box: str = Field(alias="dcat:bbox", default=None)
-    centroid: str = Field(alias="dcat:centroid", default=None)
-    geometry: str = Field(alias="dcat:geometry", default=None)
+    bounding_box: str | None = Field(alias="dcat:bbox", default=None)
+    centroid: str | None = Field(alias="dcat:centroid", default=None)
+    geometry: str | None = Field(alias="dcat:geometry", default=None)
 
 
 class SpdxChecksum(DcatAPObject):
@@ -85,7 +85,7 @@ class DcatAPIdentifier(DcatAPObject):
 
 class DcatAPDistribution(DcatAPObject):
     type_: str = Field(default="dcat:Distribution", alias="@type", const=True)
-    access_url: str = Field(alias="dcat:accessURL", default=None)
+    access_url: str = Field(alias="dcat:accessURL")
     byte_size: int | None = Field(alias="dcat:byteSize", default=None)
     checksum: DcatAPIdentifier | None = Field(alias="spdx:checksum", default=None)
     description: str | None = Field(alias="dct:description", default=None)
