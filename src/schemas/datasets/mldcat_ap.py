@@ -1,0 +1,289 @@
+"""
+Based on MLDCAT-AP 1.0.0: https://semiceu.github.io/MLDCAT-AP/releases/1.0.0/
+
+This is an application profile, aimed to extend the use of DCAT-AP,
+originally envisaged for the description of a machine learning process,
+developed in collaboration with OpenML.
+"""
+from __future__ import annotations
+
+from abc import ABC
+from enum import StrEnum
+from typing import Generic, TypeVar
+
+from pydantic import BaseModel, Extra, Field, HttpUrl
+
+from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Visibility
+
+
+class JsonLDQualifiedLiteral(BaseModel):
+    """Base class for all JSON-LD objects"""
+
+    type_: str = Field(alias="@type")
+    value: str = Field(alias="@value")
+
+    class Config:
+        extra = Extra.forbid
+        allow_population_by_field_name = True
+
+
+Literal = JsonLDQualifiedLiteral | str
+
+
+class JsonLDObject(BaseModel, ABC):
+    """Base class for all JSON-LD objects"""
+
+    id_: str = Field(alias="@id")
+    type_: str = Field(alias="@type")
+
+    class Config:
+        extra = Extra.forbid
+        allow_population_by_field_name = True
+
+
+T = TypeVar("T", bound=JsonLDObject)
+
+
+class JsonLDObjectReference(BaseModel, Generic[T]):
+    id_: str = Field(alias="@id")
+
+    class Config:
+        extra = Extra.forbid
+        allow_population_by_field_name = True
+
+    @classmethod
+    def to(cls, json_ld_object: T) -> JsonLDObjectReference[T]:
+        """Create a reference to `json_ld_object`"""
+        return cls(id_=json_ld_object.id_)
+
+
+class AccessRights(StrEnum):
+    """Recommend values for 'access rights' within DCAT-AP context"""
+
+    #  https://op.europa.eu/en/web/eu-vocabularies/dataset/-/resource?uri=http://publications.europa.eu/resource/dataset/access-right
+    PUBLIC = "PUBLIC"
+    RESTRICTED = "RESTRICTED"
+    NON_PUBLIC = "NON_PUBLIC"
+
+
+class Agent(JsonLDObject):
+    """Any entity carrying out actions with respect to the (Core) entities Catalogue,
+    Datasets, Data Services and Distributions. If the Agent is an organisation,
+    the use of the Organization Ontology is recommended.
+    """
+
+    type_: str = Field("Agent", const=True)
+    name: list[Literal] = Field(default_factory=list, min_items=1)
+
+
+class MD5Checksum(JsonLDObject):
+    """A value that allows the contents of a file to be authenticated.
+    This class allows the results of a variety of checksum and cryptographic
+    message digest algorithms to be represented.
+    """
+
+    type_: str = Field("Checksum", const=True)
+    algorithm: str = Field(
+        "http://spdx.org/rdf/terms#checksumAlgorithm_md5",
+        const=True,
+    )
+    value: str = Field(alias="checksumValue")
+
+
+class FeatureType(StrEnum):
+    NOMINAL = "Nominal"
+    NUMERIC = "Numeric"
+
+
+class Feature(JsonLDObject):
+    type_: str = Field("Feature", const=True)
+    name: str = Field()
+    feature_type: FeatureType = Field(alias="type")
+    description: Literal | None = Field()
+
+
+class QualityType(JsonLDObject):
+    type_: str = Field("QualityType", const=True)
+    name: str = Field()
+    quality_id: str = Field(alias="id")
+
+
+class Quality(JsonLDObject):
+    type_: str = Field("Quality", const=True)
+    quality_type: QualityType = Field(alias="type")
+    value: Literal = Field()
+
+
+class Distribution(JsonLDObject):
+    type_: str = Field("Distribution", const=True)
+    # required
+    access_url: list[HttpUrl] = Field(
+        default_factory=list,
+        min_items=1,
+        alias="accessUrl",
+    )
+    # problem setting `min_items`, should be 1: https://github.com/pydantic/pydantic/issues/2581
+    # min_items = 1
+    has_feature: list[JsonLDObjectReference[Feature]] = Field(
+        default_factory=list,
+        alias="hasFeature",
+    )
+    has_quality: list[JsonLDObjectReference[Quality]] = Field(
+        default_factory=list,
+        alias="hasQuality",
+    )
+
+    # other
+    byte_size: Literal | None = Field(alias="byteSize")
+    default_target_attribute: Literal | None = Field(alias="defaultTargetAttribute")
+    download_url: list[HttpUrl] = Field(default_factory=list, alias="downloadUrl")
+    format_: Literal | None = Field(alias="format")
+    identifier: Literal | None = Field()
+    ignore_attribute: list[Literal] = Field(
+        default_factory=list,
+        alias="ignoreAttirbute",
+    )
+    processing_error: Literal | None = Field(alias="processingError")
+    processing_warning: Literal | None = Field(alias="processingWarning")
+    processing_data: Literal | None = Field(alias="processingDate")
+    row_id_attribute: Literal | None = Field(alias="rowIDAttribute")
+    title: list[Literal] = Field(default_factory=list)
+    checksum: JsonLDObjectReference[MD5Checksum] | None = Field()
+
+    access_service: list[JsonLDObjectReference[DataService]] = Field(
+        default_factory=list,
+        alias="accessService",
+    )
+    # has_policy: Policy | None = Field(alias="hasPolicy")
+    # language: list[LinguisticSystem] = Field(default_factory=list)
+    # licence: LicenceDocument | None = Field()
+
+
+class Dataset(JsonLDObject):
+    type_: str = Field("Dataset", const=True)
+    # required
+    collection_date: Literal = Field(alias="collectionDate")
+    description: list[Literal] = Field(default_factory=list, min_items=1)
+    title: list[Literal] = Field(default_factory=list, min_items=1)
+
+    # other
+    access_rights: AccessRights | None = Field(alias="accessRights")
+    contributor: list[JsonLDObjectReference[Agent]] = Field(default_factory=list)
+    creator: Agent | None = Field()
+    distribution: list[JsonLDObjectReference[Distribution]] = Field(
+        default_factory=list,
+    )
+    has_version: list[JsonLDObjectReference[Dataset]] = Field(
+        default_factory=list,
+        alias="hasVersion",
+    )
+    identifier: list[Literal] = Field(default_factory=list)
+    is_referenced_by: list[Literal] = Field(
+        default_factory=list,
+        alias="isReferencedBy",
+    )
+    is_version_of: list[JsonLDObjectReference[Dataset]] = Field(
+        default_factory=list,
+        alias="isVersionOf",
+    )
+    issued: Literal | None = Field()
+    keyword: list[Literal] = Field(default_factory=list)
+    landing_page: list[Literal] = Field(default_factory=list, alias="landingPage")
+    publisher: JsonLDObjectReference[Agent] | None = Field()
+    status: DatasetStatus | None = Field()
+    version_info: Literal | None = Field(alias="versionInfo")
+    version_label: Literal | None = Field(alias="versionLabel")
+    visibility: Visibility | None = Field()
+
+
+class DataService(JsonLDObject):
+    type_: str = Field("DataService", const=True)
+    endpoint_url: HttpUrl = Field(alias="endpointUrl")
+    title: list[Literal] = Field(default_factory=list, min_items=1)
+    serves_dataset: list[JsonLDObjectReference[Dataset]] = Field(
+        default_factory=list,
+        alias="servesDataset",
+    )
+
+
+# We need at least one forward reference for type annotation in the cycle
+# `Dataset->Distribution->Dataservice->Dataset`, but this is not supported by
+# the OpenAI schema checker, so we need to explicitly update the references.
+Distribution.update_forward_refs(DataService=DataService)
+
+
+class JsonLDGraph(BaseModel):
+    context: str | dict[str, HttpUrl] = Field(default_factory=dict, alias="@context")
+    graph: list[
+        DataService | Dataset | Quality | Feature | Agent | MD5Checksum
+    ] = Field(default_factory=list, alias="@graph")
+
+    class Config:
+        extra = Extra.forbid
+        allow_population_by_field_name = True
+
+
+def convert_to_mldcat_ap(dataset: DatasetMetadata) -> JsonLDGraph:
+    arff_service = DataService(
+        id_="openml-arff-service",
+        title=["OpenML ARFF server"],
+        endpoint_url="https://www.openml.org/data/download",
+    )
+    example_feature = Feature(
+        id_="example-petal-width",
+        name="example_petal_width",
+        feature_type=FeatureType.NUMERIC,
+        description="Feature information not loaded, this is an example.",
+    )
+
+    example_quality = Quality(
+        id_="example-quality",
+        quality_type=QualityType(
+            id_="quality-type-example",
+            name="number_of_features",
+            quality_id="link_to_definition",
+        ),
+        value=150,
+    )
+    checksum = MD5Checksum(id_="checksum-id", value=dataset.md5_checksum)
+    # contributor and creator N/A
+    distribution = Distribution(
+        id_="distribution-id",
+        access_url=[f"https://www.openml.org/d/{dataset.id_}"],
+        has_feature=[JsonLDObjectReference.to(example_feature)],
+        has_quality=[JsonLDObjectReference.to(example_quality)],
+        default_target_attribute=dataset.default_target_attribute,
+        download_url=[dataset.url],
+        format_=dataset.format_,
+        checksum=checksum,
+        access_service=[JsonLDObjectReference.to(arff_service)],
+    )
+
+    mldcat_dataset = Dataset(
+        id_=dataset.id_,
+        type_="Dataset",
+        collection_date=str(dataset.upload_date),
+        description=[dataset.description],
+        title=[dataset.name],
+        distribution=[JsonLDObjectReference.to(distribution)],
+        status=dataset.status,
+        version_info=dataset.version,
+        version_label=dataset.version_label,
+        visibility=dataset.visibility,
+        keyword=dataset.tag,
+        issued=JsonLDQualifiedLiteral(
+            value=str(dataset.upload_date),
+            type_="http://www.w3.org/2001/XMLSchema#dateTime",
+        ),
+    )
+
+    return JsonLDGraph(
+        context="https://semiceu.github.io/MLDCAT-AP/releases/1.0.0/context/mldcat-ap.jsonld",
+        graph=[
+            arff_service,
+            distribution,
+            mldcat_dataset,
+            example_feature,
+            example_quality,
+        ],
+    )

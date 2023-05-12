@@ -1,7 +1,9 @@
+# from database.datasets import get_dataset_description
 from fastapi import APIRouter
 from schemas.datasets import DatasetSchema
 from schemas.datasets.convertor import openml_dataset_to_dcat
 from schemas.datasets.dcat import DcatApWrapper
+from schemas.datasets.mldcat_ap import JsonLDGraph, convert_to_mldcat_ap
 from schemas.datasets.openml import DatasetMetadata
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
@@ -40,8 +42,14 @@ DATASET_EXAMPLE = {
 def get_dataset(
     _dataset_id: int,
     schema: DatasetSchema,
-) -> DatasetMetadata | DcatApWrapper:
+) -> DatasetMetadata | DcatApWrapper | JsonLDGraph:
+    # if _dataset_id > 0:
+    #     example = get_dataset_description(_dataset_id)
+    # else:
     example = DatasetMetadata.parse_obj(DATASET_EXAMPLE)
+
+    if schema == DatasetSchema.MLDCAT_AP:
+        return convert_to_mldcat_ap(example)
     if schema == DatasetSchema.DCAT_AP:
         return openml_dataset_to_dcat(example)
     return example
