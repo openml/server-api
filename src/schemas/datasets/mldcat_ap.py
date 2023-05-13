@@ -215,7 +215,7 @@ Distribution.update_forward_refs(DataService=DataService)
 class JsonLDGraph(BaseModel):
     context: str | dict[str, HttpUrl] = Field(default_factory=dict, alias="@context")
     graph: list[
-        DataService | Dataset | Quality | Feature | Agent | MD5Checksum
+        Distribution | DataService | Dataset | Quality | Feature | Agent | MD5Checksum
     ] = Field(default_factory=list, alias="@graph")
 
     class Config:
@@ -255,7 +255,7 @@ def convert_to_mldcat_ap(dataset: DatasetMetadata) -> JsonLDGraph:
         default_target_attribute=dataset.default_target_attribute,
         download_url=[dataset.url],
         format_=dataset.format_,
-        checksum=checksum,
+        checksum=JsonLDObjectReference.to(checksum),
         access_service=[JsonLDObjectReference.to(arff_service)],
     )
 
@@ -285,5 +285,6 @@ def convert_to_mldcat_ap(dataset: DatasetMetadata) -> JsonLDGraph:
             mldcat_dataset,
             example_feature,
             example_quality,
+            checksum,
         ],
     )
