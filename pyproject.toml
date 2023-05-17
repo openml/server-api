@@ -14,8 +14,9 @@ classifiers = [
 ]
 dependencies = [
     "fastapi",
-    "sqlalchemy",
     "uvicorn",
+    "sqlalchemy",
+    "mysqlclient",
 ]
 
 [project.optional-dependencies]
