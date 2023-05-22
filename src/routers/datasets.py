@@ -1,5 +1,8 @@
-# from database.datasets import get_dataset_description
+from typing import cast
+
 from fastapi import APIRouter
+
+# from database.datasets import get_dataset_description
 from schemas.datasets import DatasetSchema
 from schemas.datasets.convertor import openml_dataset_to_dcat
 from schemas.datasets.dcat import DcatApWrapper
@@ -59,5 +62,9 @@ def get_dataset(
     path="/{dataset_id}",
     description="Get old-style wrapped meta-data for dataset with ID `dataset_id`.",
 )
-def get_dataset_wrapped(_dataset_id: int) -> dict[str, DatasetMetadata]:
-    return {"data_set_description": DatasetMetadata.parse_obj(DATASET_EXAMPLE)}
+def get_dataset_wrapped(dataset_id: int) -> dict[str, DatasetMetadata]:
+    dataset = get_dataset(dataset_id, schema=DatasetSchema.OPENML)
+    # TODO: convert tags from list to str)
+    # TODO: convert contributor from list to str
+    # TODO: Check all types are consistent
+    return {"data_set_description": cast(DatasetMetadata, dataset)}
