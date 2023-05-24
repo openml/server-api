@@ -45,7 +45,7 @@ class DatasetMetadata(BaseModel):
     contributor: list[str] = Field(example=["David Sterling", "Wray Buntine"])
     citation: str = Field(example="https://archive.ics.uci.edu/ml/citation_policy.html")
     upload_date: datetime = Field(example=datetime(2014, 4, 6, 23, 19, 20))
-    processing_date: datetime = Field(example=datetime(2019, 7, 9, 15, 22, 3))
+    processing_date: datetime | None = Field(example=datetime(2019, 7, 9, 15, 22, 3))
 
     description: str = Field(example="The original Annealing dataset from UCI.")
     description_version: int = Field(example=2)
