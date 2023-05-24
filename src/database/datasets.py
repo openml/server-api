@@ -2,7 +2,7 @@
 import html
 from typing import Any
 
-from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Visibility
+from schemas.datasets.openml import DatasetMetadata, DatasetStatus
 from sqlalchemy import Engine, create_engine, text
 
 expdb = create_engine(
@@ -139,27 +139,11 @@ def get_latest_processing_update(dataset_id: int) -> dict[str, Any] | None:
     )
 
 
-def get_dataset_description(dataset_id: int) -> DatasetMetadata:
-    if not isinstance(dataset_id, int):
-        # Error Code 110
-        msg = f"type(dataset_id)={type(dataset_id)!r} but should be `int`."
-        raise TypeError(msg)
-
-    if not (dataset := get_dataset(dataset_id)):
-        # Error Code 111
-        msg = f"No dataset associated with dataset_id={dataset_id!r}."
-        raise ValueError(msg)
-
-    if dataset["visibility"] != Visibility.PUBLIC:
-        # if the dataset is private, user must be uploader or admin
-        # Error Code 112
-        msg = "Access for private datasets not yet ported."
-        raise NotImplementedError(msg)
-
-    if not (file := get_file(dataset["file_id"])):
-        msg = f"No data file associated with dataset_id={dataset_id!r}."
-        raise FileNotFoundError(msg)
-
+def get_dataset_description(
+    dataset: dict[str, Any],
+    file: dict[str, Any],
+) -> DatasetMetadata:
+    dataset_id = dataset["did"]
     tags = [row["tag"] for row in get_tags(dataset_id)]
 
     BASE_URL = "https://www.openml.org/"
