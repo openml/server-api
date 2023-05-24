@@ -64,7 +64,7 @@ def get_file(file_id: int) -> dict[str, Any] | None:
     return dict(zip(columns, result[0], strict=True)) if (result := list(row)) else None
 
 
-def get_tags(dataset_id: int) -> list[dict[str, Any]]:
+def get_tags(dataset_id: int) -> list[str]:
     columns = get_column_names(expdb, "dataset_tag")
     with expdb.connect() as conn:
         rows = conn.execute(
@@ -77,7 +77,7 @@ def get_tags(dataset_id: int) -> list[dict[str, Any]]:
             ),
             parameters={"dataset_id": dataset_id},
         )
-    return [dict(zip(columns, row, strict=True)) for row in rows]
+    return [dict(zip(columns, row, strict=True))["tag"] for row in rows]
 
 
 def get_latest_dataset_description(dataset_id: int) -> dict[str, Any] | None:
@@ -142,9 +142,9 @@ def get_latest_processing_update(dataset_id: int) -> dict[str, Any] | None:
 def get_dataset_description(
     dataset: dict[str, Any],
     file: dict[str, Any],
+    tags: list[str],
 ) -> DatasetMetadata:
     dataset_id = dataset["did"]
-    tags = [row["tag"] for row in get_tags(dataset_id)]
 
     BASE_URL = "https://www.openml.org/"
     filename = f"{html.escape(dataset['name'])}.{dataset['format'].lower()}"

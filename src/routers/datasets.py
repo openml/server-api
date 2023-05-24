@@ -2,7 +2,7 @@ import http.client
 from typing import Any, cast
 
 from database.datasets import get_dataset as db_get_dataset
-from database.datasets import get_dataset_description, get_file
+from database.datasets import get_dataset_description, get_file, get_tags
 from fastapi import APIRouter, HTTPException
 from schemas.datasets import DatasetSchema
 from schemas.datasets.convertor import openml_dataset_to_dcat
@@ -17,10 +17,12 @@ router_old_format = APIRouter(prefix="/old/datasets", tags=["datasets"])
 
 
 def format_error(*, code: int, message: str) -> dict[str, int | str]:
+    """Formatter for JSON bodies of OpenML error codes."""
     return {"code": code, "message": message}
 
 
 def user_has_access(dataset: dict[str, Any], _user: Any) -> bool:
+    """Determine if `user` has the right to view `dataset`."""
     return cast(str, dataset["visibility"]) == Visibility.PUBLIC
 
 
@@ -51,7 +53,9 @@ def get_dataset(
             detail=format_error(code=113, message="Could not find data file record"),
         )
 
-    description = get_dataset_description(dataset, dataset_file)
+    tags = get_tags(dataset_id)
+
+    description = get_dataset_description(dataset, dataset_file, tags)
     if schema == DatasetSchema.MLDCAT_AP:
         return convert_to_mldcat_ap(description)
     if schema == DatasetSchema.DCAT_AP:
