@@ -198,4 +198,7 @@ def get_dataset_wrapped(dataset_id: int) -> dict[str, dict[str, Any]]:
         if not dataset[field]:
             del dataset[field]
 
+    if "description" not in dataset:
+        dataset["description"] = []
+
     return {"data_set_description": dataset}
