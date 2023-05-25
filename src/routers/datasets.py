@@ -13,7 +13,12 @@ from database.datasets import (
     get_tags,
 )
 from fastapi import APIRouter, HTTPException
-from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Visibility
+from schemas.datasets.openml import (
+    DatasetFileFormat,
+    DatasetMetadata,
+    DatasetStatus,
+    Visibility,
+)
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 # We add separate endpoints for old-style JSON responses,
@@ -39,7 +44,7 @@ def user_has_access(dataset: dict[str, Any], _user: Any) -> bool:
 
 
 def format_parquet_url(dataset: dict[str, Any]) -> str | None:
-    if dataset["format"] == "Sparse_ARFF":
+    if dataset["format"] == DatasetFileFormat.SPARSE_ARFF:
         return None
 
     minio_base_url = "https://openml1.win.tue.nl"

@@ -33,7 +33,8 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
         if field in new:
             del new[field]
 
-    del new["minio_url"]  # not served from the test server
+    if "minio_url" in new:
+        del new["minio_url"]  # not served from the test server (and not for sparse)
 
     # The remainder of the fields should be identical:
     assert original == new

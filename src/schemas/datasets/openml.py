@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, HttpUrl
 
 class DatasetFileFormat(StrEnum):
     ARFF = "ARFF"
+    SPARSE_ARFF = "Sparse_ARFF"
     PARQUET = "parquet"
 
 
@@ -73,11 +74,11 @@ class DatasetMetadata(BaseModel):
         example="https://www.openml.org/data/download/1/dataset_1_anneal.arff",
         description="URL of the main dataset data file.",
     )
-    parquet_url: HttpUrl = Field(
+    parquet_url: HttpUrl | None = Field(
         example="http://openml1.win.tue.nl/dataset2/dataset_2.pq",
         description="URL of the parquet dataset data file.",
     )
-    minio_url: HttpUrl = Field(
+    minio_url: HttpUrl | None = Field(
         example="http://openml1.win.tue.nl/dataset2/dataset_2.pq",
         description="Deprecated, I think.",
     )
