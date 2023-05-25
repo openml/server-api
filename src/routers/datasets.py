@@ -51,6 +51,13 @@ def format_dataset_url(dataset: dict[str, Any]) -> str:
     return f"{base_url}/data/v1/download/{dataset['file_id']}/{filename}"
 
 
+def safe_unquote(text: str | None) -> str | None:
+    """Remove any open and closing quotes and return the remainder if non-empty."""
+    if not text:
+        return None
+    return text.strip("'\"") or None
+
+
 @router.get(
     path="/{dataset_id}",
     description="Get meta-data for dataset with ID `dataset_id`.",
@@ -120,8 +127,9 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
         description=description_,
         description_version=description["version"] if description else 0,
         tag=tags,
-        default_target_attribute=dataset["default_target_attribute"],
-        ignore_attribute=dataset["ignore_attribute"],
+        default_target_attribute=safe_unquote(dataset["default_target_attribute"]),
+        ignore_attribute=safe_unquote(dataset["ignore_attribute"]),
+        row_id_attribute=safe_unquote(dataset["row_id_attribute"]),
         url=dataset_url,
         parquet_url=parquet_url,
         minio_url=parquet_url,
