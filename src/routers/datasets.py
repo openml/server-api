@@ -1,15 +1,18 @@
+import html
 import http.client
 from enum import IntEnum
 from typing import Any, cast
 
 from database.datasets import get_dataset as db_get_dataset
-from database.datasets import get_dataset_description, get_file, get_tags
+from database.datasets import (
+    get_file,
+    get_latest_dataset_description,
+    get_latest_processing_update,
+    get_latest_status_update,
+    get_tags,
+)
 from fastapi import APIRouter, HTTPException
-from schemas.datasets import DatasetSchema
-from schemas.datasets.convertor import openml_dataset_to_dcat
-from schemas.datasets.dcat import DcatApWrapper
-from schemas.datasets.mldcat_ap import JsonLDGraph, convert_to_mldcat_ap
-from schemas.datasets.openml import DatasetMetadata, Visibility
+from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Visibility
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 # We add separate endpoints for old-style JSON responses,
@@ -34,47 +37,93 @@ def user_has_access(dataset: dict[str, Any], _user: Any) -> bool:
     return cast(str, dataset["visibility"]) == Visibility.PUBLIC
 
 
+def format_parquet_url(dataset: dict[str, Any]) -> str | None:
+    if dataset["format"] == "Sparse_ARFF":
+        return None
+
+    minio_base_url = "https://openml1.win.tue.nl/dataset"
+    return f"{minio_base_url}/{dataset['did']}/dataset_{dataset['did']}.pq"
+
+
+def format_dataset_url(dataset: dict[str, Any]) -> str:
+    base_url = "https://www.openml.org/"
+    filename = f"{html.escape(dataset['name'])}.{dataset['format'].lower()}"
+    return f"{base_url}/data/v1/download/{dataset['file_id']}/{filename}"
+
+
 @router.get(
     path="/{dataset_id}",
     description="Get meta-data for dataset with ID `dataset_id`.",
 )
-def get_dataset(
-    dataset_id: int,
-    schema: DatasetSchema,
-) -> DatasetMetadata | DcatApWrapper | JsonLDGraph:
+def get_dataset(dataset_id: int) -> DatasetMetadata:
     if not (dataset := db_get_dataset(dataset_id)):
-        raise HTTPException(
-            status_code=http.client.PRECONDITION_FAILED,
-            detail=format_error(code=DatasetError.NOT_FOUND, message="Unknown dataset"),
-        )
+        error = format_error(code=DatasetError.NOT_FOUND, message="Unknown dataset")
+        raise HTTPException(status_code=http.client.PRECONDITION_FAILED, detail=error)
 
     user = None  # get_user(...)
     if not user_has_access(dataset, user):
-        raise HTTPException(
-            status_code=http.client.PRECONDITION_FAILED,
-            detail=format_error(
-                code=DatasetError.NO_ACCESS,
-                message="No access granted",
-            ),
-        )
+        error = format_error(code=DatasetError.NO_ACCESS, message="No access granted")
+        raise HTTPException(status_code=http.client.PRECONDITION_FAILED, detail=error)
 
     if not (dataset_file := get_file(dataset["file_id"])):
-        raise HTTPException(
-            status_code=http.client.PRECONDITION_FAILED,
-            detail=format_error(
-                code=DatasetError.NOT_FOUND,
-                message="Could not find data file record",
-            ),
+        error = format_error(
+            code=DatasetError.NO_DATA_FILE,
+            message="No data file found",
         )
+        raise HTTPException(status_code=http.client.PRECONDITION_FAILED, detail=error)
 
     tags = get_tags(dataset_id)
 
-    description = get_dataset_description(dataset, dataset_file, tags)
-    if schema == DatasetSchema.MLDCAT_AP:
-        return convert_to_mldcat_ap(description)
-    if schema == DatasetSchema.DCAT_AP:
-        return openml_dataset_to_dcat(description)
-    return description
+    dataset_url = format_dataset_url(dataset)
+    parquet_url = format_parquet_url(dataset)
+
+    description = get_latest_dataset_description(dataset_id)
+
+    status = get_latest_status_update(dataset_id)
+    status_ = DatasetStatus(status["status"]) if status else DatasetStatus.IN_PROCESSING
+
+    # Not sure which properties are set by this bit:
+    # foreach( $this->xml_fields_dataset['csv'] as $field ) {
+    #   $dataset->{$field} = getcsv( $dataset->{$field} );
+    # }
+
+    data_processed = get_latest_processing_update(dataset_id)
+    if data_processed:
+        date_processed = data_processed["processing_date"]
+        warning = data_processed["warning"]
+        error = data_processed["error"]
+        if warning or error:
+            msg = f"Dataset processed with {warning=} and {error=}. Behavior unclear."
+            raise NotImplementedError(msg)
+    else:
+        date_processed = None
+
+    return DatasetMetadata(
+        id=dataset["did"],
+        visibility=dataset["visibility"],
+        status=status_,
+        name=dataset["name"],
+        licence=dataset["licence"],
+        version=dataset["version"],
+        version_label=dataset["version_label"] or "",
+        language=dataset["language"] or "",
+        creator=(dataset["creator"] or "").split(", "),
+        contributor=(dataset["contributor"] or "").split(", "),
+        citation=dataset["citation"] or "",
+        upload_date=dataset["upload_date"],
+        processing_date=date_processed,
+        description=description["description"] if description else "",
+        description_version=description["version"] if description else 0,
+        tag=tags,
+        default_target_attribute=dataset["default_target_attribute"],
+        url=dataset_url,
+        parquet_url=parquet_url,
+        minio_url=parquet_url,
+        file_id=dataset["file_id"],
+        format=dataset["format"],
+        original_data_url=dataset_url,
+        md5_checksum=dataset_file["md5_hash"],
+    )
 
 
 @router_old_format.get(
@@ -82,8 +131,8 @@ def get_dataset(
     description="Get old-style wrapped meta-data for dataset with ID `dataset_id`.",
 )
 def get_dataset_wrapped(dataset_id: int) -> dict[str, DatasetMetadata]:
-    dataset = get_dataset(dataset_id, schema=DatasetSchema.OPENML)
+    dataset = get_dataset(dataset_id)
     # TODO: convert tags from list to str)
     # TODO: convert contributor from list to str
     # TODO: Check all types are consistent
-    return {"data_set_description": cast(DatasetMetadata, dataset)}
+    return {"data_set_description": dataset}
