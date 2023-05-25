@@ -93,7 +93,7 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
     )
 
     creators = (
-        [c.strip("'\"") for c in dataset["creator"].split(", ")]
+        [creator.strip("'\"") for creator in dataset["creator"].split(", ")]
         if dataset["creator"]
         else []
     )
@@ -159,12 +159,13 @@ def get_dataset_wrapped(dataset_id: int) -> dict[str, dict[str, Any]]:
         dataset["parquet_url"] = dataset["parquet_url"].replace("https", "http")
 
     manual = []
-    if dataset["contributor"] == [""]:
-        # ref test.openml.org/d/33
-        #   contributor in database is '""'
-        #   json content is []
-        dataset["contributor"] = []
-        manual.append("contributor")
+    # ref test.openml.org/d/33 (contributor) and d/34 (creator)
+    #   contributor/creator in database is '""'
+    #   json content is []
+    for field in ["contributor", "creator"]:
+        if dataset[field] == [""]:
+            dataset[field] = []
+            manual.append(field)
 
     for field, value in list(dataset.items()):
         if field in manual:
