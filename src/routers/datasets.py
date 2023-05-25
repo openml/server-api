@@ -109,6 +109,7 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
         description_version=description["version"] if description else 0,
         tag=tags,
         default_target_attribute=dataset["default_target_attribute"],
+        ignore_attribute=dataset["ignore_attribute"],
         url=dataset_url,
         parquet_url=parquet_url,
         minio_url=parquet_url,

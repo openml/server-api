@@ -61,6 +61,7 @@ class DatasetMetadata(BaseModel):
     description_version: int = Field(example=2)
     tags: list[str] = Field(example=["study_1", "uci"], alias="tag")
     default_target_attribute: str = Field(example="class")
+    ignore_attribute: str | None = Field(example="unique_id")
 
     url: HttpUrl = Field(
         example="https://www.openml.org/data/download/1/dataset_1_anneal.arff",
