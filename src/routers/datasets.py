@@ -78,6 +78,7 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
     status = get_latest_status_update(dataset_id)
 
     status_ = DatasetStatus(status["status"]) if status else DatasetStatus.IN_PROCESSING
+    description_ = description["description"].replace("\r", "") if description else ""
     dataset_url = format_dataset_url(dataset)
     parquet_url = format_parquet_url(dataset)
 
@@ -100,7 +101,7 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
         citation=dataset["citation"] or "",
         upload_date=dataset["upload_date"],
         processing_date=date_processed,
-        description=description["description"] if description else "",
+        description=description_,
         description_version=description["version"] if description else 0,
         tag=tags,
         default_target_attribute=dataset["default_target_attribute"],
