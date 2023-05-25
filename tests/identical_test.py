@@ -8,7 +8,7 @@ from fastapi import FastAPI
 @pytest.mark.web()
 @pytest.mark.parametrize(
     "dataset_id",
-    [1, 128],
+    list(range(1, 9078)),
 )
 def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> None:
     original = httpx.get(f"https://test.openml.org/api/v1/json/data/{dataset_id}")
