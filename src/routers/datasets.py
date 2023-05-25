@@ -32,9 +32,9 @@ class DatasetError(IntEnum):
     NO_DATA_FILE = 113
 
 
-def format_error(*, code: DatasetError, message: str) -> dict[str, int | str]:
+def format_error(*, code: DatasetError, message: str) -> dict[str, str]:
     """Formatter for JSON bodies of OpenML error codes."""
-    return {"code": code, "message": message}
+    return {"code": str(code), "message": message}
 
 
 def user_has_access(dataset: dict[str, Any], _user: Any) -> bool:
