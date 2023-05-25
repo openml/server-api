@@ -1,3 +1,4 @@
+import http.client
 from typing import cast
 
 import httpx
@@ -15,6 +16,11 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
     new = cast(httpx.Response, api_client.get(f"/old/datasets/{dataset_id}"))
     assert original.status_code == new.status_code
     assert new.json()
+
+    if new.status_code == http.client.PRECONDITION_FAILED:
+        assert original.json()["error"] == new.json()["detail"]
+        return  # TODO: Separate to different test, dids: 130
+
     assert "data_set_description" in new.json()
 
     original = original.json()["data_set_description"]
