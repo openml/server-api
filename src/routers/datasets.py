@@ -73,30 +73,18 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
         raise HTTPException(status_code=http.client.PRECONDITION_FAILED, detail=error)
 
     tags = get_tags(dataset_id)
+    description = get_latest_dataset_description(dataset_id)
+    date_processed = get_date_processed(dataset_id)
+    status = get_latest_status_update(dataset_id)
 
+    status_ = DatasetStatus(status["status"]) if status else DatasetStatus.IN_PROCESSING
     dataset_url = format_dataset_url(dataset)
     parquet_url = format_parquet_url(dataset)
-
-    description = get_latest_dataset_description(dataset_id)
-
-    status = get_latest_status_update(dataset_id)
-    status_ = DatasetStatus(status["status"]) if status else DatasetStatus.IN_PROCESSING
 
     # Not sure which properties are set by this bit:
     # foreach( $this->xml_fields_dataset['csv'] as $field ) {
     #   $dataset->{$field} = getcsv( $dataset->{$field} );
     # }
-
-    data_processed = get_latest_processing_update(dataset_id)
-    if data_processed:
-        date_processed = data_processed["processing_date"]
-        warning = data_processed["warning"]
-        error = data_processed["error"]
-        if warning or error:
-            msg = f"Dataset processed with {warning=} and {error=}. Behavior unclear."
-            raise NotImplementedError(msg)
-    else:
-        date_processed = None
 
     return DatasetMetadata(
         id=dataset["did"],
@@ -124,6 +112,19 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
         original_data_url=dataset_url,
         md5_checksum=dataset_file["md5_hash"],
     )
+
+
+def get_date_processed(dataset_id: int) -> str | None:
+    if not (data_processed := get_latest_processing_update(dataset_id)):
+        return None
+
+    date_processed = data_processed["processing_date"]
+    warning = data_processed["warning"]
+    error = data_processed["error"]
+    if warning or error:
+        msg = f"Dataset processed with {warning=} and {error=}. Behavior unclear."
+        raise NotImplementedError(msg)
+    return cast(str, date_processed)
 
 
 @router_old_format.get(
