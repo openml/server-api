@@ -83,5 +83,7 @@ class DatasetMetadata(BaseModel):
     )
     file_id: int = Field(example=1)
     format_: DatasetFileFormat = Field(example=DatasetFileFormat.ARFF, alias="format")
-    original_data_url: HttpUrl | None = Field(example="https://www.openml.org/d/2")
+    original_data_url: list[HttpUrl] | None = Field(
+        example="https://www.openml.org/d/2",
+    )
     md5_checksum: str = Field(example="d01f6ccd68c88b749b20bbe897de3713")

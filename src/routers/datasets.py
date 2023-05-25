@@ -105,6 +105,7 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
     creators = csv_as_list(dataset["creator"], unquote_items=True)
     ignore_attribute = csv_as_list(dataset["ignore_attribute"], unquote_items=True)
     row_id_attribute = csv_as_list(dataset["row_id_attribute"], unquote_items=True)
+    original_data_url = csv_as_list(dataset["original_data_url"], unquote_items=True)
 
     # Not sure which properties are set by this bit:
     # foreach( $this->xml_fields_dataset['csv'] as $field ) {
@@ -139,7 +140,7 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
         file_id=dataset["file_id"],
         format=dataset["format"],
         paper_url=dataset["paper_url"] or None,
-        original_data_url=dataset["original_data_url"] or None,
+        original_data_url=original_data_url,
         collection_date=dataset["collection_date"],
         md5_checksum=dataset_file["md5_hash"],
     )
@@ -178,6 +179,9 @@ def get_dataset_wrapped(dataset_id: int) -> dict[str, dict[str, Any]]:
         if dataset[field] == [""]:
             dataset[field] = []
             manual.append(field)
+
+    if isinstance(dataset["original_data_url"], list):
+        dataset["original_data_url"] = ", ".join(dataset["original_data_url"])
 
     for field, value in list(dataset.items()):
         if field in manual:
