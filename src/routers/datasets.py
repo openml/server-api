@@ -115,7 +115,7 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
         minio_url=parquet_url,
         file_id=dataset["file_id"],
         format=dataset["format"],
-        paper_url=dataset["paper_url"],
+        paper_url=dataset["paper_url"] or None,
         original_data_url=dataset["original_data_url"],
         collection_date=dataset["collection_date"],
         md5_checksum=dataset_file["md5_hash"],
