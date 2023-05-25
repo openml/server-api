@@ -86,6 +86,18 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
     dataset_url = format_dataset_url(dataset)
     parquet_url = format_parquet_url(dataset)
 
+    contributors = (
+        [contributor.strip("\"'") for contributor in dataset["contributor"].split(", ")]
+        if dataset["contributor"]
+        else []
+    )
+
+    creators = (
+        [c.strip("'\"") for c in dataset["creator"].split(", ")]
+        if dataset["creator"]
+        else []
+    )
+
     # Not sure which properties are set by this bit:
     # foreach( $this->xml_fields_dataset['csv'] as $field ) {
     #   $dataset->{$field} = getcsv( $dataset->{$field} );
@@ -100,8 +112,8 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
         version=dataset["version"],
         version_label=dataset["version_label"] or "",
         language=dataset["language"] or "",
-        creator=(dataset["creator"] or "").split(", "),
-        contributor=(dataset["contributor"] or "").split(", "),
+        creator=creators,
+        contributor=contributors,
         citation=dataset["citation"] or "",
         upload_date=dataset["upload_date"],
         processing_date=date_processed,
@@ -146,7 +158,17 @@ def get_dataset_wrapped(dataset_id: int) -> dict[str, dict[str, Any]]:
     if dataset.get("parquet_url"):
         dataset["parquet_url"] = dataset["parquet_url"].replace("https", "http")
 
+    manual = []
+    if dataset["contributor"] == [""]:
+        # ref test.openml.org/d/33
+        #   contributor in database is '""'
+        #   json content is []
+        dataset["contributor"] = []
+        manual.append("contributor")
+
     for field, value in list(dataset.items()):
+        if field in manual:
+            continue
         if isinstance(value, int):
             dataset[field] = str(value)
         elif isinstance(value, list) and len(value) == 1:
