@@ -41,15 +41,25 @@ class DatasetMetadata(BaseModel):
     )
     language: str = Field(example="English")
 
-    creator: list[str] = Field(example=["David Sterling", "Wray Buntine"])
-    contributor: list[str] = Field(example=["David Sterling", "Wray Buntine"])
+    creators: list[str] = Field(
+        example=["David Sterling", "Wray Buntine"],
+        alias="creator",
+    )
+    contributors: list[str] = Field(
+        example=["David Sterling", "Wray Buntine"],
+        alias="contributor",
+    )
     citation: str = Field(example="https://archive.ics.uci.edu/ml/citation_policy.html")
+    paper_url: HttpUrl | None = Field(
+        example="http://digital.library.adelaide.edu.au/dspace/handle/2440/15227",
+    )
     upload_date: datetime = Field(example=datetime(2014, 4, 6, 23, 19, 20))
     processing_date: datetime | None = Field(example=datetime(2019, 7, 9, 15, 22, 3))
+    collection_date: str | None = Field(example="1990")
 
     description: str = Field(example="The original Annealing dataset from UCI.")
     description_version: int = Field(example=2)
-    tag: list[str] = Field(example=["study_1", "uci"])
+    tags: list[str] = Field(example=["study_1", "uci"], alias="tag")
     default_target_attribute: str = Field(example="class")
 
     url: HttpUrl = Field(
@@ -66,5 +76,5 @@ class DatasetMetadata(BaseModel):
     )
     file_id: int = Field(example=1)
     format_: DatasetFileFormat = Field(example=DatasetFileFormat.ARFF, alias="format")
-    original_data_url: HttpUrl = Field(example="https://www.openml.org/d/2")
+    original_data_url: HttpUrl | None = Field(example="https://www.openml.org/d/2")
     md5_checksum: str = Field(example="d01f6ccd68c88b749b20bbe897de3713")

@@ -41,12 +41,12 @@ def format_parquet_url(dataset: dict[str, Any]) -> str | None:
     if dataset["format"] == "Sparse_ARFF":
         return None
 
-    minio_base_url = "https://openml1.win.tue.nl/dataset"
-    return f"{minio_base_url}/{dataset['did']}/dataset_{dataset['did']}.pq"
+    minio_base_url = "https://openml1.win.tue.nl"
+    return f"{minio_base_url}/dataset{dataset['did']}/dataset_{dataset['did']}.pq"
 
 
 def format_dataset_url(dataset: dict[str, Any]) -> str:
-    base_url = "https://www.openml.org/"
+    base_url = "https://test.openml.org"
     filename = f"{html.escape(dataset['name'])}.{dataset['format'].lower()}"
     return f"{base_url}/data/v1/download/{dataset['file_id']}/{filename}"
 
@@ -109,7 +109,9 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
         minio_url=parquet_url,
         file_id=dataset["file_id"],
         format=dataset["format"],
-        original_data_url=dataset_url,
+        paper_url=dataset["paper_url"],
+        original_data_url=dataset["original_data_url"],
+        collection_date=dataset["collection_date"],
         md5_checksum=dataset_file["md5_hash"],
     )
 
@@ -131,9 +133,19 @@ def get_date_processed(dataset_id: int) -> str | None:
     path="/{dataset_id}",
     description="Get old-style wrapped meta-data for dataset with ID `dataset_id`.",
 )
-def get_dataset_wrapped(dataset_id: int) -> dict[str, DatasetMetadata]:
-    dataset = get_dataset(dataset_id)
-    # TODO: convert tags from list to str)
-    # TODO: convert contributor from list to str
-    # TODO: Check all types are consistent
+def get_dataset_wrapped(dataset_id: int) -> dict[str, dict[str, Any]]:
+    dataset = get_dataset(dataset_id).dict(by_alias=True)
+    if dataset.get("processing_date"):
+        dataset["processing_date"] = str(dataset["processing_date"]).replace("T", " ")
+    if dataset.get("parquet_url"):
+        dataset["parquet_url"] = dataset["parquet_url"].replace("https", "http")
+
+    for field, value in list(dataset.items()):
+        if isinstance(value, int):
+            dataset[field] = str(value)
+        elif isinstance(value, list) and len(value) == 1:
+            dataset[field] = str(value[0])
+        if not dataset[field]:
+            del dataset[field]
+
     return {"data_set_description": dataset}
