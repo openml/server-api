@@ -1,5 +1,6 @@
 import html
 import http.client
+from collections import namedtuple
 from enum import IntEnum
 from typing import Any, cast
 
@@ -81,7 +82,7 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
 
     tags = get_tags(dataset_id)
     description = get_latest_dataset_description(dataset_id)
-    date_processed = get_date_processed(dataset_id)
+    processing_result = get_processing_information(dataset_id)
     status = get_latest_status_update(dataset_id)
 
     status_ = DatasetStatus(status["status"]) if status else DatasetStatus.IN_PROCESSING
@@ -123,7 +124,9 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
         contributor=contributors,
         citation=dataset["citation"] or "",
         upload_date=dataset["upload_date"],
-        processing_date=date_processed,
+        processing_date=processing_result.date,
+        warning=processing_result.warning,
+        error=processing_result.error,
         description=description_,
         description_version=description["version"] if description else 0,
         tag=tags,
@@ -142,17 +145,18 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
     )
 
 
-def get_date_processed(dataset_id: int) -> str | None:
+processing_info = namedtuple("processing_info", ["date", "warning", "error"])
+
+
+def get_processing_information(dataset_id: int) -> processing_info:
+    """Return processing information, if any. Otherwise, all fields `None`."""
     if not (data_processed := get_latest_processing_update(dataset_id)):
-        return None
+        return processing_info(date=None, warning=None, error=None)
 
     date_processed = data_processed["processing_date"]
-    warning = data_processed["warning"]
-    error = data_processed["error"]
-    if warning or error:
-        msg = f"Dataset processed with {warning=} and {error=}. Behavior unclear."
-        raise NotImplementedError(msg)
-    return cast(str, date_processed)
+    warning = data_processed["warning"].strip() if data_processed["warning"] else None
+    error = data_processed["error"].strip() if data_processed["error"] else None
+    return processing_info(date=date_processed, warning=warning, error=error)
 
 
 @router_old_format.get(

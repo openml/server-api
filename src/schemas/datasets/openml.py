@@ -55,6 +55,11 @@ class DatasetMetadata(BaseModel):
     )
     upload_date: datetime = Field(example=datetime(2014, 4, 6, 23, 19, 20))
     processing_date: datetime | None = Field(example=datetime(2019, 7, 9, 15, 22, 3))
+    processing_error: str | None = Field(
+        example="Please provide description XML.",
+        alias="error",
+    )
+    processing_warning: str | None = Field(alias="warning")
     collection_date: str | None = Field(example="1990")
 
     description: str = Field(example="The original Annealing dataset from UCI.")
