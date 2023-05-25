@@ -1,4 +1,5 @@
 import http.client
+from enum import IntEnum
 from typing import Any, cast
 
 from database.datasets import get_dataset as db_get_dataset
@@ -16,13 +17,20 @@ router = APIRouter(prefix="/datasets", tags=["datasets"])
 router_old_format = APIRouter(prefix="/old/datasets", tags=["datasets"])
 
 
-def format_error(*, code: int, message: str) -> dict[str, int | str]:
+class DatasetError(IntEnum):
+    NOT_FOUND = 111
+    NO_ACCESS = 112
+    NO_DATA_FILE = 113
+
+
+def format_error(*, code: DatasetError, message: str) -> dict[str, int | str]:
     """Formatter for JSON bodies of OpenML error codes."""
     return {"code": code, "message": message}
 
 
 def user_has_access(dataset: dict[str, Any], _user: Any) -> bool:
     """Determine if `user` has the right to view `dataset`."""
+    # TODO: when private, check if user is uploader or admin
     return cast(str, dataset["visibility"]) == Visibility.PUBLIC
 
 
@@ -37,20 +45,26 @@ def get_dataset(
     if not (dataset := db_get_dataset(dataset_id)):
         raise HTTPException(
             status_code=http.client.PRECONDITION_FAILED,
-            detail=format_error(code=111, message="Unknown dataset"),
+            detail=format_error(code=DatasetError.NOT_FOUND, message="Unknown dataset"),
         )
 
     user = None  # get_user(...)
     if not user_has_access(dataset, user):
         raise HTTPException(
             status_code=http.client.PRECONDITION_FAILED,
-            detail=format_error(code=112, message="No access granted"),
+            detail=format_error(
+                code=DatasetError.NO_ACCESS,
+                message="No access granted",
+            ),
         )
 
     if not (dataset_file := get_file(dataset["file_id"])):
         raise HTTPException(
             status_code=http.client.PRECONDITION_FAILED,
-            detail=format_error(code=113, message="Could not find data file record"),
+            detail=format_error(
+                code=DatasetError.NOT_FOUND,
+                message="Could not find data file record",
+            ),
         )
 
     tags = get_tags(dataset_id)
