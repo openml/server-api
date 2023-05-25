@@ -12,11 +12,6 @@ class DatasetFileFormat(StrEnum):
     PARQUET = "parquet"
 
 
-class DatasetLicence(StrEnum):
-    CC0 = "Public"
-    OTHER = "other"
-
-
 class Visibility(StrEnum):
     PUBLIC = "public"
     PRIVATE = "private"
@@ -34,7 +29,7 @@ class DatasetMetadata(BaseModel):
     status: DatasetStatus = Field(example=DatasetStatus.ACTIVE)
 
     name: str = Field(example="Anneal")
-    licence: DatasetLicence = Field(example=DatasetLicence.CC0)
+    licence: str = Field(example="CC0")
     version: int = Field(example=2)
     version_label: str = Field(
         example="2",
