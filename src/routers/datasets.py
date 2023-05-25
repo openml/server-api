@@ -128,7 +128,7 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
         file_id=dataset["file_id"],
         format=dataset["format"],
         paper_url=dataset["paper_url"] or None,
-        original_data_url=dataset["original_data_url"],
+        original_data_url=dataset["original_data_url"] or None,
         collection_date=dataset["collection_date"],
         md5_checksum=dataset_file["md5_hash"],
     )
