@@ -94,17 +94,17 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
     dataset_url = format_dataset_url(dataset)
     parquet_url = format_parquet_url(dataset)
 
-    contributors = (
-        [contributor.strip("\"'") for contributor in dataset["contributor"].split(", ")]
-        if dataset["contributor"]
-        else []
-    )
+    def csv_as_list(text: str | None, *, unquote_items: bool = True) -> list[str]:
+        """Return comma-separated values in `text` as list, optionally remove quotes."""
+        if not text:
+            return []
+        chars_to_strip = "'\"\t " if unquote_items else "\t "
+        return [item.strip(chars_to_strip) for item in text.split(",")]
 
-    creators = (
-        [creator.strip("'\"") for creator in dataset["creator"].split(", ")]
-        if dataset["creator"]
-        else []
-    )
+    contributors = csv_as_list(dataset["contributor"], unquote_items=True)
+    creators = csv_as_list(dataset["creator"], unquote_items=True)
+    ignore_attribute = csv_as_list(dataset["ignore_attribute"], unquote_items=True)
+    row_id_attribute = csv_as_list(dataset["row_id_attribute"], unquote_items=True)
 
     # Not sure which properties are set by this bit:
     # foreach( $this->xml_fields_dataset['csv'] as $field ) {
@@ -131,8 +131,8 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
         description_version=description["version"] if description else 0,
         tag=tags,
         default_target_attribute=safe_unquote(dataset["default_target_attribute"]),
-        ignore_attribute=safe_unquote(dataset["ignore_attribute"]),
-        row_id_attribute=safe_unquote(dataset["row_id_attribute"]),
+        ignore_attribute=ignore_attribute,
+        row_id_attribute=row_id_attribute,
         url=dataset_url,
         parquet_url=parquet_url,
         minio_url=parquet_url,
