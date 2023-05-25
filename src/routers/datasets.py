@@ -78,7 +78,11 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
     status = get_latest_status_update(dataset_id)
 
     status_ = DatasetStatus(status["status"]) if status else DatasetStatus.IN_PROCESSING
-    description_ = description["description"].replace("\r", "") if description else ""
+
+    description_ = ""
+    if description:
+        description_ = description["description"].replace("\r", "").strip()
+
     dataset_url = format_dataset_url(dataset)
     parquet_url = format_parquet_url(dataset)
 
