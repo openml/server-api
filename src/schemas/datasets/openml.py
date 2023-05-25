@@ -7,8 +7,8 @@ from pydantic import BaseModel, Field, HttpUrl
 
 
 class DatasetFileFormat(StrEnum):
-    ARFF = "ARFF"
-    SPARSE_ARFF = "Sparse_ARFF"
+    ARFF = "arff"
+    SPARSE_ARFF = "sparse_arff"
     PARQUET = "parquet"
 
 

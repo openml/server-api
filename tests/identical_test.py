@@ -33,7 +33,12 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
         # TODO: Ask Jan why some datasets don't have tags.
         assert set(original["tag"]) >= set(new["tag"])
 
-    for field in ["description_version", "tag"]:
+    assert original["format"].lower() == new["format"]
+    if original["format"] == "sparse_arff":
+        # The test server incorrectly thinks there is an associated parquet file:
+        del original["parquet_url"]
+
+    for field in ["description_version", "tag", "format"]:
         if field in original:
             del original[field]
         if field in new:

@@ -44,7 +44,7 @@ def user_has_access(dataset: dict[str, Any], _user: Any) -> bool:
 
 
 def format_parquet_url(dataset: dict[str, Any]) -> str | None:
-    if dataset["format"] == DatasetFileFormat.SPARSE_ARFF:
+    if dataset["format"].lower() != DatasetFileFormat.ARFF:
         return None
 
     minio_base_url = "https://openml1.win.tue.nl"
@@ -143,7 +143,7 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
         parquet_url=parquet_url,
         minio_url=parquet_url,
         file_id=dataset["file_id"],
-        format=dataset["format"],
+        format=dataset["format"].lower(),
         paper_url=dataset["paper_url"] or None,
         original_data_url=original_data_url,
         collection_date=dataset["collection_date"],
