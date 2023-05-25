@@ -21,6 +21,7 @@ repos:
     rev: '1.7.5'
     hooks:
     - id: bandit
+      args: [-c, pyproject.toml]
 
 
 -   repo: https://github.com/pre-commit/mirrors-mypy
@@ -29,6 +30,7 @@ repos:
     -   id: mypy
         additional_dependencies:
             - fastapi
+            - pytest
 
 -   repo: https://github.com/charliermarsh/ruff-pre-commit
     rev: v0.0.265

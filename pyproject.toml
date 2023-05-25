@@ -22,11 +22,16 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pre-commit",
+    "pytest",
+    "httpx",
 ]
 
 [project.urls]
 "Homepage" = "https://github.com/openml/server-api"
 "Bug Tracker" = "https://github.com/openml/server-api/issues"
+
+[tool.bandit.assert_used]
+skips = ["tests/*"]
 
 [tool.ruff]
 select = ["A", "ARG", "B", "COM", "C4", "E", "EM", "F", "I001", "PT", "PTH", "T20", "RET", "SIM"]
@@ -35,4 +40,12 @@ select = ["A", "ARG", "B", "COM", "C4", "E", "EM", "F", "I001", "PT", "PTH", "T2
 strict = true
 plugins = [
     "pydantic.mypy"
+]
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "src"
+]
+markers = [
+    "web: uses an internet connection"
 ]
