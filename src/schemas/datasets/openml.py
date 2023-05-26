@@ -21,6 +21,7 @@ class DatasetStatus(StrEnum):
     ACTIVE = "active"
     DEACTIVATED = "deactivated"
     IN_PROCESSING = "in processing"
+    IN_PREPARATION = "in_preparation"
 
 
 class DatasetMetadata(BaseModel):

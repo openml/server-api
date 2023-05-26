@@ -90,7 +90,9 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
     processing_result = get_processing_information(dataset_id)
     status = get_latest_status_update(dataset_id)
 
-    status_ = DatasetStatus(status["status"]) if status else DatasetStatus.IN_PROCESSING
+    status_ = (
+        DatasetStatus(status["status"]) if status else DatasetStatus.IN_PREPARATION
+    )
 
     description_ = ""
     if description:
