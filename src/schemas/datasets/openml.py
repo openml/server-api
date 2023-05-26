@@ -61,7 +61,7 @@ class DatasetMetadata(BaseModel):
     description: str = Field(example="The original Annealing dataset from UCI.")
     description_version: int = Field(example=2)
     tags: list[str] = Field(example=["study_1", "uci"], alias="tag")
-    default_target_attribute: str = Field(example="class")
+    default_target_attribute: str | None = Field(example="class")
     ignore_attribute: list[str] | None = Field(example="sensitive_feature")
     row_id_attribute: list[str] | None = Field(example="ssn")
 
