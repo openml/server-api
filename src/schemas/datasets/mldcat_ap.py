@@ -270,7 +270,7 @@ def convert_to_mldcat_ap(dataset: DatasetMetadata) -> JsonLDGraph:
         version_info=dataset.version,
         version_label=dataset.version_label,
         visibility=dataset.visibility,
-        keyword=dataset.tag,
+        keyword=dataset.tags,
         issued=JsonLDQualifiedLiteral(
             value=str(dataset.upload_date),
             type_="http://www.w3.org/2001/XMLSchema#dateTime",
