@@ -9,7 +9,7 @@ from fastapi import FastAPI
 @pytest.mark.web()
 @pytest.mark.parametrize(
     "dataset_id",
-    set(range(1, 9078)) - set(range(8592, 8606)),
+    range(1, 9078),
 )
 def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> None:
     original = httpx.get(f"https://test.openml.org/api/v1/json/data/{dataset_id}")
@@ -35,6 +35,7 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
 
     assert original["format"].lower() == new["format"]
     if original["format"] == "sparse_arff":
+        # https://github.com/openml/OpenML/issues/1189
         # The test server incorrectly thinks there is an associated parquet file:
         del original["parquet_url"]
 
@@ -58,6 +59,11 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
         and len(original["creator"].split(",")) > 1
     ):
         original["creator"] = [name.strip() for name in original["creator"].split(",")]
+
+    # For some reason, the TALLO dataset has multiple 'ignore attribute' but the
+    # live server is not able to parse that and provides no 'ignore attribute' field:
+    if dataset_id in range(8592, 8606):
+        del new["ignore_attribute"]
 
     # The remainder of the fields should be identical:
     assert original == new
