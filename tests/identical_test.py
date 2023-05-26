@@ -19,7 +19,7 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
 
     if new.status_code == http.client.PRECONDITION_FAILED:
         assert original.json()["error"] == new.json()["detail"]
-        return  # TODO: Separate to different test, dids: 130 and ..?
+        return
 
     assert "data_set_description" in new.json()
 
@@ -67,3 +67,14 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
 
     # The remainder of the fields should be identical:
     assert original == new
+
+
+@pytest.mark.parametrize(
+    "dataset_id",
+    [-1, 138, 100_000],
+)
+def test_error_unknown_dataset(dataset_id: int, api_client: FastAPI) -> None:
+    response = cast(httpx.Response, api_client.get(f"/old/datasets/{dataset_id}"))
+
+    assert response.status_code == http.client.PRECONDITION_FAILED
+    assert {"code": "111", "message": "Unknown dataset"} == response.json()["detail"]
