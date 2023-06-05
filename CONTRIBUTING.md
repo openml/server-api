@@ -12,6 +12,11 @@ MySQL server regardless of your local development setup. This way there is no
 variability in the database setup, and it is easy to reset to the same database state
 other developers use.
 
+Current workflow is to get a snapshot from the test server at test.openml.org/phpmyadmin,
+and then host it in a local mysql container.
+The databases are hardcoded to be accessible by user `root` with password `ok` at
+`127.0.0.1:3306`.
+
 TODO: Upload a docker image which has a test database included and can easily be run
 without any local changes.
 
