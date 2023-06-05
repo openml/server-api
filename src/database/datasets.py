@@ -1,7 +1,9 @@
 """ Translation from https://github.com/openml/OpenML/blob/c19c9b99568c0fabb001e639ff6724b9a754bbc9/openml_OS/models/api/v1/Api_data.php#L707"""
 from typing import Any
 
-from sqlalchemy import Engine, create_engine, text
+from sqlalchemy import create_engine, text
+
+from database.meta import get_column_names
 
 expdb = create_engine(
     "mysql://root:ok@127.0.0.1:3306/openml_expdb",
@@ -13,21 +15,6 @@ openml = create_engine(
     echo=True,
     pool_recycle=3600,
 )
-
-
-def get_column_names(database: Engine, table: str) -> list[str]:
-    with database.connect() as conn:
-        result = conn.execute(
-            text(
-                """
-      SELECT column_name
-      FROM INFORMATION_SCHEMA.COLUMNS
-      WHERE TABLE_NAME = :table_name;
-      """,
-            ),
-            parameters={"table_name": table},
-        )
-    return [colname for colname, in result.all()]
 
 
 def get_dataset(dataset_id: int) -> dict[str, Any] | None:

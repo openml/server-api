@@ -2,7 +2,7 @@ import html
 import http.client
 from collections import namedtuple
 from enum import IntEnum
-from typing import Any, cast
+from typing import Any
 
 from database.datasets import get_dataset as db_get_dataset
 from database.datasets import (
@@ -12,6 +12,7 @@ from database.datasets import (
     get_latest_status_update,
     get_tags,
 )
+from database.users import APIKey, get_user_groups_for, get_user_id_for
 from fastapi import APIRouter, HTTPException
 from schemas.datasets.openml import (
     DatasetFileFormat,
@@ -51,10 +52,25 @@ def _format_error(*, code: DatasetError, message: str) -> dict[str, str]:
     return {"code": str(code), "message": message}
 
 
-def _user_has_access(dataset: dict[str, Any], _user: Any) -> bool:
-    """Determine if `user` has the right to view `dataset`."""
-    # TODO: when private, check if user is uploader or admin
-    return cast(str, dataset["visibility"]) == Visibility.PUBLIC
+def _user_has_access(
+    dataset: dict[str, Any],
+    api_key: APIKey | None = None,
+) -> bool:
+    """Determine if user of `api_key` has the right to view `dataset`."""
+    if dataset["visibility"] == Visibility.PUBLIC:
+        return True
+    if not api_key:
+        return False
+
+    if not (user_id := get_user_id_for(api_key=api_key)):
+        return False
+
+    if user_id == dataset["uploader"]:
+        return True
+
+    user_groups = get_user_groups_for(user_id=user_id)
+    ADMIN_GROUP = 1
+    return ADMIN_GROUP in user_groups
 
 
 def _format_parquet_url(dataset: dict[str, Any]) -> str | None:
@@ -90,13 +106,15 @@ def _csv_as_list(text: str | None, *, unquote_items: bool = True) -> list[str]:
     path="/{dataset_id}",
     description="Get meta-data for dataset with ID `dataset_id`.",
 )
-def get_dataset(dataset_id: int) -> DatasetMetadata:
+def get_dataset(
+    dataset_id: int,
+    api_key: APIKey | None = None,
+) -> DatasetMetadata:
     if not (dataset := db_get_dataset(dataset_id)):
         error = _format_error(code=DatasetError.NOT_FOUND, message="Unknown dataset")
         raise HTTPException(status_code=http.client.PRECONDITION_FAILED, detail=error)
 
-    user = None  # get_user(...)
-    if not _user_has_access(dataset, user):
+    if not _user_has_access(dataset, api_key):
         error = _format_error(code=DatasetError.NO_ACCESS, message="No access granted")
         raise HTTPException(status_code=http.client.PRECONDITION_FAILED, detail=error)
 
@@ -172,8 +190,11 @@ def get_dataset(dataset_id: int) -> DatasetMetadata:
     path="/{dataset_id}",
     description="Get old-style wrapped meta-data for dataset with ID `dataset_id`.",
 )
-def get_dataset_wrapped(dataset_id: int) -> dict[str, dict[str, Any]]:
-    dataset = get_dataset(dataset_id).dict(by_alias=True)
+def get_dataset_wrapped(
+    dataset_id: int,
+    api_key: APIKey | None = None,
+) -> dict[str, dict[str, Any]]:
+    dataset = get_dataset(dataset_id, api_key).dict(by_alias=True)
     if dataset.get("processing_date"):
         dataset["processing_date"] = str(dataset["processing_date"]).replace("T", " ")
     if dataset.get("parquet_url"):

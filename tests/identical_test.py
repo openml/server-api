@@ -1,5 +1,5 @@
 import http.client
-from typing import cast
+from typing import Any, cast
 
 import httpx
 import pytest
@@ -78,3 +78,34 @@ def test_error_unknown_dataset(dataset_id: int, api_client: FastAPI) -> None:
 
     assert response.status_code == http.client.PRECONDITION_FAILED
     assert {"code": "111", "message": "Unknown dataset"} == response.json()["detail"]
+
+
+@pytest.mark.parametrize(
+    "api_key",
+    [None, "a" * 32],
+)
+def test_private_dataset_no_user_no_access(
+    api_client: FastAPI,
+    api_key: str | None,
+) -> None:
+    query = f"?api_key={api_key}" if api_key else ""
+    response = cast(httpx.Response, api_client.get(f"/old/datasets/130{query}"))
+
+    assert response.status_code == http.client.PRECONDITION_FAILED
+    assert {"code": "112", "message": "No access granted"} == response.json()["detail"]
+
+
+@pytest.mark.skip("Not sure how to include apikey in test yet.")
+def test_private_dataset_owner_access(
+    api_client: FastAPI,
+    dataset_130: dict[str, Any],
+) -> None:
+    response = cast(httpx.Response, api_client.get("/old/datasets/130?api_key=..."))
+    assert response.status_code == http.client.OK
+    assert dataset_130 == response.json()
+
+
+@pytest.mark.skip("Not sure how to include apikey in test yet.")
+def test_private_dataset_admin_access(api_client: FastAPI) -> None:
+    cast(httpx.Response, api_client.get("/old/datasets/130?api_key=..."))
+    # test against cached response
