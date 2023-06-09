@@ -2,10 +2,11 @@
 We add separate endpoints for old-style JSON responses, so they don't clutter the schema of the
 new API, and are easily removed later.
 """
+import http.client
 from typing import Any
 
 from database.users import APIKey
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
 from routers.datasets import get_dataset
 
@@ -20,7 +21,13 @@ def get_dataset_wrapped(
     dataset_id: int,
     api_key: APIKey | None = None,
 ) -> dict[str, dict[str, Any]]:
-    dataset = get_dataset(dataset_id, api_key).dict(by_alias=True)
+    try:
+        dataset = get_dataset(dataset_id, api_key).dict(by_alias=True)
+    except HTTPException as e:
+        raise HTTPException(
+            status_code=http.client.PRECONDITION_FAILED,
+            detail=e.detail,
+        ) from None
     if dataset.get("processing_date"):
         dataset["processing_date"] = str(dataset["processing_date"]).replace("T", " ")
     if dataset.get("parquet_url"):

@@ -17,7 +17,7 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
     assert original.status_code == new.status_code
     assert new.json()
 
-    if new.status_code == http.client.PRECONDITION_FAILED:
+    if new.status_code != http.client.OK:
         assert original.json()["error"] == new.json()["detail"]
         return
 
@@ -76,7 +76,7 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
 def test_error_unknown_dataset(dataset_id: int, api_client: FastAPI) -> None:
     response = cast(httpx.Response, api_client.get(f"/old/datasets/{dataset_id}"))
 
-    assert response.status_code == http.client.PRECONDITION_FAILED
+    assert response.status_code == http.client.NOT_FOUND
     assert {"code": "111", "message": "Unknown dataset"} == response.json()["detail"]
 
 
@@ -91,7 +91,7 @@ def test_private_dataset_no_user_no_access(
     query = f"?api_key={api_key}" if api_key else ""
     response = cast(httpx.Response, api_client.get(f"/old/datasets/130{query}"))
 
-    assert response.status_code == http.client.PRECONDITION_FAILED
+    assert response.status_code == http.client.FORBIDDEN
     assert {"code": "112", "message": "No access granted"} == response.json()["detail"]
 
 

@@ -109,11 +109,11 @@ def get_dataset(
 ) -> DatasetMetadata:
     if not (dataset := db_get_dataset(dataset_id)):
         error = _format_error(code=DatasetError.NOT_FOUND, message="Unknown dataset")
-        raise HTTPException(status_code=http.client.PRECONDITION_FAILED, detail=error)
+        raise HTTPException(status_code=http.client.NOT_FOUND, detail=error)
 
     if not _user_has_access(dataset, api_key):
         error = _format_error(code=DatasetError.NO_ACCESS, message="No access granted")
-        raise HTTPException(status_code=http.client.PRECONDITION_FAILED, detail=error)
+        raise HTTPException(status_code=http.client.FORBIDDEN, detail=error)
 
     if not (dataset_file := get_file(dataset["file_id"])):
         error = _format_error(
