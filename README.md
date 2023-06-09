@@ -1,5 +1,37 @@
 # server
-Python-based server prototype
+Python-based server prototype for OpenML.
+
+## Prerequisites
+- Linux/MacOS/Windows
+- `Python3.11`
+- (Optional) to run the WebTests, you need access to the OpenML database of test.openml.org.
+
+## Local Installation
+
+If you want to run the server locally, you need **Python 3.11**.
+We advise creating a virtual environment first and install the dependencies there:
+
+```bash
+python3.11 -m venv venv
+source venv/bin/activate
+python -m pip install .         # alternative without development dependencies
+python -m pip install ".[dev]"  # alternative with development dependencies
+```
+
+Moreover, you are encouraged to install the pre-commit hooks:
+```bash
+pre-commit install
+```
+You can run
+```bash
+pre-commit run --all-files
+```
+To run pre-commit manually.
+
+## Running tests
+Currently, it's not easily possible to run the tests locally, because you need access to the
+OpenML test database. We might want to change this, so that for most tests a Sqlite instance is
+used.
 
 ## Development Roadmap
 First we will mimic current server functionality, relying on many implementation details
