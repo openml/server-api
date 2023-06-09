@@ -31,7 +31,7 @@ def openml_dataset_to_dcat(metadata: DatasetMetadata) -> DcatApWrapper:
         title=[metadata.name],
         version=metadata.version,
         release_date=XSDDateTime(value_=metadata.upload_date),
-        keyword=metadata.tag,
+        keyword=metadata.tags,
         distribution=[DcatAPIdentifier(id_=distribution.id_)],
         landing_page=[metadata.url],
     )
