@@ -9,7 +9,8 @@ def get_column_names(database_engine: Engine, table: str) -> list[str]:
                 """
       SELECT column_name
       FROM INFORMATION_SCHEMA.COLUMNS
-      WHERE TABLE_NAME = :table_name AND TABLE_SCHEMA = :database;
+      WHERE TABLE_NAME = :table_name AND TABLE_SCHEMA = :database
+      ORDER BY ORDINAL_POSITION
       """,
             ),
             parameters={"table_name": table, "database": database_name},
