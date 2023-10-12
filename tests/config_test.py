@@ -1,20 +1,27 @@
 import os
 from pathlib import Path
 
-from config import _apply_defaults_to_subtables, load_database_configuration
+from config import _apply_defaults_to_siblings, load_database_configuration
 
 
-def test_apply_defaults_to_subtables_applies_defaults() -> None:
-    input_ = {"foo": {"defaults": {1: 1}, "other": {}}}
+def test_apply_defaults_to_siblings_applies_defaults() -> None:
+    input_ = {"defaults": {1: 1}, "other": {}}
     expected = {"other": {1: 1}}
-    output = _apply_defaults_to_subtables(input_, table="foo")
+    output = _apply_defaults_to_siblings(input_)
     assert expected == output
 
 
-def test_apply_defaults_to_subtables_does_not_override() -> None:
-    input_ = {"foo": {"defaults": {1: 1}, "other": {1: 2}}}
+def test_apply_defaults_to_siblings_does_not_override() -> None:
+    input_ = {"defaults": {1: 1}, "other": {1: 2}}
     expected = {"other": {1: 2}}
-    output = _apply_defaults_to_subtables(input_, table="foo")
+    output = _apply_defaults_to_siblings(input_)
+    assert expected == output
+
+
+def test_apply_defaults_to_siblings_ignores_nontables() -> None:
+    input_ = {"defaults": {1: 1}, "other": {1: 2}, "not-a-table": 3}
+    expected = {"other": {1: 2}, "not-a-table": 3}
+    output = _apply_defaults_to_siblings(input_)
     assert expected == output
 
 

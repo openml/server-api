@@ -9,11 +9,11 @@ from dotenv import load_dotenv
 TomlTable = dict[str, typing.Any]
 
 
-def _apply_defaults_to_subtables(configuration: TomlTable, table: str) -> TomlTable:
-    defaults = configuration[table]["defaults"]
+def _apply_defaults_to_siblings(configuration: TomlTable) -> TomlTable:
+    defaults = configuration["defaults"]
     return {
-        subtable: defaults | overrides
-        for subtable, overrides in configuration[table].items()
+        subtable: (defaults | overrides) if isinstance(overrides, dict) else overrides
+        for subtable, overrides in configuration.items()
         if subtable != "defaults"
     }
 
@@ -22,9 +22,8 @@ def _apply_defaults_to_subtables(configuration: TomlTable, table: str) -> TomlTa
 def load_database_configuration(file: Path = Path(__file__).parent / "config.toml") -> TomlTable:
     configuration = tomllib.loads(file.read_text())
 
-    database_configuration = _apply_defaults_to_subtables(
-        configuration,
-        table="databases",
+    database_configuration = _apply_defaults_to_siblings(
+        configuration["databases"],
     )
     load_dotenv()
     database_configuration["openml"]["username"] = os.environ.get(
