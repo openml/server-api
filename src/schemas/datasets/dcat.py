@@ -125,8 +125,7 @@ class DcatAPDataset(DcatAPObject):
     keyword: list[str] = Field(alias="dcat:keyword", default_factory=list)
     publisher: DcatAPIdentifier | None = Field(
         alias="dct:publisher",
-        description="The entity (organisation) responsible "
-        "for making the Dataset available.",
+        description="The entity (organisation) responsible for making the Dataset available.",
     )
     temporal_coverage: list[DcatAPIdentifier] = Field(
         alias="dct:temporal",

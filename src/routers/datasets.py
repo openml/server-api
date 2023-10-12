@@ -22,9 +22,6 @@ from schemas.datasets.openml import (
 )
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
-# We add separate endpoints for old-style JSON responses,
-# so they don't clutter the schema of the new API, and are easily removed later.
-router_old_format = APIRouter(prefix="/old/datasets", tags=["datasets"])
 
 
 class DatasetError(IntEnum):
@@ -112,11 +109,11 @@ def get_dataset(
 ) -> DatasetMetadata:
     if not (dataset := db_get_dataset(dataset_id)):
         error = _format_error(code=DatasetError.NOT_FOUND, message="Unknown dataset")
-        raise HTTPException(status_code=http.client.PRECONDITION_FAILED, detail=error)
+        raise HTTPException(status_code=http.client.NOT_FOUND, detail=error)
 
     if not _user_has_access(dataset, api_key):
         error = _format_error(code=DatasetError.NO_ACCESS, message="No access granted")
-        raise HTTPException(status_code=http.client.PRECONDITION_FAILED, detail=error)
+        raise HTTPException(status_code=http.client.FORBIDDEN, detail=error)
 
     if not (dataset_file := get_file(dataset["file_id"])):
         error = _format_error(
@@ -130,9 +127,7 @@ def get_dataset(
     processing_result = _get_processing_information(dataset_id)
     status = get_latest_status_update(dataset_id)
 
-    status_ = (
-        DatasetStatus(status["status"]) if status else DatasetStatus.IN_PREPARATION
-    )
+    status_ = DatasetStatus(status["status"]) if status else DatasetStatus.IN_PREPARATION
 
     description_ = ""
     if description:
@@ -184,45 +179,3 @@ def get_dataset(
         collection_date=dataset["collection_date"],
         md5_checksum=dataset_file["md5_hash"],
     )
-
-
-@router_old_format.get(
-    path="/{dataset_id}",
-    description="Get old-style wrapped meta-data for dataset with ID `dataset_id`.",
-)
-def get_dataset_wrapped(
-    dataset_id: int,
-    api_key: APIKey | None = None,
-) -> dict[str, dict[str, Any]]:
-    dataset = get_dataset(dataset_id, api_key).dict(by_alias=True)
-    if dataset.get("processing_date"):
-        dataset["processing_date"] = str(dataset["processing_date"]).replace("T", " ")
-    if dataset.get("parquet_url"):
-        dataset["parquet_url"] = dataset["parquet_url"].replace("https", "http")
-
-    manual = []
-    # ref test.openml.org/d/33 (contributor) and d/34 (creator)
-    #   contributor/creator in database is '""'
-    #   json content is []
-    for field in ["contributor", "creator"]:
-        if dataset[field] == [""]:
-            dataset[field] = []
-            manual.append(field)
-
-    if isinstance(dataset["original_data_url"], list):
-        dataset["original_data_url"] = ", ".join(dataset["original_data_url"])
-
-    for field, value in list(dataset.items()):
-        if field in manual:
-            continue
-        if isinstance(value, int):
-            dataset[field] = str(value)
-        elif isinstance(value, list) and len(value) == 1:
-            dataset[field] = str(value[0])
-        if not dataset[field]:
-            del dataset[field]
-
-    if "description" not in dataset:
-        dataset["description"] = []
-
-    return {"data_set_description": dataset}

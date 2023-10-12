@@ -1,4 +1,5 @@
 import http.client
+import json.decoder
 from typing import Any, cast
 
 import httpx
@@ -17,14 +18,21 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
     assert original.status_code == new.status_code
     assert new.json()
 
-    if new.status_code == http.client.PRECONDITION_FAILED:
+    if new.status_code != http.client.OK:
         assert original.json()["error"] == new.json()["detail"]
         return
 
     assert "data_set_description" in new.json()
 
-    original = original.json()["data_set_description"]
+    try:
+        original = original.json()["data_set_description"]
+    except json.decoder.JSONDecodeError:
+        pytest.skip("A PHP error occurred on the test server.")
+
     new = new.json()["data_set_description"]
+
+    if "div" in original:
+        pytest.skip("A PHP error occurred on the test server.")
 
     # In case the test environment is set up to communicate with a snapshot of
     # the test server database, we expect some fields to be outdated:
@@ -34,11 +42,19 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
         assert set(original["tag"]) >= set(new["tag"])
 
     assert original["format"].lower() == new["format"]
-    if original["format"] == "sparse_arff":
-        # https://github.com/openml/OpenML/issues/1189
-        # The test server incorrectly thinks there is an associated parquet file:
-        del original["parquet_url"]
 
+    # Sometimes the test server provides `parquet_url`s, sometimes not.
+    if "parquet_url" in original:
+        if original["format"] == "sparse_arff":
+            # https://github.com/openml/OpenML/issues/1189
+            # The test server incorrectly thinks there is an associated parquet file:
+            del original["parquet_url"]
+    elif "parquet_url" in new:
+        del new["parquet_url"]
+
+    # Format is tested in normalized form above, tags and description_version may
+    # be out of sync with the snapshot of the database that we use to generate
+    # new responses.
     for field in ["description_version", "tag", "format"]:
         if field in original:
             del original[field]
@@ -50,7 +66,7 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
 
     # There is odd behavior in the live server that I don't want to recreate:
     # when the creator is a list of csv names, it can either be a str or a list
-    # depending on whether or not the names are quoted. E.g.:
+    # depending on whether the names are quoted. E.g.:
     # '"Alice", "Bob"' -> ["Alice", "Bob"]
     # 'Alice, Bob' -> 'Alice, Bob'
     if (
@@ -70,28 +86,47 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
 
 
 @pytest.mark.parametrize(
-    "dataset_id",
-    [-1, 138, 100_000],
+    ("endpoint", "dataset_id", "response_code"),
+    [
+        ("old/datasets/", -1, http.client.PRECONDITION_FAILED),
+        ("old/datasets/", 138, http.client.PRECONDITION_FAILED),
+        ("old/datasets/", 100_000, http.client.PRECONDITION_FAILED),
+        ("datasets/", -1, http.client.NOT_FOUND),
+        ("datasets/", 138, http.client.NOT_FOUND),
+        ("datasets/", 100_000, http.client.NOT_FOUND),
+    ],
 )
-def test_error_unknown_dataset(dataset_id: int, api_client: FastAPI) -> None:
-    response = cast(httpx.Response, api_client.get(f"/old/datasets/{dataset_id}"))
+def test_error_unknown_dataset(
+    endpoint: str,
+    dataset_id: int,
+    response_code: int,
+    api_client: FastAPI,
+) -> None:
+    response = cast(httpx.Response, api_client.get(f"{endpoint}/{dataset_id}"))
 
-    assert response.status_code == http.client.PRECONDITION_FAILED
+    assert response.status_code == response_code
     assert {"code": "111", "message": "Unknown dataset"} == response.json()["detail"]
 
 
 @pytest.mark.parametrize(
-    "api_key",
-    [None, "a" * 32],
+    ("endpoint", "api_key", "response_code"),
+    [
+        ("old/datasets", None, http.client.PRECONDITION_FAILED),
+        ("old/datasets", "a" * 32, http.client.PRECONDITION_FAILED),
+        ("datasets", None, http.client.FORBIDDEN),
+        ("datasets", "a" * 32, http.client.FORBIDDEN),
+    ],
 )
 def test_private_dataset_no_user_no_access(
     api_client: FastAPI,
+    endpoint: str,
     api_key: str | None,
+    response_code: int,
 ) -> None:
     query = f"?api_key={api_key}" if api_key else ""
-    response = cast(httpx.Response, api_client.get(f"/old/datasets/130{query}"))
+    response = cast(httpx.Response, api_client.get(f"{endpoint}/130{query}"))
 
-    assert response.status_code == http.client.PRECONDITION_FAILED
+    assert response.status_code == response_code
     assert {"code": "112", "message": "No access granted"} == response.json()["detail"]
 
 
