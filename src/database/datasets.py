@@ -7,21 +7,13 @@ from sqlalchemy.engine import URL
 
 from database.meta import get_column_names
 
-expdb_url = URL.create(
-    username="root",
-    password="ok",
-    **DATABASE_CONFIGURATION["expdb"],
-)
+expdb_url = URL.create(**DATABASE_CONFIGURATION["expdb"])
 expdb = create_engine(
     expdb_url,
     echo=True,
     pool_recycle=3600,
 )
-openml_url = URL.create(
-    username="root",
-    password="ok",
-    **DATABASE_CONFIGURATION["openml"],
-)
+openml_url = URL.create(**DATABASE_CONFIGURATION["openml"])
 openml = create_engine(
     openml_url,
     echo=True,

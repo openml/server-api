@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import os
 import tomllib
 import typing
 from pathlib import Path
+
+from dotenv import load_dotenv
 
 TomlTable = dict[str, typing.Any]
 
@@ -25,5 +28,23 @@ def load_configuration(file: Path) -> TomlTable:
     return configuration
 
 
+load_dotenv()
 _configuration = load_configuration(Path(__file__).parent / "config.toml")
+
 DATABASE_CONFIGURATION = _configuration["databases"]
+DATABASE_CONFIGURATION["openml"]["username"] = os.environ.get(
+    "OPENML_DATABASES_OPENML_USERNAME",
+    "root",
+)
+DATABASE_CONFIGURATION["openml"]["password"] = os.environ.get(
+    "OPENML_DATABASES_OPENML_PASSWORD",
+    "ok",
+)
+DATABASE_CONFIGURATION["expdb"]["username"] = os.environ.get(
+    "OPENML_DATABASES_EXPDB_USERNAME",
+    "root",
+)
+DATABASE_CONFIGURATION["expdb"]["password"] = os.environ.get(
+    "OPENML_DATABASES_EXPDB_PASSWORD",
+    "ok",
+)
