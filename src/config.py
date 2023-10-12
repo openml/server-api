@@ -1,5 +1,4 @@
-from __future__ import annotations
-
+import functools
 import os
 import tomllib
 import typing
@@ -10,7 +9,7 @@ from dotenv import load_dotenv
 TomlTable = dict[str, typing.Any]
 
 
-def apply_defaults_to_subtables(configuration: TomlTable, table: str) -> TomlTable:
+def _apply_defaults_to_subtables(configuration: TomlTable, table: str) -> TomlTable:
     defaults = configuration[table]["defaults"]
     return {
         subtable: defaults | overrides
@@ -19,32 +18,29 @@ def apply_defaults_to_subtables(configuration: TomlTable, table: str) -> TomlTab
     }
 
 
-def load_configuration(file: Path) -> TomlTable:
+@functools.cache
+def load_database_configuration(file: Path = Path(__file__).parent / "config.toml") -> TomlTable:
     configuration = tomllib.loads(file.read_text())
-    configuration["databases"] = apply_defaults_to_subtables(
+
+    database_configuration = _apply_defaults_to_subtables(
         configuration,
         table="databases",
     )
-    return configuration
-
-
-load_dotenv()
-_configuration = load_configuration(Path(__file__).parent / "config.toml")
-
-DATABASE_CONFIGURATION = _configuration["databases"]
-DATABASE_CONFIGURATION["openml"]["username"] = os.environ.get(
-    "OPENML_DATABASES_OPENML_USERNAME",
-    "root",
-)
-DATABASE_CONFIGURATION["openml"]["password"] = os.environ.get(
-    "OPENML_DATABASES_OPENML_PASSWORD",
-    "ok",
-)
-DATABASE_CONFIGURATION["expdb"]["username"] = os.environ.get(
-    "OPENML_DATABASES_EXPDB_USERNAME",
-    "root",
-)
-DATABASE_CONFIGURATION["expdb"]["password"] = os.environ.get(
-    "OPENML_DATABASES_EXPDB_PASSWORD",
-    "ok",
-)
+    load_dotenv()
+    database_configuration["openml"]["username"] = os.environ.get(
+        "OPENML_DATABASES_OPENML_USERNAME",
+        "root",
+    )
+    database_configuration["openml"]["password"] = os.environ.get(
+        "OPENML_DATABASES_OPENML_PASSWORD",
+        "ok",
+    )
+    database_configuration["expdb"]["username"] = os.environ.get(
+        "OPENML_DATABASES_EXPDB_USERNAME",
+        "root",
+    )
+    database_configuration["expdb"]["password"] = os.environ.get(
+        "OPENML_DATABASES_EXPDB_PASSWORD",
+        "ok",
+    )
+    return database_configuration
