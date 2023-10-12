@@ -39,6 +39,9 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
         # The test server incorrectly thinks there is an associated parquet file:
         del original["parquet_url"]
 
+    # Format is tested in normalized form above, tags and description_version may
+    # be out of sync with the snapshot of the database that we use to generate
+    # new responses.
     for field in ["description_version", "tag", "format"]:
         if field in original:
             del original[field]
@@ -48,9 +51,14 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
     if "minio_url" in new:
         del new["minio_url"]  # not served from the test server (and not for sparse)
 
+    # The test server does not currently provide parquet_urls, so if one was embedded
+    # we ignore it
+    if "parquet_url" in new:
+        del new["parquet_url"]
+
     # There is odd behavior in the live server that I don't want to recreate:
     # when the creator is a list of csv names, it can either be a str or a list
-    # depending on whether or not the names are quoted. E.g.:
+    # depending on whether the names are quoted. E.g.:
     # '"Alice", "Bob"' -> ["Alice", "Bob"]
     # 'Alice, Bob' -> 'Alice, Bob'
     if (
