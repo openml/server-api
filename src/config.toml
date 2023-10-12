@@ -1,0 +1,11 @@
+[databases.defaults]
+host="127.0.0.1"
+port="3306"
+# SQLAlchemy `dialect` and `driver`: https://docs.sqlalchemy.org/en/20/dialects/index.html
+drivername="mysql"
+
+[databases.expdb]
+database="openml_expdb"
+
+[databases.openml]
+database="openml"
