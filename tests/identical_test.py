@@ -1,4 +1,5 @@
 import http.client
+import json.decoder
 from typing import Any, cast
 
 import httpx
@@ -23,8 +24,15 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
 
     assert "data_set_description" in new.json()
 
-    original = original.json()["data_set_description"]
+    try:
+        original = original.json()["data_set_description"]
+    except json.decoder.JSONDecodeError:
+        pytest.skip("A PHP error occurred on the test server.")
+
     new = new.json()["data_set_description"]
+
+    if "div" in original:
+        pytest.skip("A PHP error occurred on the test server.")
 
     # In case the test environment is set up to communicate with a snapshot of
     # the test server database, we expect some fields to be outdated:
@@ -34,10 +42,15 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
         assert set(original["tag"]) >= set(new["tag"])
 
     assert original["format"].lower() == new["format"]
-    if original["format"] == "sparse_arff":
-        # https://github.com/openml/OpenML/issues/1189
-        # The test server incorrectly thinks there is an associated parquet file:
-        del original["parquet_url"]
+
+    # Sometimes the test server provides `parquet_url`s, sometimes not.
+    if "parquet_url" in original:
+        if original["format"] == "sparse_arff":
+            # https://github.com/openml/OpenML/issues/1189
+            # The test server incorrectly thinks there is an associated parquet file:
+            del original["parquet_url"]
+    elif "parquet_url" in new:
+        del new["parquet_url"]
 
     # Format is tested in normalized form above, tags and description_version may
     # be out of sync with the snapshot of the database that we use to generate
@@ -50,11 +63,6 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
 
     if "minio_url" in new:
         del new["minio_url"]  # not served from the test server (and not for sparse)
-
-    # The test server does not currently provide parquet_urls, so if one was embedded
-    # we ignore it
-    if "parquet_url" in new:
-        del new["parquet_url"]
 
     # There is odd behavior in the live server that I don't want to recreate:
     # when the creator is a list of csv names, it can either be a str or a list
