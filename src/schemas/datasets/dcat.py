@@ -16,7 +16,7 @@ import datetime
 from abc import ABC
 from typing import Union
 
-from pydantic import BaseModel, Extra, Field
+from pydantic import BaseModel, Field
 
 
 class DcatAPContext(BaseModel):
@@ -30,9 +30,7 @@ class DcatAPObject(BaseModel, ABC):
 
     id_: str = Field(serialization_alias="@id")
 
-    class Config:
-        extra = Extra.forbid
-        populate_by_name = True
+    model_config = {"populate_by_name": True, "extra": "forbid"}
 
 
 class DcatAPIdentifier(DcatAPObject):
@@ -72,9 +70,7 @@ class XSDDateTime(BaseModel):
     type_: str = Field(default="xsd:dateTime", serialization_alias="@type", const=True)
     value_: datetime.datetime | datetime.date = Field(serialization_alias="@value")
 
-    class Config:
-        extra = Extra.forbid
-        populate_by_name = True
+    model_config = {"populate_by_name": True, "extra": "forbid"}
 
 
 class DctPeriodOfTime(DcatAPObject):
@@ -185,6 +181,4 @@ class DcatApWrapper(BaseModel):
         ]
     ] = Field(serialization_alias="@graph")
 
-    class Config:
-        extra = Extra.forbid
-        populate_by_name = True
+    model_config = {"populate_by_name": True, "extra": "forbid"}

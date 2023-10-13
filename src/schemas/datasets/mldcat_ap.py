@@ -11,7 +11,7 @@ from abc import ABC
 from enum import StrEnum
 from typing import Generic, Literal, TypeVar
 
-from pydantic import BaseModel, Extra, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl
 
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Visibility
 
@@ -22,9 +22,7 @@ class JsonLDQualifiedLiteral(BaseModel):
     type_: str = Field(serialization_alias="@type")
     value: str = Field(serialization_alias="@value")
 
-    class Config:
-        extra = Extra.forbid
-        populate_by_name = True
+    model_config = {"populate_by_name": True, "extra": "forbid"}
 
 
 JsonLiteral = JsonLDQualifiedLiteral | str
@@ -36,9 +34,7 @@ class JsonLDObject(BaseModel, ABC):
     id_: str = Field(serialization_alias="@id")
     type_: str = Field(serialization_alias="@type")
 
-    class Config:
-        extra = Extra.forbid
-        populate_by_name = True
+    model_config = {"populate_by_name": True, "extra": "forbid"}
 
 
 T = TypeVar("T", bound=JsonLDObject)
@@ -47,9 +43,7 @@ T = TypeVar("T", bound=JsonLDObject)
 class JsonLDObjectReference(BaseModel, Generic[T]):
     id_: str = Field(serialization_alias="@id")
 
-    class Config:
-        extra = Extra.forbid
-        populate_by_name = True
+    model_config = {"populate_by_name": True, "extra": "forbid"}
 
     @classmethod
     def to(cls, json_ld_object: T) -> JsonLDObjectReference[T]:
@@ -226,9 +220,7 @@ class JsonLDGraph(BaseModel):
         Distribution | DataService | Dataset | Quality | Feature | Agent | MD5Checksum
     ] = Field(default_factory=list, serialization_alias="@graph")
 
-    class Config:
-        extra = Extra.forbid
-        populate_by_name = True
+    model_config = {"populate_by_name": True, "extra": "forbid"}
 
 
 def convert_to_mldcat_ap(dataset: DatasetMetadata) -> JsonLDGraph:
