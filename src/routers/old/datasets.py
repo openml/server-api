@@ -30,8 +30,8 @@ def get_dataset_wrapped(
         ) from None
     if dataset.get("processing_date"):
         dataset["processing_date"] = str(dataset["processing_date"]).replace("T", " ")
-    if dataset.get("parquet_url"):
-        dataset["parquet_url"] = dataset["parquet_url"].replace("https", "http")
+    if parquet_url := dataset.get("parquet_url"):
+        dataset["parquet_url"] = str(parquet_url).replace("https", "http")
 
     manual = []
     # ref test.openml.org/d/33 (contributor) and d/34 (creator)
