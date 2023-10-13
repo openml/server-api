@@ -22,7 +22,7 @@ def get_dataset_wrapped(
     api_key: APIKey | None = None,
 ) -> dict[str, dict[str, Any]]:
     try:
-        dataset = get_dataset(dataset_id, api_key).dict(by_alias=True)
+        dataset = get_dataset(dataset_id, api_key).model_dump(by_alias=True)
     except HTTPException as e:
         raise HTTPException(
             status_code=http.client.PRECONDITION_FAILED,
