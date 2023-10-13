@@ -3,7 +3,7 @@
 *Current instructions written for Mac, but can be adapted for other operating systems.*
 
 The OpenML server will be developed and maintained for the latest minor release of
-Python (Python 3.11 as of writing).
+Python (Python 3.12 as of writing).
 You can install the dependencies locally or work from a Docker container (TODO).
 
 ## Database
