@@ -7,3 +7,4 @@ theme:
 nav:
   - Getting Started: README.md
   - Contributing: CONTRIBUTING.md
+  - Migration: migration.md
