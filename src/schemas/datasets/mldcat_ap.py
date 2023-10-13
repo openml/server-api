@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from abc import ABC
 from enum import StrEnum
-from typing import Generic, TypeVar
+from typing import Generic, Literal, TypeVar
 
 from pydantic import BaseModel, Extra, Field, HttpUrl
 
@@ -24,10 +24,10 @@ class JsonLDQualifiedLiteral(BaseModel):
 
     class Config:
         extra = Extra.forbid
-        allow_population_by_field_name = True
+        populate_by_name = True
 
 
-Literal = JsonLDQualifiedLiteral | str
+JsonLiteral = JsonLDQualifiedLiteral | str
 
 
 class JsonLDObject(BaseModel, ABC):
@@ -38,7 +38,7 @@ class JsonLDObject(BaseModel, ABC):
 
     class Config:
         extra = Extra.forbid
-        allow_population_by_field_name = True
+        populate_by_name = True
 
 
 T = TypeVar("T", bound=JsonLDObject)
@@ -49,7 +49,7 @@ class JsonLDObjectReference(BaseModel, Generic[T]):
 
     class Config:
         extra = Extra.forbid
-        allow_population_by_field_name = True
+        populate_by_name = True
 
     @classmethod
     def to(cls, json_ld_object: T) -> JsonLDObjectReference[T]:
@@ -72,8 +72,8 @@ class Agent(JsonLDObject):
     the use of the Organization Ontology is recommended.
     """
 
-    type_: str = Field("Agent", const=True)
-    name: list[Literal] = Field(default_factory=list, min_items=1)
+    type_: Literal["Agent"] = "Agent"
+    name: list[JsonLiteral] = Field(default_factory=list, min_items=1)
 
 
 class MD5Checksum(JsonLDObject):
@@ -82,11 +82,10 @@ class MD5Checksum(JsonLDObject):
     message digest algorithms to be represented.
     """
 
-    type_: str = Field("Checksum", const=True)
-    algorithm: str = Field(
-        "http://spdx.org/rdf/terms#checksumAlgorithm_md5",
-        const=True,
-    )
+    type_: Literal["Checksum"] = "Checksum"
+    algorithm: Literal[
+        "http://spdx.org/rdf/terms#checksumAlgorithm_md5"
+    ] = "http://spdx.org/rdf/terms#checksumAlgorithm_md5"
     value: str = Field(serialization_alias="checksumValue")
 
 
@@ -96,26 +95,26 @@ class FeatureType(StrEnum):
 
 
 class Feature(JsonLDObject):
-    type_: str = Field("Feature", const=True)
+    type_: Literal["Feature"] = "Feature"
     name: str = Field()
     feature_type: FeatureType = Field(serialization_alias="type")
-    description: Literal | None = Field(default=None)
+    description: JsonLiteral | None = Field(default=None)
 
 
 class QualityType(JsonLDObject):
-    type_: str = Field("QualityType", const=True)
+    type_: Literal["QualityType"] = "QualityType"
     name: str = Field()
     quality_id: str = Field(serialization_alias="id")
 
 
 class Quality(JsonLDObject):
-    type_: str = Field("Quality", const=True)
+    type_: Literal["Quality"] = "Quality"
     quality_type: QualityType = Field(serialization_alias="type")
-    value: Literal = Field()
+    value: JsonLiteral = Field()
 
 
 class Distribution(JsonLDObject):
-    type_: str = Field("Distribution", const=True)
+    type_: Literal["Distribution"] = "Distribution"
     # required
     access_url: list[HttpUrl] = Field(
         default_factory=list,
@@ -134,26 +133,29 @@ class Distribution(JsonLDObject):
     )
 
     # other
-    byte_size: Literal | None = Field(serialization_alias="byteSize", default=None)
-    default_target_attribute: Literal | None = Field(
+    byte_size: JsonLiteral | None = Field(serialization_alias="byteSize", default=None)
+    default_target_attribute: JsonLiteral | None = Field(
         serialization_alias="defaultTargetAttribute",
         default=None,
     )
     download_url: list[HttpUrl] = Field(default_factory=list, serialization_alias="downloadUrl")
-    format_: Literal | None = Field(serialization_alias="format", default=None)
-    identifier: Literal | None = Field(default=None)
-    ignore_attribute: list[Literal] = Field(
+    format_: JsonLiteral | None = Field(serialization_alias="format", default=None)
+    identifier: JsonLiteral | None = Field(default=None)
+    ignore_attribute: list[JsonLiteral] = Field(
         default_factory=list,
         serialization_alias="ignoreAttirbute",
     )
-    processing_error: Literal | None = Field(serialization_alias="processingError", default=None)
-    processing_warning: Literal | None = Field(
+    processing_error: JsonLiteral | None = Field(
+        serialization_alias="processingError",
+        default=None,
+    )
+    processing_warning: JsonLiteral | None = Field(
         serialization_alias="processingWarning",
         default=None,
     )
-    processing_data: Literal | None = Field(serialization_alias="processingDate", default=None)
-    row_id_attribute: Literal | None = Field(serialization_alias="rowIDAttribute", default=None)
-    title: list[Literal] = Field(default_factory=list)
+    processing_data: JsonLiteral | None = Field(serialization_alias="processingDate", default=None)
+    row_id_attribute: JsonLiteral | None = Field(serialization_alias="rowIDAttribute", default=None)
+    title: list[JsonLiteral] = Field(default_factory=list)
     checksum: JsonLDObjectReference[MD5Checksum] | None = Field(default=None)
 
     access_service: list[JsonLDObjectReference[DataService]] = Field(
@@ -166,11 +168,11 @@ class Distribution(JsonLDObject):
 
 
 class Dataset(JsonLDObject):
-    type_: str = Field("Dataset", const=True)
+    type_: Literal["Dataset"] = "Dataset"
     # required
-    collection_date: Literal = Field(serialization_alias="collectionDate")
-    description: list[Literal] = Field(default_factory=list, min_items=1)
-    title: list[Literal] = Field(default_factory=list, min_items=1)
+    collection_date: JsonLiteral = Field(serialization_alias="collectionDate")
+    description: list[JsonLiteral] = Field(default_factory=list, min_items=1)
+    title: list[JsonLiteral] = Field(default_factory=list, min_items=1)
 
     # other
     access_rights: AccessRights | None = Field(serialization_alias="accessRights", default=None)
@@ -183,8 +185,8 @@ class Dataset(JsonLDObject):
         default_factory=list,
         serialization_alias="hasVersion",
     )
-    identifier: list[Literal] = Field(default_factory=list)
-    is_referenced_by: list[Literal] = Field(
+    identifier: list[JsonLiteral] = Field(default_factory=list)
+    is_referenced_by: list[JsonLiteral] = Field(
         default_factory=list,
         serialization_alias="isReferencedBy",
     )
@@ -192,20 +194,20 @@ class Dataset(JsonLDObject):
         default_factory=list,
         serialization_alias="isVersionOf",
     )
-    issued: Literal | None = Field(default=None)
-    keyword: list[Literal] = Field(default_factory=list)
-    landing_page: list[Literal] = Field(default_factory=list, serialization_alias="landingPage")
+    issued: JsonLiteral | None = Field(default=None)
+    keyword: list[JsonLiteral] = Field(default_factory=list)
+    landing_page: list[JsonLiteral] = Field(default_factory=list, serialization_alias="landingPage")
     publisher: JsonLDObjectReference[Agent] | None = Field(default=None)
     status: DatasetStatus | None = Field(default=None)
-    version_info: Literal | None = Field(serialization_alias="versionInfo", default=None)
-    version_label: Literal | None = Field(serialization_alias="versionLabel", default=None)
+    version_info: JsonLiteral | None = Field(serialization_alias="versionInfo", default=None)
+    version_label: JsonLiteral | None = Field(serialization_alias="versionLabel", default=None)
     visibility: Visibility | None = Field(default=None)
 
 
 class DataService(JsonLDObject):
-    type_: str = Field("DataService", const=True)
+    type_: Literal["DataService"] = "DataService"
     endpoint_url: HttpUrl = Field(serialization_alias="endpointUrl")
-    title: list[Literal] = Field(default_factory=list, min_items=1)
+    title: list[JsonLiteral] = Field(default_factory=list, min_items=1)
     serves_dataset: list[JsonLDObjectReference[Dataset]] = Field(
         default_factory=list,
         serialization_alias="servesDataset",
@@ -215,7 +217,7 @@ class DataService(JsonLDObject):
 # We need at least one forward reference for type annotation in the cycle
 # `Dataset->Distribution->Dataservice->Dataset`, but this is not supported by
 # the OpenAI schema checker, so we need to explicitly update the references.
-Distribution.update_forward_refs(DataService=DataService)
+Distribution.model_rebuild()
 
 
 class JsonLDGraph(BaseModel):
@@ -226,7 +228,7 @@ class JsonLDGraph(BaseModel):
 
     class Config:
         extra = Extra.forbid
-        allow_population_by_field_name = True
+        populate_by_name = True
 
 
 def convert_to_mldcat_ap(dataset: DatasetMetadata) -> JsonLDGraph:

@@ -32,7 +32,7 @@ class DcatAPObject(BaseModel, ABC):
 
     class Config:
         extra = Extra.forbid
-        allow_population_by_field_name = True
+        populate_by_name = True
 
 
 class DcatAPIdentifier(DcatAPObject):
@@ -74,7 +74,7 @@ class XSDDateTime(BaseModel):
 
     class Config:
         extra = Extra.forbid
-        allow_population_by_field_name = True
+        populate_by_name = True
 
 
 class DctPeriodOfTime(DcatAPObject):
@@ -187,4 +187,4 @@ class DcatApWrapper(BaseModel):
 
     class Config:
         extra = Extra.forbid
-        allow_population_by_field_name = True
+        populate_by_name = True
