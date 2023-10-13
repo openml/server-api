@@ -251,31 +251,31 @@ def convert_to_mldcat_ap(dataset: DatasetMetadata) -> JsonLDGraph:
             name="number_of_features",
             quality_id="link_to_definition",
         ),
-        value=150,
+        value="150",
     )
     checksum = MD5Checksum(id_="checksum-id", value=dataset.md5_checksum)
     # contributor and creator N/A
     distribution = Distribution(
         id_="distribution-id",
         access_url=[f"https://www.openml.org/d/{dataset.id_}"],
-        has_feature=[JsonLDObjectReference.to(example_feature)],
-        has_quality=[JsonLDObjectReference.to(example_quality)],
+        has_feature=[JsonLDObjectReference[Feature].to(example_feature)],
+        has_quality=[JsonLDObjectReference[Quality].to(example_quality)],
         default_target_attribute=dataset.default_target_attribute,
         download_url=[dataset.url],
         format_=dataset.format_,
-        checksum=JsonLDObjectReference.to(checksum),
-        access_service=[JsonLDObjectReference.to(arff_service)],
+        checksum=JsonLDObjectReference[MD5Checksum].to(checksum),
+        access_service=[JsonLDObjectReference[DataService].to(arff_service)],
     )
 
     mldcat_dataset = Dataset(
-        id_=dataset.id_,
+        id_=str(dataset.id_),
         type_="Dataset",
         collection_date=str(dataset.upload_date),
         description=[dataset.description],
         title=[dataset.name],
-        distribution=[JsonLDObjectReference.to(distribution)],
+        distribution=[JsonLDObjectReference[Distribution].to(distribution)],
         status=dataset.status,
-        version_info=dataset.version,
+        version_info=str(dataset.version),
         version_label=dataset.version_label,
         visibility=dataset.visibility,
         keyword=dataset.tags,
