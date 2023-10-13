@@ -28,8 +28,8 @@ def get_dataset_wrapped(
             status_code=http.client.PRECONDITION_FAILED,
             detail=e.detail,
         ) from None
-    if dataset.get("processing_date"):
-        dataset["processing_date"] = str(dataset["processing_date"]).replace("T", " ")
+    if processing_data := dataset.get("processing_date"):
+        dataset["processing_date"] = str(processing_data).replace("T", " ")
     if parquet_url := dataset.get("parquet_url"):
         dataset["parquet_url"] = str(parquet_url).replace("https", "http")
 
