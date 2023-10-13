@@ -84,7 +84,7 @@ class DcatAPDistribution(DcatAPObject):
     access_url: list[str] = Field(
         serialization_alias="dcat:accessURL",
         default_factory=list,
-        min_items=1,
+        min_length=1,
     )
     byte_size: int | None = Field(serialization_alias="dcat:byteSize", default=None)
     checksum: DcatAPIdentifier | None = Field(serialization_alias="spdx:checksum", default=None)
@@ -101,13 +101,13 @@ class DcatAPDataset(DcatAPObject):
         serialization_alias="dct:description",
         description="A free-text account of the Dataset",
         default_factory=list,
-        min_items=1,
+        min_length=1,
     )
     title: list[str] = Field(
         serialization_alias="dct:title",
         description="The name given to the Dataset",
         default_factory=list,
-        min_items=1,
+        min_length=1,
     )
     contact_point: list[DcatAPIdentifier] = Field(
         serialization_alias="dcat:contactPoint",

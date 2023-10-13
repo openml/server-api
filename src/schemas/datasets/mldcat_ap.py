@@ -67,7 +67,7 @@ class Agent(JsonLDObject):
     """
 
     type_: Literal["Agent"] = "Agent"
-    name: list[JsonLiteral] = Field(default_factory=list, min_items=1)
+    name: list[JsonLiteral] = Field(default_factory=list, min_length=1)
 
 
 class MD5Checksum(JsonLDObject):
@@ -112,18 +112,18 @@ class Distribution(JsonLDObject):
     # required
     access_url: list[HttpUrl] = Field(
         default_factory=list,
-        min_items=1,
+        min_length=1,
         serialization_alias="accessUrl",
     )
-    # problem setting `min_items`, should be 1: https://github.com/pydantic/pydantic/issues/2581
-    # min_items = 1
     has_feature: list[JsonLDObjectReference[Feature]] = Field(
         default_factory=list,
         serialization_alias="hasFeature",
+        min_length=1,
     )
     has_quality: list[JsonLDObjectReference[Quality]] = Field(
         default_factory=list,
         serialization_alias="hasQuality",
+        min_length=1,
     )
 
     # other
@@ -165,8 +165,8 @@ class Dataset(JsonLDObject):
     type_: Literal["Dataset"] = "Dataset"
     # required
     collection_date: JsonLiteral = Field(serialization_alias="collectionDate")
-    description: list[JsonLiteral] = Field(default_factory=list, min_items=1)
-    title: list[JsonLiteral] = Field(default_factory=list, min_items=1)
+    description: list[JsonLiteral] = Field(default_factory=list, min_length=1)
+    title: list[JsonLiteral] = Field(default_factory=list, min_length=1)
 
     # other
     access_rights: AccessRights | None = Field(serialization_alias="accessRights", default=None)
@@ -201,7 +201,7 @@ class Dataset(JsonLDObject):
 class DataService(JsonLDObject):
     type_: Literal["DataService"] = "DataService"
     endpoint_url: HttpUrl = Field(serialization_alias="endpointUrl")
-    title: list[JsonLiteral] = Field(default_factory=list, min_items=1)
+    title: list[JsonLiteral] = Field(default_factory=list, min_length=1)
     serves_dataset: list[JsonLDObjectReference[Dataset]] = Field(
         default_factory=list,
         serialization_alias="servesDataset",
