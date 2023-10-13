@@ -19,8 +19,8 @@ from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Visibility
 class JsonLDQualifiedLiteral(BaseModel):
     """Base class for all JSON-LD objects"""
 
-    type_: str = Field(alias="@type")
-    value: str = Field(alias="@value")
+    type_: str = Field(serialization_alias="@type")
+    value: str = Field(serialization_alias="@value")
 
     class Config:
         extra = Extra.forbid
@@ -33,8 +33,8 @@ Literal = JsonLDQualifiedLiteral | str
 class JsonLDObject(BaseModel, ABC):
     """Base class for all JSON-LD objects"""
 
-    id_: str = Field(alias="@id")
-    type_: str = Field(alias="@type")
+    id_: str = Field(serialization_alias="@id")
+    type_: str = Field(serialization_alias="@type")
 
     class Config:
         extra = Extra.forbid
@@ -45,7 +45,7 @@ T = TypeVar("T", bound=JsonLDObject)
 
 
 class JsonLDObjectReference(BaseModel, Generic[T]):
-    id_: str = Field(alias="@id")
+    id_: str = Field(serialization_alias="@id")
 
     class Config:
         extra = Extra.forbid
@@ -87,7 +87,7 @@ class MD5Checksum(JsonLDObject):
         "http://spdx.org/rdf/terms#checksumAlgorithm_md5",
         const=True,
     )
-    value: str = Field(alias="checksumValue")
+    value: str = Field(serialization_alias="checksumValue")
 
 
 class FeatureType(StrEnum):
@@ -98,19 +98,19 @@ class FeatureType(StrEnum):
 class Feature(JsonLDObject):
     type_: str = Field("Feature", const=True)
     name: str = Field()
-    feature_type: FeatureType = Field(alias="type")
-    description: Literal | None = Field()
+    feature_type: FeatureType = Field(serialization_alias="type")
+    description: Literal | None = Field(default=None)
 
 
 class QualityType(JsonLDObject):
     type_: str = Field("QualityType", const=True)
     name: str = Field()
-    quality_id: str = Field(alias="id")
+    quality_id: str = Field(serialization_alias="id")
 
 
 class Quality(JsonLDObject):
     type_: str = Field("Quality", const=True)
-    quality_type: QualityType = Field(alias="type")
+    quality_type: QualityType = Field(serialization_alias="type")
     value: Literal = Field()
 
 
@@ -120,39 +120,45 @@ class Distribution(JsonLDObject):
     access_url: list[HttpUrl] = Field(
         default_factory=list,
         min_items=1,
-        alias="accessUrl",
+        serialization_alias="accessUrl",
     )
     # problem setting `min_items`, should be 1: https://github.com/pydantic/pydantic/issues/2581
     # min_items = 1
     has_feature: list[JsonLDObjectReference[Feature]] = Field(
         default_factory=list,
-        alias="hasFeature",
+        serialization_alias="hasFeature",
     )
     has_quality: list[JsonLDObjectReference[Quality]] = Field(
         default_factory=list,
-        alias="hasQuality",
+        serialization_alias="hasQuality",
     )
 
     # other
-    byte_size: Literal | None = Field(alias="byteSize")
-    default_target_attribute: Literal | None = Field(alias="defaultTargetAttribute")
-    download_url: list[HttpUrl] = Field(default_factory=list, alias="downloadUrl")
-    format_: Literal | None = Field(alias="format")
-    identifier: Literal | None = Field()
+    byte_size: Literal | None = Field(serialization_alias="byteSize", default=None)
+    default_target_attribute: Literal | None = Field(
+        serialization_alias="defaultTargetAttribute",
+        default=None,
+    )
+    download_url: list[HttpUrl] = Field(default_factory=list, serialization_alias="downloadUrl")
+    format_: Literal | None = Field(serialization_alias="format", default=None)
+    identifier: Literal | None = Field(default=None)
     ignore_attribute: list[Literal] = Field(
         default_factory=list,
-        alias="ignoreAttirbute",
+        serialization_alias="ignoreAttirbute",
     )
-    processing_error: Literal | None = Field(alias="processingError")
-    processing_warning: Literal | None = Field(alias="processingWarning")
-    processing_data: Literal | None = Field(alias="processingDate")
-    row_id_attribute: Literal | None = Field(alias="rowIDAttribute")
+    processing_error: Literal | None = Field(serialization_alias="processingError", default=None)
+    processing_warning: Literal | None = Field(
+        aserialization_lias="processingWarning",
+        default=None,
+    )
+    processing_data: Literal | None = Field(serialization_alias="processingDate", default=None)
+    row_id_attribute: Literal | None = Field(serialization_alias="rowIDAttribute", default=None)
     title: list[Literal] = Field(default_factory=list)
-    checksum: JsonLDObjectReference[MD5Checksum] | None = Field()
+    checksum: JsonLDObjectReference[MD5Checksum] | None = Field(default=None)
 
     access_service: list[JsonLDObjectReference[DataService]] = Field(
         default_factory=list,
-        alias="accessService",
+        serialization_alias="accessService",
     )
     # has_policy: Policy | None = Field(alias="hasPolicy")
     # language: list[LinguisticSystem] = Field(default_factory=list)
@@ -162,47 +168,47 @@ class Distribution(JsonLDObject):
 class Dataset(JsonLDObject):
     type_: str = Field("Dataset", const=True)
     # required
-    collection_date: Literal = Field(alias="collectionDate")
+    collection_date: Literal = Field(serialization_alias="collectionDate")
     description: list[Literal] = Field(default_factory=list, min_items=1)
     title: list[Literal] = Field(default_factory=list, min_items=1)
 
     # other
-    access_rights: AccessRights | None = Field(alias="accessRights")
+    access_rights: AccessRights | None = Field(serialization_alias="accessRights", default=None)
     contributor: list[JsonLDObjectReference[Agent]] = Field(default_factory=list)
-    creator: Agent | None = Field()
+    creator: Agent | None = Field(default=None)
     distribution: list[JsonLDObjectReference[Distribution]] = Field(
         default_factory=list,
     )
     has_version: list[JsonLDObjectReference[Dataset]] = Field(
         default_factory=list,
-        alias="hasVersion",
+        serialization_alias="hasVersion",
     )
     identifier: list[Literal] = Field(default_factory=list)
     is_referenced_by: list[Literal] = Field(
         default_factory=list,
-        alias="isReferencedBy",
+        serialization_alias="isReferencedBy",
     )
     is_version_of: list[JsonLDObjectReference[Dataset]] = Field(
         default_factory=list,
-        alias="isVersionOf",
+        serialization_alias="isVersionOf",
     )
-    issued: Literal | None = Field()
+    issued: Literal | None = Field(default=None)
     keyword: list[Literal] = Field(default_factory=list)
-    landing_page: list[Literal] = Field(default_factory=list, alias="landingPage")
-    publisher: JsonLDObjectReference[Agent] | None = Field()
-    status: DatasetStatus | None = Field()
-    version_info: Literal | None = Field(alias="versionInfo")
-    version_label: Literal | None = Field(alias="versionLabel")
-    visibility: Visibility | None = Field()
+    landing_page: list[Literal] = Field(default_factory=list, serialization_alias="landingPage")
+    publisher: JsonLDObjectReference[Agent] | None = Field(default=None)
+    status: DatasetStatus | None = Field(default=None)
+    version_info: Literal | None = Field(serialization_alias="versionInfo", default=None)
+    version_label: Literal | None = Field(serialization_alias="versionLabel", default=None)
+    visibility: Visibility | None = Field(default=None)
 
 
 class DataService(JsonLDObject):
     type_: str = Field("DataService", const=True)
-    endpoint_url: HttpUrl = Field(alias="endpointUrl")
+    endpoint_url: HttpUrl = Field(serialization_alias="endpointUrl")
     title: list[Literal] = Field(default_factory=list, min_items=1)
     serves_dataset: list[JsonLDObjectReference[Dataset]] = Field(
         default_factory=list,
-        alias="servesDataset",
+        serialization_alias="servesDataset",
     )
 
 
@@ -213,10 +219,10 @@ Distribution.update_forward_refs(DataService=DataService)
 
 
 class JsonLDGraph(BaseModel):
-    context: str | dict[str, HttpUrl] = Field(default_factory=dict, alias="@context")
+    context: str | dict[str, HttpUrl] = Field(default_factory=dict, serialization_alias="@context")
     graph: list[
         Distribution | DataService | Dataset | Quality | Feature | Agent | MD5Checksum
-    ] = Field(default_factory=list, alias="@graph")
+    ] = Field(default_factory=list, serialization_alias="@graph")
 
     class Config:
         extra = Extra.forbid
