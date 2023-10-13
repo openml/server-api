@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
+
+site_name: OpenML Server Documentation
+theme:
+  name: material
