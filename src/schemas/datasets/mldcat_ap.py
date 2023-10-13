@@ -148,7 +148,7 @@ class Distribution(JsonLDObject):
     )
     processing_error: Literal | None = Field(serialization_alias="processingError", default=None)
     processing_warning: Literal | None = Field(
-        aserialization_lias="processingWarning",
+        serialization_alias="processingWarning",
         default=None,
     )
     processing_data: Literal | None = Field(serialization_alias="processingDate", default=None)
