@@ -12,4 +12,9 @@ modern Python-based stack.
     [Python](https://openml.github.io/openml-python/main/),
     [Java](https://github.com/openml/openml-java),
     or [R](http://openml.github.io/openml-r/).
+
+    If you are looking to interface directly with the REST API, and are looking
+    for documentation on the REST API endpoints, visit the
+    [APIs](https://openml.org/apis) page.
+
     This documentation is for developing and hosting your own OpenML instance.
