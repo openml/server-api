@@ -3,6 +3,12 @@
 First, follow the [installation](installation.md#local-installation) instructions
 for contributors to install a local fork with optional development dependencies.
 
+## Database
+In addition to the database setup described in the [installation guide](installation.md#setting-up-a-database-server),
+we also host a database on our server which may be connected to that is available
+to [OpenML core contributors](https://openml.org/about). If you are a core contributor
+and need access, please reach out to one of the engineers in Eindhoven.
+
 ## Pre-commit
 
 We use [`pre-commit`](https://pre-commit.com) to ensure certain tools and checks are
@@ -34,19 +40,18 @@ Where `-v` show the name of each test ran, `-x` ensures testing stops on first f
 `--lf` will first run the test(s) which failed last, and `-m "not web"` specifies
 which tests (not) to run.
 
-## Database
-The server relies on a database connection, and we recommend to use a containerized
-MySQL server regardless of your local development setup. This way there is no
-variability in the database setup, and it is easy to reset to the same database state
-other developers use.
+## Building Documentation
+We build our documentation with [`mkdocs-material`](https://squidfunk.github.io/mkdocs-material/).
+All documentation pages are under the `docs` folder, and the configuration is found in
+`mkdocs.yml`. Having installed the `docs` optional dependencies, you should be able
+to locally build and serve the documentation:
 
-Current workflow is to get a snapshot from the test server at test.openml.org/phpmyadmin,
-and then host it in a local mysql container.
-The databases are hardcoded to be accessible by user `root` with password `ok` at
-`127.0.0.1:3306`.
+```bash title="Serve documentation locally"
+python -m mkdocs serve
+```
 
-TODO: Upload a docker image which has a test database included and can easily be run
-without any local changes.
+You can browse the documentation by visiting `127.0.0.1:8000` in your browser.
+The documentation pages will automatically rebuild when there are changes.
 
 ## Working from Docker
 TODO
