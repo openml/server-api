@@ -30,7 +30,7 @@ seconds.
 ## Unit Tests
 
 Our unit tests are written with the [`pytest`](https://pytest.org) framework.
-An invocation could look like this: `pytest -v -x --lf`
+An invocation could look like this:
 
 ```bash
 python -m pytest -v -x --lf -m "not web"
