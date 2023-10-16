@@ -1,3 +1,4 @@
+# https://squidfunk.github.io/mkdocs-material/publishing-your-site/?h=#with-github-actions
 name: Deploy Docs
 on:
   push:
