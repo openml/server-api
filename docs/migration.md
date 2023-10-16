@@ -9,21 +9,20 @@ The following changes affect all endpoints.
 When providing input of invalid types (e.g., a non-integer dataset id) the HTTP header
 and JSON content will be different.
 
-HTTP Header:
-```diff
+```diff title="HTTP Header"
 - 412 Precondition Failed
 + 422 Unprocessable Entity
 ```
 
-JSON Content
-```diff
+```diff title="JSON Content"
 - {"error":{"code":"100","message":"Function not valid"}}
 + {"detail":[{"loc":["query","_dataset_id"],"msg":"value is not a valid integer","type":"type_error.integer"}]}
 ```
 
 ### Other Errors
 For any other error messages, the response is identical except that outer field will be `"detail"` instead of `"error"`:
-```diff
+
+```diff title="JSON Content"
 - {"error":{"code":"112","message":"No access granted"}}
 + {"detail":{"code":"112","message":"No access granted"}}
 ```
