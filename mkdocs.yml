@@ -5,6 +5,13 @@ theme:
   name: material
 
 nav:
-  - Getting Started: README.md
+  - Getting Started: installation.md
   - Contributing: CONTRIBUTING.md
   - Migration: migration.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
