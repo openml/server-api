@@ -59,9 +59,32 @@ Before we run the REST API server, we must first set up a database server, and c
 the REST API to connect to it.
 
 ## Setting up a Database Server
+Depending on your use of the server, there are multiple ways to set up your own
+OpenML database. To simply connect to an existing database, see
+[configuring the REST API Server](#configuring-the-rest-api-server) below.
 
-...
+
+### Setting up a new database
+This sets up an entirely empty database with the expected OpenML tables in place.
+This is intended for new deployments of OpenML, for example to host a private OpenML
+server.
+
+!!! Failure ""
+
+    Instructions are incomplete. Please have patience while we are adding more documentation.
+
+### Setting up a test database
+This is a database with only a fraction of the data of the production database,
+intended to be used by developers.
+
+!!! Failure ""
+
+    Instructions are incomplete. Please have patience while we are adding more documentation.
 
 ## Configuring the REST API Server
 
-...
+The REST API is configured through a [TOML](https://toml.io) file.
+
+!!! Failure ""
+
+    Instructions are incomplete. Please have patience while we are adding more documentation.

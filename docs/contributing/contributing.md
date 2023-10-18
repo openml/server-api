@@ -1,10 +1,11 @@
 # Setting up the Development Environment
 
-First, follow the [installation](installation.md#local-installation) instructions
+First, follow the [installation](../installation.md#local-installation) instructions
 for contributors to install a local fork with optional development dependencies.
+When setting up the database, follow the "Setting up a test database" instructions.
 
 ## Database
-In addition to the database setup described in the [installation guide](installation.md#setting-up-a-database-server),
+In addition to the database setup described in the [installation guide](../installation.md#setting-up-a-database-server),
 we also host a database on our server which may be connected to that is available
 to [OpenML core contributors](https://openml.org/about). If you are a core contributor
 and need access, please reach out to one of the engineers in Eindhoven.

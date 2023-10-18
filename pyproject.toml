@@ -26,7 +26,8 @@ dev = [
     "httpx",
 ]
 docs = [
-    "mkdocs-material"
+    "mkdocs-material",
+    "mkdocs-section-index",
 ]
 
 [project.urls]

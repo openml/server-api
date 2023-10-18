@@ -11,8 +11,11 @@ theme:
 
 nav:
   - Getting Started: installation.md
-  - Contributing: CONTRIBUTING.md
-  - Migration: migration.md
+  - Contributing:
+      - contributing/index.md
+      - Development: contributing/contributing.md
+      - PHP API: contributing/php.md
+  - Changes: migration.md
 
 markdown_extensions:
   - admonition
@@ -21,3 +24,6 @@ markdown_extensions:
   - pymdownx.tabbed:
       alternate_style: true
   - tables
+
+plugins:
+  - section-index
