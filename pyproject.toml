@@ -17,6 +17,7 @@ dependencies = [
     "uvicorn",
     "sqlalchemy",
     "mysqlclient",
+    "python_dotenv",
 ]
 
 [project.optional-dependencies]

@@ -1,17 +1,22 @@
 """ Translation from https://github.com/openml/OpenML/blob/c19c9b99568c0fabb001e639ff6724b9a754bbc9/openml_OS/models/api/v1/Api_data.php#L707"""
 from typing import Any
 
+from config import load_database_configuration
 from sqlalchemy import create_engine, text
+from sqlalchemy.engine import URL
 
 from database.meta import get_column_names
 
+_database_configuration = load_database_configuration()
+expdb_url = URL.create(**_database_configuration["expdb"])
 expdb = create_engine(
-    "mysql://root:ok@127.0.0.1:3306/openml_expdb",
+    expdb_url,
     echo=True,
     pool_recycle=3600,
 )
+openml_url = URL.create(**_database_configuration["openml"])
 openml = create_engine(
-    "mysql://root:ok@127.0.0.1:3306/openml",
+    openml_url,
     echo=True,
     pool_recycle=3600,
 )
