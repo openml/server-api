@@ -1,4 +1,6 @@
-from pydantic import ConstrainedStr
+from typing import Annotated
+
+from pydantic import StringConstraints
 from sqlalchemy import create_engine, text
 
 from database.meta import get_column_names
@@ -9,11 +11,8 @@ openml = create_engine(
     pool_recycle=3600,
 )
 
-
-class APIKey(ConstrainedStr):
-    """Enforces str is 32 hexadecimal characters, does not check validity."""
-
-    regex = r"^[0-9a-fA-F]{32}$"
+# Enforces str is 32 hexadecimal characters, does not check validity.
+APIKey = Annotated[str, StringConstraints(pattern=r"^[0-9a-fA-F]{32}$")]
 
 
 def get_user_id_for(*, api_key: APIKey) -> int | None:
