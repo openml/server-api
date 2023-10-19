@@ -1,0 +1,12 @@
+services:
+  php-api:
+    image: "openml/php-rest-api"
+    ports:
+      - "8001:80"
+  database:
+    image: "openml/test-database"
+    container_name: "openml-test-database"
+    environment:
+      MYSQL_ROOT_PASSWORD: ok
+    ports:
+      - "3306:3306"
