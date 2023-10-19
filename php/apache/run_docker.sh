@@ -7,3 +7,6 @@ docker run -p 8001:80 --rm -it \
 	-v ${PHP_CONFIG}:/var/www/openml/openml_OS/config/BASE_CONFIG.php \
 	--network sqlnetwork \
         apache-php
+
+
+docker run -p 8001:80 --rm -it apache-php
