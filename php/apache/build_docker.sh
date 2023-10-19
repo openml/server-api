@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker build --tag apache-php -f Dockerfile .
+docker build --tag openml/php-rest-api -f Dockerfile .
