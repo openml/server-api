@@ -23,4 +23,3 @@ RUN mkdir /scripts
 COPY set_configuration.sh /scripts/
 
 ENTRYPOINT ["bash", "/scripts/set_configuration.sh"]
-#ENTRYPOINT ["apache2-foreground"]
