@@ -32,6 +32,8 @@ def get_dataset_wrapped(
         dataset["processing_date"] = str(processing_data).replace("T", " ")
     if parquet_url := dataset.get("parquet_url"):
         dataset["parquet_url"] = str(parquet_url).replace("https", "http")
+    if minio_url := dataset.get("minio_url"):
+        dataset["minio_url"] = str(minio_url).replace("https", "http")
 
     manual = []
     # ref test.openml.org/d/33 (contributor) and d/34 (creator)
