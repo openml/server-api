@@ -97,19 +97,6 @@ Where `-v` show the name of each test ran, `-x` ensures testing stops on first f
 `--lf` will first run the test(s) which failed last, and `-m "not web"` specifies
 which tests (not) to run.
 
-## Building documentation
-We build our documentation with [`mkdocs-material`](https://squidfunk.github.io/mkdocs-material/).
-All documentation pages are under the `docs` folder, and the configuration is found in
-`mkdocs.yml`. Having installed the `docs` optional dependencies, you should be able
-to locally build and serve the documentation:
-
-```bash title="Serve documentation locally"
-python -m mkdocs serve
-```
-
-You can browse the documentation by visiting `127.0.0.1:8000` in your browser.
-The documentation pages will automatically rebuild when there are changes.
-
 
 ## YAML validation
 The project contains various [`yaml`](https://yaml.org) files, for example to configure

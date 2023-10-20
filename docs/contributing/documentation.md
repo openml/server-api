@@ -5,6 +5,8 @@ Our documentation is built using [mkdocs](https://www.mkdocs.org) and the
 [plugins](https://squidfunk.github.io/mkdocs-material/plugins/).
 Please refer to the ["Getting Started"](https://squidfunk.github.io/mkdocs-material/getting-started/)
 pages of `mkdocs-material` for a general overview on how to work with `mkdocs-material`.
+All documentation files are in the `docs/` folder, except for the configuration file
+which is `mkdocs.yml` at the root of the repository.
 
 For minor changes, it should be fine to edit the page directly on Github.
 That should commit to a separate branch (or fork), and you can set up a pull request.
