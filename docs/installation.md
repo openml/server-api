@@ -1,6 +1,6 @@
 # Installation
 
-*Current instructions written for Mac, but can be adapted for other operating systems.*
+*Current instructions tested on Mac, but likely work on most Unix systems.*
 
 The OpenML server will be developed and maintained for the latest minor release of
 Python (Python 3.12 as of writing).

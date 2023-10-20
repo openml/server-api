@@ -1,4 +1,4 @@
-# OpenML Server API Documentation
+# OpenML Server API Software Documentation
 
 This is the Python-based OpenML REST API server.
 It's a rewrite of our [old backend](http://github.com/openml/openml) built with a
@@ -17,4 +17,4 @@ modern Python-based stack.
     for documentation on the REST API endpoints, visit the
     [APIs](https://openml.org/apis) page.
 
-    This documentation is for developing and hosting your own OpenML instance.
+    This documentation is for developing and hosting your own OpenML REST API.
