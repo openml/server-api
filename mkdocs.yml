@@ -1,7 +1,7 @@
 # yaml-language-server: $schema=https://squidfunk.github.io/mkdocs-material/schema.json
 
 site_name: OpenML Server
-site_url: https://openml/github.io/server-api
+site_url: https://openml.github.io/server-api
 
 repo_name: openml/server-api
 repo_url: https://github.com/openml/server-api
