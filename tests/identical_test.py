@@ -13,7 +13,7 @@ from fastapi import FastAPI
     range(1, 9078),
 )
 def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> None:
-    original = httpx.get(f"https://test.openml.org/api/v1/json/data/{dataset_id}")
+    original = httpx.get(f"http://server-api-php-api-1:80/api/v1/json/data/{dataset_id}")
     new = cast(httpx.Response, api_client.get(f"/old/datasets/{dataset_id}"))
     assert original.status_code == new.status_code
     assert new.json()
@@ -60,9 +60,6 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
             del original[field]
         if field in new:
             del new[field]
-
-    if "minio_url" in new:
-        del new["minio_url"]  # not served from the test server (and not for sparse)
 
     # There is odd behavior in the live server that I don't want to recreate:
     # when the creator is a list of csv names, it can either be a str or a list
