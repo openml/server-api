@@ -4,7 +4,7 @@
 
 The OpenML server will be developed and maintained for the latest minor release of
 Python (Python 3.12 as of writing).
-You can install the dependencies locally or work from a Docker container (TODO).
+You can install the dependencies locally or work with docker containers.
 
 !!! tip "Use `pyenv` to manage Python installations"
 
@@ -13,6 +13,15 @@ You can install the dependencies locally or work from a Docker container (TODO).
 
 ## Local Installation
 
+These instructions assume [Python 3.12](https://www.python.org/downloads/)
+and [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) are already installed.
+
+!!! info "You may need to install Python3 and MySQL development headers."
+
+    It may be necessary to first install additional headers before proceeding with a
+    local installation of the `mysqlclient` dependency. They are documented under
+    ["Installation"](https://github.com/PyMySQL/mysqlclient#linux) of the `mysqlclient`
+    documentation.
 
 === "For Users"
 
@@ -55,9 +64,6 @@ You can install the dependencies locally or work from a Docker container (TODO).
     tools. We require this for contributors, but we also highly recommend it anyone
     that plans to make code changes.
 
-Before we run the REST API server, we must first set up a database server, and configure
-the REST API to connect to it.
-
 ## Setting up a Database Server
 Depending on your use of the server, there are multiple ways to set up your own
 OpenML database. To simply connect to an existing database, see
@@ -71,15 +77,46 @@ server.
 
 !!! Failure ""
 
-    Instructions are incomplete. Please have patience while we are adding more documentation.
+    Instructions are incomplete. See [issue#78](https://github.com/openml/server-api/issues/78).
 
 ### Setting up a test database
-This is a database with only a fraction of the data of the production database,
-intended to be used by developers.
 
-!!! Failure ""
+We provide a prebuilt docker image that already contains test data.
 
-    Instructions are incomplete. Please have patience while we are adding more documentation.
+=== "Docker Compose"
+    To start the database through `docker compose`, run:
+
+    ```bash
+    docker compose up database
+    ```
+
+    which starts a database.
+
+=== "Docker Run"
+
+    To start a test database as stand-alone container, run:
+
+    ```bash
+    docker run  --rm -e MYSQL_ROOT_PASSWORD=ok -p 3306:3306 -d --name openml-test-database openml/test-database:latest
+    ```
+
+    You may opt to add the container to a network instead, to make it reachable
+    from other docker containers:
+
+    ```bash
+    docker network create openml
+    docker run  --rm -e MYSQL_ROOT_PASSWORD=ok -p 3306:3306 -d --name openml-test-database --network openml openml/test-database:latest
+    ```
+
+The container may take a minute to initialise, but afterwards you can connect to it.
+Either from a local `mysql` client at `127.0.0.1:3306` or from a docker container
+on the same network. For example:
+
+```bash
+docker run --network NETWORK --rm -it mysql mysql -hopenml-test-database -uroot -pok
+```
+where `NETWORK` is `server-api_default` if you used `docker compose`, and `openml`
+when using `docker run` (or whatever network you specified instead).
 
 ## Configuring the REST API Server
 
