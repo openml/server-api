@@ -1,14 +1,8 @@
-# Setting up the Development Environment
+# Setting up the development environment
 
 First, follow the [installation](../installation.md#local-installation) instructions
 for contributors to install a local fork with optional development dependencies.
-When setting up the database, follow the "Setting up a test database" instructions.
-
-## Database
-In addition to the database setup described in the [installation guide](../installation.md#setting-up-a-database-server),
-we also host a database on our server which may be connected to that is available
-to [OpenML core contributors](https://openml.org/about). If you are a core contributor
-and need access, please reach out to one of the engineers in Eindhoven.
+Stop when you reach the section "Setting up a Database Server".
 
 ## Pre-commit
 
@@ -28,7 +22,69 @@ and many tools will build a cache so subsequent runs are faster.
 Under normal circumstances, running the pre-commit chain shouldn't take more than a few
 seconds.
 
-## Unit Tests
+
+## Docker
+
+With the projected forked, cloned, and installed, the easiest way to set up all
+required services for development is through [`docker compose`](https://docs.docker.com/compose/).
+
+### Starting containers
+
+```bash
+docker compose up
+```
+
+This will spin up 4 containers, as defined in the `docker-compose.yaml` file:
+
+ - `openml-test-database`: this is a mysql database prepopulated with test data.
+    It is reachable from the host machine with port `3306`, by default it is configured
+    to have a root user with password `"ok"`.
+ - `server-api-docs-1`: this container serves project documentation at `localhost:8000`.
+    These pages are built from the documents in the `docs/` directory of this repository,
+    whenever you edit and save a file there, the page will immediately be updated.
+ - `server-api-php-api-1`: this container serves the old PHP REST API at `localhost:8002`.
+    For example, visit [http://localhost:8002/api/v1/json/data/1](http://localhost:8002/api/v1/json/data/1)
+    to fetch a JSON description of dataset 1.
+ - `python-api`: this container serves the new Python-based REST API at `localhost:8001`.
+    For example, visit [http://localhost:8001/docs](http://localhost:8001/docs) to see
+    the REST API documentation. Changes to the code in `src/` will be reflected in this
+    container.
+
+You don't always need every container, often just having a database and the Python-based
+REST API may be enough. In that case, only specify those services:
+
+```bash
+docker compose up database python-api
+```
+
+Refer to the `docker compose` documentation for more uses.
+
+### Connecting to containers
+
+To connect to a container, run:
+
+```bash
+docker exec -it CONTAINER_NAME /bin/bash
+```
+
+where `CONTAINER_NAME` is the name of the container. If you are unsure of your container
+name, then `docker container ls` may help you find it. Assuming the default container
+names are used, you may connect to the Python-based REST API container using:
+
+```bash
+docker exec -it python-api /bin/bash
+```
+
+This is useful, for example, to run unit tests in the container:
+
+```bash
+python -m pytest -x -v -m "not web"
+```
+
+More on unit tests in a later section.
+
+
+## Unit tests
 
 Our unit tests are written with the [`pytest`](https://pytest.org) framework.
 An invocation could look like this:
@@ -41,7 +97,7 @@ Where `-v` show the name of each test ran, `-x` ensures testing stops on first f
 `--lf` will first run the test(s) which failed last, and `-m "not web"` specifies
 which tests (not) to run.
 
-## Building Documentation
+## Building documentation
 We build our documentation with [`mkdocs-material`](https://squidfunk.github.io/mkdocs-material/).
 All documentation pages are under the `docs` folder, and the configuration is found in
 `mkdocs.yml`. Having installed the `docs` optional dependencies, you should be able
@@ -54,10 +110,8 @@ python -m mkdocs serve
 You can browse the documentation by visiting `127.0.0.1:8000` in your browser.
 The documentation pages will automatically rebuild when there are changes.
 
-## Working from Docker
-TODO
 
-## YAML Validation
+## YAML validation
 The project contains various [`yaml`](https://yaml.org) files, for example to configure
 `mkdocs` or to describe Github workflows. For these `yaml` files we can configure
 automatic schema validation, to ensure that the files are valid without having to run
@@ -77,3 +131,13 @@ The following `yaml` files have schemas:
     In PyCharm, these can be configured from `settings` > `languages & frameworks` >
     `Schemas and DTDs` > `JSON Schema Mappings`. There, add mappings per file or
     file pattern.
+
+## Connecting to another database
+In addition to the database setup described in the [installation guide](../installation.md#setting-up-a-database-server),
+we also host a database on our server which may be connected to that is available
+to [OpenML core contributors](https://openml.org/about). If you are a core contributor
+and need access, please reach out to one of the engineers in Eindhoven.
+
+!!! Failure ""
+
+    Instructions are incomplete. Please have patience while we are adding more documentation.
