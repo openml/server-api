@@ -1,12 +1,17 @@
 from typing import Annotated
 
+from config import load_database_configuration
 from pydantic import StringConstraints
 from sqlalchemy import create_engine, text
+from sqlalchemy.engine import URL
 
 from database.meta import get_column_names
 
+_database_configuration = load_database_configuration()
+
+openml_url = URL.create(**_database_configuration["openml"])
 openml = create_engine(
-    "mysql://root:ok@127.0.0.1:3306/openml",
+    openml_url,
     echo=True,
     pool_recycle=3600,
 )
