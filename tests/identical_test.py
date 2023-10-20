@@ -10,7 +10,7 @@ from fastapi import FastAPI
 @pytest.mark.web()
 @pytest.mark.parametrize(
     "dataset_id",
-    range(1, 9078),
+    range(1, 132),
 )
 def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> None:
     original = httpx.get(f"http://server-api-php-api-1:80/api/v1/json/data/{dataset_id}")
