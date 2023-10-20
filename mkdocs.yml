@@ -14,7 +14,7 @@ nav:
   - Contributing:
       - contributing/index.md
       - Development: contributing/contributing.md
-      - PHP API: contributing/php.md
+      - Documentation: contributing/documentation.md
   - Changes: migration.md
 
 markdown_extensions:
