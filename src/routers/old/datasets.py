@@ -45,7 +45,7 @@ def get_dataset_wrapped(
             manual.append(field)
 
     if isinstance(dataset["original_data_url"], list):
-        dataset["original_data_url"] = ", ".join(dataset["original_data_url"])
+        dataset["original_data_url"] = ", ".join(str(url) for url in dataset["original_data_url"])
 
     for field, value in list(dataset.items()):
         if field in manual:
