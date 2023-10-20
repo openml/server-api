@@ -6,7 +6,7 @@ services:
       MYSQL_ROOT_PASSWORD: ok
     ports:
       - "3306:3306"
-      -
+
   docs:
     build:
       context: .
@@ -19,4 +19,14 @@ services:
   php-api:
     image: "openml/php-rest-api"
     ports:
-      - "8001:80"
+      - "8002:80"
+
+  python-api:
+    container_name: "python-api"
+    build:
+      context: .
+      dockerfile: docker/python/Dockerfile
+    ports:
+      - "8001:8000"
+    volumes:
+      - .:/python-api
