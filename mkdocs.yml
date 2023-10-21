@@ -9,6 +9,9 @@ repo_url: https://github.com/openml/server-api
 theme:
   name: material
 
+  features:
+    - content.code.copy
+
 nav:
   - Getting Started: installation.md
   - Contributing:
