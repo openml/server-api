@@ -81,9 +81,6 @@ This is useful, for example, to run unit tests in the container:
 python -m pytest -x -v -m "not web"
 ```
 
-More on unit tests in a later section.
-
-
 ## Unit tests
 
 Our unit tests are written with the [`pytest`](https://pytest.org) framework.
@@ -96,6 +93,15 @@ python -m pytest -v -x --lf -m "not web"
 Where `-v` show the name of each test ran, `-x` ensures testing stops on first failure,
 `--lf` will first run the test(s) which failed last, and `-m "not web"` specifies
 which tests (not) to run.
+
+The directory structure of our tests follows the structure of the `src/` directory.
+For files, we follow the convention of _appending_ `_test`.
+Try to keep tests as small as possible, and only rely on database and/or web connections
+when absolutely necessary.
+
+!!! Failure ""
+
+    Instructions are incomplete. Please have patience while we are adding more documentation.
 
 
 ## YAML validation

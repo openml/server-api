@@ -18,6 +18,7 @@ nav:
       - contributing/index.md
       - Development: contributing/contributing.md
       - Documentation: contributing/documentation.md
+      - Project Overview: contributing/project_overview.md
   - Changes: migration.md
 
 markdown_extensions:
