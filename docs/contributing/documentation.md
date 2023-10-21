@@ -38,6 +38,6 @@ For larger changes, clone a fork of the repository as described in the
     python -m mkdocs serve
     ```
 
-This will serve the documentation from the `docs/` directory to [https://localhost:8000/](https://localhost:8000/).
+This will serve the documentation from the `docs/` directory to [http://localhost:8000/](http://localhost:8000/).
 Any updates you make to files in that directory will be reflected on the website.
 When you are happy with your changes, just commit and set up a pull request!

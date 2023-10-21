@@ -9,11 +9,11 @@ documentation.
 
 ### Bug reports
 
-When you encounter an issue using or deploying the Python-based REST API, the first
+When you encounter an issue using or deploying the Python-based REST API, the first step
 is to search our [issue tracker](https://github.com/openml/server-api/issues) to see if others
 have already reported the issue. If this is the case, please indicate that you encountered
 the issue by leaving a :+1: on the issue. Feel free to leave a comment if you have
-additional information that may be useful to fix the bug.
+additional information that may be useful to track down or fix the bug.
 
 If the bug has not been reported before, please open a new issue to report it.
 When you open a bug report, please include:
@@ -30,7 +30,7 @@ that describes what the contribution should look like. This may be a proposal th
 write yourself, or an existing open issue that you want to help us with. Please indicate
 on that issue that you would like to contribute to it. This way, we can ensure that
 everything is clear, it's not out of date, and "officially" assign you to the issue so
-that others know its being worked on! Making sure there is a clear description and clear
+that others know its being worked on. Making sure there is a clear description and clear
 assignment helps prevent a situation where someone makes a large contribution that is
 unwanted, or is simultaneously developed by someone else. With an issue assigned,
 please head over to the "[Development](contributing.md)" section.

@@ -115,8 +115,10 @@ on the same network. For example:
 ```bash
 docker run --network NETWORK --rm -it mysql mysql -hopenml-test-database -uroot -pok
 ```
-where `NETWORK` is `server-api_default` if you used `docker compose`, and `openml`
-when using `docker run` (or whatever network you specified instead).
+where `NETWORK` is `openml` when using `docker run` when following the example,
+and `NETWORK` is `server-api_default` if you used `docker compose` (specifically,
+it is `DIRECTORY_NAME` + `_default`, so if you renamed the `server-api` directory to
+something else, the network name reflects that).
 
 ## Configuring the REST API Server
 

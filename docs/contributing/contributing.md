@@ -15,7 +15,7 @@ checks pass out of the box:
 
 ```bash title="Install pre-commit and verify it works"
 pre-commit install
-pre-commit run all-files
+pre-commit run --all-files
 ```
 Running the tool the first time may be slow as tools need to be installed,
 and many tools will build a cache so subsequent runs are faster.
