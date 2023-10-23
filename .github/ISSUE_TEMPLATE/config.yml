@@ -2,7 +2,7 @@ blank_issues_enabled: true
 contact_links:
   - name: 📖 Documentation
     url: https://openml.github.io/server-api
-    about: Read our comprehensive documentation.
+    about: Read our documentation -- it answers many questions!
   - name: 💬 Ask on Github
     url: https://github.com/openml/server-api/discussions/new?category=q-a
     about: For all questions on the OpenML REST API.
