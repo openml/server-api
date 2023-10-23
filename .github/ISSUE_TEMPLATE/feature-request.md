@@ -1,8 +1,8 @@
 ---
-name: Feature request
+name: 💡 Feature request
 about: Suggest a new endpoint, or a modification of an existing endpoint
 title: ''
-labels: enhancement, needs triage
+labels: enhancement, triage
 assignees: ''
 
 ---
