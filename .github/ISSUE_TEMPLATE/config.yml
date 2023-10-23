@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 📖 Documentation
+    url: https://openml.github.com/server-api
+    about: Read our comprehensive documentation.
+  - name: 💬 Ask on Slack
+    url: https://join.slack.com/t/openml/shared_invite/enQtODg4NjgzNTE4NjU3LTYwZDFhNzQ5NmE0NjIyNmM3NDMyMjFkZDQ0YWZkYWYxMTIxODFmMDhhMTUzMGYzMmM4NjIzYTZlYjBkOGE5MTQ
+    about: Get in touch with the whole community.
