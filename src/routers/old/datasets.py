@@ -3,10 +3,12 @@ We add separate endpoints for old-style JSON responses, so they don't clutter th
 new API, and are easily removed later.
 """
 import http.client
-from typing import Any
+from typing import Annotated, Any
 
+from database.setup import expdb_database, user_database
 from database.users import APIKey
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import Engine
 
 from routers.datasets import get_dataset
 
@@ -20,9 +22,16 @@ router = APIRouter(prefix="/old/datasets", tags=["datasets"])
 def get_dataset_wrapped(
     dataset_id: int,
     api_key: APIKey | None = None,
+    user_db: Annotated[Engine, Depends(user_database)] = None,
+    expdb_db: Annotated[Engine, Depends(expdb_database)] = None,
 ) -> dict[str, dict[str, Any]]:
     try:
-        dataset = get_dataset(dataset_id, api_key).model_dump(by_alias=True)
+        dataset = get_dataset(
+            user_db=user_db,
+            expdb_db=expdb_db,
+            dataset_id=dataset_id,
+            api_key=api_key,
+        ).model_dump(by_alias=True)
     except HTTPException as e:
         raise HTTPException(
             status_code=http.client.PRECONDITION_FAILED,

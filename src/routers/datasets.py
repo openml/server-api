@@ -2,7 +2,7 @@ import html
 import http.client
 from collections import namedtuple
 from enum import IntEnum
-from typing import Any
+from typing import Annotated, Any
 
 from database.datasets import get_dataset as db_get_dataset
 from database.datasets import (
@@ -12,14 +12,16 @@ from database.datasets import (
     get_latest_status_update,
     get_tags,
 )
+from database.setup import expdb_database, user_database
 from database.users import APIKey, get_user_groups_for, get_user_id_for
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from schemas.datasets.openml import (
     DatasetFileFormat,
     DatasetMetadata,
     DatasetStatus,
     Visibility,
 )
+from sqlalchemy import Engine
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 
@@ -33,9 +35,9 @@ class DatasetError(IntEnum):
 processing_info = namedtuple("processing_info", ["date", "warning", "error"])
 
 
-def _get_processing_information(dataset_id: int) -> processing_info:
+def _get_processing_information(dataset_id: int, engine: Engine) -> processing_info:
     """Return processing information, if any. Otherwise, all fields `None`."""
-    if not (data_processed := get_latest_processing_update(dataset_id)):
+    if not (data_processed := get_latest_processing_update(dataset_id, engine)):
         return processing_info(date=None, warning=None, error=None)
 
     date_processed = data_processed["processing_date"]
@@ -51,6 +53,7 @@ def _format_error(*, code: DatasetError, message: str) -> dict[str, str]:
 
 def _user_has_access(
     dataset: dict[str, Any],
+    engine: Engine,
     api_key: APIKey | None = None,
 ) -> bool:
     """Determine if user of `api_key` has the right to view `dataset`."""
@@ -59,13 +62,13 @@ def _user_has_access(
     if not api_key:
         return False
 
-    if not (user_id := get_user_id_for(api_key=api_key)):
+    if not (user_id := get_user_id_for(api_key=api_key, engine=engine)):
         return False
 
     if user_id == dataset["uploader"]:
         return True
 
-    user_groups = get_user_groups_for(user_id=user_id)
+    user_groups = get_user_groups_for(user_id=user_id, engine=engine)
     ADMIN_GROUP = 1
     return ADMIN_GROUP in user_groups
 
@@ -106,26 +109,28 @@ def _csv_as_list(text: str | None, *, unquote_items: bool = True) -> list[str]:
 def get_dataset(
     dataset_id: int,
     api_key: APIKey | None = None,
+    user_db: Annotated[Engine, Depends(user_database)] = None,
+    expdb_db: Annotated[Engine, Depends(expdb_database)] = None,
 ) -> DatasetMetadata:
-    if not (dataset := db_get_dataset(dataset_id)):
+    if not (dataset := db_get_dataset(dataset_id, expdb_db)):
         error = _format_error(code=DatasetError.NOT_FOUND, message="Unknown dataset")
         raise HTTPException(status_code=http.client.NOT_FOUND, detail=error)
 
-    if not _user_has_access(dataset, api_key):
+    if not _user_has_access(dataset=dataset, api_key=api_key, engine=user_db):
         error = _format_error(code=DatasetError.NO_ACCESS, message="No access granted")
         raise HTTPException(status_code=http.client.FORBIDDEN, detail=error)
 
-    if not (dataset_file := get_file(dataset["file_id"])):
+    if not (dataset_file := get_file(dataset["file_id"], user_db)):
         error = _format_error(
             code=DatasetError.NO_DATA_FILE,
             message="No data file found",
         )
         raise HTTPException(status_code=http.client.PRECONDITION_FAILED, detail=error)
 
-    tags = get_tags(dataset_id)
-    description = get_latest_dataset_description(dataset_id)
-    processing_result = _get_processing_information(dataset_id)
-    status = get_latest_status_update(dataset_id)
+    tags = get_tags(dataset_id, expdb_db)
+    description = get_latest_dataset_description(dataset_id, expdb_db)
+    processing_result = _get_processing_information(dataset_id, expdb_db)
+    status = get_latest_status_update(dataset_id, expdb_db)
 
     status_ = DatasetStatus(status["status"]) if status else DatasetStatus.IN_PREPARATION
 
