@@ -4,13 +4,9 @@ from typing import Any
 from sqlalchemy import Engine, text
 
 from database.meta import get_column_names
-from database.setup import expdb_database, user_database
-
-_expdb = expdb_database()
-_openml = user_database()
 
 
-def get_dataset(dataset_id: int, engine: Engine = _expdb) -> dict[str, Any] | None:
+def get_dataset(dataset_id: int, engine: Engine) -> dict[str, Any] | None:
     columns = get_column_names(engine, "dataset")
     with engine.connect() as conn:
         row = conn.execute(
@@ -26,7 +22,7 @@ def get_dataset(dataset_id: int, engine: Engine = _expdb) -> dict[str, Any] | No
     return dict(zip(columns, result[0], strict=True)) if (result := list(row)) else None
 
 
-def get_file(file_id: int, engine: Engine = _openml) -> dict[str, Any] | None:
+def get_file(file_id: int, engine: Engine) -> dict[str, Any] | None:
     columns = get_column_names(engine, "file")
     with engine.connect() as conn:
         row = conn.execute(
@@ -42,7 +38,7 @@ def get_file(file_id: int, engine: Engine = _openml) -> dict[str, Any] | None:
     return dict(zip(columns, result[0], strict=True)) if (result := list(row)) else None
 
 
-def get_tags(dataset_id: int, engine: Engine = _expdb) -> list[str]:
+def get_tags(dataset_id: int, engine: Engine) -> list[str]:
     columns = get_column_names(engine, "dataset_tag")
     with engine.connect() as conn:
         rows = conn.execute(
@@ -60,7 +56,7 @@ def get_tags(dataset_id: int, engine: Engine = _expdb) -> list[str]:
 
 def get_latest_dataset_description(
     dataset_id: int,
-    engine: Engine = _expdb,
+    engine: Engine,
 ) -> dict[str, Any] | None:
     columns = get_column_names(engine, "dataset_description")
     with engine.connect() as conn:
@@ -78,7 +74,7 @@ def get_latest_dataset_description(
     return dict(zip(columns, result[0], strict=True)) if (result := list(row)) else None
 
 
-def get_latest_status_update(dataset_id: int, engine: Engine = _expdb) -> dict[str, Any] | None:
+def get_latest_status_update(dataset_id: int, engine: Engine) -> dict[str, Any] | None:
     columns = get_column_names(engine, "dataset_status")
     with engine.connect() as conn:
         row = conn.execute(
@@ -97,7 +93,7 @@ def get_latest_status_update(dataset_id: int, engine: Engine = _expdb) -> dict[s
     )
 
 
-def get_latest_processing_update(dataset_id: int, engine: Engine = _expdb) -> dict[str, Any] | None:
+def get_latest_processing_update(dataset_id: int, engine: Engine) -> dict[str, Any] | None:
     columns = get_column_names(engine, "data_processed")
     with engine.connect() as conn:
         row = conn.execute(
