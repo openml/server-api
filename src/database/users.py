@@ -1,27 +1,19 @@
 from typing import Annotated
 
-from config import load_database_configuration
 from pydantic import StringConstraints
-from sqlalchemy import Engine, create_engine, text
-from sqlalchemy.engine import URL
+from sqlalchemy import Engine, text
 
 from database.meta import get_column_names
+from database.setup import user_database
 
-_database_configuration = load_database_configuration()
-
-openml_url = URL.create(**_database_configuration["openml"])
-openml = create_engine(
-    openml_url,
-    echo=True,
-    pool_recycle=3600,
-)
+_openml = user_database()
 
 # Enforces str is 32 hexadecimal characters, does not check validity.
 APIKey = Annotated[str, StringConstraints(pattern=r"^[0-9a-fA-F]{32}$")]
 
 
-def get_user_id_for(*, api_key: APIKey, engine: Engine = openml) -> int | None:
-    columns = get_column_names(openml, "users")
+def get_user_id_for(*, api_key: APIKey, engine: Engine = _openml) -> int | None:
+    columns = get_column_names(engine, "users")
     with engine.connect() as conn:
         row = conn.execute(
             text(
@@ -38,7 +30,7 @@ def get_user_id_for(*, api_key: APIKey, engine: Engine = openml) -> int | None:
     return int(dict(zip(columns, user, strict=True))["id"])
 
 
-def get_user_groups_for(*, user_id: int, engine: Engine = openml) -> list[int]:
+def get_user_groups_for(*, user_id: int, engine: Engine = _openml) -> list[int]:
     with engine.connect() as conn:
         row = conn.execute(
             text(

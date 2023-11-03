@@ -1,29 +1,17 @@
 """ Translation from https://github.com/openml/OpenML/blob/c19c9b99568c0fabb001e639ff6724b9a754bbc9/openml_OS/models/api/v1/Api_data.php#L707"""
 from typing import Any
 
-from config import load_database_configuration
-from sqlalchemy import Engine, create_engine, text
-from sqlalchemy.engine import URL
+from sqlalchemy import Engine, text
 
 from database.meta import get_column_names
+from database.setup import expdb_database, user_database
 
-_database_configuration = load_database_configuration()
-expdb_url = URL.create(**_database_configuration["expdb"])
-expdb = create_engine(
-    expdb_url,
-    echo=True,
-    pool_recycle=3600,
-)
-openml_url = URL.create(**_database_configuration["openml"])
-openml = create_engine(
-    openml_url,
-    echo=True,
-    pool_recycle=3600,
-)
+_expdb = expdb_database()
+_openml = user_database()
 
 
-def get_dataset(dataset_id: int, engine: Engine = expdb) -> dict[str, Any] | None:
-    columns = get_column_names(expdb, "dataset")
+def get_dataset(dataset_id: int, engine: Engine = _expdb) -> dict[str, Any] | None:
+    columns = get_column_names(engine, "dataset")
     with engine.connect() as conn:
         row = conn.execute(
             text(
@@ -38,8 +26,8 @@ def get_dataset(dataset_id: int, engine: Engine = expdb) -> dict[str, Any] | Non
     return dict(zip(columns, result[0], strict=True)) if (result := list(row)) else None
 
 
-def get_file(file_id: int, engine: Engine = openml) -> dict[str, Any] | None:
-    columns = get_column_names(openml, "file")
+def get_file(file_id: int, engine: Engine = _openml) -> dict[str, Any] | None:
+    columns = get_column_names(engine, "file")
     with engine.connect() as conn:
         row = conn.execute(
             text(
@@ -54,8 +42,8 @@ def get_file(file_id: int, engine: Engine = openml) -> dict[str, Any] | None:
     return dict(zip(columns, result[0], strict=True)) if (result := list(row)) else None
 
 
-def get_tags(dataset_id: int, engine: Engine = expdb) -> list[str]:
-    columns = get_column_names(expdb, "dataset_tag")
+def get_tags(dataset_id: int, engine: Engine = _expdb) -> list[str]:
+    columns = get_column_names(engine, "dataset_tag")
     with engine.connect() as conn:
         rows = conn.execute(
             text(
@@ -72,9 +60,9 @@ def get_tags(dataset_id: int, engine: Engine = expdb) -> list[str]:
 
 def get_latest_dataset_description(
     dataset_id: int,
-    engine: Engine = expdb,
+    engine: Engine = _expdb,
 ) -> dict[str, Any] | None:
-    columns = get_column_names(expdb, "dataset_description")
+    columns = get_column_names(engine, "dataset_description")
     with engine.connect() as conn:
         row = conn.execute(
             text(
@@ -90,8 +78,8 @@ def get_latest_dataset_description(
     return dict(zip(columns, result[0], strict=True)) if (result := list(row)) else None
 
 
-def get_latest_status_update(dataset_id: int, engine: Engine = expdb) -> dict[str, Any] | None:
-    columns = get_column_names(expdb, "dataset_status")
+def get_latest_status_update(dataset_id: int, engine: Engine = _expdb) -> dict[str, Any] | None:
+    columns = get_column_names(engine, "dataset_status")
     with engine.connect() as conn:
         row = conn.execute(
             text(
@@ -109,8 +97,8 @@ def get_latest_status_update(dataset_id: int, engine: Engine = expdb) -> dict[st
     )
 
 
-def get_latest_processing_update(dataset_id: int, engine: Engine = expdb) -> dict[str, Any] | None:
-    columns = get_column_names(expdb, "data_processed")
+def get_latest_processing_update(dataset_id: int, engine: Engine = _expdb) -> dict[str, Any] | None:
+    columns = get_column_names(engine, "data_processed")
     with engine.connect() as conn:
         row = conn.execute(
             text(
