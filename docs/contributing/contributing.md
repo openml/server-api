@@ -125,6 +125,24 @@ The following `yaml` files have schemas:
     `Schemas and DTDs` > `JSON Schema Mappings`. There, add mappings per file or
     file pattern.
 
+=== "VSCode"
+
+    In VSCode, these can be configured from `settings` > `Extetions` >
+    `JSON` > `Edit in settings.json`. There, add mappings per file or
+    file pattern. For example:
+    
+      ```bash
+      "json.schemas": [
+         {
+               "fileMatch": [
+                  "/myfile"
+               ],
+               "url": "schemaURL"
+         }
+
+      ]
+      ```
+
 ## Connecting to another database
 In addition to the database setup described in the [installation guide](../installation.md#setting-up-a-database-server),
 we also host a database on our server which may be connected to that is available
