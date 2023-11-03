@@ -2,7 +2,7 @@ from typing import Annotated
 
 from config import load_database_configuration
 from pydantic import StringConstraints
-from sqlalchemy import create_engine, text
+from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.engine import URL
 
 from database.meta import get_column_names
@@ -20,9 +20,9 @@ openml = create_engine(
 APIKey = Annotated[str, StringConstraints(pattern=r"^[0-9a-fA-F]{32}$")]
 
 
-def get_user_id_for(*, api_key: APIKey) -> int | None:
+def get_user_id_for(*, api_key: APIKey, engine: Engine = openml) -> int | None:
     columns = get_column_names(openml, "users")
-    with openml.connect() as conn:
+    with engine.connect() as conn:
         row = conn.execute(
             text(
                 """
@@ -38,8 +38,8 @@ def get_user_id_for(*, api_key: APIKey) -> int | None:
     return int(dict(zip(columns, user, strict=True))["id"])
 
 
-def get_user_groups_for(*, user_id: int) -> list[int]:
-    with openml.connect() as conn:
+def get_user_groups_for(*, user_id: int, engine: Engine = openml) -> list[int]:
+    with engine.connect() as conn:
         row = conn.execute(
             text(
                 """
