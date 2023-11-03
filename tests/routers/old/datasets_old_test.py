@@ -96,3 +96,13 @@ def test_private_dataset_owner_access(
 def test_private_dataset_admin_access(api_client: FastAPI) -> None:
     cast(httpx.Response, api_client.get("/old/datasets/130?api_key=..."))
     # test against cached response
+
+
+def test_dataset_tag_requires_authentication(api_client: FastAPI) -> None:
+    response = cast(
+        httpx.Response,
+        api_client.post(
+            "/old/datasets/tag/data_id=130&tag=test&api_key=NOT_A_KEY",
+        ),
+    )
+    assert response.status_code == http.client.PRECONDITION_FAILED
