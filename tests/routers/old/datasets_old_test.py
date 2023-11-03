@@ -7,7 +7,7 @@ import pytest
 from fastapi import FastAPI
 
 
-@pytest.mark.web()
+@pytest.mark.php()
 @pytest.mark.parametrize(
     "dataset_id",
     range(1, 132),
@@ -54,47 +54,31 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
 
 
 @pytest.mark.parametrize(
-    ("endpoint", "dataset_id", "response_code"),
-    [
-        ("old/datasets/", -1, http.client.PRECONDITION_FAILED),
-        ("old/datasets/", 138, http.client.PRECONDITION_FAILED),
-        ("old/datasets/", 100_000, http.client.PRECONDITION_FAILED),
-        ("datasets/", -1, http.client.NOT_FOUND),
-        ("datasets/", 138, http.client.NOT_FOUND),
-        ("datasets/", 100_000, http.client.NOT_FOUND),
-    ],
+    "dataset_id",
+    [-1, 138, 100_000],
 )
 def test_error_unknown_dataset(
-    endpoint: str,
     dataset_id: int,
-    response_code: int,
     api_client: FastAPI,
 ) -> None:
-    response = cast(httpx.Response, api_client.get(f"{endpoint}/{dataset_id}"))
+    response = cast(httpx.Response, api_client.get(f"old/datasets/{dataset_id}"))
 
-    assert response.status_code == response_code
+    assert response.status_code == http.client.PRECONDITION_FAILED
     assert {"code": "111", "message": "Unknown dataset"} == response.json()["detail"]
 
 
 @pytest.mark.parametrize(
-    ("endpoint", "api_key", "response_code"),
-    [
-        ("old/datasets", None, http.client.PRECONDITION_FAILED),
-        ("old/datasets", "a" * 32, http.client.PRECONDITION_FAILED),
-        ("datasets", None, http.client.FORBIDDEN),
-        ("datasets", "a" * 32, http.client.FORBIDDEN),
-    ],
+    "api_key",
+    [None, "a" * 32],
 )
 def test_private_dataset_no_user_no_access(
     api_client: FastAPI,
-    endpoint: str,
     api_key: str | None,
-    response_code: int,
 ) -> None:
     query = f"?api_key={api_key}" if api_key else ""
-    response = cast(httpx.Response, api_client.get(f"{endpoint}/130{query}"))
+    response = cast(httpx.Response, api_client.get(f"old/datasets/130{query}"))
 
-    assert response.status_code == response_code
+    assert response.status_code == http.client.PRECONDITION_FAILED
     assert {"code": "112", "message": "No access granted"} == response.json()["detail"]
 
 

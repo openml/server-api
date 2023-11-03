@@ -56,5 +56,5 @@ pythonpath = [
   "src"
 ]
 markers = [
-    "web: uses an internet connection"
+    "php: tests that compare directly to an old PHP endpoint"
 ]
