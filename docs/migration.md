@@ -43,6 +43,17 @@ For any other error messages, the response is identical except that outer field 
 + {"detail":{"code":"112","message":"No access granted"}}
 ```
 
+In some cases the JSON endpoints previously returned XML ([example](https://github.com/openml/OpenML/issues/1200)).
+Python-V1 will always return JSON.
+
+```diff title="XML replaced by JSON"
+- <oml:error xmlns:oml="http://openml.org/openml">
+-   <oml:code>103</oml:code>
+-   <oml:message>Authentication failed</oml:message>
+- </oml:error>
++ {"detail": {"code":"103", "message": "Authentication failed" } }
+```
+
 ### Datasets
 
 #### `GET /{dataset_id}`
