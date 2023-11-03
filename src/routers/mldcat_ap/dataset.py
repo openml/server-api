@@ -16,8 +16,8 @@ router = APIRouter(prefix="/mldcat_ap/datasets", tags=["datasets"])
 )
 def get_mldcat_ap_dataset(
     dataset_id: int,
-    user_db: Annotated[Engine, Depends(user_database)],
-    expdb_db: Annotated[Engine, Depends(expdb_database)],
+    user_db: Annotated[Engine, Depends(user_database)] = None,
+    expdb_db: Annotated[Engine, Depends(expdb_database)] = None,
 ) -> JsonLDGraph:
     openml_dataset = get_dataset(
         dataset_id=dataset_id,

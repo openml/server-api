@@ -20,10 +20,10 @@ router = APIRouter(prefix="/old/datasets", tags=["datasets"])
     description="Get old-style wrapped meta-data for dataset with ID `dataset_id`.",
 )
 def get_dataset_wrapped(
-    user_db: Annotated[Engine, Depends(user_database)],
-    expdb_db: Annotated[Engine, Depends(expdb_database)],
     dataset_id: int,
     api_key: APIKey | None = None,
+    user_db: Annotated[Engine, Depends(user_database)] = None,
+    expdb_db: Annotated[Engine, Depends(expdb_database)] = None,
 ) -> dict[str, dict[str, Any]]:
     try:
         dataset = get_dataset(

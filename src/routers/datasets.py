@@ -107,10 +107,10 @@ def _csv_as_list(text: str | None, *, unquote_items: bool = True) -> list[str]:
     description="Get meta-data for dataset with ID `dataset_id`.",
 )
 def get_dataset(
-    user_db: Annotated[Engine, Depends(user_database)],
-    expdb_db: Annotated[Engine, Depends(expdb_database)],
     dataset_id: int,
     api_key: APIKey | None = None,
+    user_db: Annotated[Engine, Depends(user_database)] = None,
+    expdb_db: Annotated[Engine, Depends(expdb_database)] = None,
 ) -> DatasetMetadata:
     if not (dataset := db_get_dataset(dataset_id, expdb_db)):
         error = _format_error(code=DatasetError.NOT_FOUND, message="Unknown dataset")
