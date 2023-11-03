@@ -26,6 +26,10 @@ dev = [
     "pytest",
     "httpx",
 ]
+docs = [
+    "mkdocs-material",
+    "mkdocs-section-index",
+]
 
 [project.urls]
 "Homepage" = "https://github.com/openml/server-api"

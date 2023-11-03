@@ -10,10 +10,10 @@ from fastapi import FastAPI
 @pytest.mark.web()
 @pytest.mark.parametrize(
     "dataset_id",
-    range(1, 9078),
+    range(1, 132),
 )
 def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> None:
-    original = httpx.get(f"https://test.openml.org/api/v1/json/data/{dataset_id}")
+    original = httpx.get(f"http://server-api-php-api-1:80/api/v1/json/data/{dataset_id}")
     new = cast(httpx.Response, api_client.get(f"/old/datasets/{dataset_id}"))
     assert original.status_code == new.status_code
     assert new.json()
@@ -34,35 +34,8 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
     if "div" in original:
         pytest.skip("A PHP error occurred on the test server.")
 
-    # In case the test environment is set up to communicate with a snapshot of
-    # the test server database, we expect some fields to be outdated:
-    assert int(original["description_version"]) >= int(new["description_version"])
-    if "tag" in original and "tag" in new:
-        # TODO: Ask Jan why some datasets don't have tags.
-        assert set(original["tag"]) >= set(new["tag"])
-
-    assert original["format"].lower() == new["format"]
-
-    # Sometimes the test server provides `parquet_url`s, sometimes not.
-    if "parquet_url" in original:
-        if original["format"] == "sparse_arff":
-            # https://github.com/openml/OpenML/issues/1189
-            # The test server incorrectly thinks there is an associated parquet file:
-            del original["parquet_url"]
-    elif "parquet_url" in new:
-        del new["parquet_url"]
-
-    # Format is tested in normalized form above, tags and description_version may
-    # be out of sync with the snapshot of the database that we use to generate
-    # new responses.
-    for field in ["description_version", "tag", "format"]:
-        if field in original:
-            del original[field]
-        if field in new:
-            del new[field]
-
-    if "minio_url" in new:
-        del new["minio_url"]  # not served from the test server (and not for sparse)
+    # The new API has normalized `format` field:
+    original["format"] = original["format"].lower()
 
     # There is odd behavior in the live server that I don't want to recreate:
     # when the creator is a list of csv names, it can either be a str or a list
@@ -75,11 +48,6 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
         and len(original["creator"].split(",")) > 1
     ):
         original["creator"] = [name.strip() for name in original["creator"].split(",")]
-
-    # For some reason, the TALLO dataset has multiple 'ignore attribute' but the
-    # live server is not able to parse that and provides no 'ignore attribute' field:
-    if dataset_id in range(8592, 8606):
-        del new["ignore_attribute"]
 
     # The remainder of the fields should be identical:
     assert original == new

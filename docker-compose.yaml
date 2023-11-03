@@ -1,0 +1,32 @@
+services:
+  database:
+    image: "openml/test-database"
+    container_name: "openml-test-database"
+    environment:
+      MYSQL_ROOT_PASSWORD: ok
+    ports:
+      - "3306:3306"
+
+  docs:
+    build:
+      context: .
+      dockerfile: docker/docs/Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/docs
+
+  php-api:
+    image: "openml/php-rest-api"
+    ports:
+      - "8002:80"
+
+  python-api:
+    container_name: "python-api"
+    build:
+      context: .
+      dockerfile: docker/python/Dockerfile
+    ports:
+      - "8001:8000"
+    volumes:
+      - .:/python-api
