@@ -130,7 +130,7 @@ The following `yaml` files have schemas:
     In VSCode, these can be configured from `settings` > `Extetions` >
     `JSON` > `Edit in settings.json`. There, add mappings per file or
     file pattern. For example:
-    
+
       ```bash
       "json.schemas": [
          {
