@@ -70,3 +70,19 @@ def get_dataset_wrapped(
         dataset["description"] = []
 
     return {"data_set_description": dataset}
+
+
+@router.post(
+    path="/tag",
+)
+def tag_dataset(
+    dataset_id: int,
+    tag: str,
+    api_key: APIKey | None = None,
+    user_db: Annotated[Engine, Depends(user_database)] = None,
+    expdb_db: Annotated[Engine, Depends(expdb_database)] = None,
+) -> dict:
+    raise HTTPException(
+        status_code=http.client.PRECONDITION_FAILED,
+        detail={"code": "103", "message": "Authentication failed"},
+    ) from None

@@ -102,7 +102,13 @@ def test_dataset_tag_requires_authentication(api_client: FastAPI) -> None:
     response = cast(
         httpx.Response,
         api_client.post(
-            "/old/datasets/tag/data_id=130&tag=test&api_key=NOT_A_KEY",
+            "/old/datasets/tag?dataset_id=130&tag=test",
         ),
     )
     assert response.status_code == http.client.PRECONDITION_FAILED
+    assert {"code": "103", "message": "Authentication failed"} == response.json()["detail"]
+
+
+# {'error': {'code': '473', 'message': 'Entity already tagged by this tag.', 'additional_information': 'id=2; tag=test'}}
+# {'data_tag': {'id': '3', 'tag': ['study_14', 'test']}}
+#  curl -X POST -d 'api_key=610344db6388d9ba34f6db45a3cf71de&tag=test&data_id=3' https://test.openml.org/api/v1/json/data/tag
