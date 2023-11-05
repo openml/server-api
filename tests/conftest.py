@@ -1,10 +1,18 @@
 import json
+from enum import StrEnum
 from pathlib import Path
 from typing import Any, Generator
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+
+
+class ApiKey(StrEnum):
+    ADMIN: str = "AD000000000000000000000000000000"
+    REGULAR_USER: str = "00000000000000000000000000000000"
+    OWNER_USER: str = "DA1A0000000000000000000000000000"
+    INVALID: str = "11111111111111111111111111111111"
 
 
 @pytest.fixture()

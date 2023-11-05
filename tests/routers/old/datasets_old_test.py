@@ -6,6 +6,8 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
+from tests.conftest import ApiKey
+
 
 @pytest.mark.php()
 @pytest.mark.parametrize(
@@ -98,17 +100,26 @@ def test_private_dataset_admin_access(api_client: FastAPI) -> None:
     # test against cached response
 
 
-def test_dataset_tag_requires_authentication(api_client: FastAPI) -> None:
+@pytest.mark.parametrize(
+    "key",
+    [None, ApiKey.REGULAR_USER, ApiKey.INVALID],
+    ids=["no authentication", "non-owner", "invalid key"],
+)
+def test_dataset_tag_requires_authentication(key: ApiKey, api_client: FastAPI) -> None:
+    apikey = "" if key is None else f"&api_key={key}"
     response = cast(
         httpx.Response,
         api_client.post(
-            "/old/datasets/tag?dataset_id=130&tag=test",
+            f"/old/datasets/tag?dataset_id=130&tag=test{apikey}",
         ),
     )
     assert response.status_code == http.client.PRECONDITION_FAILED
     assert {"code": "103", "message": "Authentication failed"} == response.json()["detail"]
 
 
-# {'error': {'code': '473', 'message': 'Entity already tagged by this tag.', 'additional_information': 'id=2; tag=test'}}
+# {'error':
+#   {'code': '473', 'message': 'Entity already tagged by this tag.',
+#   'additional_information': 'id=2; tag=test'}
+# }
 # {'data_tag': {'id': '3', 'tag': ['study_14', 'test']}}
 #  curl -X POST -d 'api_key=610344db6388d9ba34f6db45a3cf71de&tag=test&data_id=3' https://test.openml.org/api/v1/json/data/tag
