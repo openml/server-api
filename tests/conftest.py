@@ -4,8 +4,10 @@ from pathlib import Path
 from typing import Any, Generator
 
 import pytest
+from database.setup import expdb_database, user_database
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy import Connection
 
 
 class ApiKey(StrEnum):
@@ -16,10 +18,31 @@ class ApiKey(StrEnum):
 
 
 @pytest.fixture()
-def api_client() -> Generator[FastAPI, None, None]:
+def expdb_test() -> Connection:
+    connection = next(expdb_database())
+    with connection.engine.connect() as connection:
+        transaction = connection.begin()
+        yield connection
+        transaction.rollback()
+
+
+@pytest.fixture()
+def user_test() -> Connection:
+    connection = next(user_database())
+    with connection.engine.connect() as connection:
+        transaction = connection.begin()
+        yield connection
+        transaction.rollback()
+
+
+@pytest.fixture()
+def api_client(expdb_test: Connection, user_test: Connection) -> Generator[FastAPI, None, None]:
     # We want to avoid starting a test client app if tests don't need it.
     from main import app
 
+    # We use the lambda definitions because fixtures may not be called directly.
+    app.dependency_overrides[expdb_database] = lambda: expdb_test
+    app.dependency_overrides[user_database] = lambda: user_test
     return TestClient(app)
 
 

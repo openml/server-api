@@ -62,13 +62,13 @@ def _user_has_access(
     if not api_key:
         return False
 
-    if not (user_id := get_user_id_for(api_key=api_key, engine=engine)):
+    if not (user_id := get_user_id_for(api_key=api_key, connection=engine)):
         return False
 
     if user_id == dataset["uploader"]:
         return True
 
-    user_groups = get_user_groups_for(user_id=user_id, engine=engine)
+    user_groups = get_user_groups_for(user_id=user_id, connection=engine)
     ADMIN_GROUP = 1
     return ADMIN_GROUP in user_groups
 

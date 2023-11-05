@@ -3,14 +3,17 @@ We add separate endpoints for old-style JSON responses, so they don't clutter th
 new API, and are easily removed later.
 """
 import http.client
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 
+from database.datasets import get_dataset as db_get_dataset
+from database.datasets import tag_dataset as db_tag_dataset
 from database.setup import expdb_database, user_database
-from database.users import APIKey
+from database.users import APIKey, User, UserGroup
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import Engine
+from sqlalchemy import Connection, Engine
 
 from routers.datasets import get_dataset
+from routers.dependencies import fetch_user
 
 router = APIRouter(prefix="/old/datasets", tags=["datasets"])
 
@@ -72,17 +75,35 @@ def get_dataset_wrapped(
     return {"data_set_description": dataset}
 
 
+def _user_can_tag(
+    user: User,
+    dataset_id: int,
+    expdb: Connection,
+) -> bool:
+    if UserGroup.ADMIN in user.groups:
+        return True
+    if dataset := db_get_dataset(dataset_id, connection=expdb):
+        return cast(bool, user.user_id == dataset["uploader"])
+    return False
+
+
 @router.post(
     path="/tag",
 )
 def tag_dataset(
     dataset_id: int,
     tag: str,
-    api_key: APIKey | None = None,
-    user_db: Annotated[Engine, Depends(user_database)] = None,
-    expdb_db: Annotated[Engine, Depends(expdb_database)] = None,
-) -> dict:
-    raise HTTPException(
-        status_code=http.client.PRECONDITION_FAILED,
-        detail={"code": "103", "message": "Authentication failed"},
-    ) from None
+    user: Annotated[User | None, Depends(fetch_user)] = None,
+    expdb_db: Annotated[Connection, Depends(expdb_database)] = None,
+) -> dict[str, dict[str, Any]]:
+    if user is None or not _user_can_tag(user=user, dataset_id=dataset_id, expdb=expdb_db):
+        raise HTTPException(
+            status_code=http.client.PRECONDITION_FAILED,
+            detail={"code": "103", "message": "Authentication failed"},
+        ) from None
+    db_tag_dataset(user.user_id, dataset_id, tag, connection=expdb_db)
+    # if tag in get_tags(dataset_id, engine=expdb_db):
+    #     return HTTP
+    return {
+        "data_tag": {"id": str(dataset_id), "tag": [tag]},
+    }

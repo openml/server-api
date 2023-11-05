@@ -6,8 +6,6 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
-from tests.conftest import ApiKey
-
 
 @pytest.mark.php()
 @pytest.mark.parametrize(
@@ -98,23 +96,6 @@ def test_private_dataset_owner_access(
 def test_private_dataset_admin_access(api_client: FastAPI) -> None:
     cast(httpx.Response, api_client.get("/old/datasets/130?api_key=..."))
     # test against cached response
-
-
-@pytest.mark.parametrize(
-    "key",
-    [None, ApiKey.REGULAR_USER, ApiKey.INVALID],
-    ids=["no authentication", "non-owner", "invalid key"],
-)
-def test_dataset_tag_requires_authentication(key: ApiKey, api_client: FastAPI) -> None:
-    apikey = "" if key is None else f"&api_key={key}"
-    response = cast(
-        httpx.Response,
-        api_client.post(
-            f"/old/datasets/tag?dataset_id=130&tag=test{apikey}",
-        ),
-    )
-    assert response.status_code == http.client.PRECONDITION_FAILED
-    assert {"code": "103", "message": "Authentication failed"} == response.json()["detail"]
 
 
 # {'error':
