@@ -7,13 +7,12 @@ from typing import Annotated, Any, cast
 
 from database.datasets import get_dataset as db_get_dataset
 from database.datasets import tag_dataset as db_tag_dataset
-from database.setup import expdb_database, user_database
 from database.users import APIKey, User, UserGroup
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import Connection, Engine
+from sqlalchemy import Connection
 
 from routers.datasets import get_dataset
-from routers.dependencies import fetch_user
+from routers.dependencies import expdb_connection, fetch_user, userdb_connection
 
 router = APIRouter(prefix="/old/datasets", tags=["datasets"])
 
@@ -25,8 +24,8 @@ router = APIRouter(prefix="/old/datasets", tags=["datasets"])
 def get_dataset_wrapped(
     dataset_id: int,
     api_key: APIKey | None = None,
-    user_db: Annotated[Engine, Depends(user_database)] = None,
-    expdb_db: Annotated[Engine, Depends(expdb_database)] = None,
+    user_db: Annotated[Connection, Depends(userdb_connection)] = None,
+    expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[str, dict[str, Any]]:
     try:
         dataset = get_dataset(
@@ -94,7 +93,7 @@ def tag_dataset(
     dataset_id: int,
     tag: str,
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    expdb_db: Annotated[Connection, Depends(expdb_database)] = None,
+    expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[str, dict[str, Any]]:
     if user is None or not _user_can_tag(user=user, dataset_id=dataset_id, expdb=expdb_db):
         raise HTTPException(

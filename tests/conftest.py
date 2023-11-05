@@ -7,6 +7,7 @@ import pytest
 from database.setup import expdb_database, user_database
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from routers.dependencies import expdb_connection, userdb_connection
 from sqlalchemy import Connection
 
 
@@ -39,8 +40,8 @@ def api_client(expdb_test: Connection, user_test: Connection) -> Generator[FastA
     from main import app
 
     # We use the lambda definitions because fixtures may not be called directly.
-    app.dependency_overrides[expdb_database] = lambda: expdb_test
-    app.dependency_overrides[user_database] = lambda: user_test
+    app.dependency_overrides[expdb_connection] = lambda: expdb_test
+    app.dependency_overrides[userdb_connection] = lambda: user_test
     return TestClient(app)
 
 

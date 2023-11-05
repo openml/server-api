@@ -33,7 +33,7 @@ def test_dataset_tag_rejects_unauthorized(key: ApiKey, api_client: FastAPI) -> N
     ids=["administrator", "owner"],
 )
 def test_dataset_tag(key: ApiKey, expdb_test: Connection, api_client: FastAPI) -> None:
-    dataset_id, tag = 130, "testssss"
+    dataset_id, tag = 130, "test"
     response = cast(
         httpx.Response,
         api_client.post(
