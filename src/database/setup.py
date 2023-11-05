@@ -1,5 +1,5 @@
 from config import load_database_configuration
-from sqlalchemy import Connection, Engine, create_engine
+from sqlalchemy import Engine, create_engine
 from sqlalchemy.engine import URL
 
 _user_engine = None
@@ -20,13 +20,11 @@ def user_database() -> Engine:
     global _user_engine
     if _user_engine is None:
         _user_engine = _create_engine("openml")
-    with _user_engine.connect() as connection:
-        yield connection
+    return _user_engine
 
 
-def expdb_database() -> Connection:
+def expdb_database() -> Engine:
     global _expdb_engine
     if _expdb_engine is None:
         _expdb_engine = _create_engine("expdb")
-    with _expdb_engine.connect() as connection:
-        yield connection
+    return _expdb_engine

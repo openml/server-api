@@ -19,8 +19,7 @@ class ApiKey(StrEnum):
 
 @pytest.fixture()
 def expdb_test() -> Connection:
-    connection = next(expdb_database())
-    with connection.engine.connect() as connection:
+    with expdb_database().connect() as connection:
         transaction = connection.begin()
         yield connection
         transaction.rollback()
@@ -28,8 +27,7 @@ def expdb_test() -> Connection:
 
 @pytest.fixture()
 def user_test() -> Connection:
-    connection = next(user_database())
-    with connection.engine.connect() as connection:
+    with user_database().connect() as connection:
         transaction = connection.begin()
         yield connection
         transaction.rollback()
