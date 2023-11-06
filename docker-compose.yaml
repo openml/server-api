@@ -30,3 +30,20 @@ services:
       - "8001:8000"
     volumes:
       - .:/python-api
+
+  elasticsearch:
+    image: "docker.elastic.co/elasticsearch/elasticsearch:8.10.4"
+    container_name: "elasticsearch"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+      - certs:/usr/share/elasticsearch/config/data
+    environment:
+      - ELASTIC_PASSWORD=default
+      - discovery.type=single-node
+
+volumes:
+  esdata:
+  certs:
