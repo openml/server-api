@@ -20,7 +20,7 @@ def test_dataset_tag_rejects_unauthorized(key: ApiKey, api_client: FastAPI) -> N
     response = cast(
         httpx.Response,
         api_client.post(
-            f"/old/datasets/tag?dataset_id=130&tag=test{apikey}",
+            f"/old/datasets/tag?data_id=130&tag=test{apikey}",
         ),
     )
     assert response.status_code == http.client.PRECONDITION_FAILED
@@ -37,7 +37,7 @@ def test_dataset_tag(key: ApiKey, expdb_test: Connection, api_client: FastAPI) -
     response = cast(
         httpx.Response,
         api_client.post(
-            f"/old/datasets/tag?dataset_id={dataset_id}&tag={tag}&api_key={key}",
+            f"/old/datasets/tag?data_id={dataset_id}&tag={tag}&api_key={key}",
         ),
     )
     assert response.status_code == http.client.OK
@@ -52,7 +52,7 @@ def test_dataset_tag_returns_existing_tags(api_client: FastAPI) -> None:
     response = cast(
         httpx.Response,
         api_client.post(
-            f"/old/datasets/tag?dataset_id={dataset_id}&tag={tag}&api_key={ApiKey.ADMIN}",
+            f"/old/datasets/tag?data_id={dataset_id}&tag={tag}&api_key={ApiKey.ADMIN}",
         ),
     )
     assert response.status_code == http.client.OK
@@ -64,7 +64,7 @@ def test_dataset_tag_fails_if_tag_exists(api_client: FastAPI) -> None:
     response = cast(
         httpx.Response,
         api_client.post(
-            f"/old/datasets/tag?dataset_id={dataset_id}&tag={tag}&api_key={ApiKey.ADMIN}",
+            f"/old/datasets/tag?data_id={dataset_id}&tag={tag}&api_key={ApiKey.ADMIN}",
         ),
     )
     assert response.status_code == http.client.INTERNAL_SERVER_ERROR
@@ -76,3 +76,50 @@ def test_dataset_tag_fails_if_tag_exists(api_client: FastAPI) -> None:
         },
     }
     assert expected == response.json()
+
+
+@pytest.mark.php()
+@pytest.mark.parametrize(
+    "dataset_id",
+    list(range(1, 130)),
+)
+@pytest.mark.parametrize(
+    "tag",
+    ["study_14", "totally_new_tag_for_migration_testing"],
+    ids=["typically existing tag", "new tag"],
+)
+@pytest.mark.parametrize(
+    "api_key",
+    [ApiKey.ADMIN, ApiKey.REGULAR_USER, ApiKey.OWNER_USER],
+    ids=["Administrator", "regular user", "possible owner"],
+)
+def test_dataset_tag_response_is_identical(
+    dataset_id: int,
+    tag: str,
+    api_key: str,
+    api_client: FastAPI,
+) -> None:
+    query = f"data_id={dataset_id}&tag={tag}&api_key={api_key}"
+    original = httpx.post(
+        "http://server-api-php-api-1:80/api/v1/json/data/tag",
+        data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
+    )
+    if (
+        original.status_code == http.client.PRECONDITION_FAILED
+        and original.json()["error"]["message"] == "An Elastic Search Exception occured."
+    ):
+        pytest.skip("Encountered Elastic Search error.")
+    if original.status_code == http.client.OK:
+        # undo the tag, because we don't want to persist this change to the database
+        httpx.post(
+            "http://server-api-php-api-1:80/api/v1/json/data/untag",
+            data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
+        )
+    new = cast(httpx.Response, api_client.post(f"/old/datasets/tag?{query}"))
+
+    assert original.status_code == new.status_code
+    if new.status_code != http.client.OK:
+        assert original.json()["error"] == new.json()["detail"]
+        return
+
+    assert original.json() == new.json()
