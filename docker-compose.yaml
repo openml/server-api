@@ -43,6 +43,7 @@ services:
     environment:
       - ELASTIC_PASSWORD=default
       - discovery.type=single-node
+      - xpack.security.enabled=false
 
 volumes:
   esdata:
