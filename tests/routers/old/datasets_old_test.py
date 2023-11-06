@@ -96,11 +96,3 @@ def test_private_dataset_owner_access(
 def test_private_dataset_admin_access(api_client: FastAPI) -> None:
     cast(httpx.Response, api_client.get("/old/datasets/130?api_key=..."))
     # test against cached response
-
-
-# {'error':
-#   {'code': '473', 'message': 'Entity already tagged by this tag.',
-#   'additional_information': 'id=2; tag=test'}
-# }
-# {'data_tag': {'id': '3', 'tag': ['study_14', 'test']}}
-#  curl -X POST -d 'api_key=610344db6388d9ba34f6db45a3cf71de&tag=test&data_id=3' https://test.openml.org/api/v1/json/data/tag
