@@ -91,29 +91,29 @@ def _user_can_tag(
     path="/tag",
 )
 def tag_dataset(
-    dataset_id: int,
+    data_id: int,
     tag: str,
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[str, dict[str, Any]]:
-    if user is None or not _user_can_tag(user=user, dataset_id=dataset_id, expdb=expdb_db):
+    if user is None or not _user_can_tag(user=user, dataset_id=data_id, expdb=expdb_db):
         raise HTTPException(
             status_code=http.client.PRECONDITION_FAILED,
             detail={"code": "103", "message": "Authentication failed"},
         ) from None
 
-    tags = get_tags(dataset_id, expdb_db)
+    tags = get_tags(data_id, expdb_db)
     if tag in tags:
         raise HTTPException(
             status_code=http.client.INTERNAL_SERVER_ERROR,
             detail={
                 "code": "473",
                 "message": "Entity already tagged by this tag.",
-                "additional_information": f"id={dataset_id}; tag={tag}",
+                "additional_information": f"id={data_id}; tag={tag}",
             },
         )
-    db_tag_dataset(user.user_id, dataset_id, tag, connection=expdb_db)
+    db_tag_dataset(user.user_id, data_id, tag, connection=expdb_db)
 
     return {
-        "data_tag": {"id": str(dataset_id), "tag": [*tags, tag]},
+        "data_tag": {"id": str(data_id), "tag": [*tags, tag]},
     }
