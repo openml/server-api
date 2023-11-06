@@ -6,6 +6,7 @@ import http.client
 from typing import Annotated, Any, cast
 
 from database.datasets import get_dataset as db_get_dataset
+from database.datasets import get_tags
 from database.datasets import tag_dataset as db_tag_dataset
 from database.users import APIKey, User, UserGroup
 from fastapi import APIRouter, Depends, HTTPException
@@ -100,9 +101,19 @@ def tag_dataset(
             status_code=http.client.PRECONDITION_FAILED,
             detail={"code": "103", "message": "Authentication failed"},
         ) from None
+
+    tags = get_tags(dataset_id, expdb_db)
+    if tag in tags:
+        raise HTTPException(
+            status_code=http.client.INTERNAL_SERVER_ERROR,
+            detail={
+                "code": "473",
+                "message": "Entity already tagged by this tag.",
+                "additional_information": f"id={dataset_id}; tag={tag}",
+            },
+        )
     db_tag_dataset(user.user_id, dataset_id, tag, connection=expdb_db)
-    # if tag in get_tags(dataset_id, engine=expdb_db):
-    #     return HTTP
+
     return {
-        "data_tag": {"id": str(dataset_id), "tag": [tag]},
+        "data_tag": {"id": str(dataset_id), "tag": [*tags, tag]},
     }
