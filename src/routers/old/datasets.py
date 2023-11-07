@@ -3,12 +3,11 @@ We add separate endpoints for old-style JSON responses, so they don't clutter th
 new API, and are easily removed later.
 """
 import http.client
-from typing import Annotated, Any, cast
+from typing import Annotated, Any
 
-from database.datasets import get_dataset as db_get_dataset
 from database.datasets import get_tags
 from database.datasets import tag_dataset as db_tag_dataset
-from database.users import APIKey, User, UserGroup
+from database.users import APIKey, User
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import Connection
 
@@ -75,18 +74,6 @@ def get_dataset_wrapped(
     return {"data_set_description": dataset}
 
 
-def _user_can_tag(
-    user: User,
-    dataset_id: int,
-    expdb: Connection,
-) -> bool:
-    if UserGroup.ADMIN in user.groups:
-        return True
-    if dataset := db_get_dataset(dataset_id, connection=expdb):
-        return cast(bool, user.user_id == dataset["uploader"])
-    return False
-
-
 @router.post(
     path="/tag",
 )
@@ -96,12 +83,6 @@ def tag_dataset(
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[str, dict[str, Any]]:
-    if user is None or not _user_can_tag(user=user, dataset_id=data_id, expdb=expdb_db):
-        raise HTTPException(
-            status_code=http.client.PRECONDITION_FAILED,
-            detail={"code": "103", "message": "Authentication failed"},
-        ) from None
-
     tags = get_tags(data_id, expdb_db)
     if tag in tags:
         raise HTTPException(
@@ -112,6 +93,12 @@ def tag_dataset(
                 "additional_information": f"id={data_id}; tag={tag}",
             },
         )
+
+    if user is None:
+        raise HTTPException(
+            status_code=http.client.PRECONDITION_FAILED,
+            detail={"code": "103", "message": "Authentication failed"},
+        ) from None
     db_tag_dataset(user.user_id, data_id, tag, connection=expdb_db)
 
     return {
