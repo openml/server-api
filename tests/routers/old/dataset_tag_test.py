@@ -84,14 +84,14 @@ def test_dataset_tag_fails_if_tag_exists(api_client: FastAPI) -> None:
     list(range(1, 130)),
 )
 @pytest.mark.parametrize(
-    "tag",
-    ["study_14", "totally_new_tag_for_migration_testing"],
-    ids=["typically existing tag", "new tag"],
-)
-@pytest.mark.parametrize(
     "api_key",
     [ApiKey.ADMIN, ApiKey.REGULAR_USER, ApiKey.OWNER_USER],
     ids=["Administrator", "regular user", "possible owner"],
+)
+@pytest.mark.parametrize(
+    "tag",
+    ["study_14", "totally_new_tag_for_migration_testing"],
+    ids=["typically existing tag", "new tag"],
 )
 def test_dataset_tag_response_is_identical(
     dataset_id: int,
@@ -117,9 +117,11 @@ def test_dataset_tag_response_is_identical(
         )
     new = cast(httpx.Response, api_client.post(f"/old/datasets/tag?{query}"))
 
-    assert original.status_code == new.status_code
+    assert original.status_code == new.status_code, original.json()
     if new.status_code != http.client.OK:
         assert original.json()["error"] == new.json()["detail"]
         return
 
-    assert original.json() == new.json()
+    original = original.json()
+    new = new.json()
+    assert original == new
