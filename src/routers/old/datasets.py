@@ -100,7 +100,9 @@ def tag_dataset(
             detail={"code": "103", "message": "Authentication failed"},
         ) from None
     db_tag_dataset(user.user_id, data_id, tag, connection=expdb_db)
+    all_tags = [*tags, tag]
+    tag_value = all_tags if len(all_tags) > 1 else all_tags[0]
 
     return {
-        "data_tag": {"id": str(data_id), "tag": [*tags, tag]},
+        "data_tag": {"id": str(data_id), "tag": tag_value},
     }
