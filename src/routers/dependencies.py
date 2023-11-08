@@ -10,12 +10,14 @@ def expdb_connection() -> Connection:
     engine = expdb_database()
     with engine.connect() as connection:
         yield connection
+        connection.commit()
 
 
 def userdb_connection() -> Connection:
     engine = user_database()
     with engine.connect() as connection:
         yield connection
+        connection.commit()
 
 
 def fetch_user(
