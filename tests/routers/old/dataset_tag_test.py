@@ -12,8 +12,8 @@ from tests.conftest import ApiKey
 
 @pytest.mark.parametrize(
     "key",
-    [None, ApiKey.REGULAR_USER, ApiKey.INVALID],
-    ids=["no authentication", "non-owner", "invalid key"],
+    [None, ApiKey.INVALID],
+    ids=["no authentication", "invalid key"],
 )
 def test_dataset_tag_rejects_unauthorized(key: ApiKey, api_client: FastAPI) -> None:
     apikey = "" if key is None else f"&api_key={key}"
@@ -29,8 +29,8 @@ def test_dataset_tag_rejects_unauthorized(key: ApiKey, api_client: FastAPI) -> N
 
 @pytest.mark.parametrize(
     "key",
-    [ApiKey.ADMIN, ApiKey.OWNER_USER],
-    ids=["administrator", "owner"],
+    [ApiKey.ADMIN, ApiKey.REGULAR_USER, ApiKey.OWNER_USER],
+    ids=["administrator", "non-owner", "owner"],
 )
 def test_dataset_tag(key: ApiKey, expdb_test: Connection, api_client: FastAPI) -> None:
     dataset_id, tag = 130, "test"
