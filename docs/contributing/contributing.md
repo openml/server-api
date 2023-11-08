@@ -131,7 +131,7 @@ The following `yaml` files have schemas:
     `JSON` > `Edit in settings.json`. There, add mappings per file or
     file pattern. For example:
 
-      ```bash
+      ```json
       "json.schemas": [
          {
                "fileMatch": [
