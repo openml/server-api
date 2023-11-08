@@ -5,12 +5,15 @@ new API, and are easily removed later.
 import http.client
 from typing import Annotated, Any
 
-from database.setup import expdb_database, user_database
-from database.users import APIKey
+from database.datasets import get_tags
+from database.datasets import tag_dataset as db_tag_dataset
+from database.users import APIKey, User
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import Engine
+from sqlalchemy import Connection
 
 from routers.datasets import get_dataset
+from routers.dependencies import expdb_connection, fetch_user, userdb_connection
+from routers.types import SystemString64
 
 router = APIRouter(prefix="/old/datasets", tags=["datasets"])
 
@@ -22,8 +25,8 @@ router = APIRouter(prefix="/old/datasets", tags=["datasets"])
 def get_dataset_wrapped(
     dataset_id: int,
     api_key: APIKey | None = None,
-    user_db: Annotated[Engine, Depends(user_database)] = None,
-    expdb_db: Annotated[Engine, Depends(expdb_database)] = None,
+    user_db: Annotated[Connection, Depends(userdb_connection)] = None,
+    expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[str, dict[str, Any]]:
     try:
         dataset = get_dataset(
@@ -70,3 +73,37 @@ def get_dataset_wrapped(
         dataset["description"] = []
 
     return {"data_set_description": dataset}
+
+
+@router.post(
+    path="/tag",
+)
+def tag_dataset(
+    data_id: int,
+    tag: SystemString64,
+    user: Annotated[User | None, Depends(fetch_user)] = None,
+    expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
+) -> dict[str, dict[str, Any]]:
+    tags = get_tags(data_id, expdb_db)
+    if tag in tags:
+        raise HTTPException(
+            status_code=http.client.INTERNAL_SERVER_ERROR,
+            detail={
+                "code": "473",
+                "message": "Entity already tagged by this tag.",
+                "additional_information": f"id={data_id}; tag={tag}",
+            },
+        )
+
+    if user is None:
+        raise HTTPException(
+            status_code=http.client.PRECONDITION_FAILED,
+            detail={"code": "103", "message": "Authentication failed"},
+        ) from None
+    db_tag_dataset(user.user_id, data_id, tag, connection=expdb_db)
+    all_tags = [*tags, tag]
+    tag_value = all_tags if len(all_tags) > 1 else all_tags[0]
+
+    return {
+        "data_tag": {"id": str(data_id), "tag": tag_value},
+    }

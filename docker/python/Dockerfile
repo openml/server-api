@@ -11,4 +11,4 @@ RUN python -m pip install -e ".[dev]"
 
 EXPOSE 8000
 ENTRYPOINT ["uvicorn"]
-CMD ["src.main:app", "--host", "0.0.0.0"]
+CMD ["src.main:app", "--host", "0.0.0.0", "--reload"]
