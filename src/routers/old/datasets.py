@@ -13,6 +13,7 @@ from sqlalchemy import Connection
 
 from routers.datasets import get_dataset
 from routers.dependencies import expdb_connection, fetch_user, userdb_connection
+from routers.types import SystemString64
 
 router = APIRouter(prefix="/old/datasets", tags=["datasets"])
 
@@ -79,7 +80,7 @@ def get_dataset_wrapped(
 )
 def tag_dataset(
     data_id: int,
-    tag: str,
+    tag: SystemString64,
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[str, dict[str, Any]]:
