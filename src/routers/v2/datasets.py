@@ -14,6 +14,7 @@ from database.datasets import (
 )
 from database.users import APIKey, get_user_groups_for, get_user_id_for
 from fastapi import APIRouter, Depends, HTTPException
+from routers.dependencies import expdb_connection, userdb_connection
 from schemas.datasets.openml import (
     DatasetFileFormat,
     DatasetMetadata,
@@ -22,9 +23,7 @@ from schemas.datasets.openml import (
 )
 from sqlalchemy import Connection
 
-from routers.dependencies import expdb_connection, userdb_connection
-
-router = APIRouter(prefix="/datasets", tags=["datasets"])
+router = APIRouter(prefix="/v2/datasets", tags=["datasets"])
 
 
 class DatasetError(IntEnum):

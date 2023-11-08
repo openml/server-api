@@ -20,7 +20,7 @@ def test_dataset_tag_rejects_unauthorized(key: ApiKey, api_client: FastAPI) -> N
     response = cast(
         httpx.Response,
         api_client.post(
-            f"/old/datasets/tag?data_id=130&tag=test{apikey}",
+            f"/v1/datasets/tag?data_id=130&tag=test{apikey}",
         ),
     )
     assert response.status_code == http.client.PRECONDITION_FAILED
@@ -37,7 +37,7 @@ def test_dataset_tag(key: ApiKey, expdb_test: Connection, api_client: FastAPI) -
     response = cast(
         httpx.Response,
         api_client.post(
-            f"/old/datasets/tag?data_id={dataset_id}&tag={tag}&api_key={key}",
+            f"/v1/datasets/tag?data_id={dataset_id}&tag={tag}&api_key={key}",
         ),
     )
     assert response.status_code == http.client.OK
@@ -52,7 +52,7 @@ def test_dataset_tag_returns_existing_tags(api_client: FastAPI) -> None:
     response = cast(
         httpx.Response,
         api_client.post(
-            f"/old/datasets/tag?data_id={dataset_id}&tag={tag}&api_key={ApiKey.ADMIN}",
+            f"/v1/datasets/tag?data_id={dataset_id}&tag={tag}&api_key={ApiKey.ADMIN}",
         ),
     )
     assert response.status_code == http.client.OK
@@ -64,7 +64,7 @@ def test_dataset_tag_fails_if_tag_exists(api_client: FastAPI) -> None:
     response = cast(
         httpx.Response,
         api_client.post(
-            f"/old/datasets/tag?data_id={dataset_id}&tag={tag}&api_key={ApiKey.ADMIN}",
+            f"/v1/datasets/tag?data_id={dataset_id}&tag={tag}&api_key={ApiKey.ADMIN}",
         ),
     )
     assert response.status_code == http.client.INTERNAL_SERVER_ERROR
@@ -88,7 +88,7 @@ def test_dataset_tag_invalid_tag_is_rejected(
     api_client: FastAPI,
 ) -> None:
     query = f"data_id=1&tag={tag}&api_key={ApiKey.ADMIN}"
-    new = cast(httpx.Response, api_client.post(f"/old/datasets/tag?{query}"))
+    new = cast(httpx.Response, api_client.post(f"/v1/datasets/tag?{query}"))
 
     assert new.status_code == http.client.UNPROCESSABLE_ENTITY
     assert ["query", "tag"] == new.json()["detail"][0]["loc"]
@@ -131,7 +131,7 @@ def test_dataset_tag_response_is_identical(
             "http://server-api-php-api-1:80/api/v1/json/data/untag",
             data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
         )
-    new = cast(httpx.Response, api_client.post(f"/old/datasets/tag?{query}"))
+    new = cast(httpx.Response, api_client.post(f"/v1/datasets/tag?{query}"))
 
     assert original.status_code == new.status_code, original.json()
     if new.status_code != http.client.OK:
