@@ -11,11 +11,11 @@ from database.users import APIKey, User
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import Connection
 
-from routers.datasets import get_dataset
 from routers.dependencies import expdb_connection, fetch_user, userdb_connection
 from routers.types import SystemString64
+from routers.v2.datasets import get_dataset
 
-router = APIRouter(prefix="/old/datasets", tags=["datasets"])
+router = APIRouter(prefix="/v1/datasets", tags=["datasets"])
 
 
 @router.get(

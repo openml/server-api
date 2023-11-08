@@ -1,7 +1,7 @@
 from fastapi import FastAPI
-from routers.datasets import router as datasets_router
 from routers.mldcat_ap.dataset import router as mldcat_ap_router
-from routers.old.datasets import router as datasets_router_old_format
+from routers.v1.datasets import router as datasets_router_old_format
+from routers.v2.datasets import router as datasets_router
 
 app = FastAPI()
 
