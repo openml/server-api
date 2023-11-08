@@ -78,6 +78,22 @@ def test_dataset_tag_fails_if_tag_exists(api_client: FastAPI) -> None:
     assert expected == response.json()
 
 
+@pytest.mark.parametrize(
+    "tag",
+    ["", "h@", " a", "a" * 65],
+    ids=["too short", "@", "space", "too long"],
+)
+def test_dataset_tag_invalid_tag_is_rejected(
+    tag: str,
+    api_client: FastAPI,
+) -> None:
+    query = f"data_id=1&tag={tag}&api_key={ApiKey.ADMIN}"
+    new = cast(httpx.Response, api_client.post(f"/old/datasets/tag?{query}"))
+
+    assert new.status_code == http.client.UNPROCESSABLE_ENTITY
+    assert ["query", "tag"] == new.json()["detail"][0]["loc"]
+
+
 @pytest.mark.php()
 @pytest.mark.parametrize(
     "dataset_id",
