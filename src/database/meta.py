@@ -1,4 +1,4 @@
-from sqlalchemy import Engine, text, Connection
+from sqlalchemy import Connection, text
 
 
 def get_column_names(connection: Connection, table: str) -> list[str]:
