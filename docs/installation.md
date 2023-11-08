@@ -6,10 +6,25 @@ The OpenML server will be developed and maintained for the latest minor release 
 Python (Python 3.12 as of writing).
 You can install the dependencies locally or work with docker containers.
 
-!!! tip "Use `pyenv` to manage Python installations"
+??? tip "Use `pyenv` to manage Python installations"
 
     We recommend using [`pyenv`](https://github.com/pyenv/pyenv) if you are working with
-    multiple local Python versions.
+    multiple local Python versions. After following the installation instructions for
+    `pyenv` check that you can execute it:
+
+    ```text
+    > pyenv local
+    3.12
+    ```
+
+    If `pyenv` can't be found, please make sure to update the terminal environment
+    (either by `reset`ing it, or by closing and opening the terminal). If you get the message
+    `pyenv: no local version configured for this directory` first clone the repository
+    as described below and try again from the root of the cloned repository.
+
+    You can then install the Python version this project uses with:
+    `cat .python-version | pyenv install`
+
 
 ## Local Installation
 
