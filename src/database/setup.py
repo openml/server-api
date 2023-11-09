@@ -8,10 +8,11 @@ _expdb_engine = None
 
 def _create_engine(database_name: str) -> Engine:
     database_configuration = load_database_configuration()
+    echo = database_configuration[database_name].pop("echo", False)
     db_url = URL.create(**database_configuration[database_name])
     return create_engine(
         db_url,
-        echo=True,
+        echo=echo,
         pool_recycle=3600,
     )
 
