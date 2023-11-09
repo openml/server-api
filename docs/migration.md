@@ -35,6 +35,12 @@ and JSON content will be different.
 + {"detail":[{"loc":["query","_dataset_id"],"msg":"value is not a valid integer","type":"type_error.integer"}]}
 ```
 
+!!! Bug "Input validation has been added to many end points"
+
+   There are endpoints which previously did not do any input validation.
+   These endpoints now do enforce stricter input constraints.
+   Constraints for each endpoint parameter are documented in the API docs.
+
 #### Other Errors
 For any other error messages, the response is identical except that outer field will be `"detail"` instead of `"error"`:
 
@@ -45,6 +51,7 @@ For any other error messages, the response is identical except that outer field 
 
 In some cases the JSON endpoints previously returned XML ([example](https://github.com/openml/OpenML/issues/1200)).
 Python-V1 will always return JSON.
+
 
 ```diff title="XML replaced by JSON"
 - <oml:error xmlns:oml="http://openml.org/openml">

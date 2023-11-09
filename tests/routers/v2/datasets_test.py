@@ -3,7 +3,7 @@ from typing import Any, cast
 
 import httpx
 import pytest
-from fastapi import FastAPI
+from starlette.testclient import TestClient
 
 
 @pytest.mark.parametrize(
@@ -17,7 +17,7 @@ from fastapi import FastAPI
 def test_error_unknown_dataset(
     dataset_id: int,
     response_code: int,
-    api_client: FastAPI,
+    api_client: TestClient,
 ) -> None:
     response = cast(httpx.Response, api_client.get(f"v2/datasets/{dataset_id}"))
 
@@ -33,7 +33,7 @@ def test_error_unknown_dataset(
     ],
 )
 def test_private_dataset_no_user_no_access(
-    api_client: FastAPI,
+    api_client: TestClient,
     api_key: str | None,
     response_code: int,
 ) -> None:
@@ -46,7 +46,7 @@ def test_private_dataset_no_user_no_access(
 
 @pytest.mark.skip("Not sure how to include apikey in test yet.")
 def test_private_dataset_owner_access(
-    api_client: FastAPI,
+    api_client: TestClient,
     dataset_130: dict[str, Any],
 ) -> None:
     response = cast(httpx.Response, api_client.get("/v2/datasets/130?api_key=..."))
@@ -55,6 +55,6 @@ def test_private_dataset_owner_access(
 
 
 @pytest.mark.skip("Not sure how to include apikey in test yet.")
-def test_private_dataset_admin_access(api_client: FastAPI) -> None:
+def test_private_dataset_admin_access(api_client: TestClient) -> None:
     cast(httpx.Response, api_client.get("/v2/datasets/130?api_key=..."))
     # test against cached response

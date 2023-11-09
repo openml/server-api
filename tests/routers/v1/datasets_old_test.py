@@ -4,7 +4,7 @@ from typing import Any, cast
 
 import httpx
 import pytest
-from fastapi import FastAPI
+from starlette.testclient import TestClient
 
 
 @pytest.mark.php()
@@ -12,7 +12,7 @@ from fastapi import FastAPI
     "dataset_id",
     range(1, 132),
 )
-def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> None:
+def test_dataset_response_is_identical(dataset_id: int, api_client: TestClient) -> None:
     original = httpx.get(f"http://server-api-php-api-1:80/api/v1/json/data/{dataset_id}")
     new = cast(httpx.Response, api_client.get(f"/v1/datasets/{dataset_id}"))
     assert original.status_code == new.status_code
@@ -59,7 +59,7 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: FastAPI) -> 
 )
 def test_error_unknown_dataset(
     dataset_id: int,
-    api_client: FastAPI,
+    api_client: TestClient,
 ) -> None:
     response = cast(httpx.Response, api_client.get(f"v1/datasets/{dataset_id}"))
 
@@ -72,7 +72,7 @@ def test_error_unknown_dataset(
     [None, "a" * 32],
 )
 def test_private_dataset_no_user_no_access(
-    api_client: FastAPI,
+    api_client: TestClient,
     api_key: str | None,
 ) -> None:
     query = f"?api_key={api_key}" if api_key else ""
@@ -84,7 +84,7 @@ def test_private_dataset_no_user_no_access(
 
 @pytest.mark.skip("Not sure how to include apikey in test yet.")
 def test_private_dataset_owner_access(
-    api_client: FastAPI,
+    api_client: TestClient,
     dataset_130: dict[str, Any],
 ) -> None:
     response = cast(httpx.Response, api_client.get("/v1/datasets/130?api_key=..."))
@@ -93,6 +93,6 @@ def test_private_dataset_owner_access(
 
 
 @pytest.mark.skip("Not sure how to include apikey in test yet.")
-def test_private_dataset_admin_access(api_client: FastAPI) -> None:
+def test_private_dataset_admin_access(api_client: TestClient) -> None:
     cast(httpx.Response, api_client.get("/v1/datasets/130?api_key=..."))
     # test against cached response

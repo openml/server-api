@@ -8,7 +8,7 @@ from typing import Annotated, Any
 from database.datasets import get_tags
 from database.datasets import tag_dataset as db_tag_dataset
 from database.users import APIKey, User
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy import Connection
 
 from routers.dependencies import expdb_connection, fetch_user, userdb_connection
@@ -79,13 +79,13 @@ def get_dataset_wrapped(
     path="/tag",
 )
 def tag_dataset(
-    data_id: int,
+    data_id: Annotated[int, Body()],
     tag: SystemString64,
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[str, dict[str, Any]]:
     tags = get_tags(data_id, expdb_db)
-    if tag in tags:
+    if tag.casefold() in [t.casefold() for t in tags]:
         raise HTTPException(
             status_code=http.client.INTERNAL_SERVER_ERROR,
             detail={

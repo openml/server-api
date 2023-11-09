@@ -1,3 +1,4 @@
+import contextlib
 import json
 from enum import StrEnum
 from pathlib import Path
@@ -5,10 +6,10 @@ from typing import Any, Generator
 
 import pytest
 from database.setup import expdb_database, user_database
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from main import create_api
 from routers.dependencies import expdb_connection, userdb_connection
-from sqlalchemy import Connection
+from sqlalchemy import Connection, Engine
 
 
 class ApiKey(StrEnum):
@@ -18,27 +19,29 @@ class ApiKey(StrEnum):
     INVALID: str = "11111111111111111111111111111111"
 
 
-@pytest.fixture()
-def expdb_test() -> Connection:
-    with expdb_database().connect() as connection:
+@contextlib.contextmanager
+def automatic_rollback(engine: Engine) -> Generator[Connection, None, None]:
+    with engine.connect() as connection:
         transaction = connection.begin()
         yield connection
         transaction.rollback()
+
+
+@pytest.fixture()
+def expdb_test() -> Connection:
+    with automatic_rollback(expdb_database()) as connection:
+        yield connection
 
 
 @pytest.fixture()
 def user_test() -> Connection:
-    with user_database().connect() as connection:
-        transaction = connection.begin()
+    with automatic_rollback(user_database()) as connection:
         yield connection
-        transaction.rollback()
 
 
 @pytest.fixture()
-def api_client(expdb_test: Connection, user_test: Connection) -> Generator[FastAPI, None, None]:
-    # We want to avoid starting a test client app if tests don't need it.
-    from main import app
-
+def api_client(expdb_test: Connection, user_test: Connection) -> TestClient:
+    app = create_api()
     # We use the lambda definitions because fixtures may not be called directly.
     app.dependency_overrides[expdb_connection] = lambda: expdb_test
     app.dependency_overrides[userdb_connection] = lambda: user_test
