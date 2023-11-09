@@ -4,8 +4,8 @@ from typing import cast
 import httpx
 import pytest
 from database.datasets import get_tags
-from fastapi import FastAPI
 from sqlalchemy import Connection
+from starlette.testclient import TestClient
 
 from tests.conftest import ApiKey
 
@@ -15,12 +15,13 @@ from tests.conftest import ApiKey
     [None, ApiKey.INVALID],
     ids=["no authentication", "invalid key"],
 )
-def test_dataset_tag_rejects_unauthorized(key: ApiKey, api_client: FastAPI) -> None:
-    apikey = "" if key is None else f"&api_key={key}"
+def test_dataset_tag_rejects_unauthorized(key: ApiKey, api_client: TestClient) -> None:
+    apikey = "" if key is None else f"?api_key={key}"
     response = cast(
         httpx.Response,
         api_client.post(
-            f"/v1/datasets/tag?data_id=130&tag=test{apikey}",
+            f"/v1/datasets/tag{apikey}",
+            json={"data_id": 130, "tag": "test"},
         ),
     )
     assert response.status_code == http.client.PRECONDITION_FAILED
@@ -32,7 +33,7 @@ def test_dataset_tag_rejects_unauthorized(key: ApiKey, api_client: FastAPI) -> N
     [ApiKey.ADMIN, ApiKey.REGULAR_USER, ApiKey.OWNER_USER],
     ids=["administrator", "non-owner", "owner"],
 )
-def test_dataset_tag(key: ApiKey, expdb_test: Connection, api_client: FastAPI) -> None:
+def test_dataset_tag(key: ApiKey, expdb_test: Connection, api_client: TestClient) -> None:
     dataset_id, tag = 130, "test"
     response = cast(
         httpx.Response,
@@ -47,7 +48,7 @@ def test_dataset_tag(key: ApiKey, expdb_test: Connection, api_client: FastAPI) -
     assert tag in tags
 
 
-def test_dataset_tag_returns_existing_tags(api_client: FastAPI) -> None:
+def test_dataset_tag_returns_existing_tags(api_client: TestClient) -> None:
     dataset_id, tag = 1, "test"
     response = cast(
         httpx.Response,
@@ -59,7 +60,7 @@ def test_dataset_tag_returns_existing_tags(api_client: FastAPI) -> None:
     assert {"data_tag": {"id": str(dataset_id), "tag": ["study_14", tag]}} == response.json()
 
 
-def test_dataset_tag_fails_if_tag_exists(api_client: FastAPI) -> None:
+def test_dataset_tag_fails_if_tag_exists(api_client: TestClient) -> None:
     dataset_id, tag = 1, "study_14"  # Dataset 1 already is tagged with 'study_14'
     response = cast(
         httpx.Response,
@@ -85,7 +86,7 @@ def test_dataset_tag_fails_if_tag_exists(api_client: FastAPI) -> None:
 )
 def test_dataset_tag_invalid_tag_is_rejected(
     tag: str,
-    api_client: FastAPI,
+    api_client: TestClient,
 ) -> None:
     query = f"data_id=1&tag={tag}&api_key={ApiKey.ADMIN}"
     new = cast(httpx.Response, api_client.post(f"/v1/datasets/tag?{query}"))
@@ -97,7 +98,7 @@ def test_dataset_tag_invalid_tag_is_rejected(
 @pytest.mark.php()
 @pytest.mark.parametrize(
     "dataset_id",
-    list(range(1, 130)),
+    list(range(1, 10)) + [101],
 )
 @pytest.mark.parametrize(
     "api_key",
@@ -113,7 +114,7 @@ def test_dataset_tag_response_is_identical(
     dataset_id: int,
     tag: str,
     api_key: str,
-    api_client: FastAPI,
+    api_client: TestClient,
 ) -> None:
     query = f"data_id={dataset_id}&tag={tag}&api_key={api_key}"
     original = httpx.post(

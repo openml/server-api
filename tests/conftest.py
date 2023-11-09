@@ -6,7 +6,6 @@ from typing import Any, Generator
 
 import pytest
 from database.setup import expdb_database, user_database
-from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from main import create_api
 from routers.dependencies import expdb_connection, userdb_connection
@@ -41,7 +40,7 @@ def user_test() -> Connection:
 
 
 @pytest.fixture()
-def api_client(expdb_test: Connection, user_test: Connection) -> Generator[FastAPI, None, None]:
+def api_client(expdb_test: Connection, user_test: Connection) -> TestClient:
     app = create_api()
     # We use the lambda definitions because fixtures may not be called directly.
     app.dependency_overrides[expdb_connection] = lambda: expdb_test
