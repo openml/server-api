@@ -6,6 +6,20 @@ from sqlalchemy import Connection, text
 from database.meta import get_column_names
 
 
+def list_all_qualities(connection: Connection) -> list[str]:
+    # The current implementation only fetches *used* qualities, otherwise you should
+    # query: SELECT `name` FROM `quality` WHERE `type`='DataQuality'
+    qualities = connection.execute(
+        text(
+            """
+        SELECT DISTINCT(`quality`)
+        FROM data_quality
+        """,
+        ),
+    )
+    return [quality.quality for quality in qualities]
+
+
 def get_dataset(dataset_id: int, connection: Connection) -> dict[str, Any] | None:
     columns = get_column_names(connection, "dataset")
     row = connection.execute(

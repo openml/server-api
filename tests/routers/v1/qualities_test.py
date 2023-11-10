@@ -1,9 +1,10 @@
 import http.client
 
+from sqlalchemy import Connection, text
 from starlette.testclient import TestClient
 
 
-def test_list_qualities_identical(api_client: TestClient) -> None:
+def test_list_qualities_identical(api_client: TestClient, expdb_test: Connection) -> None:
     response = api_client.get("/v1/datasets/qualities/list")
     assert response.status_code == http.client.OK
     expected = {
@@ -119,4 +120,27 @@ def test_list_qualities_identical(api_client: TestClient) -> None:
             ],
         },
     }
+    assert expected == response.json()
+
+    deleted = expected["data_qualities_list"]["quality"].pop()
+    expdb_test.execute(
+        text(
+            """
+        DELETE FROM data_quality
+        WHERE `quality`=:deleted_quality
+        """,
+        ),
+        parameters={"deleted_quality": deleted},
+    )
+    expdb_test.execute(
+        text(
+            """
+        DELETE FROM quality
+        WHERE `name`=:deleted_quality
+        """,
+        ),
+        parameters={"deleted_quality": deleted},
+    )
+    response = api_client.get("/v1/datasets/qualities/list")
+    assert response.status_code == http.client.OK
     assert expected == response.json()
