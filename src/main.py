@@ -3,7 +3,8 @@ import argparse
 import uvicorn
 from fastapi import FastAPI
 from routers.mldcat_ap.dataset import router as mldcat_ap_router
-from routers.v1.datasets import router as datasets_router_old_format
+from routers.v1.datasets import router as datasets_router_v1_format
+from routers.v1.qualities import router as qualities_router
 from routers.v2.datasets import router as datasets_router
 
 
@@ -37,7 +38,8 @@ def create_api() -> FastAPI:
     app = FastAPI()
 
     app.include_router(datasets_router)
-    app.include_router(datasets_router_old_format)
+    app.include_router(datasets_router_v1_format)
+    app.include_router(qualities_router)
     app.include_router(mldcat_ap_router)
 
     return app
