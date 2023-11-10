@@ -16,7 +16,11 @@ in which case using the generated REST API documentation is recommended.
 
 The first iteration of the new server has nearly identical responses to the old JSON
 endpoints, but there are exceptions. Most exceptions either bug fixes, or arise from
-technical limitations.
+technical limitations. This list covers the most important changes, but there may
+be some undocumented changes for edge cases. The PHP API was underspecified, and we
+decided that reverse engineering the specifications which mostly arise from
+implementation details was not worth the effort. If there is a behavioral change which
+was not documented but affects you, please [open a bug report](https://github.com/openml/server-api/issues/new?assignees=&labels=bug%2C+triage&projects=&template=bug-report.md&title=).
 
 ### All Endpoints
 The following changes affect all endpoints.
@@ -35,7 +39,7 @@ and JSON content will be different.
 + {"detail":[{"loc":["query","_dataset_id"],"msg":"value is not a valid integer","type":"type_error.integer"}]}
 ```
 
-!!! Bug "Input validation has been added to many end points"
+!!! warning "Input validation has been added to many end points"
 
    There are endpoints which previously did not do any input validation.
    These endpoints now do enforce stricter input constraints.
@@ -75,7 +79,16 @@ Python-V1 will always return JSON.
 
 
 ## V1 to V2
-Most of the changes are focused on standardizing responses.
+Most of the changes are focused on standardizing responses, working on:
+
+ * using JSON types.
+ * removing levels of nesting for endpoints which return single-field JSON.
+ * always returning lists for fields which may contain multiple values even if it
+   contains only one element or no element.
+ * restricting or expanding input types as appropriate.
+ * standardizing authentication and access messages, and consistently execute those checks
+   before fetching data or providing error messages about the data.
+
 
 ### Datasets
 
