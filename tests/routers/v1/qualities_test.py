@@ -1,10 +1,42 @@
 import http.client
 
+import httpx
+import pytest
 from sqlalchemy import Connection, text
 from starlette.testclient import TestClient
 
 
-def test_list_qualities_identical(api_client: TestClient, expdb_test: Connection) -> None:
+def _remove_quality_from_database(quality_name: str, expdb_test: Connection) -> None:
+    expdb_test.execute(
+        text(
+            """
+        DELETE FROM data_quality
+        WHERE `quality`=:deleted_quality
+        """,
+        ),
+        parameters={"deleted_quality": quality_name},
+    )
+    expdb_test.execute(
+        text(
+            """
+        DELETE FROM quality
+        WHERE `name`=:deleted_quality
+        """,
+        ),
+        parameters={"deleted_quality": quality_name},
+    )
+
+
+@pytest.mark.php()
+def test_list_qualities_identical(api_client: TestClient) -> None:
+    original = httpx.get("http://server-api-php-api-1:80/api/v1/json/data/qualities/list")
+    new = api_client.get("/v1/datasets/qualities/list")
+    assert original.status_code == new.status_code
+    assert original.json() == new.json()
+    # To keep the test idempotent, we cannot test if reaction to database changes is identical
+
+
+def test_list_qualities(api_client: TestClient, expdb_test: Connection) -> None:
     response = api_client.get("/v1/datasets/qualities/list")
     assert response.status_code == http.client.OK
     expected = {
@@ -123,24 +155,8 @@ def test_list_qualities_identical(api_client: TestClient, expdb_test: Connection
     assert expected == response.json()
 
     deleted = expected["data_qualities_list"]["quality"].pop()
-    expdb_test.execute(
-        text(
-            """
-        DELETE FROM data_quality
-        WHERE `quality`=:deleted_quality
-        """,
-        ),
-        parameters={"deleted_quality": deleted},
-    )
-    expdb_test.execute(
-        text(
-            """
-        DELETE FROM quality
-        WHERE `name`=:deleted_quality
-        """,
-        ),
-        parameters={"deleted_quality": deleted},
-    )
+    _remove_quality_from_database(quality_name=deleted, expdb_test=expdb_test)
+
     response = api_client.get("/v1/datasets/qualities/list")
     assert response.status_code == http.client.OK
     assert expected == response.json()
