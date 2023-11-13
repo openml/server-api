@@ -6,10 +6,7 @@ RUN docker-php-source extract \
 
 RUN apt-get update \
     && apt-get install -y git \
-    && git clone https://github.com/openml/openml /var/www/openml
-
-WORKDIR /var/www/openml
-RUN git checkout feature/elasticsearch8
+    && git clone --branch feature/elasticsearch8 https://github.com/openml/openml /var/www/openml
 
 RUN mv /var/www/openml/openml_OS/config/BASE_CONFIG-BLANK.php /var/www/openml/openml_OS/config/BASE_CONFIG.php
 
