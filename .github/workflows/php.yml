@@ -17,5 +17,5 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: 3.x
-      - run: docker compose up
+      - run: docker compose up -d
       - run: docker exec python-api python -m pytest -m "php"
