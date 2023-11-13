@@ -18,6 +18,8 @@ services:
 
   php-api:
     image: "openml/php-rest-api"
+    build:
+      context: ./docker/php/
     ports:
       - "8002:80"
 
