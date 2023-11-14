@@ -14,15 +14,24 @@ achieved by the exchange of descriptions of data sets among data portals.
 """
 import datetime
 from abc import ABC
-from typing import Union
+from typing import Literal, Union
 
 from pydantic import BaseModel, Field
 
 
 class DcatAPContext(BaseModel):
-    dcat: str = Field(default="http://www.w3.org/ns/dcat", const=True)
-    dct: str = Field(default="https://purl.org/dc/terms/", const=True)
-    vcard: str = Field(default="https://www.w3.org/2006/vcard/ns#", const=True)
+    dcat: Literal["http://www.w3.org/ns/dcat"] = Field(
+        default="http://www.w3.org/ns/dcat",
+        frozen=True,
+    )
+    dct: Literal["https://purl.org/dc/terms/"] = Field(
+        default="https://purl.org/dc/terms/",
+        frozen=True,
+    )
+    vcard: Literal["https://www.w3.org/2006/vcard/ns#"] = Field(
+        default="https://www.w3.org/2006/vcard/ns#",
+        frozen=True,
+    )
 
 
 class DcatAPObject(BaseModel, ABC):
@@ -38,7 +47,11 @@ class DcatAPIdentifier(DcatAPObject):
 
 
 class VCardIndividual(DcatAPObject):
-    type_: str = Field(default="vcard:Individual", serialization_alias="@type", const=True)
+    type_: Literal["vcard:Individual"] = Field(
+        default="vcard:Individual",
+        serialization_alias="@type",
+        frozen=True,
+    )
     fn: str = Field(
         serialization_alias="vcard:fn",
         description="The formatted text corresponding to the name of the object",
@@ -46,7 +59,7 @@ class VCardIndividual(DcatAPObject):
 
 
 class VCardOrganisation(DcatAPObject):
-    type_: str = Field(default="vcard:Organisation", serialization_alias="@type", const=True)
+    type_: str = Field(default="vcard:Organisation", serialization_alias="@type")
     fn: str = Field(
         serialization_alias="vcard:fn",
         description="The formatted text corresponding to the name of the object",
@@ -54,33 +67,53 @@ class VCardOrganisation(DcatAPObject):
 
 
 class DcatLocation(DcatAPObject):
-    type_: str = Field(default="dct:Location", serialization_alias="@type", const=True)
+    type_: Literal["dct:Location"] = Field(
+        default="dct:Location",
+        serialization_alias="@type",
+        frozen=True,
+    )
     bounding_box: str | None = Field(serialization_alias="dcat:bbox", default=None)
     centroid: str | None = Field(serialization_alias="dcat:centroid", default=None)
     geometry: str | None = Field(serialization_alias="dcat:geometry", default=None)
 
 
 class SpdxChecksum(DcatAPObject):
-    type_: str = Field(default="spdx:Checksum", serialization_alias="@type", const=True)
+    type_: Literal["spdx:Checksum"] = Field(
+        default="spdx:Checksum",
+        serialization_alias="@type",
+        frozen=True,
+    )
     algorithm: str = Field(serialization_alias="spdx:algorithm")
     value: str = Field(serialization_alias="spdx:checksumValue")
 
 
 class XSDDateTime(BaseModel):
-    type_: str = Field(default="xsd:dateTime", serialization_alias="@type", const=True)
+    type_: Literal["xsd:dateTime"] = Field(
+        default="xsd:dateTime",
+        serialization_alias="@type",
+        frozen=True,
+    )
     value_: datetime.datetime | datetime.date = Field(serialization_alias="@value")
 
     model_config = {"populate_by_name": True, "extra": "forbid"}
 
 
 class DctPeriodOfTime(DcatAPObject):
-    type_: str = Field(default="dct:PeriodOfTime", serialization_alias="@type", const=True)
+    type_: Literal["dct:PeriodOfTime"] = Field(
+        default="dct:PeriodOfTime",
+        serialization_alias="@type",
+        frozen=True,
+    )
     start_date: XSDDateTime | None = Field(serialization_alias="dcat:startDate", default=None)
     end_date: XSDDateTime | None = Field(serialization_alias="dcat:endDate", default=None)
 
 
 class DcatAPDistribution(DcatAPObject):
-    type_: str = Field(default="dcat:Distribution", serialization_alias="@type", const=True)
+    type_: Literal["dcat:Distribution"] = Field(
+        default="dcat:Distribution",
+        serialization_alias="@type",
+        frozen=True,
+    )
     access_url: list[str] = Field(
         serialization_alias="dcat:accessURL",
         default_factory=list,
@@ -96,7 +129,11 @@ class DcatAPDistribution(DcatAPObject):
 
 
 class DcatAPDataset(DcatAPObject):
-    type_: str = Field(default="dcat:Dataset", serialization_alias="@type", const=True)
+    type_: Literal["dcat:Dataset"] = Field(
+        default="dcat:Dataset",
+        serialization_alias="@type",
+        frozen=True,
+    )
     description: list[str] = Field(
         serialization_alias="dct:description",
         description="A free-text account of the Dataset",
@@ -165,7 +202,7 @@ class DcatApWrapper(BaseModel):
     context_: DcatAPContext = Field(
         default=DcatAPContext(),
         serialization_alias="@context",
-        const=True,
+        frozen=True,
     )
     # instead of list[DcatAPObject], a union with all the possible values is necessary.
     # See https://stackoverflow.com/questions/58301364/pydantic-and-subclasses-of-abstract-class
