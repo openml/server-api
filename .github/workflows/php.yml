@@ -19,4 +19,4 @@ jobs:
           python-version: 3.x
       - run: docker compose up -d --wait
       - run: docker container ls
-      - run: docker exec python-api python -xv -m pytest -m "php"
+      - run: docker exec python-api python -m pytest -xv -m "php"
