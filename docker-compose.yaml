@@ -27,6 +27,12 @@ services:
         condition: service_healthy
       database:
         condition: service_started
+    healthcheck:
+      test: curl 127.0.0.1:80 | grep -e "openml"
+      start_period: 30s
+      start_interval: 5s
+      timeout: 3s
+      interval: 1m
 
   python-api:
     container_name: "python-api"
