@@ -1,5 +1,4 @@
-# https://squidfunk.github.io/mkdocs-material/publishing-your-site/?h=#with-github-actions
-name: Deploy Docs
+name: Tests
 on:
   push:
     branches:
@@ -10,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  deploy:
+  compare-php:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,3 +19,13 @@ jobs:
       - run: docker compose up -d --wait
       - run: docker container ls
       - run: docker exec python-api python -m pytest -xv -m "php"
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.x
+      - run: docker compose up -d --wait database python-api
+      - run: docker container ls
+      - run: docker exec python-api python -m pytest -xv -m "not php"
