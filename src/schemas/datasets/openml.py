@@ -56,9 +56,11 @@ class DatasetMetadata(BaseModel):
             "example": "http://digital.library.adelaide.edu.au/dspace/handle/2440/15227",
         },
     )
-    upload_date: datetime = Field(json_schema_extra={"example": datetime(2014, 4, 6, 23, 19, 20)})
+    upload_date: datetime = Field(
+        json_schema_extra={"example": str(datetime(2014, 4, 6, 23, 12, 20))},
+    )
     processing_date: datetime | None = Field(
-        json_schema_extra={"example": datetime(2019, 7, 9, 15, 22, 3)},
+        json_schema_extra={"example": str(datetime(2019, 7, 9, 15, 22, 3))},
     )
     processing_error: str | None = Field(
         json_schema_extra={"example": "Please provide description XML."},
