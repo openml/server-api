@@ -16,6 +16,10 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: 3.x
+
+      # A naive `docker compose up` would first build the `python-api` container and then
+      # start all services, which kickstarts Elastic Search and building indices.
+      # But since those two steps are independent, we can parallelize them to save time.
       - run: |
           { docker compose build python-api; docker compose up -d python-api; } &
           docker compose up -d --wait php-api
