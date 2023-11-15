@@ -6,6 +6,7 @@ import http.client
 from typing import Annotated, Any, Literal
 
 from database.datasets import get_tags
+from database.datasets import list_datasets as db_list_datasets
 from database.datasets import tag_dataset as db_tag_dataset
 from database.users import APIKey, User
 from fastapi import APIRouter, Body, Depends, HTTPException
@@ -110,5 +111,51 @@ def tag_dataset(
 
 
 @router.get(path="/list/")
-def list_datasets() -> dict[Literal["data"], dict[Literal["dataset"], list[dict[str, Any]]]]:
-    return {"data": {"dataset": []}}
+def list_datasets(
+    expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
+) -> dict[Literal["data"], dict[Literal["dataset"], list[dict[str, Any]]]]:
+    # $legal_filters = array('tag', 'status', 'limit', 'offset', 'data_id', 'data_name',
+    # 'data_version', 'uploader', 'number_instances', 'number_features', 'number_classes',
+    # 'number_missing_values');
+    # {"did": 3,                    -> dataset
+    #  "name": "kr-vs-kp",          -> dataset
+    #  "version": 1,                -> dataset
+    #  "status": "active",          -> dataset_status
+    #  "format": "ARFF",            -> dataset
+    #  "md5_checksum": "",          -> file, but not provided?
+    #  "file_id": 3,                -> dataset
+    #  "quality": [                 -> data_quality
+    #      {"name": "MajorityClassSize",
+    #       "value": "1669.0"
+    #       }
+    #      , {"name": "MaxNominalAttDistinctValues",
+    #         "value": "3.0"
+    #         }
+    #      , {"name": "MinorityClassSize",
+    #         "value": "1527.0"
+    #         }
+    #      , {"name": "NumberOfClasses",
+    #         "value": "2.0"
+    #         }
+    #      , {"name": "NumberOfFeatures",
+    #         "value": "37.0"
+    #         }
+    #      , {"name": "NumberOfInstances",
+    #         "value": "3196.0"
+    #         }
+    #      , {"name": "NumberOfInstancesWithMissingValues",
+    #         "value": "0.0"
+    #         }
+    #      , {"name": "NumberOfMissingValues",
+    #         "value": "0.0"
+    #         }
+    #      , {"name": "NumberOfNumericFeatures",
+    #         "value": "0.0"
+    #         }
+    #      , {"name": "NumberOfSymbolicFeatures",
+    #         "value": "37.0"
+    #         }
+    #  ]
+    #  }
+    datasets = db_list_datasets(expdb_db)
+    return {"data": {"dataset": datasets}}

@@ -8,3 +8,6 @@ def test_list(api_client: TestClient) -> None:
     assert response.status_code == http.client.OK
     assert "data" in response.json()
     assert "dataset" in response.json()["data"]
+
+    datasets = response.json()["data"]["dataset"]
+    assert len(datasets) >= 1
