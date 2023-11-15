@@ -16,7 +16,9 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: 3.x
-      - run: docker compose --parallel 8 up -d --wait php-api python-api
+      - run: |
+          { docker compose build python-api; docker compose up -d python-api } & \
+          docker compose up -d --wait php-api
       - run: docker container ls
       - run: docker exec python-api python -m pytest -xv -m "php"
   python:
