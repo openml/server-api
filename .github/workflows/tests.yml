@@ -1,0 +1,39 @@
+name: Tests
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'docker/**'
+      - 'docker-compose.yaml'
+      - '.github/workflows/tests.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  compare-php:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.x
+
+      # A naive `docker compose up` would first build the `python-api` container and then
+      # start all services, which kickstarts Elastic Search and building indices.
+      # But since those two steps are independent, we can parallelize them to save time.
+      - run: |
+          { docker compose build python-api; docker compose up -d python-api; } &
+          docker compose up -d --wait php-api
+      - run: docker container ls
+      - run: docker exec python-api python -m pytest -xv -m "php"
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.x
+      - run: docker compose up -d --wait database python-api
+      - run: docker container ls
+      - run: docker exec python-api python -m pytest -xv -m "not php"
