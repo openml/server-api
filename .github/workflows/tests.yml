@@ -1,9 +1,11 @@
 name: Tests
 on:
-  push:
-    branches:
-      - main
-      - test/ci
+  pull_request:
+    paths:
+      - '**.py'
+      - '**/Dockerfile'
+      - 'docker-compose.yaml'
+      - '.github/workflows.tests.yml'
 
 permissions:
   contents: write
