@@ -3,7 +3,7 @@ We add separate endpoints for old-style JSON responses, so they don't clutter th
 new API, and are easily removed later.
 """
 import http.client
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from database.datasets import get_tags
 from database.datasets import tag_dataset as db_tag_dataset
@@ -110,5 +110,5 @@ def tag_dataset(
 
 
 @router.get(path="/list/")
-def list_datasets() -> dict[str, dict[str, Any]]:
-    return {}
+def list_datasets() -> dict[Literal["data"], dict[Literal["dataset"], list[dict[str, Any]]]]:
+    return {"data": {"dataset": []}}
