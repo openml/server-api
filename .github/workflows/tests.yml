@@ -2,10 +2,10 @@ name: Tests
 on:
   pull_request:
     paths:
-      - '**.py'
-      - '**/Dockerfile'
+      - 'src/**'
+      - 'docker/**'
       - 'docker-compose.yaml'
-      - '.github/workflows.tests.yml'
+      - '.github/workflows/tests.yml'
 
 permissions:
   contents: write
