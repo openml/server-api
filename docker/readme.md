@@ -36,3 +36,12 @@ So, instead we build the container state locally and then use [`docker commit`](
 
 3. Make a commit of the elastic search container with prebuilt indices: `docker commit elasticsearch openml/elasticsearch8-prebuilt`
 4. Push the image created by the commit: `docker push openml/elasticsearch8-prebuilt`
+
+## Building for multiple platforms
+
+Following Docker's "[multi-platform images](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&ved=2ahUKEwiTutyczsOCAxUUhv0HHe_VA6QQFnoECBAQAQ&url=https%3A%2F%2Fdocs.docker.com%2Fbuild%2Fbuilding%2Fmulti-platform%2F&usg=AOvVaw0YP_mkj5WTYD-0weEfrfDv&opi=89978449)"
+documentation, we can build multi-platform images in a few simple steps:
+
+1. Only the first time, create a docker-container driver: `docker buildx create --name container --driver=docker-container`
+2. Use `docker buildx` to build for multiple target platforms: `docker buildx build --builder=container --platform=linux/amd64,linux/arm64 -t openml/test-database docker/mysql`
+3. If you want to push the images to Dockerhub, run the command above with the added `--push` option.

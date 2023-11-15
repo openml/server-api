@@ -22,6 +22,17 @@ services:
       context: ./docker/php/
     ports:
       - "8002:80"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+      database:
+        condition: service_started
+    healthcheck:
+      test: curl 127.0.0.1:80 | grep -e "openml"
+      start_period: 30s
+      start_interval: 5s
+      timeout: 3s
+      interval: 1m
 
   python-api:
     container_name: "python-api"
@@ -32,9 +43,11 @@ services:
       - "8001:8000"
     volumes:
       - .:/python-api
+    depends_on:
+      - database
 
   elasticsearch:
-    image: openml/elasticsearch8-prebuilt
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.4
     container_name: "elasticsearch"
     ports:
       - "9200:9200"
@@ -43,3 +56,9 @@ services:
       - ELASTIC_PASSWORD=default
       - discovery.type=single-node
       - xpack.security.enabled=false
+    healthcheck:
+      test: curl 127.0.0.1:9200/_cluster/health | grep -e "green"
+      start_period: 30s
+      start_interval: 5s
+      timeout: 3s
+      interval: 1m

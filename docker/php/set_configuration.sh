@@ -26,4 +26,7 @@ sed "s*'ES_URL', 'FILL_IN'*'ES_URL', '${ES_URL:-elasticsearch:9200}'*g" --in-pla
 sed "s*'ES_USERNAME', 'FILL_IN'*'ES_USERNAME', '${ES_USERNAME:-elastic}'*g" --in-place ${BASE_CONFIG_PATH}
 sed "s*'ES_PASSWORD', 'FILL_IN'*'ES_PASSWORD', '${ES_PASSWORD:-default}'*g" --in-place ${BASE_CONFIG_PATH}
 
+cd /var/www/openml
+php index.php cron build_es_indices
+
 apache2-foreground
