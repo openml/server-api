@@ -107,3 +107,8 @@ def tag_dataset(
     return {
         "data_tag": {"id": str(data_id), "tag": tag_value},
     }
+
+
+@router.get(path="/list/")
+def list_datasets() -> dict[str, dict[str, Any]]:
+    return {}
