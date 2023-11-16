@@ -6,21 +6,6 @@ from sqlalchemy import Connection, text
 from database.meta import get_column_names
 
 
-def list_datasets(connection: Connection) -> list[dict[str, str]]:
-    columns = ["did", "name", "version", "format", "file_id"]
-    select_columns = ",".join(f"`{name}`" for name in columns)
-    datasets = connection.execute(
-        text(
-            """
-        SELECT `did`,`name`,`version`,`format`,`file_id`
-        FROM dataset
-        """,
-        ),
-        parameters={"selected_columns": select_columns},
-    )
-    return [dict(zip(columns, dataset, strict=True)) for dataset in datasets]
-
-
 def list_all_qualities(connection: Connection) -> list[str]:
     # The current implementation only fetches *used* qualities, otherwise you should
     # query: SELECT `name` FROM `quality` WHERE `type`='DataQuality'

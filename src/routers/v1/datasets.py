@@ -6,7 +6,6 @@ import http.client
 from typing import Annotated, Any, Literal
 
 from database.datasets import get_tags
-from database.datasets import list_datasets as db_list_datasets
 from database.datasets import tag_dataset as db_tag_dataset
 from database.users import APIKey, User
 from fastapi import APIRouter, Body, Depends, HTTPException
@@ -17,6 +16,129 @@ from routers.types import SystemString64
 from routers.v2.datasets import get_dataset
 
 router = APIRouter(prefix="/v1/datasets", tags=["datasets"])
+
+
+@router.post(
+    path="/tag",
+)
+def tag_dataset(
+    data_id: Annotated[int, Body()],
+    tag: SystemString64,
+    user: Annotated[User | None, Depends(fetch_user)] = None,
+    expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
+) -> dict[str, dict[str, Any]]:
+    tags = get_tags(data_id, expdb_db)
+    if tag.casefold() in [t.casefold() for t in tags]:
+        raise HTTPException(
+            status_code=http.client.INTERNAL_SERVER_ERROR,
+            detail={
+                "code": "473",
+                "message": "Entity already tagged by this tag.",
+                "additional_information": f"id={data_id}; tag={tag}",
+            },
+        )
+
+    if user is None:
+        raise HTTPException(
+            status_code=http.client.PRECONDITION_FAILED,
+            detail={"code": "103", "message": "Authentication failed"},
+        ) from None
+    db_tag_dataset(user.user_id, data_id, tag, connection=expdb_db)
+    all_tags = [*tags, tag]
+    tag_value = all_tags if len(all_tags) > 1 else all_tags[0]
+
+    return {
+        "data_tag": {"id": str(data_id), "tag": tag_value},
+    }
+
+
+@router.get(path="/list")
+def list_datasets(
+    status: Literal["active"] | Literal["deactivated"] | Literal["all"] = "all",
+    expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
+) -> dict[Literal["data"], dict[Literal["dataset"], list[dict[str, Any]]]]:
+    # $legal_filters = array('tag', 'status', 'limit', 'offset', 'data_id', 'data_name',
+    # 'data_version', 'uploader', 'number_instances', 'number_features', 'number_classes',
+    # 'number_missing_values');
+    # {"did": 3,                    -> dataset
+    #  "name": "kr-vs-kp",          -> dataset
+    #  "version": 1,                -> dataset
+    #  "status": "active",          -> dataset_status
+    #  "format": "ARFF",            -> dataset
+    #  "md5_checksum": "",          -> file, but not provided?
+    #  "file_id": 3,                -> dataset
+    #  "quality": [                 -> data_quality
+    #      {"name": "MajorityClassSize",
+    #       "value": "1669.0"
+    #       }
+    #      , {"name": "MaxNominalAttDistinctValues",
+    #         "value": "3.0"
+    #         }
+    #      , {"name": "MinorityClassSize",
+    #         "value": "1527.0"
+    #         }
+    #      , {"name": "NumberOfClasses",
+    #         "value": "2.0"
+    #         }
+    #      , {"name": "NumberOfFeatures",
+    #         "value": "37.0"
+    #         }
+    #      , {"name": "NumberOfInstances",
+    #         "value": "3196.0"
+    #         }
+    #      , {"name": "NumberOfInstancesWithMissingValues",
+    #         "value": "0.0"
+    #         }
+    #      , {"name": "NumberOfMissingValues",
+    #         "value": "0.0"
+    #         }
+    #      , {"name": "NumberOfNumericFeatures",
+    #         "value": "0.0"
+    #         }
+    #      , {"name": "NumberOfSymbolicFeatures",
+    #         "value": "37.0"
+    #         }
+    #  ]
+    #  }
+    from sqlalchemy import text
+
+    current_status = text(
+        """
+        SELECT ds1.`did` as `did`, ds1.`status` as `status`
+        FROM dataset_status as ds1
+        WHERE ds1.`status_date`=(
+            SELECT MAX(ds2.`status_date`)
+            FROM dataset_status as ds2
+            WHERE ds1.`did`=ds2.`did`
+        )
+        """,
+    )
+    statuses = ["active", "deactivated"] if status == "all" else [status]
+    where_status = ",".join(f"'{status}'" for status in statuses)
+    matching_status = text(
+        f"""
+        SELECT `did`,`name`,`version`,`format`,`file_id`
+        FROM dataset
+        WHERE `did` in (
+            SELECT cs.`did`
+            FROM ({current_status}) as cs
+            WHERE cs.`status` IN ({where_status})
+        )
+        """,  # nosec
+        # I am not sure how to do this correctly without an error from Bandit here.
+        # However, the `status` input is already checked by FastAPI to be from a set
+        # of given options, so no injection is possible (I think). The `current_status`
+        # subquery also has no user input. So I think this should be safe.
+    )
+
+    where_status = "" if status == "all" else f"WHERE cs.`status`='{status}'"
+
+    columns = ["did", "name", "version", "format", "file_id"]
+    datasets = expdb_db.execute(matching_status)
+    datasets = [dict(zip(columns, dataset, strict=True)) for dataset in datasets]
+
+    # datasets = db_list_datasets(expdb_db)
+    return {"data": {"dataset": datasets}}
 
 
 @router.get(
@@ -74,88 +196,3 @@ def get_dataset_wrapped(
         dataset["description"] = []
 
     return {"data_set_description": dataset}
-
-
-@router.post(
-    path="/tag",
-)
-def tag_dataset(
-    data_id: Annotated[int, Body()],
-    tag: SystemString64,
-    user: Annotated[User | None, Depends(fetch_user)] = None,
-    expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
-) -> dict[str, dict[str, Any]]:
-    tags = get_tags(data_id, expdb_db)
-    if tag.casefold() in [t.casefold() for t in tags]:
-        raise HTTPException(
-            status_code=http.client.INTERNAL_SERVER_ERROR,
-            detail={
-                "code": "473",
-                "message": "Entity already tagged by this tag.",
-                "additional_information": f"id={data_id}; tag={tag}",
-            },
-        )
-
-    if user is None:
-        raise HTTPException(
-            status_code=http.client.PRECONDITION_FAILED,
-            detail={"code": "103", "message": "Authentication failed"},
-        ) from None
-    db_tag_dataset(user.user_id, data_id, tag, connection=expdb_db)
-    all_tags = [*tags, tag]
-    tag_value = all_tags if len(all_tags) > 1 else all_tags[0]
-
-    return {
-        "data_tag": {"id": str(data_id), "tag": tag_value},
-    }
-
-
-@router.get(path="/list/")
-def list_datasets(
-    expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
-) -> dict[Literal["data"], dict[Literal["dataset"], list[dict[str, Any]]]]:
-    # $legal_filters = array('tag', 'status', 'limit', 'offset', 'data_id', 'data_name',
-    # 'data_version', 'uploader', 'number_instances', 'number_features', 'number_classes',
-    # 'number_missing_values');
-    # {"did": 3,                    -> dataset
-    #  "name": "kr-vs-kp",          -> dataset
-    #  "version": 1,                -> dataset
-    #  "status": "active",          -> dataset_status
-    #  "format": "ARFF",            -> dataset
-    #  "md5_checksum": "",          -> file, but not provided?
-    #  "file_id": 3,                -> dataset
-    #  "quality": [                 -> data_quality
-    #      {"name": "MajorityClassSize",
-    #       "value": "1669.0"
-    #       }
-    #      , {"name": "MaxNominalAttDistinctValues",
-    #         "value": "3.0"
-    #         }
-    #      , {"name": "MinorityClassSize",
-    #         "value": "1527.0"
-    #         }
-    #      , {"name": "NumberOfClasses",
-    #         "value": "2.0"
-    #         }
-    #      , {"name": "NumberOfFeatures",
-    #         "value": "37.0"
-    #         }
-    #      , {"name": "NumberOfInstances",
-    #         "value": "3196.0"
-    #         }
-    #      , {"name": "NumberOfInstancesWithMissingValues",
-    #         "value": "0.0"
-    #         }
-    #      , {"name": "NumberOfMissingValues",
-    #         "value": "0.0"
-    #         }
-    #      , {"name": "NumberOfNumericFeatures",
-    #         "value": "0.0"
-    #         }
-    #      , {"name": "NumberOfSymbolicFeatures",
-    #         "value": "37.0"
-    #         }
-    #  ]
-    #  }
-    datasets = db_list_datasets(expdb_db)
-    return {"data": {"dataset": datasets}}
