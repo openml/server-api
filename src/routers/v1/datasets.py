@@ -57,6 +57,7 @@ def tag_dataset(
 class DatasetStatusFilter(StrEnum):
     ACTIVE = DatasetStatus.ACTIVE
     DEACTIVATED = DatasetStatus.DEACTIVATED
+    IN_PREPARATION = DatasetStatus.IN_PREPARATION
     ALL = "all"
 
 
@@ -120,7 +121,11 @@ def list_datasets(
     )
 
     if status == DatasetStatusFilter.ALL:
-        statuses = [DatasetStatusFilter.ACTIVE, DatasetStatusFilter.DEACTIVATED]
+        statuses = [
+            DatasetStatusFilter.ACTIVE,
+            DatasetStatusFilter.DEACTIVATED,
+            DatasetStatusFilter.IN_PREPARATION,
+        ]
     else:
         statuses = [status]
 
@@ -133,23 +138,23 @@ def list_datasets(
         visible_to_user = f"(`visibility`='public' OR `uploader`={user.user_id})"
     matching_status = text(
         f"""
-        SELECT `did`,`name`,`version`,`format`,`file_id`
-        FROM dataset
-        WHERE `did` in (
-            SELECT cs.`did`
-            FROM ({current_status}) as cs
-            WHERE cs.`status` IN ({where_status})
-        ) AND {visible_to_user} LIMIT {pagination.limit} OFFSET {pagination.offset}
+        SELECT d.`did`,d.`name`,d.`version`,d.`format`,d.`file_id`,
+               IFNULL(cs.`status`, 'in_preparation')
+        FROM dataset AS d
+        LEFT JOIN ({current_status}) AS cs ON d.`did`=cs.`did`
+        WHERE {visible_to_user}
+        AND IFNULL(cs.`status`, 'in_preparation') IN ({where_status})
+        LIMIT {pagination.limit} OFFSET {pagination.offset}
         """,  # nosec
         # I am not sure how to do this correctly without an error from Bandit here.
         # However, the `status` input is already checked by FastAPI to be from a set
         # of given options, so no injection is possible (I think). The `current_status`
         # subquery also has no user input. So I think this should be safe.
     )
-
-    columns = ["did", "name", "version", "format", "file_id"]
+    columns = ["did", "name", "version", "format", "file_id", "status"]
     rows = expdb_db.execute(matching_status)
     datasets: list[dict[str, Any]] = [dict(zip(columns, row, strict=True)) for row in rows]
+
     for dataset in datasets:
         # The old API does not actually provide the checksum but just an empty field
         dataset["md5_checksum"] = ""
