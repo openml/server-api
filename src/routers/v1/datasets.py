@@ -64,7 +64,7 @@ class DatasetStatusFilter(StrEnum):
 @router.get(path="/list")
 def list_datasets(
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
-    status: Annotated[DatasetStatusFilter, Body(embed=True)] = DatasetStatusFilter.ALL,
+    status: Annotated[DatasetStatusFilter, Body(embed=True)] = DatasetStatusFilter.ACTIVE,
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[Literal["data"], dict[Literal["dataset"], list[dict[str, Any]]]]:
