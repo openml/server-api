@@ -68,7 +68,7 @@ def list_datasets(
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[Literal["data"], dict[Literal["dataset"], list[dict[str, Any]]]]:
-    # $legal_filters = array('tag', 'status', 'limit', 'offset', 'data_id', 'data_name',
+    # $legal_filters = array('tag', 'status', 'data_id', 'data_name',
     # 'data_version', 'uploader', 'number_instances', 'number_features', 'number_classes',
     # 'number_missing_values');
 

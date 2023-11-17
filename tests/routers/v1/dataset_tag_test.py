@@ -7,6 +7,7 @@ from database.datasets import get_tags
 from sqlalchemy import Connection
 from starlette.testclient import TestClient
 
+from tests import constants
 from tests.conftest import ApiKey
 
 
@@ -21,7 +22,7 @@ def test_dataset_tag_rejects_unauthorized(key: ApiKey, api_client: TestClient) -
         httpx.Response,
         api_client.post(
             f"/v1/datasets/tag{apikey}",
-            json={"data_id": 130, "tag": "test"},
+            json={"data_id": constants.PRIVATE_DATASET_ID, "tag": "test"},
         ),
     )
     assert response.status_code == http.client.PRECONDITION_FAILED
@@ -34,7 +35,7 @@ def test_dataset_tag_rejects_unauthorized(key: ApiKey, api_client: TestClient) -
     ids=["administrator", "non-owner", "owner"],
 )
 def test_dataset_tag(key: ApiKey, expdb_test: Connection, api_client: TestClient) -> None:
-    dataset_id, tag = 130, "test"
+    dataset_id, tag = constants.PRIVATE_DATASET_ID, "test"
     response = cast(
         httpx.Response,
         api_client.post(
@@ -45,7 +46,7 @@ def test_dataset_tag(key: ApiKey, expdb_test: Connection, api_client: TestClient
     assert response.status_code == http.client.OK
     assert {"data_tag": {"id": str(dataset_id), "tag": tag}} == response.json()
 
-    tags = get_tags(dataset_id=130, connection=expdb_test)
+    tags = get_tags(dataset_id=constants.PRIVATE_DATASET_ID, connection=expdb_test)
     assert tag in tags
 
 
