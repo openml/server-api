@@ -13,7 +13,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException
 from schemas.datasets.openml import DatasetStatus
 from sqlalchemy import Connection
 
-from routers.dependencies import expdb_connection, fetch_user, userdb_connection
+from routers.dependencies import Pagination, expdb_connection, fetch_user, userdb_connection
 from routers.types import SystemString64
 from routers.v2.datasets import get_dataset
 
@@ -63,6 +63,7 @@ class DatasetStatusFilter(StrEnum):
 @router.post(path="/list", description="Provided for convenience, same as `GET` endpoint.")
 @router.get(path="/list")
 def list_datasets(
+    pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     status: Annotated[DatasetStatusFilter, Body(embed=True)] = DatasetStatusFilter.ALL,
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
@@ -138,7 +139,7 @@ def list_datasets(
             SELECT cs.`did`
             FROM ({current_status}) as cs
             WHERE cs.`status` IN ({where_status})
-        ) AND {visible_to_user}
+        ) AND {visible_to_user} LIMIT {pagination.limit} OFFSET {pagination.offset}
         """,  # nosec
         # I am not sure how to do this correctly without an error from Bandit here.
         # However, the `status` input is already checked by FastAPI to be from a set

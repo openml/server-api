@@ -3,6 +3,7 @@ from typing import Annotated
 from database.setup import expdb_database, user_database
 from database.users import APIKey, User
 from fastapi import Depends
+from pydantic import BaseModel
 from sqlalchemy import Connection
 
 
@@ -25,3 +26,8 @@ def fetch_user(
     user_data: Annotated[Connection, Depends(userdb_connection)] = None,
 ) -> User | None:
     return User.fetch(api_key, user_data) if api_key else None
+
+
+class Pagination(BaseModel):
+    offset: int = 0
+    limit: int = 100
