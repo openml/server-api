@@ -60,11 +60,6 @@ def list_datasets(
     # $legal_filters = array('tag', 'status', 'limit', 'offset', 'data_id', 'data_name',
     # 'data_version', 'uploader', 'number_instances', 'number_features', 'number_classes',
     # 'number_missing_values');
-    # {"did": 3,                    -> dataset
-    #  "name": "kr-vs-kp",          -> dataset
-    #  "version": 1,                -> dataset
-    #  "status": "active",          -> dataset_status
-    #  "format": "ARFF",            -> dataset
     #  "md5_checksum": "",          -> file, but not provided?
     #  "file_id": 3,                -> dataset
     #  "quality": [                 -> data_quality
@@ -131,11 +126,12 @@ def list_datasets(
         # subquery also has no user input. So I think this should be safe.
     )
 
-    where_status = "" if status == "all" else f"WHERE cs.`status`='{status}'"
-
     columns = ["did", "name", "version", "format", "file_id"]
-    datasets = expdb_db.execute(matching_status)
-    datasets = [dict(zip(columns, dataset, strict=True)) for dataset in datasets]
+    rows = expdb_db.execute(matching_status)
+    datasets: list[dict[str, Any]] = [dict(zip(columns, row, strict=True)) for row in rows]
+    for dataset in datasets:
+        # The old API does not actually provide the checksum but just an empty field
+        dataset["md5_checksum"] = ""
 
     # datasets = db_list_datasets(expdb_db)
     return {"data": {"dataset": datasets}}
