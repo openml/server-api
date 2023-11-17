@@ -7,7 +7,7 @@ from typing import Annotated, Any, Literal
 
 from database.datasets import get_tags
 from database.datasets import tag_dataset as db_tag_dataset
-from database.users import APIKey, User
+from database.users import APIKey, User, UserGroup
 from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy import Connection
 
@@ -52,16 +52,17 @@ def tag_dataset(
     }
 
 
+@router.post(path="/list", description="Provided for convenience, same as `GET` endpoint.")
 @router.get(path="/list")
 def list_datasets(
     status: Literal["active"] | Literal["deactivated"] | Literal["all"] = "all",
+    user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[Literal["data"], dict[Literal["dataset"], list[dict[str, Any]]]]:
     # $legal_filters = array('tag', 'status', 'limit', 'offset', 'data_id', 'data_name',
     # 'data_version', 'uploader', 'number_instances', 'number_features', 'number_classes',
     # 'number_missing_values');
-    #  "md5_checksum": "",          -> file, but not provided?
-    #  "file_id": 3,                -> dataset
+
     #  "quality": [                 -> data_quality
     #      {"name": "MajorityClassSize",
     #       "value": "1669.0"
@@ -99,7 +100,7 @@ def list_datasets(
 
     current_status = text(
         """
-        SELECT ds1.`did` as `did`, ds1.`status` as `status`
+        SELECT ds1.`did`, ds1.`status`
         FROM dataset_status as ds1
         WHERE ds1.`status_date`=(
             SELECT MAX(ds2.`status_date`)
@@ -108,8 +109,15 @@ def list_datasets(
         )
         """,
     )
+
     statuses = ["active", "deactivated"] if status == "all" else [status]
     where_status = ",".join(f"'{status}'" for status in statuses)
+    if user is None:
+        visible_to_user = "`visibility`='public'"
+    elif UserGroup.ADMIN in user.groups:
+        visible_to_user = "TRUE"
+    else:
+        visible_to_user = f"(`visibility`='public' OR `uploader`={user.user_id})"
     matching_status = text(
         f"""
         SELECT `did`,`name`,`version`,`format`,`file_id`
@@ -118,7 +126,7 @@ def list_datasets(
             SELECT cs.`did`
             FROM ({current_status}) as cs
             WHERE cs.`status` IN ({where_status})
-        )
+        ) AND {visible_to_user}
         """,  # nosec
         # I am not sure how to do this correctly without an error from Bandit here.
         # However, the `status` input is already checked by FastAPI to be from a set
