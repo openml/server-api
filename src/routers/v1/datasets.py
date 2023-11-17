@@ -3,12 +3,14 @@ We add separate endpoints for old-style JSON responses, so they don't clutter th
 new API, and are easily removed later.
 """
 import http.client
+from enum import StrEnum
 from typing import Annotated, Any, Literal
 
 from database.datasets import get_tags
 from database.datasets import tag_dataset as db_tag_dataset
 from database.users import APIKey, User, UserGroup
 from fastapi import APIRouter, Body, Depends, HTTPException
+from schemas.datasets.openml import DatasetStatus
 from sqlalchemy import Connection
 
 from routers.dependencies import expdb_connection, fetch_user, userdb_connection
@@ -52,10 +54,16 @@ def tag_dataset(
     }
 
 
+class DatasetStatusFilter(StrEnum):
+    ACTIVE = DatasetStatus.ACTIVE
+    DEACTIVATED = DatasetStatus.DEACTIVATED
+    ALL = "all"
+
+
 @router.post(path="/list", description="Provided for convenience, same as `GET` endpoint.")
 @router.get(path="/list")
 def list_datasets(
-    status: Literal["active"] | Literal["deactivated"] | Literal["all"] = "all",
+    status: Annotated[DatasetStatusFilter, Body(embed=True)] = DatasetStatusFilter.ALL,
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[Literal["data"], dict[Literal["dataset"], list[dict[str, Any]]]]:
@@ -110,7 +118,11 @@ def list_datasets(
         """,
     )
 
-    statuses = ["active", "deactivated"] if status == "all" else [status]
+    if status == DatasetStatusFilter.ALL:
+        statuses = [DatasetStatusFilter.ACTIVE, DatasetStatusFilter.DEACTIVATED]
+    else:
+        statuses = [status]
+
     where_status = ",".join(f"'{status}'" for status in statuses)
     if user is None:
         visible_to_user = "`visibility`='public'"
