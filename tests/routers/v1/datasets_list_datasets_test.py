@@ -154,6 +154,7 @@ def test_list_uploader(user_id: int, count: int, key: str, api_client: TestClien
         f"/v1/datasets/list?api_key={key}",
         json={"status": "all", "uploader": user_id},
     )
+    # The dataset of user 16 is private, so can not be retrieved by other users.
     if key == ApiKey.REGULAR_USER and user_id == 16:
         assert response.status_code == http.client.PRECONDITION_FAILED
         assert response.json()["detail"] == {"code": "372", "message": "No results"}
@@ -162,3 +163,19 @@ def test_list_uploader(user_id: int, count: int, key: str, api_client: TestClien
     assert response.status_code == http.client.OK
     datasets = response.json()["data"]["dataset"]
     assert len(datasets) == count
+
+
+@pytest.mark.parametrize(
+    "data_id",
+    [[1], [1, 2, 3], [1, 2, 3, 3000], [1, 2, 3, 130]],
+)
+def test_list_data_id(data_id: list[int], api_client: TestClient) -> None:
+    response = api_client.post(
+        "/v1/datasets/list",
+        json={"status": "all", "data_id": data_id},
+    )
+
+    assert response.status_code == http.client.OK
+    datasets = response.json()["data"]["dataset"]
+    private_or_not_exist = {130, 3000}
+    assert len(datasets) == len(set(data_id) - private_or_not_exist)
