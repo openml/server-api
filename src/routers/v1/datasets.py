@@ -69,7 +69,7 @@ def list_datasets(
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[Literal["data"], dict[Literal["dataset"], list[dict[str, Any]]]]:
-    # $legal_filters = array('tag', 'status', 'data_id', 'data_name',
+    # $legal_filters = array('tag', 'data_id', 'data_name',
     # 'data_version', 'uploader', 'number_instances', 'number_features', 'number_classes',
     # 'number_missing_values');
 
@@ -153,14 +153,46 @@ def list_datasets(
     )
     columns = ["did", "name", "version", "format", "file_id", "status"]
     rows = expdb_db.execute(matching_status)
-    datasets: list[dict[str, Any]] = [dict(zip(columns, row, strict=True)) for row in rows]
+    datasets: dict[int, dict[str, Any]] = {
+        row.did: dict(zip(columns, row, strict=True)) for row in rows
+    }
+    if not datasets:
+        return {"data": {"dataset": []}}
 
-    for dataset in datasets:
+    for dataset in datasets.values():
         # The old API does not actually provide the checksum but just an empty field
         dataset["md5_checksum"] = ""
+        dataset["quality"] = []
 
-    # datasets = db_list_datasets(expdb_db)
-    return {"data": {"dataset": datasets}}
+    # The method of filtering and adding the qualities information is the same to
+    # how it was done in PHP. Something like a pivot table seems more reasonable
+    # to me. Pivot tables dont seem well supported though, would need to benchmark
+    # doing it in the DB probably with some view or many joins.
+    qualities_to_show = [
+        "MajorityClassSize",
+        "MaxNominalAttDistinctValues",
+        "MinorityClassSize",
+        "NumberOfClasses",
+        "NumberOfFeatures",
+        "NumberOfInstances",
+        "NumberOfInstancesWithMissingValues",
+        "NumberOfMissingValues",
+        "NumberOfNumericFeatures",
+        "NumberOfSymbolicFeatures",
+    ]
+    qualities_filter = ",".join(f"'{q}'" for q in qualities_to_show)
+    dids = ",".join(str(did) for did in datasets)
+    qualities = text(
+        f"""
+        SELECT `data`, `quality`, `value`
+        FROM data_quality
+        WHERE `data` in ({dids}) AND `quality` IN ({qualities_filter})
+        """,  # nosec  - similar to above, no user input
+    )
+    qualities = expdb_db.execute(qualities)
+    for did, quality, value in qualities:
+        datasets[did]["quality"].append({"name": quality, "value": value})
+    return {"data": {"dataset": list(datasets.values())}}
 
 
 @router.get(
