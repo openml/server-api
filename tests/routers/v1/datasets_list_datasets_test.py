@@ -56,6 +56,22 @@ def test_list_accounts_privacy(api_key: ApiKey | None, amount: int, api_client: 
     assert len(datasets) == amount
 
 
+@pytest.mark.parametrize(
+    ("name", "count"),
+    [("abalone", 1), ("iris", 2)],
+)
+def test_list_data_name_present(name: str, count: int, api_client: TestClient) -> None:
+    # The second iris dataset is private, so we need to authenticate.
+    response = api_client.post(
+        f"/v1/datasets/list?api_key={ApiKey.ADMIN}",
+        json={"status": "all", "data_name": name},
+    )
+    assert response.status_code == http.client.OK
+    datasets = response.json()["data"]["dataset"]
+    assert len(datasets) == count
+    assert all(dataset["name"] == name for dataset in datasets)
+
+
 def test_list_quality_filers() -> None:
     pytest.skip("Not implemented")
 

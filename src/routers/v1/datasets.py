@@ -66,7 +66,7 @@ class DatasetStatusFilter(StrEnum):
 def list_datasets(
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     data_name: Annotated[str | None, CasualString128] = None,
-    status: Annotated[DatasetStatusFilter, Body(embed=True)] = DatasetStatusFilter.ACTIVE,
+    status: Annotated[DatasetStatusFilter, Body()] = DatasetStatusFilter.ACTIVE,
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[Literal["data"], dict[Literal["dataset"], list[dict[str, Any]]]]:
@@ -126,7 +126,6 @@ def list_datasets(
     }
     if not datasets:
         return {"data": {"dataset": []}}
-
     for dataset in datasets.values():
         # The old API does not actually provide the checksum but just an empty field
         dataset["md5_checksum"] = ""

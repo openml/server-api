@@ -7,7 +7,4 @@ SystemString64 = Annotated[
     Body(pattern=r"^[\w\-\.]+$", min_length=1, max_length=64),
 ]
 
-CasualString128 = Annotated[
-    str,
-    Body(patter=r"^[\w\-\.\(\),]+$", min_length=1, max_length=128),
-]
+CasualString128 = Body(patter=r"^[\w\-\.\(\),]+$", min_length=1, max_length=128)
