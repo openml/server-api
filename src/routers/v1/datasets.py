@@ -14,7 +14,7 @@ from schemas.datasets.openml import DatasetStatus
 from sqlalchemy import Connection
 
 from routers.dependencies import Pagination, expdb_connection, fetch_user, userdb_connection
-from routers.types import SystemString64
+from routers.types import CasualString128, SystemString64
 from routers.v2.datasets import get_dataset
 
 router = APIRouter(prefix="/v1/datasets", tags=["datasets"])
@@ -65,6 +65,7 @@ class DatasetStatusFilter(StrEnum):
 @router.get(path="/list")
 def list_datasets(
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
+    data_name: Annotated[str | None, CasualString128] = None,
     status: Annotated[DatasetStatusFilter, Body(embed=True)] = DatasetStatusFilter.ACTIVE,
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
@@ -72,40 +73,6 @@ def list_datasets(
     # $legal_filters = array('tag', 'data_id', 'data_name',
     # 'data_version', 'uploader', 'number_instances', 'number_features', 'number_classes',
     # 'number_missing_values');
-
-    #  "quality": [                 -> data_quality
-    #      {"name": "MajorityClassSize",
-    #       "value": "1669.0"
-    #       }
-    #      , {"name": "MaxNominalAttDistinctValues",
-    #         "value": "3.0"
-    #         }
-    #      , {"name": "MinorityClassSize",
-    #         "value": "1527.0"
-    #         }
-    #      , {"name": "NumberOfClasses",
-    #         "value": "2.0"
-    #         }
-    #      , {"name": "NumberOfFeatures",
-    #         "value": "37.0"
-    #         }
-    #      , {"name": "NumberOfInstances",
-    #         "value": "3196.0"
-    #         }
-    #      , {"name": "NumberOfInstancesWithMissingValues",
-    #         "value": "0.0"
-    #         }
-    #      , {"name": "NumberOfMissingValues",
-    #         "value": "0.0"
-    #         }
-    #      , {"name": "NumberOfNumericFeatures",
-    #         "value": "0.0"
-    #         }
-    #      , {"name": "NumberOfSymbolicFeatures",
-    #         "value": "37.0"
-    #         }
-    #  ]
-    #  }
     from sqlalchemy import text
 
     current_status = text(
@@ -136,13 +103,14 @@ def list_datasets(
         visible_to_user = "TRUE"
     else:
         visible_to_user = f"(`visibility`='public' OR `uploader`={user.user_id})"
+    where_name = "" if data_name is None else f"AND `name`='{data_name}'"
     matching_status = text(
         f"""
         SELECT d.`did`,d.`name`,d.`version`,d.`format`,d.`file_id`,
                IFNULL(cs.`status`, 'in_preparation')
         FROM dataset AS d
         LEFT JOIN ({current_status}) AS cs ON d.`did`=cs.`did`
-        WHERE {visible_to_user}
+        WHERE {visible_to_user} {where_name}
         AND IFNULL(cs.`status`, 'in_preparation') IN ({where_status})
         LIMIT {pagination.limit} OFFSET {pagination.offset}
         """,  # nosec

@@ -4,5 +4,10 @@ from fastapi import Body
 
 SystemString64 = Annotated[
     str,
-    Body(pattern=r"^[a-zA-Z0-9_\-\.]+$", min_length=1, max_length=64),
+    Body(pattern=r"^[\w\-\.]+$", min_length=1, max_length=64),
+]
+
+CasualString128 = Annotated[
+    str,
+    Body(patter=r"^[\w\-\.\(\),]+$", min_length=1, max_length=128),
 ]
