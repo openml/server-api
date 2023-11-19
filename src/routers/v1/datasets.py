@@ -67,12 +67,13 @@ def list_datasets(
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     data_name: Annotated[str | None, CasualString128] = None,
     data_version: Annotated[int | None, Body()] = None,
+    uploader: Annotated[int | None, Body()] = None,
     status: Annotated[DatasetStatusFilter, Body()] = DatasetStatusFilter.ACTIVE,
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[Literal["data"], dict[Literal["dataset"], list[dict[str, Any]]]]:
     # $legal_filters = array('tag', 'data_id',
-    # 'data_version', 'uploader', 'number_instances', 'number_features', 'number_classes',
+    # 'uploader', 'number_instances', 'number_features', 'number_classes',
     # 'number_missing_values');
     from sqlalchemy import text
 
@@ -106,13 +107,14 @@ def list_datasets(
         visible_to_user = f"(`visibility`='public' OR `uploader`={user.user_id})"
     where_name = "" if data_name is None else f"AND `name`='{data_name}'"
     where_version = "" if data_version is None else f"AND `version`={data_version}"
+    where_uploader = "" if uploader is None else f"AND `uploader`={uploader}"
     matching_status = text(
         f"""
         SELECT d.`did`,d.`name`,d.`version`,d.`format`,d.`file_id`,
                IFNULL(cs.`status`, 'in_preparation')
         FROM dataset AS d
         LEFT JOIN ({current_status}) AS cs ON d.`did`=cs.`did`
-        WHERE {visible_to_user} {where_name} {where_version}
+        WHERE {visible_to_user} {where_name} {where_version} {where_uploader}
         AND IFNULL(cs.`status`, 'in_preparation') IN ({where_status})
         LIMIT {pagination.limit} OFFSET {pagination.offset}
         """,  # nosec

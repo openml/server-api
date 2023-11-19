@@ -139,3 +139,26 @@ def test_list_data_version_no_result(api_client: TestClient) -> None:
     )
     assert response.status_code == http.client.PRECONDITION_FAILED
     assert response.json()["detail"] == {"code": "372", "message": "No results"}
+
+
+@pytest.mark.parametrize(
+    "key",
+    [ApiKey.REGULAR_USER, ApiKey.OWNER_USER, ApiKey.ADMIN],
+)
+@pytest.mark.parametrize(
+    ("user_id", "count"),
+    [(1, 59), (2, 34), (16, 1)],
+)
+def test_list_uploader(user_id: int, count: int, key: str, api_client: TestClient) -> None:
+    response = api_client.post(
+        f"/v1/datasets/list?api_key={key}",
+        json={"status": "all", "uploader": user_id},
+    )
+    if key == ApiKey.REGULAR_USER and user_id == 16:
+        assert response.status_code == http.client.PRECONDITION_FAILED
+        assert response.json()["detail"] == {"code": "372", "message": "No results"}
+        return
+
+    assert response.status_code == http.client.OK
+    datasets = response.json()["data"]["dataset"]
+    assert len(datasets) == count
