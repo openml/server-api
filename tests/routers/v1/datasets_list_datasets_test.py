@@ -115,3 +115,27 @@ def test_list_pagination(limit: int | None, offset: int | None, api_client: Test
     assert response.status_code == http.client.OK
     reported_ids = {dataset["did"] for dataset in response.json()["data"]["dataset"]}
     assert reported_ids == set(expected_ids)
+
+
+@pytest.mark.parametrize(
+    ("version", "count"),
+    [(1, 100), (2, 6), (5, 1)],
+)
+def test_list_data_version(version: int, count: int, api_client: TestClient) -> None:
+    response = api_client.post(
+        f"/v1/datasets/list?api_key={ApiKey.ADMIN}",
+        json={"status": "all", "data_version": version},
+    )
+    assert response.status_code == http.client.OK
+    datasets = response.json()["data"]["dataset"]
+    assert len(datasets) == count
+    assert {dataset["version"] for dataset in datasets} == {str(version)}
+
+
+def test_list_data_version_no_result(api_client: TestClient) -> None:
+    response = api_client.post(
+        f"/v1/datasets/list?api_key={ApiKey.ADMIN}",
+        json={"status": "all", "data_version": 4},
+    )
+    assert response.status_code == http.client.PRECONDITION_FAILED
+    assert response.json()["detail"] == {"code": "372", "message": "No results"}

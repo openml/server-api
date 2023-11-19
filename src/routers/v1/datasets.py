@@ -66,6 +66,7 @@ class DatasetStatusFilter(StrEnum):
 def list_datasets(
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     data_name: Annotated[str | None, CasualString128] = None,
+    data_version: Annotated[int | None, Body()] = None,
     status: Annotated[DatasetStatusFilter, Body()] = DatasetStatusFilter.ACTIVE,
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
@@ -104,13 +105,14 @@ def list_datasets(
     else:
         visible_to_user = f"(`visibility`='public' OR `uploader`={user.user_id})"
     where_name = "" if data_name is None else f"AND `name`='{data_name}'"
+    where_version = "" if data_version is None else f"AND `version`={data_version}"
     matching_status = text(
         f"""
         SELECT d.`did`,d.`name`,d.`version`,d.`format`,d.`file_id`,
                IFNULL(cs.`status`, 'in_preparation')
         FROM dataset AS d
         LEFT JOIN ({current_status}) AS cs ON d.`did`=cs.`did`
-        WHERE {visible_to_user} {where_name}
+        WHERE {visible_to_user} {where_name} {where_version}
         AND IFNULL(cs.`status`, 'in_preparation') IN ({where_status})
         LIMIT {pagination.limit} OFFSET {pagination.offset}
         """,  # nosec
