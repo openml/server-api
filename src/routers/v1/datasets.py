@@ -70,7 +70,7 @@ def list_datasets(
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[Literal["data"], dict[Literal["dataset"], list[dict[str, Any]]]]:
-    # $legal_filters = array('tag', 'data_id', 'data_name',
+    # $legal_filters = array('tag', 'data_id',
     # 'data_version', 'uploader', 'number_instances', 'number_features', 'number_classes',
     # 'number_missing_values');
     from sqlalchemy import text
@@ -125,7 +125,11 @@ def list_datasets(
         row.did: dict(zip(columns, row, strict=True)) for row in rows
     }
     if not datasets:
-        return {"data": {"dataset": []}}
+        raise HTTPException(
+            status_code=http.client.PRECONDITION_FAILED,
+            detail={"code": "372", "message": "No results"},
+        ) from None
+
     for dataset in datasets.values():
         # The old API does not actually provide the checksum but just an empty field
         dataset["md5_checksum"] = ""

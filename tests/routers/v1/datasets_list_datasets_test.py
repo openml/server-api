@@ -72,6 +72,19 @@ def test_list_data_name_present(name: str, count: int, api_client: TestClient) -
     assert all(dataset["name"] == name for dataset in datasets)
 
 
+@pytest.mark.parametrize(
+    "name",
+    ["ir", "long_name_without_overlap"],
+)
+def test_list_data_name_absent(name: str, api_client: TestClient) -> None:
+    response = api_client.post(
+        f"/v1/datasets/list?api_key={ApiKey.ADMIN}",
+        json={"status": "all", "data_name": name},
+    )
+    assert response.status_code == http.client.PRECONDITION_FAILED
+    assert response.json()["detail"] == {"code": "372", "message": "No results"}
+
+
 def test_list_quality_filers() -> None:
     pytest.skip("Not implemented")
 
@@ -93,6 +106,11 @@ def test_list_pagination(limit: int | None, offset: int | None, api_client: Test
     limit_body = {} if limit is None else {"limit": limit}
     filters = {"status": "all", "pagination": offset_body | limit_body}
     response = api_client.post("/v1/datasets/list", json=filters)
+
+    if offset in [130, 200]:
+        assert response.status_code == http.client.PRECONDITION_FAILED
+        assert response.json()["detail"] == {"code": "372", "message": "No results"}
+        return
 
     assert response.status_code == http.client.OK
     reported_ids = {dataset["did"] for dataset in response.json()["data"]["dataset"]}
