@@ -89,8 +89,7 @@ def test_list_data_name_absent(name: str, api_client: TestClient) -> None:
         f"/v1/datasets/list?api_key={ApiKey.ADMIN}",
         json={"status": "all", "data_name": name},
     )
-    assert response.status_code == http.client.PRECONDITION_FAILED
-    assert response.json()["detail"] == {"code": "372", "message": "No results"}
+    _assert_empty_result(response)
 
 
 def test_list_quality_filers() -> None:
@@ -116,8 +115,7 @@ def test_list_pagination(limit: int | None, offset: int | None, api_client: Test
     response = api_client.post("/v1/datasets/list", json=filters)
 
     if offset in [130, 200]:
-        assert response.status_code == http.client.PRECONDITION_FAILED
-        assert response.json()["detail"] == {"code": "372", "message": "No results"}
+        _assert_empty_result(response)
         return
 
     assert response.status_code == http.client.OK
@@ -145,8 +143,7 @@ def test_list_data_version_no_result(api_client: TestClient) -> None:
         f"/v1/datasets/list?api_key={ApiKey.ADMIN}",
         json={"status": "all", "data_version": 4},
     )
-    assert response.status_code == http.client.PRECONDITION_FAILED
-    assert response.json()["detail"] == {"code": "372", "message": "No results"}
+    _assert_empty_result(response)
 
 
 @pytest.mark.parametrize(
@@ -164,8 +161,7 @@ def test_list_uploader(user_id: int, count: int, key: str, api_client: TestClien
     )
     # The dataset of user 16 is private, so can not be retrieved by other users.
     if key == ApiKey.REGULAR_USER and user_id == 16:
-        assert response.status_code == http.client.PRECONDITION_FAILED
-        assert response.json()["detail"] == {"code": "372", "message": "No results"}
+        _assert_empty_result(response)
         return
 
     assert response.status_code == http.client.OK
