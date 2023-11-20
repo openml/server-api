@@ -108,9 +108,9 @@ def list_datasets(
     else:
         visible_to_user = f"(`visibility`='public' OR `uploader`={user.user_id})"
 
-    where_name = "" if data_name is None else f"AND `name`='{data_name}'"
-    where_version = "" if data_version is None else f"AND `version`={data_version}"
-    where_uploader = "" if uploader is None else f"AND `uploader`={uploader}"
+    where_name = "" if data_name is None else "AND `name`=:data_name"
+    where_version = "" if data_version is None else "AND `version`=:data_version"
+    where_uploader = "" if uploader is None else "AND `uploader`=:uploader"
     data_id_str = ",".join(str(did) for did in data_id) if data_id else ""
     where_data_id = "" if not data_id else f"AND d.`did` IN ({data_id_str})"
 
@@ -146,7 +146,15 @@ def list_datasets(
         # subquery also has no user input. So I think this should be safe.
     )
     columns = ["did", "name", "version", "format", "file_id", "status"]
-    rows = expdb_db.execute(matching_filter, parameters={"tag": tag})
+    rows = expdb_db.execute(
+        matching_filter,
+        parameters={
+            "tag": tag,
+            "data_name": data_name,
+            "data_version": data_version,
+            "uploader": uploader,
+        },
+    )
     datasets: dict[int, dict[str, Any]] = {
         row.did: dict(zip(columns, row, strict=True)) for row in rows
     }
