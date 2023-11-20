@@ -1,10 +1,18 @@
 import http.client
 
+import httpx
 import pytest
 from starlette.testclient import TestClient
 
 from tests import constants
 from tests.conftest import ApiKey
+
+
+def _assert_empty_result(
+    response: httpx.Response,
+) -> None:
+    assert response.status_code == http.client.PRECONDITION_FAILED
+    assert response.json()["detail"] == {"code": "372", "message": "No results"}
 
 
 def test_list(api_client: TestClient) -> None:
@@ -179,3 +187,27 @@ def test_list_data_id(data_id: list[int], api_client: TestClient) -> None:
     datasets = response.json()["data"]["dataset"]
     private_or_not_exist = {130, 3000}
     assert len(datasets) == len(set(data_id) - private_or_not_exist)
+
+
+@pytest.mark.parametrize(
+    ("tag", "count"),
+    [("study_14", 100), ("study_15", 1)],
+)
+def test_list_data_tag(tag: str, count: int, api_client: TestClient) -> None:
+    response = api_client.post(
+        "/v1/datasets/list",
+        # study_14 has 100 datasets, we overwrite the default `limit` because otherwise
+        # we don't know if the results are limited by filtering on the tag.
+        json={"status": "all", "tag": tag, "pagination": {"limit": 101}},
+    )
+    assert response.status_code == http.client.OK
+    datasets = response.json()["data"]["dataset"]
+    assert len(datasets) == count
+
+
+def test_list_data_tag_empty(api_client: TestClient) -> None:
+    response = api_client.post(
+        "/v1/datasets/list",
+        json={"status": "all", "tag": "not-a-tag"},
+    )
+    _assert_empty_result(response)

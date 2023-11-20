@@ -25,7 +25,7 @@ router = APIRouter(prefix="/v1/datasets", tags=["datasets"])
 )
 def tag_dataset(
     data_id: Annotated[int, Body()],
-    tag: SystemString64,
+    tag: Annotated[str, SystemString64],
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[str, dict[str, Any]]:
@@ -66,6 +66,7 @@ class DatasetStatusFilter(StrEnum):
 def list_datasets(
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     data_name: Annotated[str | None, CasualString128] = None,
+    tag: Annotated[str | None, SystemString64] = None,
     data_version: Annotated[int | None, Body()] = None,
     uploader: Annotated[int | None, Body()] = None,
     data_id: Annotated[list[int] | None, Body()] = None,
@@ -73,7 +74,7 @@ def list_datasets(
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[Literal["data"], dict[Literal["dataset"], list[dict[str, Any]]]]:
-    # $legal_filters = array('tag',
+    # $legal_filters = array(
     # 'number_instances', 'number_features', 'number_classes',
     # 'number_missing_values');
     from sqlalchemy import text
@@ -106,18 +107,36 @@ def list_datasets(
         visible_to_user = "TRUE"
     else:
         visible_to_user = f"(`visibility`='public' OR `uploader`={user.user_id})"
+
     where_name = "" if data_name is None else f"AND `name`='{data_name}'"
     where_version = "" if data_version is None else f"AND `version`={data_version}"
     where_uploader = "" if uploader is None else f"AND `uploader`={uploader}"
     data_id_str = ",".join(str(did) for did in data_id) if data_id else ""
     where_data_id = "" if not data_id else f"AND d.`did` IN ({data_id_str})"
-    matching_status = text(
+
+    # requires some benchmarking on whether e.g., IN () is more efficient.
+    matching_tag = (
+        text(
+            """
+        AND d.`did` IN (
+            SELECT `id`
+            FROM dataset_tag as dt
+            WHERE dt.`tag`=:tag
+        )
+        """,
+        )
+        if tag
+        else ""
+    )
+
+    matching_filter = text(
         f"""
         SELECT d.`did`,d.`name`,d.`version`,d.`format`,d.`file_id`,
                IFNULL(cs.`status`, 'in_preparation')
         FROM dataset AS d
         LEFT JOIN ({current_status}) AS cs ON d.`did`=cs.`did`
-        WHERE {visible_to_user} {where_name} {where_version} {where_uploader} {where_data_id}
+        WHERE {visible_to_user} {where_name} {where_version} {where_uploader}
+        {where_data_id} {matching_tag}
         AND IFNULL(cs.`status`, 'in_preparation') IN ({where_status})
         LIMIT {pagination.limit} OFFSET {pagination.offset}
         """,  # nosec
@@ -127,7 +146,7 @@ def list_datasets(
         # subquery also has no user input. So I think this should be safe.
     )
     columns = ["did", "name", "version", "format", "file_id", "status"]
-    rows = expdb_db.execute(matching_status)
+    rows = expdb_db.execute(matching_filter, parameters={"tag": tag})
     datasets: dict[int, dict[str, Any]] = {
         row.did: dict(zip(columns, row, strict=True)) for row in rows
     }
