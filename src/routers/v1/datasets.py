@@ -192,6 +192,7 @@ def list_datasets(
         # The old API does not actually provide the checksum but just an empty field
         dataset["md5_checksum"] = ""
         dataset["quality"] = []
+        dataset["version"] = int(dataset["version"])
 
     # The method of filtering and adding the qualities information is the same to
     # how it was done in PHP. Something like a pivot table seems more reasonable
@@ -220,7 +221,8 @@ def list_datasets(
     )
     qualities = expdb_db.execute(qualities)
     for did, quality, value in qualities:
-        datasets[did]["quality"].append({"name": quality, "value": value})
+        if value is not None:
+            datasets[did]["quality"].append({"name": quality, "value": str(value)})
     return {"data": {"dataset": list(datasets.values())}}
 
 

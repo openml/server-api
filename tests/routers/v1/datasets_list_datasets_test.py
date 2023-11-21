@@ -2,7 +2,10 @@ import http.client
 from typing import Any
 
 import httpx
+import hypothesis
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 from starlette.testclient import TestClient
 
 from tests import constants
@@ -235,57 +238,50 @@ def test_list_data_quality(quality: str, range_: str, count: int, api_client: Te
 
 @pytest.mark.php()
 @pytest.mark.slow()
-@pytest.mark.parametrize("number_missing_values", [None, "2", "2..10000"])
-@pytest.mark.parametrize("number_features", [None, "5", "2..100"])
-@pytest.mark.parametrize("number_classes", [None, "5", "2..100"])
-@pytest.mark.parametrize("number_instances", [None, "150", "2..100"])
-@pytest.mark.parametrize("limit", [None, 1, 100, 1000])
-@pytest.mark.parametrize("offset", [None, 1, 100, 1000])
-@pytest.mark.parametrize("status", [None, "active", "deactivated", "in_preparation"])
-@pytest.mark.parametrize("data_id", [None, 61, [61, 130]])
-@pytest.mark.parametrize("data_name", [None, "abalone", "iris", "NotPresentInTheDatabase"])
-@pytest.mark.parametrize("data_version", [None, 2, 4])
-@pytest.mark.parametrize("tag", [None, "study_14", "study_not_in_db"])
+@hypothesis.settings(
+    max_examples=5000,
+    suppress_health_check=[hypothesis.HealthCheck.function_scoped_fixture],
+    deadline=None,
+)  # type: ignore[misc]  # https://github.com/openml/server-api/issues/108
+@given(
+    number_missing_values=st.sampled_from([None, "2", "2..10000"]),
+    number_features=st.sampled_from([None, "5", "2..100"]),
+    number_classes=st.sampled_from([None, "5", "2..100"]),
+    number_instances=st.sampled_from([None, "150", "2..100"]),
+    limit=st.sampled_from([None, 1, 100, 1000]),
+    offset=st.sampled_from([None, 1, 100, 1000]),
+    status=st.sampled_from([None, "active", "deactivated", "in_preparation"]),
+    data_id=st.sampled_from([None, [61], [61, 130]]),
+    data_name=st.sampled_from([None, "abalone", "iris", "NotPresentInTheDatabase"]),
+    data_version=st.sampled_from([None, 2, 4]),
+    tag=st.sampled_from([None, "study_14", "study_not_in_db"]),
+    # We don't test ADMIN user, as we fixed a bug which treated them as a regular user
+    api_key=st.sampled_from([None, ApiKey.REGULAR_USER, ApiKey.OWNER_USER]),
+)  # type: ignore[misc]  # https://github.com/openml/server-api/issues/108
 def test_list_data_identical(
     api_client: TestClient,
-    number_missing_values: str | None,
-    number_features: str | None,
-    number_instances: str | None,
-    number_classes: str | None,
-    limit: int | None,
-    offset: int | None,
-    status: str | None,
-    data_id: int | list[int] | None,
-    data_name: str | None,
-    data_version: None | int,
-    tag: str | None,
-) -> None:
+    **kwargs: dict[str, Any],
+) -> Any:
+    limit, offset = kwargs["limit"], kwargs["offset"]
     if (limit and not offset) or (offset and not limit):
-        pytest.skip(
-            "Documented behavior change: "
-            "in new API these may be used independently, but in the old API they may not.",
-        )
-    kwargs: dict[str, Any] = {
-        "number_missing_values": number_missing_values,
-        "number_features": number_features,
-        "number_instances": number_instances,
-        "number_classes": number_classes,
-        "tag": tag,
-        "data_version": data_version,
-        "data_name": data_name,
-        "data_id": data_id,
-        "status": status,
-    }
-    kwargs["pagination"] = {"limit": limit if limit else 1_000_000}
-    if offset is None:
-        kwargs["pagination"]["offset"] = offset
+        # Behavior change: in new API these may be used independently, not in old.
+        return hypothesis.reject()
+
+    api_key = kwargs.pop("api_key")
+    api_key_query = f"?api_key={api_key}" if api_key else ""
+
+    # Pagination parameters are nested in the new query style
+    # The old style has no `limit` by default, so we mimic this with a high default
+    new_style = kwargs | {"pagination": {"limit": limit if limit else 1_000_000}}
+    if offset is not None:
+        new_style["pagination"]["offset"] = offset
+
     response = api_client.post(
-        "/v1/datasets/list",
-        json=kwargs,
+        f"/v1/datasets/list{api_key_query}",
+        json=new_style,
     )
-    del kwargs["pagination"]
-    kwargs["limit"] = limit
-    kwargs["offset"] = offset
+
+    # old style `/data/filter` encodes all filters as a path
     query = [
         [filter_, value if not isinstance(value, list) else ",".join(str(v) for v in value)]
         for filter_, value in kwargs.items()
@@ -294,9 +290,13 @@ def test_list_data_identical(
     uri = "http://server-api-php-api-1:80/api/v1/json/data/list"
     if query:
         uri += f"/{'/'.join([str(v) for q in query for v in q])}"
+    uri += api_key_query
     original = httpx.get(uri)
-    assert original.status_code == response.status_code
+
+    assert original.status_code == response.status_code, response.json()
     if original.status_code == http.client.PRECONDITION_FAILED:
         assert original.json()["error"] == response.json()["detail"]
-        return
+        return None
     assert len(original.json()["data"]["dataset"]) == len(response.json()["data"]["dataset"])
+    assert original.json()["data"]["dataset"] == response.json()["data"]["dataset"]
+    return None
