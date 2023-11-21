@@ -71,13 +71,13 @@ def list_datasets(
     uploader: Annotated[int | None, Body()] = None,
     data_id: Annotated[list[int] | None, Body()] = None,
     number_instances: Annotated[str | None, IntegerRange] = None,
+    number_features: Annotated[str | None, IntegerRange] = None,
+    number_classes: Annotated[str | None, IntegerRange] = None,
+    number_missing_values: Annotated[str | None, IntegerRange] = None,
     status: Annotated[DatasetStatusFilter, Body()] = DatasetStatusFilter.ACTIVE,
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[Literal["data"], dict[Literal["dataset"], list[dict[str, Any]]]]:
-    # $legal_filters = array(
-    # 'number_instances', 'number_features', 'number_classes',
-    # 'number_missing_values');
     from sqlalchemy import text
 
     current_status = text(
@@ -149,7 +149,9 @@ def list_datasets(
         """  # nosec  - `quality` is not user provided, value is filtered with regex
 
     number_instances_filter = quality_clause("NumberOfInstances", number_instances)
-
+    number_classes_filter = quality_clause("NumberOfClasses", number_classes)
+    number_features_filter = quality_clause("NumberOfFeatures", number_features)
+    number_missing_values_filter = quality_clause("NumberOfMissingValues", number_missing_values)
     matching_filter = text(
         f"""
         SELECT d.`did`,d.`name`,d.`version`,d.`format`,d.`file_id`,
@@ -157,7 +159,8 @@ def list_datasets(
         FROM dataset AS d
         LEFT JOIN ({current_status}) AS cs ON d.`did`=cs.`did`
         WHERE {visible_to_user} {where_name} {where_version} {where_uploader}
-        {where_data_id} {matching_tag} {number_instances_filter}
+        {where_data_id} {matching_tag} {number_instances_filter} {number_features_filter}
+        {number_classes_filter} {number_missing_values_filter}
         AND IFNULL(cs.`status`, 'in_preparation') IN ({where_status})
         LIMIT {pagination.limit} OFFSET {pagination.offset}
         """,  # nosec

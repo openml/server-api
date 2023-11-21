@@ -1,4 +1,5 @@
 import http.client
+from typing import Any
 
 import httpx
 import pytest
@@ -209,17 +210,93 @@ def test_list_data_tag_empty(api_client: TestClient) -> None:
     _assert_empty_result(response)
 
 
-def test_list_data_quality_singular(api_client: TestClient) -> None:
+@pytest.mark.parametrize(
+    ("quality", "range_", "count"),
+    [
+        ("number_instances", "150", 2),
+        ("number_instances", "150..200", 8),
+        ("number_instances", "200..150", 8),
+        ("number_features", "3", 6),
+        ("number_features", "5..7", 20),
+        ("number_classes", "2", 51),
+        ("number_classes", "2..3", 56),
+        ("number_missing_values", "2", 1),
+        ("number_missing_values", "2..100000", 22),
+    ],
+)
+def test_list_data_quality(quality: str, range_: str, count: int, api_client: TestClient) -> None:
     response = api_client.post(
         "/v1/datasets/list",
-        json={"status": "all", "number_instances": "150"},
+        json={"status": "all", quality: range_},
     )
-    assert response.status_code == http.client.OK
+    assert response.status_code == http.client.OK, response.json()
+    assert len(response.json()["data"]["dataset"]) == count
 
 
-def test_list_data_quality_range(api_client: TestClient) -> None:
+@pytest.mark.php()
+@pytest.mark.slow()
+@pytest.mark.parametrize("number_missing_values", [None, "2", "2..10000"])
+@pytest.mark.parametrize("number_features", [None, "5", "2..100"])
+@pytest.mark.parametrize("number_classes", [None, "5", "2..100"])
+@pytest.mark.parametrize("number_instances", [None, "150", "2..100"])
+@pytest.mark.parametrize("limit", [None, 1, 100, 1000])
+@pytest.mark.parametrize("offset", [None, 1, 100, 1000])
+@pytest.mark.parametrize("status", [None, "active", "deactivated", "in_preparation"])
+@pytest.mark.parametrize("data_id", [None, 61, [61, 130]])
+@pytest.mark.parametrize("data_name", [None, "abalone", "iris", "NotPresentInTheDatabase"])
+@pytest.mark.parametrize("data_version", [None, 2, 4])
+@pytest.mark.parametrize("tag", [None, "study_14", "study_not_in_db"])
+def test_list_data_identical(
+    api_client: TestClient,
+    number_missing_values: str | None,
+    number_features: str | None,
+    number_instances: str | None,
+    number_classes: str | None,
+    limit: int | None,
+    offset: int | None,
+    status: str | None,
+    data_id: int | list[int] | None,
+    data_name: str | None,
+    data_version: None | int,
+    tag: str | None,
+) -> None:
+    if (limit and not offset) or (offset and not limit):
+        pytest.skip(
+            "Documented behavior change: "
+            "in new API these may be used independently, but in the old API they may not.",
+        )
+    kwargs: dict[str, Any] = {
+        "number_missing_values": number_missing_values,
+        "number_features": number_features,
+        "number_instances": number_instances,
+        "number_classes": number_classes,
+        "tag": tag,
+        "data_version": data_version,
+        "data_name": data_name,
+        "data_id": data_id,
+        "status": status,
+    }
+    kwargs["pagination"] = {"limit": limit if limit else 1_000_000}
+    if offset is None:
+        kwargs["pagination"]["offset"] = offset
     response = api_client.post(
         "/v1/datasets/list",
-        json={"status": "all", "number_instances": "150..1000"},
+        json=kwargs,
     )
-    assert response.status_code == http.client.OK
+    del kwargs["pagination"]
+    kwargs["limit"] = limit
+    kwargs["offset"] = offset
+    query = [
+        [filter_, value if not isinstance(value, list) else ",".join(str(v) for v in value)]
+        for filter_, value in kwargs.items()
+        if value is not None
+    ]
+    uri = "http://server-api-php-api-1:80/api/v1/json/data/list"
+    if query:
+        uri += f"/{'/'.join([str(v) for q in query for v in q])}"
+    original = httpx.get(uri)
+    assert original.status_code == response.status_code
+    if original.status_code == http.client.PRECONDITION_FAILED:
+        assert original.json()["error"] == response.json()["detail"]
+        return
+    assert len(original.json()["data"]["dataset"]) == len(response.json()["data"]["dataset"])
