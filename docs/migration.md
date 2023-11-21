@@ -91,6 +91,9 @@ regardless of how it is accessed.
 When accessing this endpoint when authenticated as administrator, it now correctly
 includes datasets which are private.
 
+The `limit` and `offset` parameters can now be used independently, you no longer need
+to provide both if you wish to set only one.
+
 ## V1 to V2
 Most of the changes are focused on standardizing responses, working on:
 
