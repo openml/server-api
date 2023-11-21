@@ -14,7 +14,7 @@ from schemas.datasets.openml import DatasetStatus
 from sqlalchemy import Connection
 
 from routers.dependencies import Pagination, expdb_connection, fetch_user, userdb_connection
-from routers.types import CasualString128, SystemString64
+from routers.types import CasualString128, IntegerRange, SystemString64, integer_range_regex
 from routers.v2.datasets import get_dataset
 
 router = APIRouter(prefix="/v1/datasets", tags=["datasets"])
@@ -70,6 +70,7 @@ def list_datasets(
     data_version: Annotated[int | None, Body()] = None,
     uploader: Annotated[int | None, Body()] = None,
     data_id: Annotated[list[int] | None, Body()] = None,
+    number_instances: Annotated[str | None, IntegerRange] = None,
     status: Annotated[DatasetStatusFilter, Body()] = DatasetStatusFilter.ACTIVE,
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
@@ -129,6 +130,26 @@ def list_datasets(
         else ""
     )
 
+    import re
+
+    def quality_clause(quality: str, range_: str | None) -> str:
+        if not range_:
+            return ""
+        if not (match := re.match(integer_range_regex, range_)):
+            msg = f"`range_` not a valid range: {range_}"
+            raise ValueError(msg)
+        start, end = match.groups()
+        value = f"`value` BETWEEN {start} AND {end[2:]}" if end else f"`value`={start}"
+        return f""" AND
+            d.`did` IN (
+                SELECT `data`
+                FROM data_quality
+                WHERE `quality`='{quality}' AND {value}
+            )
+        """  # nosec  - `quality` is not user provided, value is filtered with regex
+
+    number_instances_filter = quality_clause("NumberOfInstances", number_instances)
+
     matching_filter = text(
         f"""
         SELECT d.`did`,d.`name`,d.`version`,d.`format`,d.`file_id`,
@@ -136,7 +157,7 @@ def list_datasets(
         FROM dataset AS d
         LEFT JOIN ({current_status}) AS cs ON d.`did`=cs.`did`
         WHERE {visible_to_user} {where_name} {where_version} {where_uploader}
-        {where_data_id} {matching_tag}
+        {where_data_id} {matching_tag} {number_instances_filter}
         AND IFNULL(cs.`status`, 'in_preparation') IN ({where_status})
         LIMIT {pagination.limit} OFFSET {pagination.offset}
         """,  # nosec

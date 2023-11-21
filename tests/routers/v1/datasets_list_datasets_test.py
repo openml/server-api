@@ -207,3 +207,19 @@ def test_list_data_tag_empty(api_client: TestClient) -> None:
         json={"status": "all", "tag": "not-a-tag"},
     )
     _assert_empty_result(response)
+
+
+def test_list_data_quality_singular(api_client: TestClient) -> None:
+    response = api_client.post(
+        "/v1/datasets/list",
+        json={"status": "all", "number_instances": "150"},
+    )
+    assert response.status_code == http.client.OK
+
+
+def test_list_data_quality_range(api_client: TestClient) -> None:
+    response = api_client.post(
+        "/v1/datasets/list",
+        json={"status": "all", "number_instances": "150..1000"},
+    )
+    assert response.status_code == http.client.OK
