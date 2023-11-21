@@ -83,7 +83,9 @@ Python-V1 will always return JSON.
 The endpoint now accepts the filters in the body of the request, instead of as query parameters.
 ```diff
 -  curl -d '' 127.0.0.1:8002/api/v1/json/data/list/status/active
-+ curl -d 'status=active' 127.0.0.1:8002/api/v1/json/data/list/
++ curl -X 'POST' 'http://localhost:8001/v1/datasets/list' \
++  -H 'Content-Type: application/json' \
++  -d '{}'
 ```
 This endpoint is now also available via a `POST` request, and will exhibit the same behavior
 regardless of how it is accessed.
