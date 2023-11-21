@@ -34,7 +34,10 @@ class JsonLDObject(BaseModel, ABC):
     id_: str = Field(serialization_alias="@id")
     type_: str = Field(serialization_alias="@type")
 
-    model_config = {"populate_by_name": True, "extra": "forbid"}
+    model_config = {
+        "populate_by_name": True,
+        "extra": "forbid",
+    }
 
 
 T = TypeVar("T", bound=JsonLDObject)
@@ -66,7 +69,7 @@ class Agent(JsonLDObject):
     the use of the Organization Ontology is recommended.
     """
 
-    type_: Literal["Agent"] = "Agent"
+    type_: Literal["Agent"] = Field(default="Agent", serialization_alias="@type")
     name: list[JsonLiteral] = Field(default_factory=list, min_length=1)
 
 
@@ -76,7 +79,7 @@ class MD5Checksum(JsonLDObject):
     message digest algorithms to be represented.
     """
 
-    type_: Literal["Checksum"] = "Checksum"
+    type_: Literal["Checksum"] = Field(default="Checksum", serialization_alias="@type")
     algorithm: Literal[
         "http://spdx.org/rdf/terms#checksumAlgorithm_md5"
     ] = "http://spdx.org/rdf/terms#checksumAlgorithm_md5"
@@ -89,26 +92,26 @@ class FeatureType(StrEnum):
 
 
 class Feature(JsonLDObject):
-    type_: Literal["Feature"] = "Feature"
+    type_: Literal["Feature"] = Field(default="Feature", serialization_alias="@type")
     name: str = Field()
     feature_type: FeatureType = Field(serialization_alias="type")
     description: JsonLiteral | None = Field(default=None)
 
 
 class QualityType(JsonLDObject):
-    type_: Literal["QualityType"] = "QualityType"
+    type_: Literal["QualityType"] = Field(default="QualityType", serialization_alias="@type")
     name: str = Field()
     quality_id: str = Field(serialization_alias="id")
 
 
 class Quality(JsonLDObject):
-    type_: Literal["Quality"] = "Quality"
+    type_: Literal["Quality"] = Field(default="Quality", serialization_alias="@type")
     quality_type: QualityType = Field(serialization_alias="type")
     value: JsonLiteral = Field()
 
 
 class Distribution(JsonLDObject):
-    type_: Literal["Distribution"] = "Distribution"
+    type_: Literal["Distribution"] = Field(default="Distribution", serialization_alias="@type")
     # required
     access_url: list[HttpUrl] = Field(
         default_factory=list,
@@ -162,7 +165,7 @@ class Distribution(JsonLDObject):
 
 
 class Dataset(JsonLDObject):
-    type_: Literal["Dataset"] = "Dataset"
+    type_: Literal["Dataset"] = Field(default="Dataset", serialization_alias="@type")
     # required
     collection_date: JsonLiteral = Field(serialization_alias="collectionDate")
     description: list[JsonLiteral] = Field(default_factory=list, min_length=1)
@@ -199,8 +202,8 @@ class Dataset(JsonLDObject):
 
 
 class DataService(JsonLDObject):
-    type_: Literal["DataService"] = "DataService"
-    endpoint_url: HttpUrl = Field(serialization_alias="endpointUrl")
+    type_: Literal["DataService"] = Field(default="DataService", serialization_alias="@type")
+    endpoint_url: HttpUrl = Field(serialization_alias="DataService.endpointUrl")
     title: list[JsonLiteral] = Field(default_factory=list, min_length=1)
     serves_dataset: list[JsonLDObjectReference[Dataset]] = Field(
         default_factory=list,
