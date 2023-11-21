@@ -78,6 +78,24 @@ Python-V1 will always return JSON.
    is correctly populated instead of omitted.
 
 
+#### `GET /data/list/{filters}`
+
+The endpoint now accepts the filters in the body of the request, instead of as query parameters.
+```diff
+-  curl -d '' 127.0.0.1:8002/api/v1/json/data/list/status/active
++ curl -X 'POST' 'http://localhost:8001/v1/datasets/list' \
++  -H 'Content-Type: application/json' \
++  -d '{}'
+```
+This endpoint is now also available via a `POST` request, and will exhibit the same behavior
+regardless of how it is accessed.
+
+When accessing this endpoint when authenticated as administrator, it now correctly
+includes datasets which are private.
+
+The `limit` and `offset` parameters can now be used independently, you no longer need
+to provide both if you wish to set only one.
+
 ## V1 to V2
 Most of the changes are focused on standardizing responses, working on:
 

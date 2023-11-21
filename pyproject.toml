@@ -25,6 +25,7 @@ dev = [
     "pre-commit",
     "pytest",
     "httpx",
+    "hypothesis",
 ]
 docs = [
     "mkdocs-material",
@@ -56,5 +57,6 @@ pythonpath = [
   "src"
 ]
 markers = [
-    "php: tests that compare directly to an old PHP endpoint"
+    "php: tests that compare directly to an old PHP endpoint.",
+    "slow: test or sets of tests which take more than a few seconds to run."
 ]
