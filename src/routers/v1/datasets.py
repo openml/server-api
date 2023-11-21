@@ -67,9 +67,21 @@ def list_datasets(
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     data_name: Annotated[str | None, CasualString128] = None,
     tag: Annotated[str | None, SystemString64] = None,
-    data_version: Annotated[int | None, Body()] = None,
-    uploader: Annotated[int | None, Body()] = None,
-    data_id: Annotated[list[int] | None, Body()] = None,
+    data_version: Annotated[
+        int | None,
+        Body(description="The dataset version to include in the search."),
+    ] = None,
+    uploader: Annotated[
+        int | None,
+        Body(description="User id of the uploader whose datasets to include in the search."),
+    ] = None,
+    data_id: Annotated[
+        list[int] | None,
+        Body(
+            description="The dataset(s) to include in the search. "
+            "If none are specified, all datasets are included.",
+        ),
+    ] = None,
     number_instances: Annotated[str | None, IntegerRange] = None,
     number_features: Annotated[str | None, IntegerRange] = None,
     number_classes: Annotated[str | None, IntegerRange] = None,
