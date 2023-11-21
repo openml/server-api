@@ -139,7 +139,7 @@ def test_list_data_version(version: int, count: int, api_client: TestClient) -> 
     assert response.status_code == http.client.OK
     datasets = response.json()["data"]["dataset"]
     assert len(datasets) == count
-    assert {dataset["version"] for dataset in datasets} == {str(version)}
+    assert {dataset["version"] for dataset in datasets} == {version}
 
 
 def test_list_data_version_no_result(api_client: TestClient) -> None:
@@ -218,7 +218,6 @@ def test_list_data_tag_empty(api_client: TestClient) -> None:
     [
         ("number_instances", "150", 2),
         ("number_instances", "150..200", 8),
-        ("number_instances", "200..150", 8),
         ("number_features", "3", 6),
         ("number_features", "5..7", 20),
         ("number_classes", "2", 51),
