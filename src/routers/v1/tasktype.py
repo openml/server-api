@@ -1,7 +1,9 @@
+import http.client
 from typing import Annotated, Any, Literal
 
+from database.tasks import get_task_type as db_get_task_type
 from database.tasks import get_task_types
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import Connection
 
 from routers.dependencies import expdb_connection
@@ -22,3 +24,17 @@ def list_task_types(
         if task_type["description"] == "":
             task_type["description"] = []
     return {"task_types": {"task_type": task_types}}
+
+
+@router.get(path="/{task_type_id}")
+def get_task_type(
+    task_type_id: int,
+    expdb: Annotated[Connection, Depends(expdb_connection)],
+) -> dict[Literal["task_type"], dict[str, str | list[str]]]:
+    task_type = db_get_task_type(task_type_id=task_type_id, expdb=expdb)
+    if task_type is None:
+        raise HTTPException(
+            status_code=http.client.PRECONDITION_FAILED,
+            detail={"code": "241", "message": "Unknown task type."},
+        ) from None
+    return {"task_type": task_type}  # type: ignore
