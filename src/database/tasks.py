@@ -24,4 +24,19 @@ def get_task_type(task_type_id: int, expdb: Connection) -> dict[str, str | int] 
         ),
         parameters={"ttid": task_type_id},
     )
-    return next(row.mappings(), None)
+    task_type = dict(next(row.mappings(), {}))
+    return task_type or None
+
+
+def get_input_for_task_type(task_type_id: int, expdb: Connection) -> list[dict[str, str | int]]:
+    rows = expdb.execute(
+        text(
+            """
+        SELECT *
+        FROM task_type_inout
+        WHERE `ttid`=:ttid AND `io`='input'
+        """,
+        ),
+        parameters={"ttid": task_type_id},
+    )
+    return [dict(row) for row in rows.mappings()]
