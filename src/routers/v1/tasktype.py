@@ -45,6 +45,13 @@ def get_task_type(
         ) from None
 
     task_type = _normalize_task_type(task_type_record)
+    task_type["creator"] = [
+        creator.strip() for creator in cast(str, task_type["creator"]).split(",")
+    ]
+    task_type["contributor"] = [
+        creator.strip() for creator in cast(str, task_type.pop("contributors")).split(",")
+    ]
+    task_type["creation_date"] = task_type.pop("creationDate")
     task_type_inputs = get_input_for_task_type(task_type_id, expdb)
     input_types = []
     for task_type_input in task_type_inputs:
