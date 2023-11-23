@@ -23,7 +23,16 @@ def test_get_task_type(ttype_id: int, api_client: TestClient) -> None:
     response = api_client.get(f"/v1/tasktype/{ttype_id}")
     original = httpx.get(f"http://server-api-php-api-1:80/api/v1/json/tasktype/{ttype_id}")
     assert response.status_code == original.status_code
-    differences = deepdiff.diff.DeepDiff(response.json(), original.json(), ignore_order=True)
+
+    py_json = response.json()
+    php_json = original.json()
+
+    # The PHP types distinguish between single (str) or multiple (list) creator/contrib
+    for field in ["contributor", "creator"]:
+        if field in py_json["task_type"] and len(py_json["task_type"][field]) == 1:
+            py_json["task_type"][field] = py_json["task_type"][field][0]
+
+    differences = deepdiff.diff.DeepDiff(py_json, php_json, ignore_order=True)
     assert not differences
 
 

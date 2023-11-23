@@ -14,7 +14,9 @@ router = APIRouter(prefix="/v1/tasktype", tags=["tasks"])
 
 def _normalize_task_type(task_type: dict[str, str | int]) -> dict[str, str | list[Any]]:
     ttype: dict[str, str | list[Any]] = {
-        k: str(v).replace("\r\n", "\n").strip() for k, v in task_type.items() if k != "id"
+        k: str(v).replace("\r\n", "\n").strip() if v is not None else v
+        for k, v in task_type.items()
+        if k != "id"
     }
     ttype["id"] = ttype.pop("ttid")
     if ttype["description"] == "":
@@ -45,12 +47,14 @@ def get_task_type(
         ) from None
 
     task_type = _normalize_task_type(task_type_record)
+    # Some names are quoted, or have typos in their comma-separation (e.g. 'A ,B')
     task_type["creator"] = [
-        creator.strip() for creator in cast(str, task_type["creator"]).split(",")
+        creator.strip(' "') for creator in cast(str, task_type["creator"]).split(",")
     ]
-    task_type["contributor"] = [
-        creator.strip() for creator in cast(str, task_type.pop("contributors")).split(",")
-    ]
+    if contributors := task_type.pop("contributors"):
+        task_type["contributor"] = [
+            creator.strip(' "') for creator in cast(str, contributors).split(",")
+        ]
     task_type["creation_date"] = task_type.pop("creationDate")
     task_type_inputs = get_input_for_task_type(task_type_id, expdb)
     input_types = []
@@ -59,8 +63,10 @@ def get_task_type(
         if task_type_input["requirement"] == "required":
             input_["requirement"] = task_type_input["requirement"]
         input_["name"] = task_type_input["name"]
-        constraint = json.loads(cast(str, task_type_input["api_constraints"]))
-        input_["data_type"] = constraint["data_type"]
+        # api_constraints is for one input only in the test database (TODO: patch db)
+        if isinstance(task_type_input["api_constraints"], str):
+            constraint = json.loads(task_type_input["api_constraints"])
+            input_["data_type"] = constraint["data_type"]
         input_types.append(input_)
     task_type["input"] = input_types
     return {"task_type": task_type}
