@@ -24,6 +24,11 @@ class DatasetStatus(StrEnum):
     IN_PREPARATION = "in_preparation"
 
 
+class Quality(BaseModel):
+    name: str
+    value: float
+
+
 class DatasetMetadata(BaseModel):
     id_: int = Field(json_schema_extra={"example": 1}, alias="id")
     visibility: Visibility = Field(json_schema_extra={"example": Visibility.PUBLIC})
