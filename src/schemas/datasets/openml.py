@@ -26,7 +26,7 @@ class DatasetStatus(StrEnum):
 
 class Quality(BaseModel):
     name: str
-    value: float
+    value: float | None
 
 
 class DatasetMetadata(BaseModel):

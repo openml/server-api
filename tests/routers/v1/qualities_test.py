@@ -275,3 +275,28 @@ def test_get_quality(api_client: TestClient) -> None:
         {"name": "kNN1NKappa", "value": 0.8261102938928316},
     ]
     assert response.json() == expected
+
+
+@pytest.mark.php()
+@pytest.mark.parametrize(
+    "data_id",
+    list(range(1, 130)),
+)
+def test_get_quality_identical(data_id: int, api_client: TestClient) -> None:
+    php_response = httpx.get(f"http://server-api-php-api-1:80/api/v1/json/data/qualities/{data_id}")
+    if php_response.status_code == http.client.PRECONDITION_FAILED and php_response.json()["error"][
+        "code"
+    ] in ["362", "364"]:
+        pytest.skip("Detailed error reporting not yet re-implemented.")
+
+    python_response = api_client.get(f"/v1/datasets/qualities/{data_id}")
+    assert python_response.status_code == php_response.status_code
+
+    expected = [
+        {
+            "name": quality["name"],
+            "value": None if quality["value"] == [] else float(quality["value"]),
+        }
+        for quality in php_response.json()["data_qualities"]["quality"]
+    ]
+    assert python_response.json() == expected
