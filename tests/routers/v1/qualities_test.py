@@ -280,15 +280,10 @@ def test_get_quality(api_client: TestClient) -> None:
 @pytest.mark.php()
 @pytest.mark.parametrize(
     "data_id",
-    list(range(1, 130)),
+    list(set(range(1, 132)) - {55, 56, 59, 116, 130}),
 )
 def test_get_quality_identical(data_id: int, api_client: TestClient) -> None:
     php_response = httpx.get(f"http://server-api-php-api-1:80/api/v1/json/data/qualities/{data_id}")
-    if php_response.status_code == http.client.PRECONDITION_FAILED and php_response.json()["error"][
-        "code"
-    ] in ["362", "364"]:
-        pytest.skip("Detailed error reporting not yet re-implemented.")
-
     python_response = api_client.get(f"/v1/datasets/qualities/{data_id}")
     assert python_response.status_code == php_response.status_code
 
@@ -300,3 +295,21 @@ def test_get_quality_identical(data_id: int, api_client: TestClient) -> None:
         for quality in php_response.json()["data_qualities"]["quality"]
     ]
     assert python_response.json() == expected
+
+
+@pytest.mark.php()
+@pytest.mark.parametrize(
+    "data_id",
+    [55, 56, 59, 116, 130, 132],
+)
+def test_get_quality_identical_error(data_id: int, api_client: TestClient) -> None:
+    if data_id in [55, 56, 59]:
+        pytest.skip("Detailed error for code 364 (failed processing) not yet supported.")
+    if data_id in [116]:
+        pytest.skip("Detailed error for code 362 (no qualities) not yet supported.")
+    php_response = httpx.get(f"http://server-api-php-api-1:80/api/v1/json/data/qualities/{data_id}")
+    python_response = api_client.get(f"/v1/datasets/qualities/{data_id}")
+    assert python_response.status_code == php_response.status_code
+    # The "dataset unknown" error currently has a separate code in PHP depending on
+    # where it occurs (e.g., get dataset->113 get quality->361)
+    assert python_response.json()["detail"]["message"] == php_response.json()["error"]["message"]
