@@ -14,9 +14,13 @@ from tests.conftest import ApiKey
     "dataset_id",
     range(1, 132),
 )
-def test_dataset_response_is_identical(dataset_id: int, api_client: TestClient) -> None:
-    original = httpx.get(f"http://server-api-php-api-1:80/api/v1/json/data/{dataset_id}")
-    new = api_client.get(f"/datasets/{dataset_id}")
+def test_dataset_response_is_identical(
+    dataset_id: int,
+    py_api: TestClient,
+    php_api: httpx.Client,
+) -> None:
+    original = php_api.get(f"/data/{dataset_id}")
+    new = py_api.get(f"/datasets/{dataset_id}")
 
     if new.status_code == http.client.FORBIDDEN:
         assert original.status_code == http.client.PRECONDITION_FAILED
@@ -92,9 +96,9 @@ def test_dataset_response_is_identical(dataset_id: int, api_client: TestClient) 
 )
 def test_error_unknown_dataset(
     dataset_id: int,
-    api_client: TestClient,
+    py_api: TestClient,
 ) -> None:
-    response = cast(httpx.Response, api_client.get(f"/datasets/{dataset_id}"))
+    response = cast(httpx.Response, py_api.get(f"/datasets/{dataset_id}"))
 
     # The new API has "404 Not Found" instead of "412 PRECONDITION_FAILED"
     assert response.status_code == http.client.NOT_FOUND
@@ -106,11 +110,11 @@ def test_error_unknown_dataset(
     [None, "a" * 32],
 )
 def test_private_dataset_no_user_no_access(
-    api_client: TestClient,
+    py_api: TestClient,
     api_key: str | None,
 ) -> None:
     query = f"?api_key={api_key}" if api_key else ""
-    response = cast(httpx.Response, api_client.get(f"/datasets/130{query}"))
+    response = cast(httpx.Response, py_api.get(f"/datasets/130{query}"))
 
     # New response is 403: Forbidden instead of 412: PRECONDITION FAILED
     assert response.status_code == http.client.FORBIDDEN
@@ -119,17 +123,17 @@ def test_private_dataset_no_user_no_access(
 
 @pytest.mark.skip("Not sure how to include apikey in test yet.")
 def test_private_dataset_owner_access(
-    api_client: TestClient,
+    py_api: TestClient,
     dataset_130: dict[str, Any],
 ) -> None:
-    response = cast(httpx.Response, api_client.get("/datasets/130?api_key=..."))
+    response = cast(httpx.Response, py_api.get("/datasets/130?api_key=..."))
     assert response.status_code == http.client.OK
     assert dataset_130 == response.json()
 
 
 @pytest.mark.skip("Not sure how to include apikey in test yet.")
-def test_private_dataset_admin_access(api_client: TestClient) -> None:
-    cast(httpx.Response, api_client.get("/datasets/130?api_key=..."))
+def test_private_dataset_admin_access(py_api: TestClient) -> None:
+    cast(httpx.Response, py_api.get("/datasets/130?api_key=..."))
     # test against cached response
 
 
@@ -152,10 +156,11 @@ def test_dataset_tag_response_is_identical(
     dataset_id: int,
     tag: str,
     api_key: str,
-    api_client: TestClient,
+    py_api: TestClient,
+    php_api: httpx.Client,
 ) -> None:
-    original = httpx.post(
-        "http://server-api-php-api-1:80/api/v1/json/data/tag",
+    original = php_api.post(
+        "/data/tag",
         data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
     )
     if (
@@ -165,13 +170,13 @@ def test_dataset_tag_response_is_identical(
         pytest.skip("Encountered Elastic Search error.")
     if original.status_code == http.client.OK:
         # undo the tag, because we don't want to persist this change to the database
-        httpx.post(
-            "http://server-api-php-api-1:80/api/v1/json/data/untag",
+        php_api.post(
+            "/data/untag",
             data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
         )
     new = cast(
         httpx.Response,
-        api_client.post(
+        py_api.post(
             f"/datasets/tag?api_key={api_key}",
             json={"data_id": dataset_id, "tag": tag},
         ),

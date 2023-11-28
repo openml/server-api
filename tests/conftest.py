@@ -4,6 +4,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any, Generator
 
+import httpx
 import pytest
 from database.setup import expdb_database, user_database
 from fastapi.testclient import TestClient
@@ -40,7 +41,13 @@ def user_test() -> Connection:
 
 
 @pytest.fixture()
-def api_client(expdb_test: Connection, user_test: Connection) -> TestClient:
+def php_api() -> httpx.Client:
+    with httpx.Client(base_url="http://server-api-php-api-1:80/api/v1/json") as client:
+        yield client
+
+
+@pytest.fixture()
+def py_api(expdb_test: Connection, user_test: Connection) -> TestClient:
     app = create_api()
     # We use the lambda definitions because fixtures may not be called directly.
     app.dependency_overrides[expdb_connection] = lambda: expdb_test
