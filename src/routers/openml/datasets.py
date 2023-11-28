@@ -2,12 +2,20 @@
 We add separate endpoints for old-style JSON responses, so they don't clutter the schema of the
 new API, and are easily removed later.
 """
-import html
 import http.client
-from collections import namedtuple
-from enum import IntEnum, StrEnum
-from typing import Annotated, Any, Literal
+from datetime import datetime
+from enum import StrEnum
+from typing import Annotated, Any, Literal, NamedTuple
 
+from core.access import _user_has_access
+from core.errors import DatasetError
+from core.formatting import (
+    _csv_as_list,
+    _format_dataset_url,
+    _format_error,
+    _format_parquet_url,
+    _safe_unquote,
+)
 from database.datasets import get_dataset as db_get_dataset
 from database.datasets import (
     get_file,
@@ -17,9 +25,9 @@ from database.datasets import (
     get_tags,
 )
 from database.datasets import tag_dataset as db_tag_dataset
-from database.users import APIKey, User, UserGroup, get_user_groups_for, get_user_id_for
+from database.users import APIKey, User, UserGroup
 from fastapi import APIRouter, Body, Depends, HTTPException
-from schemas.datasets.openml import DatasetFileFormat, DatasetMetadata, DatasetStatus, Visibility
+from schemas.datasets.openml import DatasetMetadata, DatasetStatus
 from sqlalchemy import Connection
 
 from routers.dependencies import Pagination, expdb_connection, fetch_user, userdb_connection
@@ -246,80 +254,21 @@ def list_datasets(
     return {"data": {"dataset": list(datasets.values())}}
 
 
-class DatasetError(IntEnum):
-    NOT_FOUND = 111
-    NO_ACCESS = 112
-    NO_DATA_FILE = 113
+class ProcessingInformation(NamedTuple):
+    date: datetime | None
+    warning: str | None
+    error: str | None
 
 
-processing_info = namedtuple("processing_info", ["date", "warning", "error"])
-
-
-def _get_processing_information(dataset_id: int, connection: Connection) -> processing_info:
+def _get_processing_information(dataset_id: int, connection: Connection) -> ProcessingInformation:
     """Return processing information, if any. Otherwise, all fields `None`."""
     if not (data_processed := get_latest_processing_update(dataset_id, connection)):
-        return processing_info(date=None, warning=None, error=None)
+        return ProcessingInformation(date=None, warning=None, error=None)
 
     date_processed = data_processed["processing_date"]
     warning = data_processed["warning"].strip() if data_processed["warning"] else None
     error = data_processed["error"].strip() if data_processed["error"] else None
-    return processing_info(date=date_processed, warning=warning, error=error)
-
-
-def _format_error(*, code: DatasetError, message: str) -> dict[str, str]:
-    """Formatter for JSON bodies of OpenML error codes."""
-    return {"code": str(code), "message": message}
-
-
-def _user_has_access(
-    dataset: dict[str, Any],
-    connection: Connection,
-    api_key: APIKey | None = None,
-) -> bool:
-    """Determine if user of `api_key` has the right to view `dataset`."""
-    if dataset["visibility"] == Visibility.PUBLIC:
-        return True
-    if not api_key:
-        return False
-
-    if not (user_id := get_user_id_for(api_key=api_key, connection=connection)):
-        return False
-
-    if user_id == dataset["uploader"]:
-        return True
-
-    user_groups = get_user_groups_for(user_id=user_id, connection=connection)
-    ADMIN_GROUP = 1
-    return ADMIN_GROUP in user_groups
-
-
-def _format_parquet_url(dataset: dict[str, Any]) -> str | None:
-    if dataset["format"].lower() != DatasetFileFormat.ARFF:
-        return None
-
-    minio_base_url = "https://openml1.win.tue.nl"
-    return f"{minio_base_url}/dataset{dataset['did']}/dataset_{dataset['did']}.pq"
-
-
-def _format_dataset_url(dataset: dict[str, Any]) -> str:
-    base_url = "https://test.openml.org"
-    filename = f"{html.escape(dataset['name'])}.{dataset['format'].lower()}"
-    return f"{base_url}/data/v1/download/{dataset['file_id']}/{filename}"
-
-
-def _safe_unquote(text: str | None) -> str | None:
-    """Remove any open and closing quotes and return the remainder if non-empty."""
-    if not text:
-        return None
-    return text.strip("'\"") or None
-
-
-def _csv_as_list(text: str | None, *, unquote_items: bool = True) -> list[str]:
-    """Return comma-separated values in `text` as list, optionally remove quotes."""
-    if not text:
-        return []
-    chars_to_strip = "'\"\t " if unquote_items else "\t "
-    return [item.strip(chars_to_strip) for item in text.split(",")]
+    return ProcessingInformation(date=date_processed, warning=warning, error=error)
 
 
 @router.get(

@@ -1,6 +1,7 @@
 import http.client
 from typing import Annotated, Any, Literal
 
+from core.errors import DatasetError
 from database.datasets import get_dataset, list_all_qualities
 from database.users import User, UserGroup
 from fastapi import APIRouter, Depends, HTTPException
@@ -8,7 +9,6 @@ from schemas.datasets.openml import Quality
 from sqlalchemy import Connection, text
 
 from routers.dependencies import expdb_connection, fetch_user
-from routers.openml.datasets import DatasetError
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 
