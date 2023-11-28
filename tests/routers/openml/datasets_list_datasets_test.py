@@ -20,7 +20,7 @@ def _assert_empty_result(
 
 
 def test_list(api_client: TestClient) -> None:
-    response = api_client.get("/v1/datasets/list/")
+    response = api_client.get("/datasets/list/")
     assert response.status_code == http.client.OK
     assert "data" in response.json()
     assert "dataset" in response.json()["data"]
@@ -40,7 +40,7 @@ def test_list(api_client: TestClient) -> None:
 )
 def test_list_filter_active(status: str, amount: int, api_client: TestClient) -> None:
     response = api_client.post(
-        "/v1/datasets/list",
+        "/datasets/list",
         json={"status": status, "pagination": {"limit": constants.NUMBER_OF_DATASETS}},
     )
     assert response.status_code == http.client.OK, response.json()
@@ -60,7 +60,7 @@ def test_list_filter_active(status: str, amount: int, api_client: TestClient) ->
 def test_list_accounts_privacy(api_key: ApiKey | None, amount: int, api_client: TestClient) -> None:
     key = f"?api_key={api_key}" if api_key else ""
     response = api_client.post(
-        f"/v1/datasets/list{key}",
+        f"/datasets/list{key}",
         json={"status": "all", "pagination": {"limit": 1000}},
     )
     assert response.status_code == http.client.OK, response.json()
@@ -75,7 +75,7 @@ def test_list_accounts_privacy(api_key: ApiKey | None, amount: int, api_client: 
 def test_list_data_name_present(name: str, count: int, api_client: TestClient) -> None:
     # The second iris dataset is private, so we need to authenticate.
     response = api_client.post(
-        f"/v1/datasets/list?api_key={ApiKey.ADMIN}",
+        f"/datasets/list?api_key={ApiKey.ADMIN}",
         json={"status": "all", "data_name": name},
     )
     assert response.status_code == http.client.OK
@@ -90,7 +90,7 @@ def test_list_data_name_present(name: str, count: int, api_client: TestClient) -
 )
 def test_list_data_name_absent(name: str, api_client: TestClient) -> None:
     response = api_client.post(
-        f"/v1/datasets/list?api_key={ApiKey.ADMIN}",
+        f"/datasets/list?api_key={ApiKey.ADMIN}",
         json={"status": "all", "data_name": name},
     )
     _assert_empty_result(response)
@@ -116,7 +116,7 @@ def test_list_pagination(limit: int | None, offset: int | None, api_client: Test
     offset_body = {} if offset is None else {"offset": offset}
     limit_body = {} if limit is None else {"limit": limit}
     filters = {"status": "all", "pagination": offset_body | limit_body}
-    response = api_client.post("/v1/datasets/list", json=filters)
+    response = api_client.post("/datasets/list", json=filters)
 
     if offset in [130, 200]:
         _assert_empty_result(response)
@@ -133,7 +133,7 @@ def test_list_pagination(limit: int | None, offset: int | None, api_client: Test
 )
 def test_list_data_version(version: int, count: int, api_client: TestClient) -> None:
     response = api_client.post(
-        f"/v1/datasets/list?api_key={ApiKey.ADMIN}",
+        f"/datasets/list?api_key={ApiKey.ADMIN}",
         json={"status": "all", "data_version": version},
     )
     assert response.status_code == http.client.OK
@@ -144,7 +144,7 @@ def test_list_data_version(version: int, count: int, api_client: TestClient) -> 
 
 def test_list_data_version_no_result(api_client: TestClient) -> None:
     response = api_client.post(
-        f"/v1/datasets/list?api_key={ApiKey.ADMIN}",
+        f"/datasets/list?api_key={ApiKey.ADMIN}",
         json={"status": "all", "data_version": 4},
     )
     _assert_empty_result(response)
@@ -160,7 +160,7 @@ def test_list_data_version_no_result(api_client: TestClient) -> None:
 )
 def test_list_uploader(user_id: int, count: int, key: str, api_client: TestClient) -> None:
     response = api_client.post(
-        f"/v1/datasets/list?api_key={key}",
+        f"/datasets/list?api_key={key}",
         json={"status": "all", "uploader": user_id},
     )
     # The dataset of user 16 is private, so can not be retrieved by other users.
@@ -179,7 +179,7 @@ def test_list_uploader(user_id: int, count: int, key: str, api_client: TestClien
 )
 def test_list_data_id(data_id: list[int], api_client: TestClient) -> None:
     response = api_client.post(
-        "/v1/datasets/list",
+        "/datasets/list",
         json={"status": "all", "data_id": data_id},
     )
 
@@ -195,7 +195,7 @@ def test_list_data_id(data_id: list[int], api_client: TestClient) -> None:
 )
 def test_list_data_tag(tag: str, count: int, api_client: TestClient) -> None:
     response = api_client.post(
-        "/v1/datasets/list",
+        "/datasets/list",
         # study_14 has 100 datasets, we overwrite the default `limit` because otherwise
         # we don't know if the results are limited by filtering on the tag.
         json={"status": "all", "tag": tag, "pagination": {"limit": 101}},
@@ -207,7 +207,7 @@ def test_list_data_tag(tag: str, count: int, api_client: TestClient) -> None:
 
 def test_list_data_tag_empty(api_client: TestClient) -> None:
     response = api_client.post(
-        "/v1/datasets/list",
+        "/datasets/list",
         json={"status": "all", "tag": "not-a-tag"},
     )
     _assert_empty_result(response)
@@ -228,7 +228,7 @@ def test_list_data_tag_empty(api_client: TestClient) -> None:
 )
 def test_list_data_quality(quality: str, range_: str, count: int, api_client: TestClient) -> None:
     response = api_client.post(
-        "/v1/datasets/list",
+        "/datasets/list",
         json={"status": "all", quality: range_},
     )
     assert response.status_code == http.client.OK, response.json()
@@ -276,7 +276,7 @@ def test_list_data_identical(
         new_style["pagination"]["offset"] = offset
 
     response = api_client.post(
-        f"/v1/datasets/list{api_key_query}",
+        f"/datasets/list{api_key_query}",
         json=new_style,
     )
 

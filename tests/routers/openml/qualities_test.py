@@ -30,14 +30,14 @@ def _remove_quality_from_database(quality_name: str, expdb_test: Connection) -> 
 @pytest.mark.php()
 def test_list_qualities_identical(api_client: TestClient) -> None:
     original = httpx.get("http://server-api-php-api-1:80/api/v1/json/data/qualities/list")
-    new = api_client.get("/v1/datasets/qualities/list")
+    new = api_client.get("/datasets/qualities/list")
     assert original.status_code == new.status_code
     assert original.json() == new.json()
     # To keep the test idempotent, we cannot test if reaction to database changes is identical
 
 
 def test_list_qualities(api_client: TestClient, expdb_test: Connection) -> None:
-    response = api_client.get("/v1/datasets/qualities/list")
+    response = api_client.get("/datasets/qualities/list")
     assert response.status_code == http.client.OK
     expected = {
         "data_qualities_list": {
@@ -157,13 +157,13 @@ def test_list_qualities(api_client: TestClient, expdb_test: Connection) -> None:
     deleted = expected["data_qualities_list"]["quality"].pop()
     _remove_quality_from_database(quality_name=deleted, expdb_test=expdb_test)
 
-    response = api_client.get("/v1/datasets/qualities/list")
+    response = api_client.get("/datasets/qualities/list")
     assert response.status_code == http.client.OK
     assert expected == response.json()
 
 
 def test_get_quality(api_client: TestClient) -> None:
-    response = api_client.get("/v1/datasets/qualities/1")
+    response = api_client.get("/datasets/qualities/1")
     assert response.status_code == http.client.OK
     expected = [
         {"name": "AutoCorrelation", "value": 0.6064659977703456},
@@ -284,7 +284,7 @@ def test_get_quality(api_client: TestClient) -> None:
 )
 def test_get_quality_identical(data_id: int, api_client: TestClient) -> None:
     php_response = httpx.get(f"http://server-api-php-api-1:80/api/v1/json/data/qualities/{data_id}")
-    python_response = api_client.get(f"/v1/datasets/qualities/{data_id}")
+    python_response = api_client.get(f"/datasets/qualities/{data_id}")
     assert python_response.status_code == php_response.status_code
 
     expected = [
@@ -308,7 +308,7 @@ def test_get_quality_identical_error(data_id: int, api_client: TestClient) -> No
     if data_id in [116]:
         pytest.skip("Detailed error for code 362 (no qualities) not yet supported.")
     php_response = httpx.get(f"http://server-api-php-api-1:80/api/v1/json/data/qualities/{data_id}")
-    python_response = api_client.get(f"/v1/datasets/qualities/{data_id}")
+    python_response = api_client.get(f"/datasets/qualities/{data_id}")
     assert python_response.status_code == php_response.status_code
     # The "dataset unknown" error currently has a separate code in PHP depending on
     # where it occurs (e.g., get dataset->113 get quality->361)

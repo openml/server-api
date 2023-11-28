@@ -8,9 +8,9 @@ from schemas.datasets.openml import Quality
 from sqlalchemy import Connection, text
 
 from routers.dependencies import expdb_connection, fetch_user
-from routers.v2.datasets import DatasetError
+from routers.openml.datasets import DatasetError
 
-router = APIRouter(prefix="/v1/datasets", tags=["datasets"])
+router = APIRouter(prefix="/datasets", tags=["datasets"])
 
 
 @router.get("/qualities/list")

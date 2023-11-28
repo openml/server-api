@@ -21,7 +21,7 @@ def test_dataset_tag_rejects_unauthorized(key: ApiKey, api_client: TestClient) -
     response = cast(
         httpx.Response,
         api_client.post(
-            f"/v1/datasets/tag{apikey}",
+            f"/datasets/tag{apikey}",
             json={"data_id": constants.PRIVATE_DATASET_ID, "tag": "test"},
         ),
     )
@@ -39,7 +39,7 @@ def test_dataset_tag(key: ApiKey, expdb_test: Connection, api_client: TestClient
     response = cast(
         httpx.Response,
         api_client.post(
-            f"/v1/datasets/tag?api_key={key}",
+            f"/datasets/tag?api_key={key}",
             json={"data_id": dataset_id, "tag": tag},
         ),
     )
@@ -55,7 +55,7 @@ def test_dataset_tag_returns_existing_tags(api_client: TestClient) -> None:
     response = cast(
         httpx.Response,
         api_client.post(
-            f"/v1/datasets/tag?api_key={ApiKey.ADMIN}",
+            f"/datasets/tag?api_key={ApiKey.ADMIN}",
             json={"data_id": dataset_id, "tag": tag},
         ),
     )
@@ -68,7 +68,7 @@ def test_dataset_tag_fails_if_tag_exists(api_client: TestClient) -> None:
     response = cast(
         httpx.Response,
         api_client.post(
-            f"/v1/datasets/tag?api_key={ApiKey.ADMIN}",
+            f"/datasets/tag?api_key={ApiKey.ADMIN}",
             json={"data_id": dataset_id, "tag": tag},
         ),
     )
@@ -95,64 +95,10 @@ def test_dataset_tag_invalid_tag_is_rejected(
     new = cast(
         httpx.Response,
         api_client.post(
-            f"/v1/datasets/tag?api_key{ApiKey.ADMIN}",
+            f"/datasets/tag?api_key{ApiKey.ADMIN}",
             json={"data_id": 1, "tag": tag},
         ),
     )
 
     assert new.status_code == http.client.UNPROCESSABLE_ENTITY
     assert ["body", "tag"] == new.json()["detail"][0]["loc"]
-
-
-@pytest.mark.php()
-@pytest.mark.parametrize(
-    "dataset_id",
-    list(range(1, 10)) + [101],
-)
-@pytest.mark.parametrize(
-    "api_key",
-    [ApiKey.ADMIN, ApiKey.REGULAR_USER, ApiKey.OWNER_USER],
-    ids=["Administrator", "regular user", "possible owner"],
-)
-@pytest.mark.parametrize(
-    "tag",
-    ["study_14", "totally_new_tag_for_migration_testing"],
-    ids=["typically existing tag", "new tag"],
-)
-def test_dataset_tag_response_is_identical(
-    dataset_id: int,
-    tag: str,
-    api_key: str,
-    api_client: TestClient,
-) -> None:
-    original = httpx.post(
-        "http://server-api-php-api-1:80/api/v1/json/data/tag",
-        data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
-    )
-    if (
-        original.status_code == http.client.PRECONDITION_FAILED
-        and original.json()["error"]["message"] == "An Elastic Search Exception occured."
-    ):
-        pytest.skip("Encountered Elastic Search error.")
-    if original.status_code == http.client.OK:
-        # undo the tag, because we don't want to persist this change to the database
-        httpx.post(
-            "http://server-api-php-api-1:80/api/v1/json/data/untag",
-            data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
-        )
-    new = cast(
-        httpx.Response,
-        api_client.post(
-            f"/v1/datasets/tag?api_key={api_key}",
-            json={"data_id": dataset_id, "tag": tag},
-        ),
-    )
-
-    assert original.status_code == new.status_code, original.json()
-    if new.status_code != http.client.OK:
-        assert original.json()["error"] == new.json()["detail"]
-        return
-
-    original = original.json()
-    new = new.json()
-    assert original == new

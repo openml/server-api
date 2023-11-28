@@ -19,7 +19,7 @@ def test_error_unknown_dataset(
     response_code: int,
     api_client: TestClient,
 ) -> None:
-    response = cast(httpx.Response, api_client.get(f"v2/datasets/{dataset_id}"))
+    response = cast(httpx.Response, api_client.get(f"/datasets/{dataset_id}"))
 
     assert response.status_code == response_code
     assert {"code": "111", "message": "Unknown dataset"} == response.json()["detail"]
@@ -38,7 +38,7 @@ def test_private_dataset_no_user_no_access(
     response_code: int,
 ) -> None:
     query = f"?api_key={api_key}" if api_key else ""
-    response = cast(httpx.Response, api_client.get(f"v2/datasets/130{query}"))
+    response = cast(httpx.Response, api_client.get(f"/datasets/130{query}"))
 
     assert response.status_code == response_code
     assert {"code": "112", "message": "No access granted"} == response.json()["detail"]
