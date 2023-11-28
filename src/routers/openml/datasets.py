@@ -2,22 +2,30 @@
 We add separate endpoints for old-style JSON responses, so they don't clutter the schema of the
 new API, and are easily removed later.
 """
+import html
 import http.client
-from enum import StrEnum
+from collections import namedtuple
+from enum import IntEnum, StrEnum
 from typing import Annotated, Any, Literal
 
-from database.datasets import get_tags
+from database.datasets import get_dataset as db_get_dataset
+from database.datasets import (
+    get_file,
+    get_latest_dataset_description,
+    get_latest_processing_update,
+    get_latest_status_update,
+    get_tags,
+)
 from database.datasets import tag_dataset as db_tag_dataset
-from database.users import APIKey, User, UserGroup
+from database.users import APIKey, User, UserGroup, get_user_groups_for, get_user_id_for
 from fastapi import APIRouter, Body, Depends, HTTPException
-from schemas.datasets.openml import DatasetStatus
+from schemas.datasets.openml import DatasetFileFormat, DatasetMetadata, DatasetStatus, Visibility
 from sqlalchemy import Connection
 
 from routers.dependencies import Pagination, expdb_connection, fetch_user, userdb_connection
 from routers.types import CasualString128, IntegerRange, SystemString64, integer_range_regex
-from routers.v2.datasets import get_dataset
 
-router = APIRouter(prefix="/v1/datasets", tags=["datasets"])
+router = APIRouter(prefix="/datasets", tags=["datasets"])
 
 
 @router.post(
@@ -238,58 +246,161 @@ def list_datasets(
     return {"data": {"dataset": list(datasets.values())}}
 
 
+class DatasetError(IntEnum):
+    NOT_FOUND = 111
+    NO_ACCESS = 112
+    NO_DATA_FILE = 113
+
+
+processing_info = namedtuple("processing_info", ["date", "warning", "error"])
+
+
+def _get_processing_information(dataset_id: int, connection: Connection) -> processing_info:
+    """Return processing information, if any. Otherwise, all fields `None`."""
+    if not (data_processed := get_latest_processing_update(dataset_id, connection)):
+        return processing_info(date=None, warning=None, error=None)
+
+    date_processed = data_processed["processing_date"]
+    warning = data_processed["warning"].strip() if data_processed["warning"] else None
+    error = data_processed["error"].strip() if data_processed["error"] else None
+    return processing_info(date=date_processed, warning=warning, error=error)
+
+
+def _format_error(*, code: DatasetError, message: str) -> dict[str, str]:
+    """Formatter for JSON bodies of OpenML error codes."""
+    return {"code": str(code), "message": message}
+
+
+def _user_has_access(
+    dataset: dict[str, Any],
+    connection: Connection,
+    api_key: APIKey | None = None,
+) -> bool:
+    """Determine if user of `api_key` has the right to view `dataset`."""
+    if dataset["visibility"] == Visibility.PUBLIC:
+        return True
+    if not api_key:
+        return False
+
+    if not (user_id := get_user_id_for(api_key=api_key, connection=connection)):
+        return False
+
+    if user_id == dataset["uploader"]:
+        return True
+
+    user_groups = get_user_groups_for(user_id=user_id, connection=connection)
+    ADMIN_GROUP = 1
+    return ADMIN_GROUP in user_groups
+
+
+def _format_parquet_url(dataset: dict[str, Any]) -> str | None:
+    if dataset["format"].lower() != DatasetFileFormat.ARFF:
+        return None
+
+    minio_base_url = "https://openml1.win.tue.nl"
+    return f"{minio_base_url}/dataset{dataset['did']}/dataset_{dataset['did']}.pq"
+
+
+def _format_dataset_url(dataset: dict[str, Any]) -> str:
+    base_url = "https://test.openml.org"
+    filename = f"{html.escape(dataset['name'])}.{dataset['format'].lower()}"
+    return f"{base_url}/data/v1/download/{dataset['file_id']}/{filename}"
+
+
+def _safe_unquote(text: str | None) -> str | None:
+    """Remove any open and closing quotes and return the remainder if non-empty."""
+    if not text:
+        return None
+    return text.strip("'\"") or None
+
+
+def _csv_as_list(text: str | None, *, unquote_items: bool = True) -> list[str]:
+    """Return comma-separated values in `text` as list, optionally remove quotes."""
+    if not text:
+        return []
+    chars_to_strip = "'\"\t " if unquote_items else "\t "
+    return [item.strip(chars_to_strip) for item in text.split(",")]
+
+
 @router.get(
     path="/{dataset_id}",
-    description="Get old-style wrapped meta-data for dataset with ID `dataset_id`.",
+    description="Get meta-data for dataset with ID `dataset_id`.",
 )
-def get_dataset_wrapped(
+def get_dataset(
     dataset_id: int,
     api_key: APIKey | None = None,
     user_db: Annotated[Connection, Depends(userdb_connection)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
-) -> dict[str, dict[str, Any]]:
-    try:
-        dataset = get_dataset(
-            user_db=user_db,
-            expdb_db=expdb_db,
-            dataset_id=dataset_id,
-            api_key=api_key,
-        ).model_dump(by_alias=True)
-    except HTTPException as e:
-        raise HTTPException(
-            status_code=http.client.PRECONDITION_FAILED,
-            detail=e.detail,
-        ) from None
-    if processing_data := dataset.get("processing_date"):
-        dataset["processing_date"] = str(processing_data).replace("T", " ")
-    if parquet_url := dataset.get("parquet_url"):
-        dataset["parquet_url"] = str(parquet_url).replace("https", "http")
-    if minio_url := dataset.get("minio_url"):
-        dataset["minio_url"] = str(minio_url).replace("https", "http")
+) -> DatasetMetadata:
+    if not (dataset := db_get_dataset(dataset_id, expdb_db)):
+        error = _format_error(code=DatasetError.NOT_FOUND, message="Unknown dataset")
+        raise HTTPException(status_code=http.client.NOT_FOUND, detail=error)
 
-    manual = []
-    # ref test.openml.org/d/33 (contributor) and d/34 (creator)
-    #   contributor/creator in database is '""'
-    #   json content is []
-    for field in ["contributor", "creator"]:
-        if dataset[field] == [""]:
-            dataset[field] = []
-            manual.append(field)
+    if not _user_has_access(dataset=dataset, connection=user_db, api_key=api_key):
+        error = _format_error(code=DatasetError.NO_ACCESS, message="No access granted")
+        raise HTTPException(status_code=http.client.FORBIDDEN, detail=error)
 
-    if isinstance(dataset["original_data_url"], list):
-        dataset["original_data_url"] = ", ".join(str(url) for url in dataset["original_data_url"])
+    if not (dataset_file := get_file(dataset["file_id"], user_db)):
+        error = _format_error(
+            code=DatasetError.NO_DATA_FILE,
+            message="No data file found",
+        )
+        raise HTTPException(status_code=http.client.PRECONDITION_FAILED, detail=error)
 
-    for field, value in list(dataset.items()):
-        if field in manual:
-            continue
-        if isinstance(value, int):
-            dataset[field] = str(value)
-        elif isinstance(value, list) and len(value) == 1:
-            dataset[field] = str(value[0])
-        if not dataset[field]:
-            del dataset[field]
+    tags = get_tags(dataset_id, expdb_db)
+    description = get_latest_dataset_description(dataset_id, expdb_db)
+    processing_result = _get_processing_information(dataset_id, expdb_db)
+    status = get_latest_status_update(dataset_id, expdb_db)
 
-    if "description" not in dataset:
-        dataset["description"] = []
+    status_ = DatasetStatus(status["status"]) if status else DatasetStatus.IN_PREPARATION
 
-    return {"data_set_description": dataset}
+    description_ = ""
+    if description:
+        description_ = description["description"].replace("\r", "").strip()
+
+    dataset_url = _format_dataset_url(dataset)
+    parquet_url = _format_parquet_url(dataset)
+
+    contributors = _csv_as_list(dataset["contributor"], unquote_items=True)
+    creators = _csv_as_list(dataset["creator"], unquote_items=True)
+    ignore_attribute = _csv_as_list(dataset["ignore_attribute"], unquote_items=True)
+    row_id_attribute = _csv_as_list(dataset["row_id_attribute"], unquote_items=True)
+    original_data_url = _csv_as_list(dataset["original_data_url"], unquote_items=True)
+
+    # Not sure which properties are set by this bit:
+    # foreach( $this->xml_fields_dataset['csv'] as $field ) {
+    #   $dataset->{$field} = getcsv( $dataset->{$field} );
+    # }
+
+    return DatasetMetadata(
+        id=dataset["did"],
+        visibility=dataset["visibility"],
+        status=status_,
+        name=dataset["name"],
+        licence=dataset["licence"],
+        version=dataset["version"],
+        version_label=dataset["version_label"] or "",
+        language=dataset["language"] or "",
+        creator=creators,
+        contributor=contributors,
+        citation=dataset["citation"] or "",
+        upload_date=dataset["upload_date"],
+        processing_date=processing_result.date,
+        warning=processing_result.warning,
+        error=processing_result.error,
+        description=description_,
+        description_version=description["version"] if description else 0,
+        tag=tags,
+        default_target_attribute=_safe_unquote(dataset["default_target_attribute"]),
+        ignore_attribute=ignore_attribute,
+        row_id_attribute=row_id_attribute,
+        url=dataset_url,
+        parquet_url=parquet_url,
+        minio_url=parquet_url,
+        file_id=dataset["file_id"],
+        format=dataset["format"].lower(),
+        paper_url=dataset["paper_url"] or None,
+        original_data_url=original_data_url,
+        collection_date=dataset["collection_date"],
+        md5_checksum=dataset_file["md5_hash"],
+    )

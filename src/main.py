@@ -3,10 +3,9 @@ import argparse
 import uvicorn
 from fastapi import FastAPI
 from routers.mldcat_ap.dataset import router as mldcat_ap_router
-from routers.v1.datasets import router as datasets_router_v1_format
-from routers.v1.qualities import router as qualities_router
-from routers.v1.tasktype import router as ttype_router
-from routers.v2.datasets import router as datasets_router
+from routers.openml.datasets import router as datasets_router
+from routers.openml.qualities import router as qualities_router
+from routers.openml.tasktype import router as ttype_router
 
 
 def _parse_args() -> argparse.Namespace:
@@ -39,7 +38,6 @@ def create_api() -> FastAPI:
     app = FastAPI()
 
     app.include_router(datasets_router)
-    app.include_router(datasets_router_v1_format)
     app.include_router(qualities_router)
     app.include_router(mldcat_ap_router)
     app.include_router(ttype_router)

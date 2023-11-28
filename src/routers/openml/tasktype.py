@@ -9,7 +9,7 @@ from sqlalchemy import Connection
 
 from routers.dependencies import expdb_connection
 
-router = APIRouter(prefix="/v1/tasktype", tags=["tasks"])
+router = APIRouter(prefix="/tasktype", tags=["tasks"])
 
 
 def _normalize_task_type(task_type: dict[str, str | int]) -> dict[str, str | list[Any]]:
