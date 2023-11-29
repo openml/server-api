@@ -3,6 +3,7 @@ We add separate endpoints for old-style JSON responses, so they don't clutter th
 new API, and are easily removed later.
 """
 import http.client
+import re
 from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal, NamedTuple
@@ -28,7 +29,7 @@ from database.datasets import tag_dataset as db_tag_dataset
 from database.users import APIKey, User, UserGroup
 from fastapi import APIRouter, Body, Depends, HTTPException
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus
-from sqlalchemy import Connection
+from sqlalchemy import Connection, text
 
 from routers.dependencies import Pagination, expdb_connection, fetch_user, userdb_connection
 from routers.types import CasualString128, IntegerRange, SystemString64, integer_range_regex
@@ -106,8 +107,6 @@ def list_datasets(
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[Literal["data"], dict[Literal["dataset"], list[dict[str, Any]]]]:
-    from sqlalchemy import text
-
     current_status = text(
         """
         SELECT ds1.`did`, ds1.`status`
@@ -157,8 +156,6 @@ def list_datasets(
         if tag
         else ""
     )
-
-    import re
 
     def quality_clause(quality: str, range_: str | None) -> str:
         if not range_:
