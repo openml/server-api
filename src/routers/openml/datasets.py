@@ -295,6 +295,25 @@ def get_dataset_features(
     features = get_features_for_dataset(dataset_id, expdb)
     for feature in [f for f in features if f.data_type == FeatureType.NOMINAL]:
         feature.nominal_values = get_feature_values(dataset_id, feature.index, expdb)
+
+    if not features:
+        processing_state = get_latest_processing_update(dataset_id, expdb)
+        if processing_state is None:
+            code, msg = (
+                273,
+                "Dataset not processed yet. The dataset was not processed yet, features are not yet available. Please wait for a few minutes.",  # noqa: E501
+            )
+        elif processing_state.get("error"):
+            code, msg = 274, "No features found. Additionally, dataset processed with error"
+        else:
+            code, msg = (
+                272,
+                "No features found. The dataset did not contain any features, or we could not extract them.",  # noqa: E501
+            )
+        raise HTTPException(
+            status_code=http.client.PRECONDITION_FAILED,
+            detail={"code": code, "message": msg},
+        )
     return features
 
 

@@ -202,11 +202,16 @@ def test_datasets_feature_is_identical(
     py_api: TestClient,
     php_api: httpx.Client,
 ) -> None:
-    if data_id in [55, 56, 59]:
-        pytest.skip('Error message for "274: No features found." not implemented')
     response = py_api.get(f"/datasets/features/{data_id}")
     original = php_api.get(f"/data/features/{data_id}")
     assert response.status_code == original.status_code
+
+    if response.status_code != http.client.OK:
+        error = response.json()["detail"]
+        error["code"] = str(error["code"])
+        assert error == original.json()["error"]
+        return
+
     python_body = response.json()
     for feature in python_body:
         for key, value in list(feature.items()):
