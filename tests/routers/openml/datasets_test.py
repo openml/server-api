@@ -58,3 +58,57 @@ def test_private_dataset_owner_access(
 def test_private_dataset_admin_access(py_api: TestClient) -> None:
     cast(httpx.Response, py_api.get("/v2/datasets/130?api_key=..."))
     # test against cached response
+
+
+def test_dataset_features(py_api: TestClient) -> None:
+    # Dataset 4 has both nominal and numerical features, so provides reasonable coverage
+    response = py_api.get("/datasets/features/4")
+    assert response.status_code == http.client.OK
+    assert response.json() == [
+        {
+            "index": 0,
+            "name": "left-weight",
+            "data_type": "numeric",
+            "is_target": False,
+            "is_ignore": False,
+            "is_row_identifier": False,
+            "number_of_missing_values": 0,
+        },
+        {
+            "index": 1,
+            "name": "left-distance",
+            "data_type": "numeric",
+            "is_target": False,
+            "is_ignore": False,
+            "is_row_identifier": False,
+            "number_of_missing_values": 0,
+        },
+        {
+            "index": 2,
+            "name": "right-weight",
+            "data_type": "numeric",
+            "is_target": False,
+            "is_ignore": False,
+            "is_row_identifier": False,
+            "number_of_missing_values": 0,
+        },
+        {
+            "index": 3,
+            "name": "right-distance",
+            "data_type": "numeric",
+            "is_target": False,
+            "is_ignore": False,
+            "is_row_identifier": False,
+            "number_of_missing_values": 0,
+        },
+        {
+            "index": 4,
+            "name": "class",
+            "data_type": "nominal",
+            "nominal_values": ["B", "L", "R"],
+            "is_target": True,
+            "is_ignore": False,
+            "is_row_identifier": False,
+            "number_of_missing_values": 0,
+        },
+    ]

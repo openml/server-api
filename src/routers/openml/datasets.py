@@ -19,6 +19,8 @@ from core.formatting import (
 )
 from database.datasets import get_dataset as db_get_dataset
 from database.datasets import (
+    get_feature_values,
+    get_features_for_dataset,
     get_file,
     get_latest_dataset_description,
     get_latest_processing_update,
@@ -29,7 +31,7 @@ from database.datasets import (
 from database.datasets import tag_dataset as db_tag_dataset
 from database.users import User, UserGroup
 from fastapi import APIRouter, Body, Depends, HTTPException
-from schemas.datasets.openml import DatasetMetadata, DatasetStatus
+from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Feature, FeatureType
 from sqlalchemy import Connection, text
 
 from routers.dependencies import Pagination, expdb_connection, fetch_user, userdb_connection
@@ -263,6 +265,39 @@ def _get_processing_information(dataset_id: int, connection: Connection) -> Proc
     return ProcessingInformation(date=date_processed, warning=warning, error=error)
 
 
+def _get_dataset_raise_otherwise(
+    dataset_id: int,
+    user: User | None,
+    expdb: Connection,
+) -> dict[str, Any]:
+    """Fetches the dataset from the database if it exists and the user has permissions.
+
+    Raises HTTPException if the dataset does not exist or the user can not access it.
+    """
+    if not (dataset := db_get_dataset(dataset_id, expdb)):
+        error = _format_error(code=DatasetError.NOT_FOUND, message="Unknown dataset")
+        raise HTTPException(status_code=http.client.NOT_FOUND, detail=error)
+
+    if not _user_has_access(dataset=dataset, user=user):
+        error = _format_error(code=DatasetError.NO_ACCESS, message="No access granted")
+        raise HTTPException(status_code=http.client.FORBIDDEN, detail=error)
+
+    return dataset
+
+
+@router.get("/features/{dataset_id}", response_model_exclude_none=True)
+def get_dataset_features(
+    dataset_id: int,
+    user: Annotated[User | None, Depends(fetch_user)] = None,
+    expdb: Annotated[Connection, Depends(expdb_connection)] = None,
+) -> list[Feature]:
+    _get_dataset_raise_otherwise(dataset_id, user, expdb)
+    features = get_features_for_dataset(dataset_id, expdb)
+    for feature in [f for f in features if f.data_type == FeatureType.NOMINAL]:
+        feature.nominal_values = get_feature_values(dataset_id, feature.index, expdb)
+    return features
+
+
 @router.get(
     path="/{dataset_id}",
     description="Get meta-data for dataset with ID `dataset_id`.",
@@ -273,14 +308,7 @@ def get_dataset(
     user_db: Annotated[Connection, Depends(userdb_connection)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> DatasetMetadata:
-    if not (dataset := db_get_dataset(dataset_id, expdb_db)):
-        error = _format_error(code=DatasetError.NOT_FOUND, message="Unknown dataset")
-        raise HTTPException(status_code=http.client.NOT_FOUND, detail=error)
-
-    if not _user_has_access(dataset=dataset, user=user):
-        error = _format_error(code=DatasetError.NO_ACCESS, message="No access granted")
-        raise HTTPException(status_code=http.client.FORBIDDEN, detail=error)
-
+    dataset = _get_dataset_raise_otherwise(dataset_id, user, expdb_db)
     if not (dataset_file := get_file(dataset["file_id"], user_db)):
         error = _format_error(
             code=DatasetError.NO_DATA_FILE,

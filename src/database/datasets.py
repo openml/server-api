@@ -2,7 +2,7 @@
 from collections import defaultdict
 from typing import Any, Iterable
 
-from schemas.datasets.openml import Quality
+from schemas.datasets.openml import Feature, Quality
 from sqlalchemy import Connection, text
 
 from database.meta import get_column_names
@@ -172,3 +172,32 @@ def get_latest_processing_update(dataset_id: int, connection: Connection) -> dic
     return (
         dict(zip(columns, result[0], strict=True), strict=True) if (result := list(row)) else None
     )
+
+
+def get_features_for_dataset(dataset_id: int, connection: Connection) -> list[Feature]:
+    rows = connection.execute(
+        text(
+            """
+            SELECT `index`,`name`,`data_type`,`is_target`,
+            `is_row_identifier`,`is_ignore`,`NumberOfMissingValues` as `number_of_missing_values`
+            FROM data_feature
+            WHERE `did` = :dataset_id
+            """,
+        ),
+        parameters={"dataset_id": dataset_id},
+    )
+    return [Feature(**row, nominal_values=None) for row in rows.mappings()]
+
+
+def get_feature_values(dataset_id: int, feature_index: int, connection: Connection) -> list[str]:
+    rows = connection.execute(
+        text(
+            """
+            SELECT `value`
+            FROM data_feature_value
+            WHERE `did` = :dataset_id AND `index` = :feature_index
+            """,
+        ),
+        parameters={"dataset_id": dataset_id, "feature_index": feature_index},
+    )
+    return [row.value for row in rows]
