@@ -1,9 +1,10 @@
 import http.client
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 
+from core.access import _user_has_access
 from core.errors import DatasetError
 from database.datasets import get_dataset, list_all_qualities
-from database.users import User, UserGroup
+from database.users import User
 from fastapi import APIRouter, Depends, HTTPException
 from schemas.datasets.openml import Quality
 from sqlalchemy import Connection, text
@@ -25,14 +26,6 @@ def list_qualities(
     }
 
 
-def _user_can_see_dataset(dataset: dict[str, Any], user: User) -> bool:
-    if dataset["visibility"] == "public":
-        return True
-    return user is not None and (
-        dataset["uploader"] == user.user_id or UserGroup.ADMIN in user.groups
-    )
-
-
 @router.get("/qualities/{dataset_id}")
 def get_qualities(
     dataset_id: int,
@@ -40,7 +33,7 @@ def get_qualities(
     expdb: Annotated[Connection, Depends(expdb_connection)],
 ) -> list[Quality]:
     dataset = get_dataset(dataset_id, expdb)
-    if not dataset or not _user_can_see_dataset(dataset, user):
+    if not dataset or not _user_has_access(dataset, user):
         raise HTTPException(
             status_code=http.client.PRECONDITION_FAILED,
             detail={"code": DatasetError.NO_DATA_FILE, "message": "Unknown dataset"},

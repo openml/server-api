@@ -26,7 +26,7 @@ from database.datasets import (
     get_tags,
 )
 from database.datasets import tag_dataset as db_tag_dataset
-from database.users import APIKey, User, UserGroup
+from database.users import User, UserGroup
 from fastapi import APIRouter, Body, Depends, HTTPException
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus
 from sqlalchemy import Connection, text
@@ -274,7 +274,7 @@ def _get_processing_information(dataset_id: int, connection: Connection) -> Proc
 )
 def get_dataset(
     dataset_id: int,
-    api_key: APIKey | None = None,
+    user: Annotated[User | None, Depends(fetch_user)] = None,
     user_db: Annotated[Connection, Depends(userdb_connection)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> DatasetMetadata:
@@ -282,7 +282,7 @@ def get_dataset(
         error = _format_error(code=DatasetError.NOT_FOUND, message="Unknown dataset")
         raise HTTPException(status_code=http.client.NOT_FOUND, detail=error)
 
-    if not _user_has_access(dataset=dataset, connection=user_db, api_key=api_key):
+    if not _user_has_access(dataset=dataset, user=user):
         error = _format_error(code=DatasetError.NO_ACCESS, message="No access granted")
         raise HTTPException(status_code=http.client.FORBIDDEN, detail=error)
 
