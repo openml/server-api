@@ -3,11 +3,11 @@ from typing import Annotated, Literal
 
 from core.access import _user_has_access
 from core.errors import DatasetError
-from database.datasets import get_dataset, list_all_qualities
+from database.datasets import get_dataset, get_qualities_for_dataset, list_all_qualities
 from database.users import User
 from fastapi import APIRouter, Depends, HTTPException
 from schemas.datasets.openml import Quality
-from sqlalchemy import Connection, text
+from sqlalchemy import Connection
 
 from routers.dependencies import expdb_connection, fetch_user
 
@@ -38,17 +38,7 @@ def get_qualities(
             status_code=http.client.PRECONDITION_FAILED,
             detail={"code": DatasetError.NO_DATA_FILE, "message": "Unknown dataset"},
         ) from None
-    rows = expdb.execute(
-        text(
-            """
-        SELECT `quality`,`value`
-        FROM data_quality
-        WHERE `data`=:dataset_id
-        """,
-        ),
-        parameters={"dataset_id": dataset_id},
-    )
-    return [Quality(name=row.quality, value=row.value) for row in rows]
+    return get_qualities_for_dataset(dataset_id, expdb)
     # The PHP API provided (sometime) helpful error messages
     # if not qualities:
     # check if dataset exists: error 360

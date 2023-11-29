@@ -1,9 +1,24 @@
 """ Translation from https://github.com/openml/OpenML/blob/c19c9b99568c0fabb001e639ff6724b9a754bbc9/openml_OS/models/api/v1/Api_data.php#L707"""
 from typing import Any
 
+from schemas.datasets.openml import Quality
 from sqlalchemy import Connection, text
 
 from database.meta import get_column_names
+
+
+def get_qualities_for_dataset(dataset_id: int, connection: Connection) -> list[Quality]:
+    rows = connection.execute(
+        text(
+            """
+        SELECT `quality`,`value`
+        FROM data_quality
+        WHERE `data`=:dataset_id
+        """,
+        ),
+        parameters={"dataset_id": dataset_id},
+    )
+    return [Quality(name=row.quality, value=row.value) for row in rows]
 
 
 def list_all_qualities(connection: Connection) -> list[str]:
