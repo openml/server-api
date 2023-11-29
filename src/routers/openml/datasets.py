@@ -6,7 +6,7 @@ import http.client
 import re
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Any, Literal, NamedTuple
+from typing import Annotated, Any, NamedTuple
 
 from core.access import _user_has_access
 from core.errors import DatasetError
@@ -23,6 +23,7 @@ from database.datasets import (
     get_latest_dataset_description,
     get_latest_processing_update,
     get_latest_status_update,
+    get_qualities_for_datasets,
     get_tags,
 )
 from database.datasets import tag_dataset as db_tag_dataset
@@ -106,7 +107,7 @@ def list_datasets(
     status: Annotated[DatasetStatusFilter, Body()] = DatasetStatusFilter.ACTIVE,
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
-) -> dict[Literal["data"], dict[Literal["dataset"], list[dict[str, Any]]]]:
+) -> list[dict[str, Any]]:
     current_status = text(
         """
         SELECT ds1.`did`, ds1.`status`
@@ -235,20 +236,14 @@ def list_datasets(
         "NumberOfNumericFeatures",
         "NumberOfSymbolicFeatures",
     ]
-    qualities_filter = ",".join(f"'{q}'" for q in qualities_to_show)
-    dids = ",".join(str(did) for did in datasets)
-    qualities = text(
-        f"""
-        SELECT `data`, `quality`, `value`
-        FROM data_quality
-        WHERE `data` in ({dids}) AND `quality` IN ({qualities_filter})
-        """,  # nosec  - similar to above, no user input
+    qualities_by_dataset = get_qualities_for_datasets(
+        dataset_ids=datasets.keys(),
+        qualities=qualities_to_show,
+        connection=expdb_db,
     )
-    qualities = expdb_db.execute(qualities)
-    for did, quality, value in qualities:
-        if value is not None:
-            datasets[did]["quality"].append({"name": quality, "value": str(value)})
-    return {"data": {"dataset": list(datasets.values())}}
+    for did, qualities in qualities_by_dataset.items():
+        datasets[did]["quality"] = qualities
+    return list(datasets.values())
 
 
 class ProcessingInformation(NamedTuple):

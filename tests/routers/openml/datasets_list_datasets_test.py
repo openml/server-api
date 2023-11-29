@@ -22,11 +22,7 @@ def _assert_empty_result(
 def test_list(py_api: TestClient) -> None:
     response = py_api.get("/datasets/list/")
     assert response.status_code == http.client.OK
-    assert "data" in response.json()
-    assert "dataset" in response.json()["data"]
-
-    datasets = response.json()["data"]["dataset"]
-    assert len(datasets) >= 1
+    assert len(response.json()) >= 1
 
 
 @pytest.mark.parametrize(
@@ -44,8 +40,7 @@ def test_list_filter_active(status: str, amount: int, py_api: TestClient) -> Non
         json={"status": status, "pagination": {"limit": constants.NUMBER_OF_DATASETS}},
     )
     assert response.status_code == http.client.OK, response.json()
-    datasets = response.json()["data"]["dataset"]
-    assert len(datasets) == amount
+    assert len(response.json()) == amount
 
 
 @pytest.mark.parametrize(
@@ -64,8 +59,7 @@ def test_list_accounts_privacy(api_key: ApiKey | None, amount: int, py_api: Test
         json={"status": "all", "pagination": {"limit": 1000}},
     )
     assert response.status_code == http.client.OK, response.json()
-    datasets = response.json()["data"]["dataset"]
-    assert len(datasets) == amount
+    assert len(response.json()) == amount
 
 
 @pytest.mark.parametrize(
@@ -79,7 +73,7 @@ def test_list_data_name_present(name: str, count: int, py_api: TestClient) -> No
         json={"status": "all", "data_name": name},
     )
     assert response.status_code == http.client.OK
-    datasets = response.json()["data"]["dataset"]
+    datasets = response.json()
     assert len(datasets) == count
     assert all(dataset["name"] == name for dataset in datasets)
 
@@ -94,10 +88,6 @@ def test_list_data_name_absent(name: str, py_api: TestClient) -> None:
         json={"status": "all", "data_name": name},
     )
     _assert_empty_result(response)
-
-
-def test_list_quality_filers() -> None:
-    pytest.skip("Not implemented")
 
 
 @pytest.mark.parametrize("limit", [None, 5, 10, 200])
@@ -123,7 +113,7 @@ def test_list_pagination(limit: int | None, offset: int | None, py_api: TestClie
         return
 
     assert response.status_code == http.client.OK
-    reported_ids = {dataset["did"] for dataset in response.json()["data"]["dataset"]}
+    reported_ids = {dataset["did"] for dataset in response.json()}
     assert reported_ids == set(expected_ids)
 
 
@@ -137,7 +127,7 @@ def test_list_data_version(version: int, count: int, py_api: TestClient) -> None
         json={"status": "all", "data_version": version},
     )
     assert response.status_code == http.client.OK
-    datasets = response.json()["data"]["dataset"]
+    datasets = response.json()
     assert len(datasets) == count
     assert {dataset["version"] for dataset in datasets} == {version}
 
@@ -169,8 +159,7 @@ def test_list_uploader(user_id: int, count: int, key: str, py_api: TestClient) -
         return
 
     assert response.status_code == http.client.OK
-    datasets = response.json()["data"]["dataset"]
-    assert len(datasets) == count
+    assert len(response.json()) == count
 
 
 @pytest.mark.parametrize(
@@ -184,9 +173,8 @@ def test_list_data_id(data_id: list[int], py_api: TestClient) -> None:
     )
 
     assert response.status_code == http.client.OK
-    datasets = response.json()["data"]["dataset"]
     private_or_not_exist = {130, 3000}
-    assert len(datasets) == len(set(data_id) - private_or_not_exist)
+    assert len(response.json()) == len(set(data_id) - private_or_not_exist)
 
 
 @pytest.mark.parametrize(
@@ -201,8 +189,7 @@ def test_list_data_tag(tag: str, count: int, py_api: TestClient) -> None:
         json={"status": "all", "tag": tag, "pagination": {"limit": 101}},
     )
     assert response.status_code == http.client.OK
-    datasets = response.json()["data"]["dataset"]
-    assert len(datasets) == count
+    assert len(response.json()) == count
 
 
 def test_list_data_tag_empty(py_api: TestClient) -> None:
@@ -232,7 +219,7 @@ def test_list_data_quality(quality: str, range_: str, count: int, py_api: TestCl
         json={"status": "all", quality: range_},
     )
     assert response.status_code == http.client.OK, response.json()
-    assert len(response.json()["data"]["dataset"]) == count
+    assert len(response.json()) == count
 
 
 @pytest.mark.php()
@@ -297,6 +284,14 @@ def test_list_data_identical(
     if original.status_code == http.client.PRECONDITION_FAILED:
         assert original.json()["error"] == response.json()["detail"]
         return None
-    assert len(original.json()["data"]["dataset"]) == len(response.json()["data"]["dataset"])
-    assert original.json()["data"]["dataset"] == response.json()["data"]["dataset"]
+    new_json = response.json()
+    # Qualities in new response are typed
+    for dataset in new_json:
+        for quality in dataset["quality"]:
+            quality["value"] = str(quality["value"])
+
+    # PHP API has a double nested dictionary that never has other entries
+    php_json = original.json()["data"]["dataset"]
+    assert len(php_json) == len(new_json)
+    assert php_json == new_json
     return None

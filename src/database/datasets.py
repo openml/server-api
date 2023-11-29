@@ -1,5 +1,6 @@
 """ Translation from https://github.com/openml/OpenML/blob/c19c9b99568c0fabb001e639ff6724b9a754bbc9/openml_OS/models/api/v1/Api_data.php#L707"""
-from typing import Any
+from collections import defaultdict
+from typing import Any, Iterable
 
 from schemas.datasets.openml import Quality
 from sqlalchemy import Connection, text
@@ -19,6 +20,28 @@ def get_qualities_for_dataset(dataset_id: int, connection: Connection) -> list[Q
         parameters={"dataset_id": dataset_id},
     )
     return [Quality(name=row.quality, value=row.value) for row in rows]
+
+
+def get_qualities_for_datasets(
+    dataset_ids: Iterable[int],
+    qualities: Iterable[str],
+    connection: Connection,
+) -> dict[int, list[Quality]]:
+    qualities_filter = ",".join(f"'{q}'" for q in qualities)
+    dids = ",".join(str(did) for did in dataset_ids)
+    qualities_query = text(
+        f"""
+        SELECT `data`, `quality`, `value`
+        FROM data_quality
+        WHERE `data` in ({dids}) AND `quality` IN ({qualities_filter})
+        """,  # nosec  - similar to above, no user input
+    )
+    rows = connection.execute(qualities_query)
+    qualities_by_id = defaultdict(list)
+    for did, quality, value in rows:
+        if value is not None:
+            qualities_by_id[did].append(Quality(name=quality, value=value))
+    return dict(qualities_by_id)
 
 
 def list_all_qualities(connection: Connection) -> list[str]:
