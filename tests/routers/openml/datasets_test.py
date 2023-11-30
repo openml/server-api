@@ -167,7 +167,7 @@ def _assert_status_update_is_successful(
 @pytest.mark.mut()
 @pytest.mark.parametrize(
     "dataset_id",
-    [2, 3],
+    [3, 4],
 )
 def test_dataset_status_update_active_to_deactivated(dataset_id: int, py_api: TestClient) -> None:
     _assert_status_update_is_successful(

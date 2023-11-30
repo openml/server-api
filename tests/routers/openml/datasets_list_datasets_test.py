@@ -28,7 +28,7 @@ def test_list(py_api: TestClient) -> None:
 @pytest.mark.parametrize(
     ("status", "amount"),
     [
-        ("active", constants.NUMBER_OF_ACTIVE_DATASETS),
+        ("active", constants.NUMBER_OF_PUBLIC_ACTIVE_DATASETS),
         ("deactivated", constants.NUMBER_OF_DEACTIVATED_DATASETS),
         ("in_preparation", constants.NUMBER_OF_DATASETS_IN_PREPARATION),
         ("all", constants.NUMBER_OF_DATASETS - constants.NUMBER_OF_PRIVATE_DATASETS),
@@ -96,7 +96,7 @@ def test_list_pagination(limit: int | None, offset: int | None, py_api: TestClie
     all_ids = [
         did
         for did in range(1, 1 + constants.NUMBER_OF_DATASETS)
-        if did not in [constants.PRIVATE_DATASET_ID]
+        if did not in constants.PRIVATE_DATASET_ID
     ]
 
     start = 0 if offset is None else offset

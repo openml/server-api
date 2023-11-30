@@ -22,7 +22,7 @@ def test_dataset_tag_rejects_unauthorized(key: ApiKey, py_api: TestClient) -> No
         httpx.Response,
         py_api.post(
             f"/datasets/tag{apikey}",
-            json={"data_id": constants.PRIVATE_DATASET_ID, "tag": "test"},
+            json={"data_id": list(constants.PRIVATE_DATASET_ID)[0], "tag": "test"},
         ),
     )
     assert response.status_code == http.client.PRECONDITION_FAILED
@@ -35,7 +35,7 @@ def test_dataset_tag_rejects_unauthorized(key: ApiKey, py_api: TestClient) -> No
     ids=["administrator", "non-owner", "owner"],
 )
 def test_dataset_tag(key: ApiKey, expdb_test: Connection, py_api: TestClient) -> None:
-    dataset_id, tag = constants.PRIVATE_DATASET_ID, "test"
+    dataset_id, tag = list(constants.PRIVATE_DATASET_ID)[0], "test"
     response = cast(
         httpx.Response,
         py_api.post(
@@ -46,7 +46,7 @@ def test_dataset_tag(key: ApiKey, expdb_test: Connection, py_api: TestClient) ->
     assert response.status_code == http.client.OK
     assert {"data_tag": {"id": str(dataset_id), "tag": tag}} == response.json()
 
-    tags = get_tags(dataset_id=constants.PRIVATE_DATASET_ID, connection=expdb_test)
+    tags = get_tags(dataset_id=dataset_id, connection=expdb_test)
     assert tag in tags
 
 
