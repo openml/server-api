@@ -29,6 +29,23 @@ class Quality(BaseModel):
     value: float | None
 
 
+class FeatureType(StrEnum):
+    NUMERIC = "numeric"
+    NOMINAL = "nominal"
+    STRING = "string"
+
+
+class Feature(BaseModel):
+    index: int
+    name: str
+    data_type: FeatureType
+    is_target: bool
+    is_ignore: bool
+    is_row_identifier: bool
+    number_of_missing_values: int
+    nominal_values: list[str] | None
+
+
 class DatasetMetadata(BaseModel):
     id_: int = Field(json_schema_extra={"example": 1}, alias="id")
     visibility: Visibility = Field(json_schema_extra={"example": Visibility.PUBLIC})

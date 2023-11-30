@@ -190,3 +190,37 @@ def test_dataset_tag_response_is_identical(
     original = original.json()
     new = new.json()
     assert original == new
+
+
+@pytest.mark.php()
+@pytest.mark.parametrize(
+    "data_id",
+    list(range(1, 130)),
+)
+def test_datasets_feature_is_identical(
+    data_id: int,
+    py_api: TestClient,
+    php_api: httpx.Client,
+) -> None:
+    response = py_api.get(f"/datasets/features/{data_id}")
+    original = php_api.get(f"/data/features/{data_id}")
+    assert response.status_code == original.status_code
+
+    if response.status_code != http.client.OK:
+        error = response.json()["detail"]
+        error["code"] = str(error["code"])
+        assert error == original.json()["error"]
+        return
+
+    python_body = response.json()
+    for feature in python_body:
+        for key, value in list(feature.items()):
+            if key == "nominal_values":
+                # The old API uses `nominal_value` instead of `nominal_values`
+                values = feature.pop(key)
+                # The old API returns a str if there is only a single element
+                feature["nominal_value"] = values if len(values) > 1 else values[0]
+            else:
+                # The old API formats bool as string in lower-case
+                feature[key] = str(value) if not isinstance(value, bool) else str(value).lower()
+    assert python_body == original.json()["data_features"]["feature"]

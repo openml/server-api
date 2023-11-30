@@ -5,6 +5,8 @@ import httpx
 import pytest
 from starlette.testclient import TestClient
 
+from tests.conftest import ApiKey
+
 
 @pytest.mark.parametrize(
     ("dataset_id", "response_code"),
@@ -58,3 +60,87 @@ def test_private_dataset_owner_access(
 def test_private_dataset_admin_access(py_api: TestClient) -> None:
     cast(httpx.Response, py_api.get("/v2/datasets/130?api_key=..."))
     # test against cached response
+
+
+def test_dataset_features(py_api: TestClient) -> None:
+    # Dataset 4 has both nominal and numerical features, so provides reasonable coverage
+    response = py_api.get("/datasets/features/4")
+    assert response.status_code == http.client.OK
+    assert response.json() == [
+        {
+            "index": 0,
+            "name": "left-weight",
+            "data_type": "numeric",
+            "is_target": False,
+            "is_ignore": False,
+            "is_row_identifier": False,
+            "number_of_missing_values": 0,
+        },
+        {
+            "index": 1,
+            "name": "left-distance",
+            "data_type": "numeric",
+            "is_target": False,
+            "is_ignore": False,
+            "is_row_identifier": False,
+            "number_of_missing_values": 0,
+        },
+        {
+            "index": 2,
+            "name": "right-weight",
+            "data_type": "numeric",
+            "is_target": False,
+            "is_ignore": False,
+            "is_row_identifier": False,
+            "number_of_missing_values": 0,
+        },
+        {
+            "index": 3,
+            "name": "right-distance",
+            "data_type": "numeric",
+            "is_target": False,
+            "is_ignore": False,
+            "is_row_identifier": False,
+            "number_of_missing_values": 0,
+        },
+        {
+            "index": 4,
+            "name": "class",
+            "data_type": "nominal",
+            "nominal_values": ["B", "L", "R"],
+            "is_target": True,
+            "is_ignore": False,
+            "is_row_identifier": False,
+            "number_of_missing_values": 0,
+        },
+    ]
+
+
+def test_dataset_features_no_access(py_api: TestClient) -> None:
+    response = py_api.get("/datasets/features/130")
+    assert response.status_code == http.client.FORBIDDEN
+
+
+@pytest.mark.parametrize(
+    "api_key",
+    [ApiKey.ADMIN, ApiKey.OWNER_USER],
+)
+def test_dataset_features_access_to_private(api_key: ApiKey, py_api: TestClient) -> None:
+    response = py_api.get(f"/datasets/features/130?api_key={api_key}")
+    assert response.status_code == http.client.OK
+
+
+def test_dataset_features_with_processing_error(py_api: TestClient) -> None:
+    # When a dataset is processed to extract its feature metadata, errors may occur.
+    # In that case, no feature information will ever be available.
+    response = py_api.get("/datasets/features/55")
+    assert response.status_code == http.client.PRECONDITION_FAILED
+    assert response.json()["detail"] == {
+        "code": 274,
+        "message": "No features found. Additionally, dataset processed with error",
+    }
+
+
+def test_dataset_features_dataset_does_not_exist(py_api: TestClient) -> None:
+    resource = py_api.get("/datasets/features/1000")
+    assert resource.status_code == http.client.NOT_FOUND
