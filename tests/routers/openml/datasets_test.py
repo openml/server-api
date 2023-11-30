@@ -5,6 +5,8 @@ import httpx
 import pytest
 from starlette.testclient import TestClient
 
+from tests.conftest import ApiKey
+
 
 @pytest.mark.parametrize(
     ("dataset_id", "response_code"),
@@ -112,3 +114,17 @@ def test_dataset_features(py_api: TestClient) -> None:
             "number_of_missing_values": 0,
         },
     ]
+
+
+def test_dataset_features_no_access(py_api: TestClient) -> None:
+    response = py_api.get("/datasets/features/130")
+    assert response.status_code == http.client.FORBIDDEN
+
+
+@pytest.mark.parametrize(
+    "api_key",
+    [ApiKey.ADMIN, ApiKey.OWNER_USER],
+)
+def test_dataset_features_access_to_private(api_key: ApiKey, py_api: TestClient) -> None:
+    response = py_api.get(f"/datasets/features/130?api_key={api_key}")
+    assert response.status_code == http.client.OK
