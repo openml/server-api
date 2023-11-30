@@ -128,3 +128,14 @@ def test_dataset_features_no_access(py_api: TestClient) -> None:
 def test_dataset_features_access_to_private(api_key: ApiKey, py_api: TestClient) -> None:
     response = py_api.get(f"/datasets/features/130?api_key={api_key}")
     assert response.status_code == http.client.OK
+
+
+def test_dataset_features_with_processing_error(py_api: TestClient) -> None:
+    # When a dataset is processed to extract its feature metadata, errors may occur.
+    # In that case, no feature information will ever be available.
+    response = py_api.get("/datasets/features/55")
+    assert response.status_code == http.client.PRECONDITION_FAILED
+    assert response.json()["detail"] == {
+        "code": 274,
+        "message": "No features found. Additionally, dataset processed with error",
+    }
