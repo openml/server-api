@@ -3,6 +3,7 @@ from typing import Any, cast
 
 import httpx
 import pytest
+from schemas.datasets.openml import DatasetStatus
 from starlette.testclient import TestClient
 
 from tests.conftest import ApiKey
@@ -144,3 +145,87 @@ def test_dataset_features_with_processing_error(py_api: TestClient) -> None:
 def test_dataset_features_dataset_does_not_exist(py_api: TestClient) -> None:
     resource = py_api.get("/datasets/features/1000")
     assert resource.status_code == http.client.NOT_FOUND
+
+
+def _assert_status_update_is_successful(
+    apikey: ApiKey,
+    dataset_id: int,
+    status: str,
+    py_api: TestClient,
+) -> None:
+    response = py_api.post(
+        f"/datasets/status/update?api_key={apikey}",
+        json={"dataset_id": dataset_id, "status": status},
+    )
+    assert response.status_code == http.client.OK
+    assert response.json() == {
+        "dataset_id": dataset_id,
+        "status": status,
+    }
+
+
+@pytest.mark.mut()
+@pytest.mark.parametrize(
+    "dataset_id",
+    [2, 3],
+)
+def test_dataset_status_update_active_to_deactivated(dataset_id: int, py_api: TestClient) -> None:
+    _assert_status_update_is_successful(
+        apikey=ApiKey.ADMIN,
+        dataset_id=dataset_id,
+        status=DatasetStatus.DEACTIVATED,
+        py_api=py_api,
+    )
+
+
+@pytest.mark.mut()
+def test_dataset_status_update_in_preparation_to_active(py_api: TestClient) -> None:
+    _assert_status_update_is_successful(
+        apikey=ApiKey.ADMIN,
+        dataset_id=1,
+        status=DatasetStatus.ACTIVE,
+        py_api=py_api,
+    )
+
+
+@pytest.mark.mut()
+def test_dataset_status_update_in_preparation_to_deactivated(py_api: TestClient) -> None:
+    _assert_status_update_is_successful(
+        apikey=ApiKey.ADMIN,
+        dataset_id=1,
+        status=DatasetStatus.DEACTIVATED,
+        py_api=py_api,
+    )
+
+
+@pytest.mark.mut()
+def test_dataset_status_update_deactivated_to_active(py_api: TestClient) -> None:
+    _assert_status_update_is_successful(
+        apikey=ApiKey.ADMIN,
+        dataset_id=131,
+        status=DatasetStatus.ACTIVE,
+        py_api=py_api,
+    )
+
+
+@pytest.mark.parametrize(
+    ("dataset_id", "api_key", "status"),
+    [
+        (1, ApiKey.REGULAR_USER, DatasetStatus.ACTIVE),
+        (1, ApiKey.REGULAR_USER, DatasetStatus.DEACTIVATED),
+        (2, ApiKey.REGULAR_USER, DatasetStatus.DEACTIVATED),
+        (33, ApiKey.REGULAR_USER, DatasetStatus.ACTIVE),
+        (131, ApiKey.REGULAR_USER, DatasetStatus.ACTIVE),
+    ],
+)
+def test_dataset_status_unauthorized(
+    dataset_id: int,
+    api_key: ApiKey,
+    status: str,
+    py_api: TestClient,
+) -> None:
+    response = py_api.post(
+        f"/datasets/status/update?api_key={api_key}",
+        json={"dataset_id": dataset_id, "status": status},
+    )
+    assert response.status_code == http.client.FORBIDDEN
