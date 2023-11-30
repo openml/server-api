@@ -139,7 +139,6 @@ def get_latest_dataset_description(
 
 
 def get_latest_status_update(dataset_id: int, connection: Connection) -> dict[str, Any] | None:
-    columns = get_column_names(connection, "dataset_status")
     row = connection.execute(
         text(
             """
@@ -151,9 +150,7 @@ def get_latest_status_update(dataset_id: int, connection: Connection) -> dict[st
         ),
         parameters={"dataset_id": dataset_id},
     )
-    return (
-        dict(zip(columns, result[0], strict=True), strict=True) if (result := list(row)) else None
-    )
+    return next(row.mappings(), None)
 
 
 def get_latest_processing_update(dataset_id: int, connection: Connection) -> dict[str, Any] | None:
