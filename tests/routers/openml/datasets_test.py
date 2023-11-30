@@ -139,3 +139,8 @@ def test_dataset_features_with_processing_error(py_api: TestClient) -> None:
         "code": 274,
         "message": "No features found. Additionally, dataset processed with error",
     }
+
+
+def test_dataset_features_dataset_does_not_exist(py_api: TestClient) -> None:
+    resource = py_api.get("/datasets/features/1000")
+    assert resource.status_code == http.client.NOT_FOUND
