@@ -1,4 +1,5 @@
 """ Translation from https://github.com/openml/OpenML/blob/c19c9b99568c0fabb001e639ff6724b9a754bbc9/openml_OS/models/api/v1/Api_data.php#L707"""
+import datetime
 from collections import defaultdict
 from typing import Any, Iterable
 
@@ -139,7 +140,6 @@ def get_latest_dataset_description(
 
 
 def get_latest_status_update(dataset_id: int, connection: Connection) -> dict[str, Any] | None:
-    columns = get_column_names(connection, "dataset_status")
     row = connection.execute(
         text(
             """
@@ -151,9 +151,7 @@ def get_latest_status_update(dataset_id: int, connection: Connection) -> dict[st
         ),
         parameters={"dataset_id": dataset_id},
     )
-    return (
-        dict(zip(columns, result[0], strict=True), strict=True) if (result := list(row)) else None
-    )
+    return next(row.mappings(), None)
 
 
 def get_latest_processing_update(dataset_id: int, connection: Connection) -> dict[str, Any] | None:
@@ -201,3 +199,37 @@ def get_feature_values(dataset_id: int, feature_index: int, connection: Connecti
         parameters={"dataset_id": dataset_id, "feature_index": feature_index},
     )
     return [row.value for row in rows]
+
+
+def insert_status_for_dataset(
+    dataset_id: int,
+    user_id: int,
+    status: str,
+    connection: Connection,
+) -> None:
+    connection.execute(
+        text(
+            """
+            INSERT INTO dataset_status(`did`,`status`,`status_date`,`user_id`)
+            VALUES (:dataset, :status, :date, :user)
+            """,
+        ),
+        parameters={
+            "dataset": dataset_id,
+            "status": status,
+            "date": datetime.datetime.now(),
+            "user": user_id,
+        },
+    )
+
+
+def remove_deactivated_status(dataset_id: int, connection: Connection) -> None:
+    connection.execute(
+        text(
+            """
+            DELETE FROM dataset_status
+            WHERE `did` = :data AND `status`='deactivated'
+            """,
+        ),
+        parameters={"data": dataset_id},
+    )

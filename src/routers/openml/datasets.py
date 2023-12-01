@@ -6,7 +6,7 @@ import http.client
 import re
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Any, NamedTuple
+from typing import Annotated, Any, Literal, NamedTuple
 
 from core.access import _user_has_access
 from core.errors import DatasetError
@@ -27,6 +27,8 @@ from database.datasets import (
     get_latest_status_update,
     get_qualities_for_datasets,
     get_tags,
+    insert_status_for_dataset,
+    remove_deactivated_status,
 )
 from database.datasets import tag_dataset as db_tag_dataset
 from database.users import User, UserGroup
@@ -315,6 +317,61 @@ def get_dataset_features(
             detail={"code": code, "message": msg},
         )
     return features
+
+
+@router.post(
+    path="/status/update",
+)
+def update_dataset_status(
+    dataset_id: Annotated[int, Body()],
+    status: Annotated[Literal[DatasetStatus.ACTIVE] | Literal[DatasetStatus.DEACTIVATED], Body()],
+    user: Annotated[User | None, Depends(fetch_user)],
+    expdb: Annotated[Connection, Depends(expdb_connection)],
+) -> dict[str, str | int]:
+    if user is None:
+        raise HTTPException(
+            status_code=http.client.UNAUTHORIZED,
+            detail="Updating dataset status required authorization",
+        )
+
+    dataset = _get_dataset_raise_otherwise(dataset_id, user, expdb)
+
+    can_deactivate = dataset["uploader"] == user.user_id or UserGroup.ADMIN in user.groups
+    if status == DatasetStatus.DEACTIVATED and not can_deactivate:
+        raise HTTPException(
+            status_code=http.client.FORBIDDEN,
+            detail={"code": 693, "message": "Dataset is not owned by you"},
+        )
+    if status == DatasetStatus.ACTIVE and UserGroup.ADMIN not in user.groups:
+        raise HTTPException(
+            status_code=http.client.FORBIDDEN,
+            detail={"code": 696, "message": "Only administrators can activate datasets."},
+        )
+
+    current_status = get_latest_status_update(dataset_id, expdb)
+    if current_status and current_status["status"] == status:
+        raise HTTPException(
+            status_code=http.client.PRECONDITION_FAILED,
+            detail={"code": 694, "message": "Illegal status transition."},
+        )
+
+    # If current status is unknown, it is effectively "in preparation",
+    # So the following transitions are allowed (first 3 transitions are first clause)
+    #  - in preparation => active  (add a row)
+    #  - in preparation => deactivated  (add a row)
+    #  - active => deactivated  (add a row)
+    #  - deactivated => active  (delete a row)
+    if current_status is None or status == DatasetStatus.DEACTIVATED:
+        insert_status_for_dataset(dataset_id, user.user_id, status, expdb)
+    elif current_status["status"] == DatasetStatus.DEACTIVATED:
+        remove_deactivated_status(dataset_id, expdb)
+    else:
+        raise HTTPException(
+            status_code=http.client.INTERNAL_SERVER_ERROR,
+            detail={"message": f"Unknown status transition: {current_status} -> {status}"},
+        )
+
+    return {"dataset_id": dataset_id, "status": status}
 
 
 @router.get(
