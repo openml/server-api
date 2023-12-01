@@ -6,6 +6,15 @@ from schemas.datasets.openml import DatasetFileFormat
 from core.errors import DatasetError
 
 
+def _str_to_bool(string: str) -> bool:
+    if string.casefold() in ["true", "1", "yes"]:
+        return True
+    if string.casefold() in ["false", "0", "no"]:
+        return False
+    msg = f"Could not parse {string=} as bool."
+    raise ValueError(msg)
+
+
 def _format_error(*, code: DatasetError, message: str) -> dict[str, str]:
     """Formatter for JSON bodies of OpenML error codes."""
     return {"code": str(code), "message": message}

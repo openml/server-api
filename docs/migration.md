@@ -90,3 +90,13 @@ includes datasets which are private.
 
 The `limit` and `offset` parameters can now be used independently, you no longer need
 to provide both if you wish to set only one.
+
+## Others
+
+### `GET /estimationprocedure/list`
+The `ttid` field has been renamed to `task_type_id`.
+All values are now typed.
+Outer levels of nesting have been removed.
+
+#### `GET /evaluationmeasures/list`
+Outer levels of nesting have been removed.

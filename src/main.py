@@ -4,6 +4,7 @@ import uvicorn
 from fastapi import FastAPI
 from routers.mldcat_ap.dataset import router as mldcat_ap_router
 from routers.openml.datasets import router as datasets_router
+from routers.openml.estimation_procedure import router as estimationprocedure_router
 from routers.openml.evaluations import router as evaluationmeasures_router
 from routers.openml.qualities import router as qualities_router
 from routers.openml.tasktype import router as ttype_router
@@ -43,6 +44,7 @@ def create_api() -> FastAPI:
     app.include_router(mldcat_ap_router)
     app.include_router(ttype_router)
     app.include_router(evaluationmeasures_router)
+    app.include_router(estimationprocedure_router)
     return app
 
 

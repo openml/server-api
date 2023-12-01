@@ -46,6 +46,17 @@ class Feature(BaseModel):
     nominal_values: list[str] | None
 
 
+class EstimationProcedure(BaseModel):
+    id_: int = Field(serialization_alias="id")
+    task_type_id: int
+    name: str
+    type_: str = Field(serialization_alias="type")
+    percentage: int | None
+    repeats: int | None
+    folds: int | None
+    stratified_sampling: bool | None
+
+
 class DatasetMetadata(BaseModel):
     id_: int = Field(json_schema_extra={"example": 1}, alias="id")
     visibility: Visibility = Field(json_schema_extra={"example": Visibility.PUBLIC})
