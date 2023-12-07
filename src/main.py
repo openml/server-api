@@ -7,6 +7,7 @@ from routers.openml.datasets import router as datasets_router
 from routers.openml.estimation_procedure import router as estimationprocedure_router
 from routers.openml.evaluations import router as evaluationmeasures_router
 from routers.openml.qualities import router as qualities_router
+from routers.openml.tasks import router as task_router
 from routers.openml.tasktype import router as ttype_router
 
 
@@ -45,6 +46,7 @@ def create_api() -> FastAPI:
     app.include_router(ttype_router)
     app.include_router(evaluationmeasures_router)
     app.include_router(estimationprocedure_router)
+    app.include_router(task_router)
     return app
 
 
