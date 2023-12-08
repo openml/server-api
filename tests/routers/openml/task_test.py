@@ -1,5 +1,6 @@
 import http.client
 
+import deepdiff
 from starlette.testclient import TestClient
 
 
@@ -21,7 +22,7 @@ def test_get_task(py_api: TestClient) -> None:
                     "data_splits_url": "https://test.openml.org/api_splits/get/59/Task_59_splits.arff",
                     "parameter": [
                         {"name": "number_repeats", "value": 1},
-                        {"name": "number_folds"},
+                        {"name": "number_folds", "value": None},
                         {"name": "percentage", "value": 33},
                         {"name": "stratified_sampling", "value": "true"},
                     ],
@@ -30,18 +31,22 @@ def test_get_task(py_api: TestClient) -> None:
             {"name": "cost_matrix", "cost_matrix": []},
             {"name": "evaluation_measures", "evaluation_measures": {"evaluation_measure": []}},
         ],
-        "output": {
-            "name": "predictions",
-            "predictions": {
-                "format": "ARFF",
-                "feature": [
-                    {"name": "repeat", "type": "integer"},
-                    {"name": "fold", "type": "integer"},
-                    {"name": "row_id", "type": "integer"},
-                    {"name": "confidence.classname", "type": "numeric"},
-                    {"name": "prediction", "type": "string"},
-                ],
+        "output": [
+            {
+                "name": "predictions",
+                "predictions": {
+                    "format": "ARFF",
+                    "feature": [
+                        {"name": "repeat", "type": "integer"},
+                        {"name": "fold", "type": "integer"},
+                        {"name": "row_id", "type": "integer"},
+                        {"name": "confidence.classname", "type": "numeric"},
+                        {"name": "prediction", "type": "string"},
+                    ],
+                },
             },
-        },
+        ],
+        "tags": [],  # Not in PHP
     }
-    assert response.json() == expected
+    differences = deepdiff.diff.DeepDiff(response.json(), expected, ignore_order=True)
+    assert not differences

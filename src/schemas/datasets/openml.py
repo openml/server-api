@@ -147,5 +147,5 @@ class Task(BaseModel):
     task_type_id: int = Field(json_schema_extra={"example": 1})
     task_type: str = Field(json_schema_extra={"example": "Supervised Classification"})
     input_: list[dict[str, Any]] = Field(serialization_alias="input")
-    output: dict[str, Any]
+    output: list[dict[str, Any]]
     tags: list[str] = Field(default_factory=list)

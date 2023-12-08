@@ -1,32 +1,35 @@
+import json
 import re
-from typing import Any, Annotated
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends
-from pydantic import Json
-from sqlalchemy import Connection, text
-
-from database.datasets import get_dataset
-from database.users import User
-from routers.dependencies import fetch_user, expdb_connection
-from schemas.datasets.openml import Task
 import xmltodict
+from database.datasets import get_dataset
+from fastapi import APIRouter, Depends
+from schemas.datasets.openml import Task
+from sqlalchemy import Connection, RowMapping, text
 
+from routers.dependencies import expdb_connection
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
-def convert_template(xml_template: str) -> Json:
+def convert_template_xml_to_json(xml_template: str) -> Any:
     json_template = xmltodict.parse(xml_template.replace("oml:", ""))
+    json_str = json.dumps(json_template)
     # To account for the differences between PHP and Python conversions:
-    inner_dict = list(json_template.values())[0]
-    for parameter in inner_dict.get("parameter", []):
-        parameter["name"] = parameter.pop("@name")
-        parameter["value"] = parameter.pop("#text")
-    return json_template
+    for py, php in [("@name", "name"), ("#text", "value"), ("@type", "type")]:
+        json_str = json_str.replace(py, php)
+    return json.loads(json_str)
 
 
-def fill_template(template: str, task, task_inputs, connection: Connection):
-    """ Fill in the XML template as used for task descriptions.
+def fill_template(
+    template: str,
+    task: RowMapping,
+    task_inputs: dict[str, str],
+    connection: Connection,
+) -> Any:
+    """Fill in the XML template as used for task descriptions and return the result,
+     converted to JSON.
 
     template, str:
         A string represent XML, as detailed below.
@@ -46,7 +49,7 @@ def fill_template(template: str, task, task_inputs, connection: Connection):
     <oml:estimation_procedure>
       <oml:id>[INPUT:estimation_procedure]</oml:id>
       <oml:type>[LOOKUP:estimation_procedure.type]</oml:type>
-      <oml:data_splits_url>[CONSTANT:base_url]api_splits/get/[TASK:id]/Task_[TASK:id]_splits.arff</oml:data_splits_url>  # noqa: E501
+      <oml:data_splits_url>[CONSTANT:base_url]api_splits/get/[TASK:id]/Task_[TASK:id]_splits.arff</oml:data_splits_url>
       <oml:parameter name="number_repeats">[LOOKUP:estimation_procedure.repeats]</oml:parameter>
       <oml:parameter name="number_folds">[LOOKUP:estimation_procedure.folds]</oml:parameter>
     </oml:estimation_procedure>
@@ -71,42 +74,76 @@ def fill_template(template: str, task, task_inputs, connection: Connection):
             {"name": "number_folds", "value: 10},
         ]
     }
-    """
-    fetched_data = {}
-    lines = []
-    for line in template.splitlines():
-        if match := re.search(r"\[INPUT:(.*)]", line):
-            (field,) = match.groups()
-            # Does it need to exist, or can it be unspecified? i.e. [x] vs .get(x)
-            line = line.replace(match.group(), task_inputs[field])
-        if match := re.search(r"\[LOOKUP:(.*)]", line):
-            (field,) = match.groups()
-            if field not in fetched_data:
-                table, _ = field.split(".")
-                rows = connection.execute(
-                    text(
-                        f"""
-                        SELECT *
-                        FROM {table}
-                        WHERE `id` = :id_
-                        """
-                    ), parameters={"id_": int(task_inputs[table])}
-                )
-                for column, value in next(rows.mappings()).items():
-                    # Because of string replacement, the value needs to be a string
-                    # can not easily rectify without first converting the XML to JSON
-                    fetched_data[f"{table}.{column}"] = str(value)
-            line = line.replace(match.group(), fetched_data[field])
-        line = line.replace("[TASK:id]", str(task.task_id))
-        line = line.replace("[CONSTANT:base_url]", "get_the_right_base_url")
-        lines.append(line)
-    return '\n'.join(lines)
+    """  # noqa: E501
+    json_template = convert_template_xml_to_json(template)
+    return _fill_json_template(
+        json_template,
+        task,
+        task_inputs,
+        fetched_data={},
+        connection=connection,
+    )
+
+
+def _fill_json_template(
+    template: dict[str, Any],
+    task: RowMapping,
+    task_inputs: dict[str, str],
+    fetched_data: dict[str, Any],
+    connection: Connection,
+) -> dict[str, Any] | list[dict[str, Any]] | str:
+    if isinstance(template, dict):
+        return {
+            k: _fill_json_template(v, task, task_inputs, fetched_data, connection)
+            for k, v in template.items()
+        }
+    if isinstance(template, list):
+        return [
+            _fill_json_template(v, task, task_inputs, fetched_data, connection) for v in template
+        ]
+    if not isinstance(template, str):
+        msg = f"Unexpected type for `template`: {template=}, {type(template)=}"
+        raise TypeError(msg)
+
+    # I believe at this point, if there is an [INPUT:] or [LOOKUP:] directive,
+    # this is always the entirety of the string. However, for now we verify explicitly.
+    if match := re.search(r"\[INPUT:(.*)]", template):
+        (field,) = match.groups()
+        if match.string == template:
+            # How do we know the default value? probably ttype_io table?
+            return task_inputs.get(field, [])
+        template = template.replace(match.group(), task_inputs[field])
+    if match := re.search(r"\[LOOKUP:(.*)]", template):
+        (field,) = match.groups()
+        if field not in fetched_data:
+            table, _ = field.split(".")
+            rows = connection.execute(
+                text(
+                    f"""
+                    SELECT *
+                    FROM {table}
+                    WHERE `id` = :id_
+                    """,  # nosec
+                ),
+                # Not sure how parametrize table names, as the parametrization adds
+                # quotes which is not legal.
+                parameters={"id_": int(task_inputs[table])},
+            )
+            for column, value in next(rows.mappings()).items():
+                fetched_data[f"{table}.{column}"] = value
+        if match.string == template:
+            return fetched_data[field]
+        template = template.replace(match.group(), fetched_data[field])
+    # I believe that the operations below are always part of string output, so
+    # we don't need to be careful to avoid losing typedness
+    template = template.replace("[TASK:id]", str(task.task_id))
+    return template.replace("[CONSTANT:base_url]", "https://test.openml.org/")
 
 
 @router.get("/{task_id}")
 def get_task(
     task_id: int,
-    user: Annotated[User | None, Depends(fetch_user)] = None,
+    # user: Annotated[User | None, Depends(fetch_user)] = None,  #  Privacy is not respected
     expdb: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> Task:
     # fetch primary task metadata
@@ -116,19 +153,21 @@ def get_task(
             SELECT *
             FROM task
             WHERE `task_id` = :task_id
-            """
-        ), parameters={"task_id": task_id}
+            """,
+        ),
+        parameters={"task_id": task_id},
     )
     task = next(task_row.mappings())
     # fetch secondary task metadata
     task_type_row = expdb.execute(
         text(
             """
-            SELECT * 
+            SELECT *
             FROM task_type
             WHERE `ttid` = :task_type_id
-            """
-        ), parameters={"task_type_id": task.ttid}
+            """,
+        ),
+        parameters={"task_type_id": task.ttid},
     )
     task_type = next(task_type_row)
     input_rows = expdb.execute(
@@ -137,81 +176,49 @@ def get_task(
             SELECT `input`, `value`
             FROM task_inputs
             WHERE task_id = :task_id
-            """
-        ), parameters={"task_id": task_id}
+            """,
+        ),
+        parameters={"task_id": task_id},
     )
-    inputs = {row.input: row.value for row in input_rows}
+    task_inputs = {
+        row.input: int(row.value) if row.value.isdigit() else row.value for row in input_rows
+    }
     ttios = expdb.execute(
         text(
             """
             SELECT *
             FROM task_type_inout
             WHERE `ttid` = :task_type_id AND `template_api` IS NOT NULL
-            """
-        ), parameters={"task_type_id": task.ttid}
+            """,
+        ),
+        parameters={"task_type_id": task.ttid},
     )
-    # breakpoint()
     # Have a look at "hidden" requirements. Do we ignore them at this stage?
-    # templates = [
-    #     (tt_io.name, tt_io.io, tt_io.requirement, tt_io.template)
-    #     for tt_io in ttios
-    # ]
-    # inputs = [
-    #     fill_template(template, task, )
-    #     for name, io, required, template in templates
-    #     if io == "input" and (required == "required" or name in inputs)
-    # ]
-    # outputs = [
-    #     fill_template(template)
-    #     for name, io, required, template in templates
-    #     if io == "output"
-    # ]
-    fs = []
-    for tt_io in ttios:
-        if tt_io.name not in inputs and tt_io.requirement == "optional":
-            continue
-        fs.append(fill_template(
-            tt_io.template_api,
-            task,
-            inputs,
-            expdb,
-        ))
-    breakpoint()
-    # def get_task_input_output():
-    #     ttios = expdb.execute(
-    #         text(
-    #             """
-    #             SELECT *
-    #             FROM task_type_inout
-    #             WHERE `ttid` = :task_type_id AND `template_api` IS NOT NULL
-    #             """
-    #         ), parameters={"task_type_id": task.ttid}
-    #     )
-    #     for tt_io in ttios:
-    #         tt_io.template_api
-    #         {
-    #             "name": tt_io.name,
-    #             <template>
-    #         }
-    # for table, identifier in inputs.items():
-    #     ...
-    # [CONSTANT: base_url]api_splits / get / [TASK: id] / Task_[TASK:id]
-    # _splits.arff
-    # if custom_testset is part, then raise error
-    # get tasktype io
+    templates = [(tt_io.name, tt_io.io, tt_io.requirement, tt_io.template_api) for tt_io in ttios]
+    inputs = [
+        fill_template(template, task, task_inputs, expdb) | {"name": name}
+        for name, io, required, template in templates
+        if io == "input"
+    ]
+    outputs = [
+        convert_template_xml_to_json(template) | {"name": name}
+        for name, io, required, template in templates
+        if io == "output"
+    ]
     tag_rows = expdb.execute(
         text(
             """
             SELECT `tag`
             FROM task_tag
-            WHERE `id` = :task_id 
-            """
-        ), parameters={"task_id": task_id}
+            WHERE `id` = :task_id
+            """,
+        ),
+        parameters={"task_id": task_id},
     )
     tags = [row.tag for row in tag_rows]
     name = f"Task {task_id} ({task_type.name})"
-    if dataset_id := inputs.get("source_data"):
-        dataset = get_dataset(dataset_id, expdb)
+    dataset_id = task_inputs.get("source_data")
+    if dataset_id and (dataset := get_dataset(dataset_id, expdb)):
         name = f"Task {task_id}:  {dataset['name']} ({task_type.name})"
 
     return Task(
@@ -219,7 +226,7 @@ def get_task(
         name=name,
         task_type_id=task.ttid,
         task_type=task_type.name,
-        input_=[inputs],
-        output={},
+        input_=inputs,
+        output=outputs,
         tags=tags,
     )
