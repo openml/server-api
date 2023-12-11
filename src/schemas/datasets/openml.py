@@ -143,7 +143,9 @@ class DatasetMetadata(BaseModel):
 
 class Task(BaseModel):
     id_: int = Field(serialization_alias="id", json_schema_extra={"example": 59})
-    name: str = Field(json_schema_extra={"example": "Task 59:  mfeat-pixel (Supervised Classification)"})
+    name: str = Field(
+        json_schema_extra={"example": "Task 59:  mfeat-pixel (Supervised Classification)"},
+    )
     task_type_id: int = Field(json_schema_extra={"example": 1})
     task_type: str = Field(json_schema_extra={"example": "Supervised Classification"})
     input_: list[dict[str, Any]] = Field(serialization_alias="input")
