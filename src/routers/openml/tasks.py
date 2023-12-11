@@ -1,10 +1,18 @@
+import http.client
 import json
 import re
 from typing import Annotated, Any
 
 import xmltodict
 from database.datasets import get_dataset
-from fastapi import APIRouter, Depends
+from database.tasks import (
+    get_input_for_task,
+    get_tags_for_task,
+    get_task_type,
+    get_task_type_inout_with_template,
+)
+from database.tasks import get_task as db_get_task
+from fastapi import APIRouter, Depends, HTTPException
 from schemas.datasets.openml import Task
 from sqlalchemy import Connection, RowMapping, text
 
@@ -146,54 +154,19 @@ def get_task(
     # user: Annotated[User | None, Depends(fetch_user)] = None,  #  Privacy is not respected
     expdb: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> Task:
-    # fetch primary task metadata
-    task_row = expdb.execute(
-        text(
-            """
-            SELECT *
-            FROM task
-            WHERE `task_id` = :task_id
-            """,
-        ),
-        parameters={"task_id": task_id},
-    )
-    task = next(task_row.mappings())
-    # fetch secondary task metadata
-    task_type_row = expdb.execute(
-        text(
-            """
-            SELECT *
-            FROM task_type
-            WHERE `ttid` = :task_type_id
-            """,
-        ),
-        parameters={"task_type_id": task.ttid},
-    )
-    task_type = next(task_type_row)
-    input_rows = expdb.execute(
-        text(
-            """
-            SELECT `input`, `value`
-            FROM task_inputs
-            WHERE task_id = :task_id
-            """,
-        ),
-        parameters={"task_id": task_id},
-    )
+    if not (task := db_get_task(task_id, expdb)):
+        raise HTTPException(status_code=http.client.NOT_FOUND, detail="Task not found")
+    if not (task_type := get_task_type(task["ttid"], expdb)):
+        raise HTTPException(
+            status_code=http.client.INTERNAL_SERVER_ERROR,
+            detail="Task type not found",
+        )
+
     task_inputs = {
-        row.input: int(row.value) if row.value.isdigit() else row.value for row in input_rows
+        row.input: int(row.value) if row.value.isdigit() else row.value
+        for row in get_input_for_task(task_id, expdb)
     }
-    ttios = expdb.execute(
-        text(
-            """
-            SELECT *
-            FROM task_type_inout
-            WHERE `ttid` = :task_type_id AND `template_api` IS NOT NULL
-            """,
-        ),
-        parameters={"task_type_id": task.ttid},
-    )
-    # Have a look at "hidden" requirements. Do we ignore them at this stage?
+    ttios = get_task_type_inout_with_template(task_type.ttid, expdb)
     templates = [(tt_io.name, tt_io.io, tt_io.requirement, tt_io.template_api) for tt_io in ttios]
     inputs = [
         fill_template(template, task, task_inputs, expdb) | {"name": name}
@@ -205,17 +178,7 @@ def get_task(
         for name, io, required, template in templates
         if io == "output"
     ]
-    tag_rows = expdb.execute(
-        text(
-            """
-            SELECT `tag`
-            FROM task_tag
-            WHERE `id` = :task_id
-            """,
-        ),
-        parameters={"task_id": task_id},
-    )
-    tags = [row.tag for row in tag_rows]
+    tags = get_tags_for_task(task_id, expdb)
     name = f"Task {task_id} ({task_type.name})"
     dataset_id = task_inputs.get("source_data")
     if dataset_id and (dataset := get_dataset(dataset_id, expdb)):
