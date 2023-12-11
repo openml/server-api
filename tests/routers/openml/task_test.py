@@ -9,7 +9,7 @@ def test_get_task(py_api: TestClient) -> None:
     assert response.status_code == http.client.OK
     expected = {
         "id": 59,
-        "name": "Task 59:  mfeat-pixel (Supervised Classification)",
+        "name": "Task 59: mfeat-pixel (Supervised Classification)",
         "task_type_id": 1,
         "task_type": "Supervised Classification",
         "input": [
