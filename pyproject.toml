@@ -18,6 +18,7 @@ dependencies = [
     "sqlalchemy",
     "mysqlclient",
     "python_dotenv",
+    "xmltodict",
 ]
 
 [project.optional-dependencies]
