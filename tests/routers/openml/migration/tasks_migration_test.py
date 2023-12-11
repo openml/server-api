@@ -38,6 +38,7 @@ def nested_remove_single_element_list(obj: Any) -> Any:
     return obj
 
 
+@pytest.mark.php()
 @pytest.mark.parametrize(
     "task_id",
     range(1, 1306),
