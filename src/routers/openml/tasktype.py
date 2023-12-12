@@ -46,7 +46,10 @@ def get_task_type(
             detail={"code": "241", "message": "Unknown task type."},
         ) from None
 
-    task_type = _normalize_task_type(task_type_record)
+    # TODO: This below now is a RowMapping instead of a dictionary.
+    # In general: rerun all integration tests to make sure everything works after some
+    # recent task changes of dict to RowMapping/CursorResult[Any] types.
+    task_type = _normalize_task_type(task_type_record._asdict())
     # Some names are quoted, or have typos in their comma-separation (e.g. 'A ,B')
     task_type["creator"] = [
         creator.strip(' "') for creator in cast(str, task_type["creator"]).split(",")
@@ -60,12 +63,12 @@ def get_task_type(
     input_types = []
     for task_type_input in task_type_inputs:
         input_ = {}
-        if task_type_input["requirement"] == "required":
-            input_["requirement"] = task_type_input["requirement"]
-        input_["name"] = task_type_input["name"]
+        if task_type_input.requirement == "required":
+            input_["requirement"] = task_type_input.requirement
+        input_["name"] = task_type_input.name
         # api_constraints is for one input only in the test database (TODO: patch db)
-        if isinstance(task_type_input["api_constraints"], str):
-            constraint = json.loads(task_type_input["api_constraints"])
+        if isinstance(task_type_input.api_constraints, str):
+            constraint = json.loads(task_type_input.api_constraints)
             input_["data_type"] = constraint["data_type"]
         input_types.append(input_)
     task_type["input"] = input_types
