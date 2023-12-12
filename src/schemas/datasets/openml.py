@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
+from typing import Any
 
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -138,3 +139,15 @@ class DatasetMetadata(BaseModel):
         json_schema_extra={"example": "https://www.openml.org/d/2"},
     )
     md5_checksum: str = Field(json_schema_extra={"example": "d01f6ccd68c88b749b20bbe897de3713"})
+
+
+class Task(BaseModel):
+    id_: int = Field(serialization_alias="id", json_schema_extra={"example": 59})
+    name: str = Field(
+        json_schema_extra={"example": "Task 59:  mfeat-pixel (Supervised Classification)"},
+    )
+    task_type_id: int = Field(json_schema_extra={"example": 1})
+    task_type: str = Field(json_schema_extra={"example": "Supervised Classification"})
+    input_: list[dict[str, Any]] = Field(serialization_alias="input")
+    output: list[dict[str, Any]]
+    tags: list[str] = Field(default_factory=list)
