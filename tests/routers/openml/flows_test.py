@@ -13,7 +13,7 @@ def test_get_flow(py_api: TestClient) -> None:
         "version": 1,
         "external_version": "Weka_3.9.0_12024",
         "description": "Weka implementation of ZeroR",
-        "upload_date": "2017-03-24T14: 26: 38",
+        "upload_date": "2017-03-24T14:26:38",
         "language": "English",
         "dependencies": "Weka_3.9.0",
         "parameter": [
@@ -42,6 +42,7 @@ def test_get_flow(py_api: TestClient) -> None:
                 "description": "If set,  classifier is run in debug mode and\n\tmay output additional info to the console",  # noqa: E501
             },
         ],
+        "subflows": [],
         "tag": ["OpenmlWeka", "weka"],
     }
     difference = deepdiff.diff.DeepDiff(response.json(), expected, ignore_order=True)
