@@ -1,22 +1,41 @@
-from fastapi import APIRouter
+import http.client
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException
 from schemas.flows import Flow
+from sqlalchemy import Connection, text
+
+from routers.dependencies import expdb_connection
 
 router = APIRouter(prefix="/flows", tags=["flows"])
 
 
 @router.get("/{flow_id}")
-def get_flow(_: int) -> Flow:
+def get_flow(flow_id: int, expdb: Annotated[Connection, Depends(expdb_connection)] = None) -> Flow:
+    rows = expdb.execute(
+        text(
+            """
+            SELECT *, uploadDate as upload_date
+            FROM implementation
+            WHERE id = :flow_id
+            """,
+        ),
+        parameters={"flow_id": flow_id},
+    )
+    if not (flow := next(rows, None)):
+        raise HTTPException(status_code=http.client.NOT_FOUND, detail="Flow not found")
+
     return Flow(
-        id_=1,
-        uploader=16,
-        name="weka.ZeroR",
-        class_name="weka.classifiers.rules.ZeroR",
-        version=1,
-        external_version="Weka_3.9.0_12024",
-        description="Weka implementation of ZeroR",
-        upload_date="2017-03-24T14:26:38",
-        language="English",
-        dependencies="Weka_3.9.0",
+        id_=flow.id,
+        uploader=flow.uploader,
+        name=flow.name,
+        class_name=flow.class_name,
+        version=flow.version,
+        external_version=flow.external_version,
+        description=flow.description,
+        upload_date=flow.upload_date,
+        language=flow.language,
+        dependencies=flow.dependencies,
         parameter=[
             {
                 "name": "-do-not-check-capabilities",
