@@ -13,7 +13,7 @@ class Parameter(BaseModel):
 
 class Flow(BaseModel):
     id_: int = Field(serialization_alias="id")
-    uploader: int | None  # Optional in database, but why? and how does it differ from creator?
+    uploader: int | None
     name: str = Field(max_length=1024)
     class_name: str | None = Field(max_length=256)
     version: int

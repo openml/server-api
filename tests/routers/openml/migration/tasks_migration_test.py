@@ -1,13 +1,12 @@
 import deepdiff
 import httpx
 import pytest
-from starlette.testclient import TestClient
-
-from tests.routers.openml.migration.conversions import (
+from core.conversions import (
     nested_int_to_str,
     nested_remove_nones,
     nested_remove_single_element_list,
 )
+from starlette.testclient import TestClient
 
 
 @pytest.mark.php()

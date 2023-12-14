@@ -1,6 +1,7 @@
 import http.client
 from typing import Annotated
 
+from core.conversions import _str_to_num
 from fastapi import APIRouter, Depends, HTTPException
 from schemas.flows import Flow, Parameter
 from sqlalchemy import Connection, text
@@ -41,7 +42,7 @@ def get_flow(flow_id: int, expdb: Annotated[Connection, Depends(expdb_connection
             # PHP sets the default value to [], not sure where that comes from.
             # In the modern interface, `None` is used instead for now, but I think it might
             # make more sense to omit it if there is none.
-            default_value=parameter.default_value if parameter.default_value else None,
+            default_value=_str_to_num(parameter.default_value) if parameter.default_value else None,
             data_type=parameter.data_type,
             description=parameter.description,
         )
