@@ -20,26 +20,26 @@ def test_get_flow(py_api: TestClient) -> None:
             {
                 "name": "-do-not-check-capabilities",
                 "data_type": "flag",
-                "default_value": [],
-                "description": "If set,  classifier capabilities are not checked before classifier is built\n\t(use with caution).",  # noqa: E501
+                "default_value": None,
+                "description": "If set, classifier capabilities are not checked before classifier is built\n\t(use with caution).",  # noqa: E501
             },
             {
                 "name": "batch-size",
                 "data_type": "option",
-                "default_value": [],
+                "default_value": None,
                 "description": "The desired batch size for batch prediction  (default 100).",
             },
             {
                 "name": "num-decimal-places",
                 "data_type": "option",
-                "default_value": [],
+                "default_value": None,
                 "description": "The number of decimal places for the output of numbers in the model (default 2).",  # noqa: E501
             },
             {
                 "name": "output-debug-info",
                 "data_type": "flag",
-                "default_value": [],
-                "description": "If set,  classifier is run in debug mode and\n\tmay output additional info to the console",  # noqa: E501
+                "default_value": None,
+                "description": "If set, classifier is run in debug mode and\n\tmay output additional info to the console",  # noqa: E501
             },
         ],
         "subflows": [],
