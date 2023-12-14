@@ -4,8 +4,8 @@ import deepdiff
 import httpx
 import pytest
 from core.conversions import (
-    nested_int_to_str,
     nested_remove_single_element_list,
+    nested_str_to_num,
 )
 from starlette.testclient import TestClient
 
@@ -40,7 +40,14 @@ def test_get_flow_equal(flow_id: int, py_api: TestClient, php_api: httpx.Client)
     new = convert_flow_naming_and_defaults(new)
     new = nested_remove_single_element_list(new)
 
-    new = nested_int_to_str(new)
     expected = php_api.get(f"/flow/{flow_id}").json()["flow"]
-    difference = deepdiff.diff.DeepDiff(expected, new, ignore_order=True)
+    # The reason we don't transform "new" to str is that it becomes harder to ignore numeric type
+    # differences (e.g., '1.0' vs '1')
+    expected = nested_str_to_num(expected)
+    difference = deepdiff.diff.DeepDiff(
+        expected,
+        new,
+        ignore_order=True,
+        ignore_numeric_type_changes=True,
+    )
     assert not difference

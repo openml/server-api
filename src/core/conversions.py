@@ -23,6 +23,18 @@ def nested_str_to_num(obj: Any) -> Any:
     return obj
 
 
+def nested_num_to_str(obj: Any) -> Any:
+    """Recursively tries to convert all numbers in the object to strings.
+    For dictionaries, only the values will be converted."""
+    if isinstance(obj, dict):
+        return {key: nested_num_to_str(val) for key, val in obj.items()}
+    if isinstance(obj, list):
+        return [nested_num_to_str(val) for val in obj]
+    if isinstance(obj, (int, float)):
+        return str(obj)
+    return obj
+
+
 def nested_int_to_str(obj: Any) -> Any:
     if isinstance(obj, dict):
         return {key: nested_int_to_str(val) for key, val in obj.items()}
