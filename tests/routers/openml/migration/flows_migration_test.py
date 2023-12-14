@@ -5,7 +5,10 @@ import httpx
 import pytest
 from starlette.testclient import TestClient
 
-from tests.routers.openml.migration.conversions import nested_int_to_str
+from tests.routers.openml.migration.conversions import (
+    nested_int_to_str,
+    nested_remove_single_element_list,
+)
 
 
 @pytest.mark.php()
@@ -19,18 +22,24 @@ def test_get_flow_equal(flow_id: int, py_api: TestClient, php_api: httpx.Client)
 
     new = response.json()
 
-    # PHP sets the default value to [], None is more appropriate, omission should be considered
-    def change_flow_parameter_defaults(flow: dict[str, Any]) -> dict[str, Any]:
+    # PHP sets parameter default value to [], None is more appropriate, omission is considered
+    # Similar for the default "identifier" of subflows.
+    # Subflow field (old: component) is omitted if empty
+    def convert_flow_naming_and_defaults(flow: dict[str, Any]) -> dict[str, Any]:
         for parameter in flow["parameter"]:
             if parameter["default_value"] is None:
                 parameter["default_value"] = []
-        flow["subflows"] = [change_flow_parameter_defaults(subflow) for subflow in flow["subflows"]]
+        for subflow in flow["subflows"]:
+            subflow["flow"] = convert_flow_naming_and_defaults(subflow["flow"])
+            if subflow["identifier"] is None:
+                subflow["identifier"] = []
+        flow["component"] = flow.pop("subflows")
+        if flow["component"] == []:
+            flow.pop("component")
         return flow
 
-    new = change_flow_parameter_defaults(new)
-    # PHP omits subflow field if empty
-    if new["subflows"] == []:
-        new.pop("subflows")
+    new = convert_flow_naming_and_defaults(new)
+    new = nested_remove_single_element_list(new)
 
     new = nested_int_to_str(new)
     expected = php_api.get(f"/flow/{flow_id}").json()["flow"]

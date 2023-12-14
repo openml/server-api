@@ -60,6 +60,24 @@ def get_flow(flow_id: int, expdb: Annotated[Connection, Depends(expdb_connection
     )
     tags = [tag.tag for tag in tag_rows]
 
+    flow_rows = expdb.execute(
+        text(
+            """
+            SELECT child as child_id, identifier
+            FROM implementation_component
+            WHERE parent = :flow_id
+            """,
+        ),
+        parameters={"flow_id": flow_id},
+    )
+    subflows = [
+        {
+            "identifier": flow.identifier,
+            "flow": get_flow(flow_id=flow.child_id, expdb=expdb),
+        }
+        for flow in flow_rows
+    ]
+
     return Flow(
         id_=flow.id,
         uploader=flow.uploader,
@@ -72,6 +90,6 @@ def get_flow(flow_id: int, expdb: Annotated[Connection, Depends(expdb_connection
         language=flow.language,
         dependencies=flow.dependencies,
         parameter=parameters,
-        subflows=[],
+        subflows=subflows,
         tag=tags,
     )
