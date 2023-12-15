@@ -91,6 +91,45 @@ includes datasets which are private.
 The `limit` and `offset` parameters can now be used independently, you no longer need
 to provide both if you wish to set only one.
 
+## Studies
+
+### `GET /{id_or_alias}`
+
+Old-style "legacy" studies which are solely based on tags are no longer supported.
+
+??? info "Affected Legacy Studies"
+
+    Only 24 old studies were affected by this change, listed below.
+    There is currently not yet a migration plan for these studies.
+
+    | id	| name|
+    | --: | :-- |
+    |1	|A large-scale comparison of classification algorit...|
+    |2	|Fast Algorithm Selection using Learning Curves|
+    |3	|Multi-Task Learning with a Natural Metric for Quan...|
+    |5	|Local and Global Feature Selection on Multilabel T...|
+    |7	|Massive machine learning experiments using mlr and...|
+    |8	|Decision tree comparaison|
+    |10|	Collaborative primer|
+    |11|	Having a Blast: Meta-Learning and Heterogeneous En...|
+    |12|	Subspace Clustering via Seeking Neighbors with Min...|
+    |13|	Meta-QSAR: learning how to learn QSARs|
+    |17|	Subgroup Discovery|
+    |20|	Mythbusting data mining urban legends through larg...|
+    |22|	Identifying critical paths in undergraduate progra...|
+    |24|	OpenML R paper|
+    |25|	Bernd Demo Study for Multiclass SVMs OML WS 2016|
+    |27|	Compare three different SVM versions of R package ...|
+    |30|	OpenML Paper Study|
+    |31|	Iris Data set Study|
+    |32|	Data Streams and more|
+    |34|	Massively Collaborative Machine Learning|
+    |37|	Speeding up Algorithm Selection via Meta-learning ...|
+    |38|	Performance of new ctree implementations on classi...|
+    |41|	ASLib OpenML Scenario|
+    |50|	Hyper-parameter tuning of Decision Trees|
+    |51|	ensemble on diabetes	|
+
 ## Others
 
 ### `GET /estimationprocedure/list`
