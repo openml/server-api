@@ -2,6 +2,7 @@ import http.client
 from typing import Annotated
 
 from core.formatting import _str_to_bool
+from database.studies import get_study_by_alias, get_study_by_id
 from database.users import User, UserGroup
 from fastapi import APIRouter, Depends, HTTPException
 from schemas.core import Visibility
@@ -15,22 +16,16 @@ router = APIRouter(prefix="/studies", tags=["studies"])
 
 @router.get("/{study_id}")
 def get_study(
-    study_id: int,
+    study_id: int | str,
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> Study:
-    # study_id may also be an alias instead
+    if isinstance(study_id, int) or study_id.isdigit():
+        study = get_study_by_id(int(study_id), expdb)
+    else:
+        study = get_study_by_alias(study_id, expdb)
+        study_id = study.id
 
-    study = expdb.execute(
-        text(
-            """
-            SELECT *, main_entity_type as type_
-            FROM study
-            WHERE id = :study_id
-            """,
-        ),
-        parameters={"study_id": study_id},
-    ).fetchone()
     if study is None:
         raise HTTPException(status_code=http.client.NOT_FOUND, detail="Study not found.")
     if study.visibility == Visibility.PRIVATE:
