@@ -24,7 +24,7 @@ def get_study(
     study = expdb.execute(
         text(
             """
-            SELECT *
+            SELECT *, main_entity_type as type_
             FROM study
             WHERE id = :study_id
             """,
@@ -44,8 +44,8 @@ def get_study(
             detail="Legacy studies are no longer supported",
         )
 
-    if study.main_entity_type == StudyType.TASK:
-        tasks = expdb.execute(
+    if study.type_ == StudyType.TASK:
+        study_data = expdb.execute(
             text(
                 """
                 SELECT ts.task_id as task_id, ti.value as data_id
@@ -55,25 +55,38 @@ def get_study(
             ),
             parameters={"study_id": study_id},
         ).fetchall()
-        task_ids = [task.task_id for task in tasks]
-        data_ids = [task.data_id for task in tasks]
     else:
-        msg = "Only task studies are supported."
-        raise NotImplementedError(msg)
-    run_ids: list[int] = []
+        study_data = expdb.execute(
+            text(
+                """
+                SELECT
+                    rs.run_id as run_id,
+                    run.task_id as task_id,
+                    run.setup as setup_id,
+                    ti.value as data_id,
+                    setup.implementation_id as flow_id
+                FROM run_study as rs
+                JOIN run ON run.rid = rs.run_id
+                JOIN algorithm_setup as setup ON setup.sid = run.setup
+                JOIN task_inputs as ti ON ti.task_id = run.task_id
+                WHERE rs.study_id = :study_id AND ti.input = 'source_data'
+                """,
+            ),
+            parameters={"study_id": study_id},
+        ).fetchall()
     return Study(
         id_=study.id,
         name=study.name,
         alias=study.alias,
-        main_entity_type=study.main_entity_type,
+        main_entity_type=study.type_,
         description=study.description,
         visibility=study.visibility,
         status=study.status,
         creation_date=study.creation_date,
         creator=study.creator,
-        task_ids=task_ids,
-        run_ids=run_ids,
-        data_ids=data_ids,
-        # flow_ids=study.flow_ids,
-        # setup_ids=study.setup_ids,
+        data_ids=[row.data_id for row in study_data],
+        task_ids=[row.task_id for row in study_data],
+        run_ids=[row.run_id for row in study_data] if study.type_ == StudyType.RUN else [],
+        flow_ids=[row.flow_id for row in study_data] if study.type_ == StudyType.RUN else [],
+        setup_ids=[row.setup_id for row in study_data] if study.type_ == StudyType.RUN else [],
     )
