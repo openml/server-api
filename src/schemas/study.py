@@ -30,3 +30,5 @@ class Study(BaseModel):
     task_ids: list[int]
     run_ids: list[int]
     data_ids: list[int]
+    setup_ids: list[int]
+    flow_ids: list[int]
