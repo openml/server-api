@@ -219,6 +219,8 @@ def test_get_task_study_by_id(py_api: TestClient) -> None:
             595,
         ],
         "run_ids": [],
+        "flow_ids": [],
+        "setup_ids": [],
     }
     assert response.json() == expected
 
@@ -441,5 +443,7 @@ def test_get_task_study_by_alias(py_api: TestClient) -> None:
             595,
         ],
         "run_ids": [],
+        "flow_ids": [],
+        "setup_ids": [],
     }
     assert response.json() == expected
