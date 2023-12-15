@@ -7,9 +7,9 @@ from core.errors import DatasetError
 
 
 def _str_to_bool(string: str) -> bool:
-    if string.casefold() in ["true", "1", "yes"]:
+    if string.casefold() in ["true", "1", "yes", "y"]:
         return True
-    if string.casefold() in ["false", "0", "no"]:
+    if string.casefold() in ["false", "0", "no", "n"]:
         return False
     msg = f"Could not parse {string=} as bool."
     raise ValueError(msg)
