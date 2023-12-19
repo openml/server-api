@@ -447,3 +447,17 @@ def test_get_task_study_by_alias(py_api: TestClient) -> None:
         "setup_ids": [],
     }
     assert response.json() == expected
+
+
+def test_create_task_study(py_api: TestClient) -> None:
+    py_api.post(
+        "/studies?api_key=00000000000000000000000000000000",
+        json={
+            "name": "Test Study",
+            "alias": "test-study",
+            "main_entity_type": "task",
+            "description": "A test study",
+            "tasks": [1, 2, 3],
+            "runs": [],
+        },
+    )
