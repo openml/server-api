@@ -1,7 +1,10 @@
+from datetime import datetime
 from typing import cast
 
-from schemas.study import StudyType
+from schemas.study import CreateStudy, StudyType
 from sqlalchemy import Connection, Row, text
+
+from database.users import User
 
 
 def get_study_by_id(study_id: int, connection: Connection) -> Row:
@@ -65,4 +68,56 @@ def get_study_data(study: Row, expdb: Connection) -> list[Row]:
             ),
             parameters={"study_id": study.id},
         ).fetchall(),
+    )
+
+
+def create_study(study: CreateStudy, user: User, expdb: Connection) -> int:
+    expdb.execute(
+        text(
+            """
+            INSERT INTO study (
+                name, alias, benchmark_suite, main_entity_type, description,
+                creator, legacy, creation_date
+            )
+            VALUES (
+                :name, :alias, :benchmark_suite, :main_entity_type, :description,
+                 :creator, 'n', :creation_date
+            )
+            """,
+        ),
+        parameters={
+            "name": study.name,
+            "alias": study.alias,
+            "main_entity_type": study.main_entity_type,
+            "description": study.description,
+            "creator": user.user_id,
+            "creation_date": datetime.now(),
+            "benchmark_suite": study.benchmark_suite,
+        },
+    )
+    (study_id,) = expdb.execute(text("""SELECT LAST_INSERT_ID();""")).fetchone()
+    return cast(int, study_id)
+
+
+def attach_task_to_study(task_id: int, study_id: int, user: User, expdb: Connection) -> None:
+    expdb.execute(
+        text(
+            """
+            INSERT INTO task_study (study_id, task_id, uploader)
+            VALUES (:study_id, :task_id, :user_id)
+            """,
+        ),
+        parameters={"study_id": study_id, "task_id": task_id, "user_id": user.user_id},
+    )
+
+
+def attach_run_to_study(run_id: int, study_id: int, user: User, expdb: Connection) -> None:
+    expdb.execute(
+        text(
+            """
+            INSERT INTO run_study (study_id, run_id, uploader)
+            VALUES (:study_id, :run_id, :user_id)
+            """,
+        ),
+        parameters={"study_id": study_id, "run_id": run_id, "user_id": user.user_id},
     )

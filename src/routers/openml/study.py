@@ -1,12 +1,19 @@
 import http.client
-from typing import Annotated
+from typing import Annotated, Literal
 
 from core.formatting import _str_to_bool
-from database.studies import get_study_by_alias, get_study_by_id, get_study_data
+from database.studies import (
+    attach_run_to_study,
+    attach_task_to_study,
+    get_study_by_alias,
+    get_study_by_id,
+    get_study_data,
+)
+from database.studies import create_study as db_create_study
 from database.users import User, UserGroup
 from fastapi import APIRouter, Depends, HTTPException
 from schemas.core import Visibility
-from schemas.study import Study, StudyType
+from schemas.study import CreateStudy, Study, StudyType
 from sqlalchemy import Connection, Row
 
 from routers.dependencies import expdb_connection, fetch_user
@@ -32,8 +39,44 @@ def _get_study_raise_otherwise(id_or_alias: int | str, user: User | None, expdb:
             status_code=http.client.GONE,
             detail="Legacy studies are no longer supported",
         )
-
     return study
+
+
+@router.post("/")
+def create_study(
+    study: CreateStudy,
+    user: Annotated[User | None, Depends(fetch_user)] = None,
+    expdb: Annotated[Connection, Depends(expdb_connection)] = None,
+) -> dict[Literal["study_id"], int]:
+    if user is None:
+        raise HTTPException(
+            status_code=http.client.UNAUTHORIZED,
+            detail="Creating a study requires authentication.",
+        )
+    if study.main_entity_type == StudyType.RUN and study.tasks:
+        raise HTTPException(
+            status_code=http.client.BAD_REQUEST,
+            detail="Cannot create a run study with tasks.",
+        )
+    if study.main_entity_type == StudyType.TASK and study.runs:
+        raise HTTPException(
+            status_code=http.client.BAD_REQUEST,
+            detail="Cannot create a task study with runs.",
+        )
+    if study.alias and get_study_by_alias(study.alias, expdb):
+        raise HTTPException(
+            status_code=http.client.CONFLICT,
+            detail="Study alias already exists.",
+        )
+    study_id = db_create_study(study, user, expdb)
+    if study.main_entity_type == StudyType.TASK:
+        for task_id in study.tasks:
+            attach_task_to_study(task_id, study_id, user, expdb)
+    if study.main_entity_type == StudyType.RUN:
+        for run_id in study.runs:
+            attach_run_to_study(run_id, study_id, user, expdb)
+    # Make sure that invalid fields raise an error (e.g., "task_ids")
+    return {"study_id": study_id}
 
 
 @router.get("/{alias_or_id}")

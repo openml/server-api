@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from starlette.testclient import TestClient
 
 
@@ -447,3 +449,48 @@ def test_get_task_study_by_alias(py_api: TestClient) -> None:
         "setup_ids": [],
     }
     assert response.json() == expected
+
+
+def test_create_task_study(py_api: TestClient) -> None:
+    response = py_api.post(
+        "/studies?api_key=00000000000000000000000000000000",
+        json={
+            "name": "Test Study",
+            "alias": "test-study",
+            "main_entity_type": "task",
+            "description": "A test study",
+            "tasks": [1, 2, 3],
+            "runs": [],
+        },
+    )
+    assert response.status_code == 200
+    new = response.json()
+    assert "study_id" in new
+    study_id = new["study_id"]
+    assert isinstance(study_id, int)
+
+    study = py_api.get(f"/studies/{study_id}")
+    assert study.status_code == 200
+    expected = {
+        "id": study_id,
+        "alias": "test-study",
+        "main_entity_type": "task",
+        "name": "Test Study",
+        "description": "A test study",
+        "visibility": "public",
+        "status": "in_preparation",
+        "creator": 2,
+        "data_ids": [1, 1, 1],
+        "task_ids": [1, 2, 3],
+        "run_ids": [],
+        "flow_ids": [],
+        "setup_ids": [],
+    }
+    new_study = study.json()
+
+    creation_date = datetime.strptime(
+        new_study.pop("creation_date"),
+        "%Y-%m-%dT%H:%M:%S",
+    )
+    assert creation_date.date() == datetime.now().date()
+    assert new_study == expected
