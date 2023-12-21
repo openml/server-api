@@ -18,6 +18,7 @@ class StudyStatus(StrEnum):
 
 
 class Study(BaseModel):
+    _legacy: bool = Field(default=False, exclude=True)
     id_: int = Field(serialization_alias="id")
     name: str
     alias: str | None
