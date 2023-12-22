@@ -2,14 +2,20 @@ import http.client
 from typing import Annotated, Literal
 
 from core.formatting import _str_to_bool
+from database.studies import (
+    attach_run_to_study,
+    attach_task_to_study,
+    attach_tasks_to_study,
+    get_study_by_alias,
+    get_study_by_id,
+    get_study_data,
+)
 from database.studies import create_study as db_create_study
-from schemas.study import CreateStudy
-from database.studies import get_study_by_alias, get_study_by_id, get_study_data, \
-    attach_task_to_study, attach_run_to_study
 from database.users import User, UserGroup
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
+from pydantic import BaseModel
 from schemas.core import Visibility
-from schemas.study import Study, StudyType, StudyStatus
+from schemas.study import CreateStudy, Study, StudyStatus, StudyType
 from sqlalchemy import Connection, Row
 
 from routers.dependencies import expdb_connection, fetch_user
@@ -27,7 +33,10 @@ def _get_study_raise_otherwise(id_or_alias: int | str, user: User | None, expdb:
         raise HTTPException(status_code=http.client.NOT_FOUND, detail="Study not found.")
     if study.visibility == Visibility.PRIVATE:
         if user is None:
-            raise HTTPException(status_code=http.client.UNAUTHORIZED, detail="Must authenticate for private study.")
+            raise HTTPException(
+                status_code=http.client.UNAUTHORIZED,
+                detail="Must authenticate for private study.",
+            )
         if study.creator != user.user_id and UserGroup.ADMIN not in user.groups:
             raise HTTPException(status_code=http.client.FORBIDDEN, detail="Study is private.")
     if _str_to_bool(study.legacy):
@@ -37,32 +46,41 @@ def _get_study_raise_otherwise(id_or_alias: int | str, user: User | None, expdb:
         )
     return study
 
-@router.get("/attach")
+
+class AttachDetachResponse(BaseModel):
+    study_id: int
+    main_entity_type: StudyType
+
+
+@router.post("/attach")
 def attach_to_study(
-    study_id: int,
-    entity_ids: list[int],
+    study_id: Annotated[int, Body()],
+    entity_ids: Annotated[list[int], Body()],
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb: Annotated[Connection, Depends(expdb_connection)] = None,
-) -> None:
+) -> AttachDetachResponse:
     if user is None:
         raise HTTPException(status_code=http.client.UNAUTHORIZED, detail="User not found.")
     study = _get_study_raise_otherwise(study_id, user, expdb)
     # PHP lets *anyone* edit *any* study. We're not going to do that.
     if study.creator != user.user_id and UserGroup.ADMIN not in user.groups:
-        raise HTTPException(status_code=http.client.FORBIDDEN, detail="Study can only be edited by its creator.")
+        raise HTTPException(
+            status_code=http.client.FORBIDDEN,
+            detail="Study can only be edited by its creator.",
+        )
     if study.status != StudyStatus.IN_PREPARATION:
-        raise HTTPException(status_code=http.client.FORBIDDEN, detail="Study can only be edited while in preparation.")
+        raise HTTPException(
+            status_code=http.client.FORBIDDEN,
+            detail="Study can only be edited while in preparation.",
+        )
 
-    # We let the database handle the constraints on whether the entity is already attached or if it even exists.
+    # We let the database handle the constraints on whether
+    # the entity is already attached or if it even exists.
     if study.type_ == StudyType.TASK:
-        attach_task_to_study(study_id, entity_ids, user, expdb)
-    else study.type_ == StudyType.RUN:
-        # attach runs
-        pass
+        attach_tasks_to_study(study_id, entity_ids, user, expdb)
+        return AttachDetachResponse(study_id=study_id, main_entity_type=StudyType.TASK)
+    raise HTTPException(status_code=http.client.BAD_REQUEST, detail="Cannot attach to run study.")
 
-    return None
-
-    
 
 @router.post("/")
 def create_study(

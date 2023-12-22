@@ -1,8 +1,7 @@
 from datetime import datetime
 from typing import cast
 
-from schemas.study import CreateStudy
-from schemas.study import StudyType
+from schemas.study import CreateStudy, StudyType
 from sqlalchemy import Connection, Row, text
 
 from database.users import User
@@ -122,18 +121,21 @@ def attach_run_to_study(run_id: int, study_id: int, user: User, expdb: Connectio
         ),
         parameters={"study_id": study_id, "run_id": run_id, "user_id": user.user_id},
     )
-def attach_tasks_to_study(study_id: int, task_ids: list[int], user: User, connection: Connection) -> None:
+
+
+def attach_tasks_to_study(
+    study_id: int,
+    task_ids: list[int],
+    user: User,
+    connection: Connection,
+) -> None:
     to_link = [(study_id, task_id, user.user_id) for task_id in task_ids]
-    response = connection.execute(
+    connection.execute(
         text(
             """
-            INSERT INTO task_study (study_id, task_id, creator)
-            VALUES :to_link
+            INSERT INTO task_study (study_id, task_id, uploader)
+            VALUES (:study_id, :task_id, :user_id)
             """,
         ),
-        parameters={"to_link": to_link},
+        parameters=[{"study_id": s, "task_id": t, "user_id": u} for s, t, u in to_link],
     )
-    breakpoint()
-    if response.rowcount != len(task_ids):
-        raise ValueError("Not all tasks were attached to the study.")
-    return
