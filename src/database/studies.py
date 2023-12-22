@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import cast
 
@@ -130,12 +131,34 @@ def attach_tasks_to_study(
     connection: Connection,
 ) -> None:
     to_link = [(study_id, task_id, user.user_id) for task_id in task_ids]
-    connection.execute(
-        text(
-            """
-            INSERT INTO task_study (study_id, task_id, uploader)
-            VALUES (:study_id, :task_id, :user_id)
-            """,
-        ),
-        parameters=[{"study_id": s, "task_id": t, "user_id": u} for s, t, u in to_link],
-    )
+    try:
+        connection.execute(
+            text(
+                """
+                INSERT INTO task_study (study_id, task_id, uploader)
+                VALUES (:study_id, :task_id, :user_id)
+                """,
+            ),
+            parameters=[{"study_id": s, "task_id": t, "user_id": u} for s, t, u in to_link],
+        )
+    except Exception as e:
+        (msg,) = e.args
+        if match := re.search(r"Duplicate entry '(\d+)-(\d+)' for key 'task_study.PRIMARY'", msg):
+            msg = f"Task {match.group(2)} is already attached to study {match.group(1)}."
+        elif "a foreign key constraint fails" in msg:
+            # The message and exception have no information about which task is invalid.
+            msg = "One or more of the tasks do not exist."
+        elif "Out of range value for column 'task_id'" in msg:
+            msg = "One specified ids is not in the valid range of task ids."
+        else:
+            raise
+        raise ValueError(msg) from e
+
+
+def attach_runs_to_study(
+    study_id: int,  # noqa: ARG001
+    task_ids: list[int],  # noqa: ARG001
+    user: User,  # noqa: ARG001
+    connection: Connection,  # noqa: ARG001
+) -> None:
+    raise NotImplementedError

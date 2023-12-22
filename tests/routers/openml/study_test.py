@@ -538,3 +538,35 @@ def test_attach_task_to_study_needs_owner(py_api: TestClient, expdb_test: Connec
         expdb_test=expdb_test,
     )
     assert response.status_code == http.client.FORBIDDEN
+
+
+def test_attach_task_to_study_already_linked_raises(
+    py_api: TestClient,
+    expdb_test: Connection,
+) -> None:
+    expdb_test.execute(text("UPDATE study SET status = 'in_preparation' WHERE id = 1"))
+    response = _attach_tasks_to_study(
+        study_id=1,
+        task_ids=[1, 3, 4],
+        api_key="AD000000000000000000000000000000",
+        py_api=py_api,
+        expdb_test=expdb_test,
+    )
+    assert response.status_code == http.client.CONFLICT
+    assert response.json() == {"detail": "Task 1 is already attached to study 1."}
+
+
+def test_attach_task_to_study_but_task_not_exist_raises(
+    py_api: TestClient,
+    expdb_test: Connection,
+) -> None:
+    expdb_test.execute(text("UPDATE study SET status = 'in_preparation' WHERE id = 1"))
+    response = _attach_tasks_to_study(
+        study_id=1,
+        task_ids=[80123, 78914],
+        api_key="AD000000000000000000000000000000",
+        py_api=py_api,
+        expdb_test=expdb_test,
+    )
+    assert response.status_code == http.client.CONFLICT
+    assert response.json() == {"detail": "One or more of the tasks do not exist."}

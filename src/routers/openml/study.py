@@ -4,6 +4,7 @@ from typing import Annotated, Literal
 from core.formatting import _str_to_bool
 from database.studies import (
     attach_run_to_study,
+    attach_runs_to_study,
     attach_task_to_study,
     attach_tasks_to_study,
     get_study_by_alias,
@@ -76,10 +77,15 @@ def attach_to_study(
 
     # We let the database handle the constraints on whether
     # the entity is already attached or if it even exists.
-    if study.type_ == StudyType.TASK:
-        attach_tasks_to_study(study_id, entity_ids, user, expdb)
-        return AttachDetachResponse(study_id=study_id, main_entity_type=StudyType.TASK)
-    raise HTTPException(status_code=http.client.BAD_REQUEST, detail="Cannot attach to run study.")
+    attach = attach_tasks_to_study if study.type_ == StudyType.TASK else attach_runs_to_study
+    try:
+        attach(study_id, entity_ids, user, expdb)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=http.client.CONFLICT,
+            detail=str(e),
+        ) from None
+    return AttachDetachResponse(study_id=study_id, main_entity_type=study.type_)
 
 
 @router.post("/")
