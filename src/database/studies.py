@@ -8,7 +8,7 @@ from sqlalchemy import Connection, Row, text
 from database.users import User
 
 
-def get_study_by_id(study_id: int, connection: Connection) -> Row:
+def get_study_by_id(study_id: int, connection: Connection) -> Row | None:
     return connection.execute(
         text(
             """
@@ -18,10 +18,10 @@ def get_study_by_id(study_id: int, connection: Connection) -> Row:
             """,
         ),
         parameters={"study_id": study_id},
-    ).fetchone()
+    ).one_or_none()
 
 
-def get_study_by_alias(alias: str, connection: Connection) -> Row:
+def get_study_by_alias(alias: str, connection: Connection) -> Row | None:
     return connection.execute(
         text(
             """
@@ -31,7 +31,7 @@ def get_study_by_alias(alias: str, connection: Connection) -> Row:
             """,
         ),
         parameters={"study_id": alias},
-    ).fetchone()
+    ).one_or_none()
 
 
 def get_study_data(study: Row, expdb: Connection) -> list[Row]:
@@ -47,7 +47,7 @@ def get_study_data(study: Row, expdb: Connection) -> list[Row]:
                 """,
                 ),
                 parameters={"study_id": study.id},
-            ).fetchall(),
+            ).all(),
         )
     return cast(
         list[Row],
@@ -68,7 +68,7 @@ def get_study_data(study: Row, expdb: Connection) -> list[Row]:
             """,
             ),
             parameters={"study_id": study.id},
-        ).fetchall(),
+        ).all(),
     )
 
 
@@ -96,7 +96,7 @@ def create_study(study: CreateStudy, user: User, expdb: Connection) -> int:
             "benchmark_suite": study.benchmark_suite,
         },
     )
-    (study_id,) = expdb.execute(text("""SELECT LAST_INSERT_ID();""")).fetchone()
+    (study_id,) = expdb.execute(text("""SELECT LAST_INSERT_ID();""")).one()
     return cast(int, study_id)
 
 
