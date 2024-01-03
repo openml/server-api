@@ -156,7 +156,7 @@ def get_task(
 ) -> Task:
     if not (task := db_get_task(task_id, expdb)):
         raise HTTPException(status_code=http.client.NOT_FOUND, detail="Task not found")
-    if not (task_type := get_task_type(task["ttid"], expdb)):
+    if not (task_type := get_task_type(task.ttid, expdb)):
         raise HTTPException(
             status_code=http.client.INTERNAL_SERVER_ERROR,
             detail="Task type not found",
@@ -182,7 +182,7 @@ def get_task(
     name = f"Task {task_id} ({task_type.name})"
     dataset_id = task_inputs.get("source_data")
     if dataset_id and (dataset := get_dataset(dataset_id, expdb)):
-        name = f"Task {task_id}: {dataset['name']} ({task_type.name})"
+        name = f"Task {task_id}: {dataset.name} ({task_type.name})"
 
     return Task(
         id_=task.task_id,

@@ -15,8 +15,8 @@ router = APIRouter(prefix="/flows", tags=["flows"])
 
 @router.get("/{flow_id}")
 def get_flow(flow_id: int, expdb: Annotated[Connection, Depends(expdb_connection)] = None) -> Flow:
-    flow_rows = db_get_flow(flow_id, expdb)
-    if not (flow := next(flow_rows, None)):
+    flow = db_get_flow(flow_id, expdb)
+    if not flow:
         raise HTTPException(status_code=http.client.NOT_FOUND, detail="Flow not found")
 
     parameter_rows = get_flow_parameters(flow_id, expdb)

@@ -1,10 +1,10 @@
-from typing import Any
+from typing import Sequence, cast
 
-from sqlalchemy import Connection, CursorResult, MappingResult, RowMapping, text
+from sqlalchemy import Connection, Row, text
 
 
-def get_task(task_id: int, expdb: Connection) -> RowMapping | None:
-    task_row = expdb.execute(
+def get_task(task_id: int, expdb: Connection) -> Row | None:
+    return expdb.execute(
         text(
             """
             SELECT *
@@ -13,24 +13,25 @@ def get_task(task_id: int, expdb: Connection) -> RowMapping | None:
             """,
         ),
         parameters={"task_id": task_id},
-    )
-    return next(task_row.mappings(), None)
+    ).one_or_none()
 
 
-def get_task_types(expdb: Connection) -> list[dict[str, str | int]]:
-    rows = expdb.execute(
-        text(
-            """
+def get_task_types(expdb: Connection) -> Sequence[Row]:
+    return cast(
+        Sequence[Row],
+        expdb.execute(
+            text(
+                """
        SELECT `ttid`, `name`, `description`, `creator`
        FROM task_type
        """,
-        ),
+            ),
+        ).all(),
     )
-    return list(rows.mappings())
 
 
-def get_task_type(task_type_id: int, expdb: Connection) -> RowMapping | None:
-    row = expdb.execute(
+def get_task_type(task_type_id: int, expdb: Connection) -> Row | None:
+    return expdb.execute(
         text(
             """
         SELECT *
@@ -39,47 +40,54 @@ def get_task_type(task_type_id: int, expdb: Connection) -> RowMapping | None:
         """,
         ),
         parameters={"ttid": task_type_id},
-    )
-    return next(row, None)
+    ).one_or_none()
 
 
-def get_input_for_task_type(task_type_id: int, expdb: Connection) -> CursorResult[Any]:
-    return expdb.execute(
-        text(
-            """
+def get_input_for_task_type(task_type_id: int, expdb: Connection) -> Sequence[Row]:
+    return cast(
+        Sequence[Row],
+        expdb.execute(
+            text(
+                """
         SELECT *
         FROM task_type_inout
         WHERE `ttid`=:ttid AND `io`='input'
         """,
-        ),
-        parameters={"ttid": task_type_id},
+            ),
+            parameters={"ttid": task_type_id},
+        ).all(),
     )
 
 
-def get_input_for_task(task_id: int, expdb: Connection) -> MappingResult:
-    rows = expdb.execute(
-        text(
-            """
+def get_input_for_task(task_id: int, expdb: Connection) -> Sequence[Row]:
+    return cast(
+        Sequence[Row],
+        expdb.execute(
+            text(
+                """
             SELECT `input`, `value`
             FROM task_inputs
             WHERE task_id = :task_id
             """,
-        ),
-        parameters={"task_id": task_id},
+            ),
+            parameters={"task_id": task_id},
+        ).all(),
     )
-    return rows.mappings()
 
 
-def get_task_type_inout_with_template(task_type: int, expdb: Connection) -> CursorResult[Any]:
-    return expdb.execute(
-        text(
-            """
+def get_task_type_inout_with_template(task_type: int, expdb: Connection) -> Sequence[Row]:
+    return cast(
+        Sequence[Row],
+        expdb.execute(
+            text(
+                """
             SELECT *
             FROM task_type_inout
             WHERE `ttid`=:ttid AND `template_api` IS NOT NULL
             """,
-        ),
-        parameters={"ttid": task_type},
+            ),
+            parameters={"ttid": task_type},
+        ).all(),
     )
 
 

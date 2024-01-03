@@ -17,24 +17,25 @@ from core.formatting import (
     _format_parquet_url,
     _safe_unquote,
 )
-from database.datasets import get_dataset as db_get_dataset
 from database.datasets import (
+    _get_qualities_for_datasets,
     get_feature_values,
     get_features_for_dataset,
     get_file,
     get_latest_dataset_description,
     get_latest_processing_update,
     get_latest_status_update,
-    get_qualities_for_datasets,
     get_tags,
     insert_status_for_dataset,
     remove_deactivated_status,
 )
+from database.datasets import get_dataset as db_get_dataset
 from database.datasets import tag_dataset as db_tag_dataset
 from database.users import User, UserGroup
 from fastapi import APIRouter, Body, Depends, HTTPException
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Feature, FeatureType
 from sqlalchemy import Connection, text
+from sqlalchemy.engine import Row
 
 from routers.dependencies import Pagination, expdb_connection, fetch_user, userdb_connection
 from routers.types import CasualString128, IntegerRange, SystemString64, integer_range_regex
@@ -240,7 +241,7 @@ def list_datasets(
         "NumberOfNumericFeatures",
         "NumberOfSymbolicFeatures",
     ]
-    qualities_by_dataset = get_qualities_for_datasets(
+    qualities_by_dataset = _get_qualities_for_datasets(
         dataset_ids=datasets.keys(),
         qualities=qualities_to_show,
         connection=expdb_db,
@@ -261,9 +262,9 @@ def _get_processing_information(dataset_id: int, connection: Connection) -> Proc
     if not (data_processed := get_latest_processing_update(dataset_id, connection)):
         return ProcessingInformation(date=None, warning=None, error=None)
 
-    date_processed = data_processed["processing_date"]
-    warning = data_processed["warning"].strip() if data_processed["warning"] else None
-    error = data_processed["error"].strip() if data_processed["error"] else None
+    date_processed = data_processed.processing_date
+    warning = data_processed.warning.strip() if data_processed.warning else None
+    error = data_processed.error.strip() if data_processed.error else None
     return ProcessingInformation(date=date_processed, warning=warning, error=error)
 
 
@@ -271,7 +272,7 @@ def _get_dataset_raise_otherwise(
     dataset_id: int,
     user: User | None,
     expdb: Connection,
-) -> dict[str, Any]:
+) -> Row:
     """Fetches the dataset from the database if it exists and the user has permissions.
 
     Raises HTTPException if the dataset does not exist or the user can not access it.
@@ -305,7 +306,7 @@ def get_dataset_features(
                 273,
                 "Dataset not processed yet. The dataset was not processed yet, features are not yet available. Please wait for a few minutes.",  # noqa: E501
             )
-        elif processing_state.get("error"):
+        elif processing_state.error:
             code, msg = 274, "No features found. Additionally, dataset processed with error"
         else:
             code, msg = (
@@ -336,7 +337,7 @@ def update_dataset_status(
 
     dataset = _get_dataset_raise_otherwise(dataset_id, user, expdb)
 
-    can_deactivate = dataset["uploader"] == user.user_id or UserGroup.ADMIN in user.groups
+    can_deactivate = dataset.uploader == user.user_id or UserGroup.ADMIN in user.groups
     if status == DatasetStatus.DEACTIVATED and not can_deactivate:
         raise HTTPException(
             status_code=http.client.FORBIDDEN,
@@ -349,7 +350,7 @@ def update_dataset_status(
         )
 
     current_status = get_latest_status_update(dataset_id, expdb)
-    if current_status and current_status["status"] == status:
+    if current_status and current_status.status == status:
         raise HTTPException(
             status_code=http.client.PRECONDITION_FAILED,
             detail={"code": 694, "message": "Illegal status transition."},
@@ -363,7 +364,7 @@ def update_dataset_status(
     #  - deactivated => active  (delete a row)
     if current_status is None or status == DatasetStatus.DEACTIVATED:
         insert_status_for_dataset(dataset_id, user.user_id, status, expdb)
-    elif current_status["status"] == DatasetStatus.DEACTIVATED:
+    elif current_status.status == DatasetStatus.DEACTIVATED:
         remove_deactivated_status(dataset_id, expdb)
     else:
         raise HTTPException(
@@ -385,7 +386,7 @@ def get_dataset(
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> DatasetMetadata:
     dataset = _get_dataset_raise_otherwise(dataset_id, user, expdb_db)
-    if not (dataset_file := get_file(dataset["file_id"], user_db)):
+    if not (dataset_file := get_file(dataset.file_id, user_db)):
         error = _format_error(
             code=DatasetError.NO_DATA_FILE,
             message="No data file found",
@@ -397,20 +398,20 @@ def get_dataset(
     processing_result = _get_processing_information(dataset_id, expdb_db)
     status = get_latest_status_update(dataset_id, expdb_db)
 
-    status_ = DatasetStatus(status["status"]) if status else DatasetStatus.IN_PREPARATION
+    status_ = DatasetStatus(status.status) if status else DatasetStatus.IN_PREPARATION
 
     description_ = ""
     if description:
-        description_ = description["description"].replace("\r", "").strip()
+        description_ = description.description.replace("\r", "").strip()
 
     dataset_url = _format_dataset_url(dataset)
     parquet_url = _format_parquet_url(dataset)
 
-    contributors = _csv_as_list(dataset["contributor"], unquote_items=True)
-    creators = _csv_as_list(dataset["creator"], unquote_items=True)
-    ignore_attribute = _csv_as_list(dataset["ignore_attribute"], unquote_items=True)
-    row_id_attribute = _csv_as_list(dataset["row_id_attribute"], unquote_items=True)
-    original_data_url = _csv_as_list(dataset["original_data_url"], unquote_items=True)
+    contributors = _csv_as_list(dataset.contributor, unquote_items=True)
+    creators = _csv_as_list(dataset.creator, unquote_items=True)
+    ignore_attribute = _csv_as_list(dataset.ignore_attribute, unquote_items=True)
+    row_id_attribute = _csv_as_list(dataset.row_id_attribute, unquote_items=True)
+    original_data_url = _csv_as_list(dataset.original_data_url, unquote_items=True)
 
     # Not sure which properties are set by this bit:
     # foreach( $this->xml_fields_dataset['csv'] as $field ) {
@@ -418,34 +419,34 @@ def get_dataset(
     # }
 
     return DatasetMetadata(
-        id=dataset["did"],
-        visibility=dataset["visibility"],
+        id=dataset.did,
+        visibility=dataset.visibility,
         status=status_,
-        name=dataset["name"],
-        licence=dataset["licence"],
-        version=dataset["version"],
-        version_label=dataset["version_label"] or "",
-        language=dataset["language"] or "",
+        name=dataset.name,
+        licence=dataset.licence,
+        version=dataset.version,
+        version_label=dataset.version_label or "",
+        language=dataset.language or "",
         creator=creators,
         contributor=contributors,
-        citation=dataset["citation"] or "",
-        upload_date=dataset["upload_date"],
+        citation=dataset.citation or "",
+        upload_date=dataset.upload_date,
         processing_date=processing_result.date,
         warning=processing_result.warning,
         error=processing_result.error,
         description=description_,
-        description_version=description["version"] if description else 0,
+        description_version=description.version if description else 0,
         tag=tags,
-        default_target_attribute=_safe_unquote(dataset["default_target_attribute"]),
+        default_target_attribute=_safe_unquote(dataset.default_target_attribute),
         ignore_attribute=ignore_attribute,
         row_id_attribute=row_id_attribute,
         url=dataset_url,
         parquet_url=parquet_url,
         minio_url=parquet_url,
-        file_id=dataset["file_id"],
-        format=dataset["format"].lower(),
-        paper_url=dataset["paper_url"] or None,
+        file_id=dataset.file_id,
+        format=dataset.format.lower(),
+        paper_url=dataset.paper_url or None,
         original_data_url=original_data_url,
-        collection_date=dataset["collection_date"],
-        md5_checksum=dataset_file["md5_hash"],
+        collection_date=dataset.collection_date,
+        md5_checksum=dataset_file.md5_hash,
     )
