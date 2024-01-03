@@ -1,5 +1,9 @@
+import http.client
 from datetime import datetime
 
+import httpx
+from schemas.study import StudyType
+from sqlalchemy import Connection, text
 from starlette.testclient import TestClient
 
 
@@ -494,3 +498,75 @@ def test_create_task_study(py_api: TestClient) -> None:
     )
     assert creation_date.date() == datetime.now().date()
     assert new_study == expected
+
+
+def _attach_tasks_to_study(
+    study_id: int,
+    task_ids: list[int],
+    api_key: str,
+    py_api: TestClient,
+    expdb_test: Connection,
+) -> httpx.Response:
+    # Adding requires the study to be in preparation,
+    # but the current snapshot has no in-preparation studies.
+    expdb_test.execute(text("UPDATE study SET status = 'in_preparation' WHERE id = 1"))
+    return py_api.post(
+        f"/studies/attach?api_key={api_key}",
+        json={"study_id": study_id, "entity_ids": task_ids},
+    )
+
+
+def test_attach_task_to_study(py_api: TestClient, expdb_test: Connection) -> None:
+    response = _attach_tasks_to_study(
+        study_id=1,
+        task_ids=[2, 3, 4],
+        api_key="AD000000000000000000000000000000",
+        py_api=py_api,
+        expdb_test=expdb_test,
+    )
+    assert response.status_code == http.client.OK
+    assert response.json() == {"study_id": 1, "main_entity_type": StudyType.TASK}
+
+
+def test_attach_task_to_study_needs_owner(py_api: TestClient, expdb_test: Connection) -> None:
+    expdb_test.execute(text("UPDATE study SET status = 'in_preparation' WHERE id = 1"))
+    response = _attach_tasks_to_study(
+        study_id=1,
+        task_ids=[2, 3, 4],
+        api_key="00000000000000000000000000000000",
+        py_api=py_api,
+        expdb_test=expdb_test,
+    )
+    assert response.status_code == http.client.FORBIDDEN
+
+
+def test_attach_task_to_study_already_linked_raises(
+    py_api: TestClient,
+    expdb_test: Connection,
+) -> None:
+    expdb_test.execute(text("UPDATE study SET status = 'in_preparation' WHERE id = 1"))
+    response = _attach_tasks_to_study(
+        study_id=1,
+        task_ids=[1, 3, 4],
+        api_key="AD000000000000000000000000000000",
+        py_api=py_api,
+        expdb_test=expdb_test,
+    )
+    assert response.status_code == http.client.CONFLICT
+    assert response.json() == {"detail": "Task 1 is already attached to study 1."}
+
+
+def test_attach_task_to_study_but_task_not_exist_raises(
+    py_api: TestClient,
+    expdb_test: Connection,
+) -> None:
+    expdb_test.execute(text("UPDATE study SET status = 'in_preparation' WHERE id = 1"))
+    response = _attach_tasks_to_study(
+        study_id=1,
+        task_ids=[80123, 78914],
+        api_key="AD000000000000000000000000000000",
+        py_api=py_api,
+        expdb_test=expdb_test,
+    )
+    assert response.status_code == http.client.CONFLICT
+    assert response.json() == {"detail": "One or more of the tasks do not exist."}
