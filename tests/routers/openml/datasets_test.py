@@ -28,6 +28,45 @@ def test_error_unknown_dataset(
     assert {"code": "111", "message": "Unknown dataset"} == response.json()["detail"]
 
 
+def test_get_dataset(py_api: TestClient) -> None:
+    response = py_api.get("/datasets/1")
+    assert response.status_code == http.client.OK
+    description = response.json()
+    assert description.pop("description").startswith("**Author**:")
+
+    assert description == {
+        "id": 1,
+        "name": "anneal",
+        "version": 1,
+        "format": "arff",
+        "description_version": 1,
+        "upload_date": "2014-04-06T23:19:24",
+        "licence": "Public",
+        "url": "https://test.openml.org/data/v1/download/1/anneal.arff",
+        "parquet_url": "https://openml1.win.tue.nl/dataset1/dataset_1.pq",
+        "file_id": 1,
+        "default_target_attribute": "class",
+        "version_label": "1",
+        "tag": ["study_14"],
+        "visibility": "public",
+        "minio_url": "https://openml1.win.tue.nl/dataset1/dataset_1.pq",
+        "status": "in_preparation",
+        "processing_date": "2023-10-12T09:08:38",
+        "md5_checksum": "4eaed8b6ec9d8211024b6c089b064761",
+        "row_id_attribute": [],
+        "ignore_attribute": [],
+        "language": "",
+        "error": None,
+        "warning": None,
+        "citation": "",
+        "collection_date": None,
+        "contributor": [],
+        "creator": [],
+        "paper_url": None,
+        "original_data_url": [],
+    }
+
+
 @pytest.mark.parametrize(
     ("api_key", "response_code"),
     [

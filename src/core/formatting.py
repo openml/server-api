@@ -1,7 +1,7 @@
 import html
-from typing import Any
 
 from schemas.datasets.openml import DatasetFileFormat
+from sqlalchemy.engine import Row
 
 from core.errors import DatasetError
 
@@ -20,18 +20,18 @@ def _format_error(*, code: DatasetError, message: str) -> dict[str, str]:
     return {"code": str(code), "message": message}
 
 
-def _format_parquet_url(dataset: dict[str, Any]) -> str | None:
-    if dataset["format"].lower() != DatasetFileFormat.ARFF:
+def _format_parquet_url(dataset: Row) -> str | None:
+    if dataset.format.lower() != DatasetFileFormat.ARFF:
         return None
 
     minio_base_url = "https://openml1.win.tue.nl"
-    return f"{minio_base_url}/dataset{dataset['did']}/dataset_{dataset['did']}.pq"
+    return f"{minio_base_url}/dataset{dataset.did}/dataset_{dataset.did}.pq"
 
 
-def _format_dataset_url(dataset: dict[str, Any]) -> str:
+def _format_dataset_url(dataset: Row) -> str:
     base_url = "https://test.openml.org"
-    filename = f"{html.escape(dataset['name'])}.{dataset['format'].lower()}"
-    return f"{base_url}/data/v1/download/{dataset['file_id']}/{filename}"
+    filename = f"{html.escape(dataset.name)}.{dataset.format.lower()}"
+    return f"{base_url}/data/v1/download/{dataset.file_id}/{filename}"
 
 
 def _safe_unquote(text: str | None) -> str | None:
