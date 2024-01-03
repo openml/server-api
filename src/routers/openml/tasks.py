@@ -182,7 +182,7 @@ def get_task(
     name = f"Task {task_id} ({task_type.name})"
     dataset_id = task_inputs.get("source_data")
     if dataset_id and (dataset := get_dataset(dataset_id, expdb)):
-        name = f"Task {task_id}: {dataset['name']} ({task_type.name})"
+        name = f"Task {task_id}: {dataset.name} ({task_type.name})"
 
     return Task(
         id_=task.task_id,

@@ -5,6 +5,7 @@ from typing import Any, Iterable
 
 from schemas.datasets.openml import Feature, Quality
 from sqlalchemy import Connection, text
+from sqlalchemy.engine import Row
 
 from database.meta import get_column_names
 
@@ -23,11 +24,12 @@ def get_qualities_for_dataset(dataset_id: int, connection: Connection) -> list[Q
     return [Quality(name=row.quality, value=row.value) for row in rows]
 
 
-def get_qualities_for_datasets(
+def _get_qualities_for_datasets(
     dataset_ids: Iterable[int],
     qualities: Iterable[str],
     connection: Connection,
 ) -> dict[int, list[Quality]]:
+    """Don't call with user-provided input, as query is not parameterized."""
     qualities_filter = ",".join(f"'{q}'" for q in qualities)
     dids = ",".join(str(did) for did in dataset_ids)
     qualities_query = text(
@@ -35,7 +37,7 @@ def get_qualities_for_datasets(
         SELECT `data`, `quality`, `value`
         FROM data_quality
         WHERE `data` in ({dids}) AND `quality` IN ({qualities_filter})
-        """,  # nosec  - similar to above, no user input
+        """,  # nosec  - dids and qualities are not user-provided
     )
     rows = connection.execute(qualities_query)
     qualities_by_id = defaultdict(list)
@@ -59,8 +61,7 @@ def list_all_qualities(connection: Connection) -> list[str]:
     return [quality.quality for quality in qualities]
 
 
-def get_dataset(dataset_id: int, connection: Connection) -> dict[str, Any] | None:
-    columns = get_column_names(connection, "dataset")
+def get_dataset(dataset_id: int, connection: Connection) -> Row | None:
     row = connection.execute(
         text(
             """
@@ -71,7 +72,7 @@ def get_dataset(dataset_id: int, connection: Connection) -> dict[str, Any] | Non
         ),
         parameters={"dataset_id": dataset_id},
     )
-    return dict(zip(columns, result[0], strict=True)) if (result := list(row)) else None
+    return row.one_or_none()
 
 
 def get_file(file_id: int, connection: Connection) -> dict[str, Any] | None:
