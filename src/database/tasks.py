@@ -1,6 +1,6 @@
-from typing import Any, Sequence, cast
+from typing import Sequence, cast
 
-from sqlalchemy import Connection, CursorResult, MappingResult, Row, text
+from sqlalchemy import Connection, Row, text
 
 
 def get_task(task_id: int, expdb: Connection) -> Row | None:
@@ -43,42 +43,51 @@ def get_task_type(task_type_id: int, expdb: Connection) -> Row | None:
     ).one_or_none()
 
 
-def get_input_for_task_type(task_type_id: int, expdb: Connection) -> CursorResult[Any]:
-    return expdb.execute(
-        text(
-            """
+def get_input_for_task_type(task_type_id: int, expdb: Connection) -> Sequence[Row]:
+    return cast(
+        Sequence[Row],
+        expdb.execute(
+            text(
+                """
         SELECT *
         FROM task_type_inout
         WHERE `ttid`=:ttid AND `io`='input'
         """,
-        ),
-        parameters={"ttid": task_type_id},
+            ),
+            parameters={"ttid": task_type_id},
+        ).all(),
     )
 
 
-def get_input_for_task(task_id: int, expdb: Connection) -> MappingResult:
-    return expdb.execute(
-        text(
-            """
+def get_input_for_task(task_id: int, expdb: Connection) -> Sequence[Row]:
+    return cast(
+        Sequence[Row],
+        expdb.execute(
+            text(
+                """
             SELECT `input`, `value`
             FROM task_inputs
             WHERE task_id = :task_id
             """,
-        ),
-        parameters={"task_id": task_id},
-    ).all()
+            ),
+            parameters={"task_id": task_id},
+        ).all(),
+    )
 
 
-def get_task_type_inout_with_template(task_type: int, expdb: Connection) -> CursorResult[Any]:
-    return expdb.execute(
-        text(
-            """
+def get_task_type_inout_with_template(task_type: int, expdb: Connection) -> Sequence[Row]:
+    return cast(
+        Sequence[Row],
+        expdb.execute(
+            text(
+                """
             SELECT *
             FROM task_type_inout
             WHERE `ttid`=:ttid AND `template_api` IS NOT NULL
             """,
-        ),
-        parameters={"ttid": task_type},
+            ),
+            parameters={"ttid": task_type},
+        ).all(),
     )
 
 

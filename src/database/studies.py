@@ -1,6 +1,6 @@
 import re
 from datetime import datetime
-from typing import cast
+from typing import Sequence, cast
 
 from schemas.study import CreateStudy, StudyType
 from sqlalchemy import Connection, Row, text
@@ -34,10 +34,10 @@ def get_study_by_alias(alias: str, connection: Connection) -> Row | None:
     ).one_or_none()
 
 
-def get_study_data(study: Row, expdb: Connection) -> list[Row]:
+def get_study_data(study: Row, expdb: Connection) -> Sequence[Row]:
     if study.type_ == StudyType.TASK:
         return cast(
-            list[Row],
+            Sequence[Row],
             expdb.execute(
                 text(
                     """
@@ -50,7 +50,7 @@ def get_study_data(study: Row, expdb: Connection) -> list[Row]:
             ).all(),
         )
     return cast(
-        list[Row],
+        Sequence[Row],
         expdb.execute(
             text(
                 """

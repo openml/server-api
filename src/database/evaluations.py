@@ -1,24 +1,27 @@
-from typing import Any, Iterable
+from typing import Sequence, cast
 
 from core.formatting import _str_to_bool
 from schemas.datasets.openml import EstimationProcedure
-from sqlalchemy import Connection, CursorResult, text
+from sqlalchemy import Connection, Row, text
 
 
-def get_math_functions(function_type: str, connection: Connection) -> CursorResult[Any]:
-    return connection.execute(
-        text(
-            """
+def get_math_functions(function_type: str, connection: Connection) -> Sequence[Row]:
+    return cast(
+        Sequence[Row],
+        connection.execute(
+            text(
+                """
             SELECT *
             FROM math_function
             WHERE `functionType` = :function_type
             """,
-        ),
-        parameters={"function_type": function_type},
+            ),
+            parameters={"function_type": function_type},
+        ).all(),
     )
 
 
-def get_estimation_procedures(connection: Connection) -> Iterable[EstimationProcedure]:
+def get_estimation_procedures(connection: Connection) -> list[EstimationProcedure]:
     rows = connection.execute(
         text(
             """
