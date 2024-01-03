@@ -5,17 +5,18 @@ from typing import Annotated, Any, Literal, cast
 from database.tasks import get_input_for_task_type, get_task_types
 from database.tasks import get_task_type as db_get_task_type
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import Connection
+from sqlalchemy import Connection, Row
 
 from routers.dependencies import expdb_connection
 
 router = APIRouter(prefix="/tasktype", tags=["tasks"])
 
 
-def _normalize_task_type(task_type: dict[str, str | int]) -> dict[str, str | list[Any]]:
-    ttype: dict[str, str | list[Any]] = {
+def _normalize_task_type(task_type: Row) -> dict[str, str | None | list[Any]]:
+    # Task types may contain multi-line fields which have either \r\n or \n line endings
+    ttype: dict[str, str | None | list[Any]] = {
         k: str(v).replace("\r\n", "\n").strip() if v is not None else v
-        for k, v in task_type.items()
+        for k, v in task_type._mapping.items()
         if k != "id"
     }
     ttype["id"] = ttype.pop("ttid")
@@ -27,8 +28,11 @@ def _normalize_task_type(task_type: dict[str, str | int]) -> dict[str, str | lis
 @router.get(path="/list")
 def list_task_types(
     expdb: Annotated[Connection, Depends(expdb_connection)] = None,
-) -> dict[Literal["task_types"], dict[Literal["task_type"], list[dict[str, str | list[Any]]]]]:
-    task_types: list[dict[str, str | list[Any]]] = [
+) -> dict[
+    Literal["task_types"],
+    dict[Literal["task_type"], list[dict[str, str | None | list[Any]]]],
+]:
+    task_types: list[dict[str, str | None | list[Any]]] = [
         _normalize_task_type(ttype) for ttype in get_task_types(expdb)
     ]
     return {"task_types": {"task_type": task_types}}
@@ -38,7 +42,7 @@ def list_task_types(
 def get_task_type(
     task_type_id: int,
     expdb: Annotated[Connection, Depends(expdb_connection)],
-) -> dict[Literal["task_type"], dict[str, str | list[str] | list[dict[str, str]]]]:
+) -> dict[Literal["task_type"], dict[str, str | None | list[str] | list[dict[str, str]]]]:
     task_type_record = db_get_task_type(task_type_id, expdb)
     if task_type_record is None:
         raise HTTPException(
@@ -46,10 +50,7 @@ def get_task_type(
             detail={"code": "241", "message": "Unknown task type."},
         ) from None
 
-    # TODO: This below now is a RowMapping instead of a dictionary.
-    # In general: rerun all integration tests to make sure everything works after some
-    # recent task changes of dict to RowMapping/CursorResult[Any] types.
-    task_type = _normalize_task_type(task_type_record._asdict())
+    task_type = _normalize_task_type(task_type_record)
     # Some names are quoted, or have typos in their comma-separation (e.g. 'A ,B')
     task_type["creator"] = [
         creator.strip(' "') for creator in cast(str, task_type["creator"]).split(",")

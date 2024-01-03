@@ -1,10 +1,10 @@
-from typing import Any
+from typing import Any, Sequence, cast
 
-from sqlalchemy import Connection, CursorResult, MappingResult, RowMapping, text
+from sqlalchemy import Connection, CursorResult, MappingResult, Row, text
 
 
-def get_task(task_id: int, expdb: Connection) -> RowMapping | None:
-    task_row = expdb.execute(
+def get_task(task_id: int, expdb: Connection) -> Row | None:
+    return expdb.execute(
         text(
             """
             SELECT *
@@ -13,24 +13,25 @@ def get_task(task_id: int, expdb: Connection) -> RowMapping | None:
             """,
         ),
         parameters={"task_id": task_id},
-    )
-    return next(task_row.mappings(), None)
+    ).one_or_none()
 
 
-def get_task_types(expdb: Connection) -> list[dict[str, str | int]]:
-    rows = expdb.execute(
-        text(
-            """
+def get_task_types(expdb: Connection) -> Sequence[Row]:
+    return cast(
+        Sequence[Row],
+        expdb.execute(
+            text(
+                """
        SELECT `ttid`, `name`, `description`, `creator`
        FROM task_type
        """,
-        ),
+            ),
+        ).all(),
     )
-    return list(rows.mappings())
 
 
-def get_task_type(task_type_id: int, expdb: Connection) -> RowMapping | None:
-    row = expdb.execute(
+def get_task_type(task_type_id: int, expdb: Connection) -> Row | None:
+    return expdb.execute(
         text(
             """
         SELECT *
@@ -39,8 +40,7 @@ def get_task_type(task_type_id: int, expdb: Connection) -> RowMapping | None:
         """,
         ),
         parameters={"ttid": task_type_id},
-    )
-    return next(row, None)
+    ).one_or_none()
 
 
 def get_input_for_task_type(task_type_id: int, expdb: Connection) -> CursorResult[Any]:
@@ -57,7 +57,7 @@ def get_input_for_task_type(task_type_id: int, expdb: Connection) -> CursorResul
 
 
 def get_input_for_task(task_id: int, expdb: Connection) -> MappingResult:
-    rows = expdb.execute(
+    return expdb.execute(
         text(
             """
             SELECT `input`, `value`
@@ -66,8 +66,7 @@ def get_input_for_task(task_id: int, expdb: Connection) -> MappingResult:
             """,
         ),
         parameters={"task_id": task_id},
-    )
-    return rows.mappings()
+    ).all()
 
 
 def get_task_type_inout_with_template(task_type: int, expdb: Connection) -> CursorResult[Any]:
