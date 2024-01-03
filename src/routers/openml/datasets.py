@@ -262,9 +262,9 @@ def _get_processing_information(dataset_id: int, connection: Connection) -> Proc
     if not (data_processed := get_latest_processing_update(dataset_id, connection)):
         return ProcessingInformation(date=None, warning=None, error=None)
 
-    date_processed = data_processed["processing_date"]
-    warning = data_processed["warning"].strip() if data_processed["warning"] else None
-    error = data_processed["error"].strip() if data_processed["error"] else None
+    date_processed = data_processed.processing_date
+    warning = data_processed.warning.strip() if data_processed.warning else None
+    error = data_processed.error.strip() if data_processed.error else None
     return ProcessingInformation(date=date_processed, warning=warning, error=error)
 
 
@@ -306,7 +306,7 @@ def get_dataset_features(
                 273,
                 "Dataset not processed yet. The dataset was not processed yet, features are not yet available. Please wait for a few minutes.",  # noqa: E501
             )
-        elif processing_state.get("error"):
+        elif processing_state.error:
             code, msg = 274, "No features found. Additionally, dataset processed with error"
         else:
             code, msg = (
@@ -350,7 +350,7 @@ def update_dataset_status(
         )
 
     current_status = get_latest_status_update(dataset_id, expdb)
-    if current_status and current_status["status"] == status:
+    if current_status and current_status.status == status:
         raise HTTPException(
             status_code=http.client.PRECONDITION_FAILED,
             detail={"code": 694, "message": "Illegal status transition."},
@@ -364,7 +364,7 @@ def update_dataset_status(
     #  - deactivated => active  (delete a row)
     if current_status is None or status == DatasetStatus.DEACTIVATED:
         insert_status_for_dataset(dataset_id, user.user_id, status, expdb)
-    elif current_status["status"] == DatasetStatus.DEACTIVATED:
+    elif current_status.status == DatasetStatus.DEACTIVATED:
         remove_deactivated_status(dataset_id, expdb)
     else:
         raise HTTPException(
@@ -398,11 +398,11 @@ def get_dataset(
     processing_result = _get_processing_information(dataset_id, expdb_db)
     status = get_latest_status_update(dataset_id, expdb_db)
 
-    status_ = DatasetStatus(status["status"]) if status else DatasetStatus.IN_PREPARATION
+    status_ = DatasetStatus(status.status) if status else DatasetStatus.IN_PREPARATION
 
     description_ = ""
     if description:
-        description_ = description["description"].replace("\r", "").strip()
+        description_ = description.description.replace("\r", "").strip()
 
     dataset_url = _format_dataset_url(dataset)
     parquet_url = _format_parquet_url(dataset)
@@ -435,7 +435,7 @@ def get_dataset(
         warning=processing_result.warning,
         error=processing_result.error,
         description=description_,
-        description_version=description["version"] if description else 0,
+        description_version=description.version if description else 0,
         tag=tags,
         default_target_attribute=_safe_unquote(dataset.default_target_attribute),
         ignore_attribute=ignore_attribute,
@@ -448,5 +448,5 @@ def get_dataset(
         paper_url=dataset.paper_url or None,
         original_data_url=original_data_url,
         collection_date=dataset.collection_date,
-        md5_checksum=dataset_file["md5_hash"],
+        md5_checksum=dataset_file.md5_hash,
     )

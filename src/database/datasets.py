@@ -1,13 +1,11 @@
 """ Translation from https://github.com/openml/OpenML/blob/c19c9b99568c0fabb001e639ff6724b9a754bbc9/openml_OS/models/api/v1/Api_data.php#L707"""
 import datetime
 from collections import defaultdict
-from typing import Any, Iterable
+from typing import Iterable
 
 from schemas.datasets.openml import Feature, Quality
 from sqlalchemy import Connection, text
 from sqlalchemy.engine import Row
-
-from database.meta import get_column_names
 
 
 def get_qualities_for_dataset(dataset_id: int, connection: Connection) -> list[Quality]:
@@ -75,8 +73,7 @@ def get_dataset(dataset_id: int, connection: Connection) -> Row | None:
     return row.one_or_none()
 
 
-def get_file(file_id: int, connection: Connection) -> dict[str, Any] | None:
-    columns = get_column_names(connection, "file")
+def get_file(file_id: int, connection: Connection) -> Row | None:
     row = connection.execute(
         text(
             """
@@ -87,11 +84,10 @@ def get_file(file_id: int, connection: Connection) -> dict[str, Any] | None:
         ),
         parameters={"file_id": file_id},
     )
-    return dict(zip(columns, result[0], strict=True)) if (result := list(row)) else None
+    return row.one_or_none()
 
 
 def get_tags(dataset_id: int, connection: Connection) -> list[str]:
-    columns = get_column_names(connection, "dataset_tag")
     rows = connection.execute(
         text(
             """
@@ -102,7 +98,7 @@ def get_tags(dataset_id: int, connection: Connection) -> list[str]:
         ),
         parameters={"dataset_id": dataset_id},
     )
-    return [dict(zip(columns, row, strict=True))["tag"] for row in rows]
+    return [row.tag for row in rows]
 
 
 def tag_dataset(user_id: int, dataset_id: int, tag: str, connection: Connection) -> None:
@@ -124,8 +120,7 @@ def tag_dataset(user_id: int, dataset_id: int, tag: str, connection: Connection)
 def get_latest_dataset_description(
     dataset_id: int,
     connection: Connection,
-) -> dict[str, Any] | None:
-    columns = get_column_names(connection, "dataset_description")
+) -> Row | None:
     row = connection.execute(
         text(
             """
@@ -137,10 +132,10 @@ def get_latest_dataset_description(
         ),
         parameters={"dataset_id": dataset_id},
     )
-    return dict(zip(columns, result[0], strict=True)) if (result := list(row)) else None
+    return row.one_or_none()
 
 
-def get_latest_status_update(dataset_id: int, connection: Connection) -> dict[str, Any] | None:
+def get_latest_status_update(dataset_id: int, connection: Connection) -> Row | None:
     row = connection.execute(
         text(
             """
@@ -152,11 +147,10 @@ def get_latest_status_update(dataset_id: int, connection: Connection) -> dict[st
         ),
         parameters={"dataset_id": dataset_id},
     )
-    return next(row.mappings(), None)
+    return row.first()
 
 
-def get_latest_processing_update(dataset_id: int, connection: Connection) -> dict[str, Any] | None:
-    columns = get_column_names(connection, "data_processed")
+def get_latest_processing_update(dataset_id: int, connection: Connection) -> Row | None:
     row = connection.execute(
         text(
             """
@@ -168,9 +162,7 @@ def get_latest_processing_update(dataset_id: int, connection: Connection) -> dic
         ),
         parameters={"dataset_id": dataset_id},
     )
-    return (
-        dict(zip(columns, result[0], strict=True), strict=True) if (result := list(row)) else None
-    )
+    return row.one_or_none()
 
 
 def get_features_for_dataset(dataset_id: int, connection: Connection) -> list[Feature]:
