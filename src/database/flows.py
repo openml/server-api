@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy import Connection, CursorResult, text
+from sqlalchemy import Connection, CursorResult, Row, text
 
 
 def get_flow_subflows(flow_id: int, expdb: Connection) -> CursorResult[Any]:
@@ -16,7 +16,7 @@ def get_flow_subflows(flow_id: int, expdb: Connection) -> CursorResult[Any]:
     )
 
 
-def get_flow_tags(flow_id: int, expdb: Connection) -> CursorResult[Any]:
+def get_flow_tags(flow_id: int, expdb: Connection) -> list[str]:
     tag_rows = expdb.execute(
         text(
             """
@@ -43,7 +43,7 @@ def get_flow_parameters(flow_id: int, expdb: Connection) -> CursorResult[Any]:
     )
 
 
-def get_flow(flow_id: int, expdb: Connection) -> CursorResult[Any]:
+def get_flow(flow_id: int, expdb: Connection) -> Row | None:
     return expdb.execute(
         text(
             """
@@ -53,4 +53,4 @@ def get_flow(flow_id: int, expdb: Connection) -> CursorResult[Any]:
             """,
         ),
         parameters={"flow_id": flow_id},
-    )
+    ).one_or_none()
