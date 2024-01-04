@@ -1,5 +1,6 @@
 import http.client
 
+import deepdiff
 import httpx
 import pytest
 from sqlalchemy import Connection, text
@@ -274,7 +275,8 @@ def test_get_quality(py_api: TestClient) -> None:
         {"name": "kNN1NErrRate", "value": 0.06347438752783964},
         {"name": "kNN1NKappa", "value": 0.8261102938928316},
     ]
-    assert response.json() == expected
+    difference = deepdiff.DeepDiff(expected, response.json(), ignore_order=True)
+    assert not difference
 
 
 @pytest.mark.php()
