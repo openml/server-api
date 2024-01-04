@@ -132,7 +132,7 @@ def get_latest_dataset_description(
         ),
         parameters={"dataset_id": dataset_id},
     )
-    return row.one_or_none()
+    return row.first()
 
 
 def get_latest_status_update(dataset_id: int, connection: Connection) -> Row | None:
