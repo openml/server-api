@@ -51,7 +51,7 @@ def test_get_dataset(py_api: TestClient) -> None:
         "visibility": "public",
         "minio_url": "https://openml1.win.tue.nl/dataset1/dataset_1.pq",
         "status": "in_preparation",
-        "processing_date": "2023-10-12T09:08:38",
+        "processing_date": "2024-01-04T10:13:59",
         "md5_checksum": "4eaed8b6ec9d8211024b6c089b064761",
         "row_id_attribute": [],
         "ignore_attribute": [],

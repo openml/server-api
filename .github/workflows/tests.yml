@@ -25,7 +25,7 @@ jobs:
       - run: |
           { docker compose build python-api; docker compose up -d python-api; } &
           docker compose up -d --wait php-api
-      - run: docker container ls
+      - run: docker container ls && docker image ls
       - run: docker exec python-api python -m pytest -xv -m "php"
   python:
     runs-on: ubuntu-latest
