@@ -108,9 +108,9 @@ class DatasetMetadata(BaseModel):
     )
     description_version: int = Field(json_schema_extra={"example": 2})
     tags: list[str] = Field(json_schema_extra={"example": ["study_1", "uci"]}, alias="tag")
-    default_target_attribute: str | None = Field(json_schema_extra={"example": "class"})
-    ignore_attribute: list[str] | None = Field(json_schema_extra={"example": "sensitive_feature"})
-    row_id_attribute: list[str] | None = Field(json_schema_extra={"example": "ssn"})
+    default_target_attribute: list[str] = Field(json_schema_extra={"example": "class"})
+    ignore_attribute: list[str] = Field(json_schema_extra={"example": "sensitive_feature"})
+    row_id_attribute: list[str] = Field(json_schema_extra={"example": "ssn"})
 
     url: HttpUrl = Field(
         json_schema_extra={
