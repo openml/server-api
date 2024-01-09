@@ -1,6 +1,9 @@
 arff_base_url="https://test.openml.org"
 minio_base_url="https://openml1.win.tue.nl"
 
+[fastapi]
+root_path=""
+
 [databases.defaults]
 host="openml-test-database"
 port="3306"
