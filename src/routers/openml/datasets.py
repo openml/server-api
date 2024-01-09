@@ -15,7 +15,6 @@ from core.formatting import (
     _format_dataset_url,
     _format_error,
     _format_parquet_url,
-    _safe_unquote,
 )
 from database.datasets import (
     _get_qualities_for_datasets,
@@ -412,6 +411,7 @@ def get_dataset(
     ignore_attribute = _csv_as_list(dataset.ignore_attribute, unquote_items=True)
     row_id_attribute = _csv_as_list(dataset.row_id_attribute, unquote_items=True)
     original_data_url = _csv_as_list(dataset.original_data_url, unquote_items=True)
+    default_target_attribute = _csv_as_list(dataset.default_target_attribute, unquote_items=True)
 
     # Not sure which properties are set by this bit:
     # foreach( $this->xml_fields_dataset['csv'] as $field ) {
@@ -437,7 +437,7 @@ def get_dataset(
         description=description_,
         description_version=description.version if description else 0,
         tag=tags,
-        default_target_attribute=_safe_unquote(dataset.default_target_attribute),
+        default_target_attribute=default_target_attribute,
         ignore_attribute=ignore_attribute,
         row_id_attribute=row_id_attribute,
         url=dataset_url,
