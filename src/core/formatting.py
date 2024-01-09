@@ -1,5 +1,6 @@
 import html
 
+from config import load_configuration
 from schemas.datasets.openml import DatasetFileFormat
 from sqlalchemy.engine import Row
 
@@ -24,13 +25,13 @@ def _format_parquet_url(dataset: Row) -> str | None:
     if dataset.format.lower() != DatasetFileFormat.ARFF:
         return None
 
-    minio_base_url = "https://openml1.win.tue.nl"
+    minio_base_url = load_configuration()["minio_base_url"]
     prefix = dataset.did // 10_000
     return f"{minio_base_url}/{prefix:04d}/{dataset.did:04d}/dataset_{dataset.did}.pq"
 
 
 def _format_dataset_url(dataset: Row) -> str:
-    base_url = "https://test.openml.org"
+    base_url = load_configuration()["arff_base_url"]
     filename = f"{html.escape(dataset.name)}.{dataset.format.lower()}"
     return f"{base_url}/data/v1/download/{dataset.file_id}/{filename}"
 
