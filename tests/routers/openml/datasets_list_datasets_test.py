@@ -16,7 +16,7 @@ def _assert_empty_result(
     response: httpx.Response,
 ) -> None:
     assert response.status_code == http.client.PRECONDITION_FAILED
-    assert response.json()["detail"] == {"code": "372", "message": "No results"}
+    assert response.json() == []
 
 
 def test_list(py_api: TestClient) -> None:
@@ -280,10 +280,12 @@ def test_list_data_identical(
     uri += api_key_query
     original = php_api.get(uri)
 
-    assert original.status_code == response.status_code, response.json()
     if original.status_code == http.client.PRECONDITION_FAILED:
-        assert original.json()["error"] == response.json()["detail"]
+        assert original.json()["error"] == {"code": "372", "message": "No results"}
+        assert response.status_code == http.client.OK
+        assert response.json() == []
         return None
+    assert original.status_code == response.status_code, response.json()
     new_json = response.json()
     # Qualities in new response are typed
     for dataset in new_json:

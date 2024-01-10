@@ -213,10 +213,7 @@ def list_datasets(
         row.did: dict(zip(columns, row, strict=True)) for row in rows
     }
     if not datasets:
-        raise HTTPException(
-            status_code=http.client.PRECONDITION_FAILED,
-            detail={"code": "372", "message": "No results"},
-        ) from None
+        return []
 
     for dataset in datasets.values():
         # The old API does not actually provide the checksum but just an empty field
