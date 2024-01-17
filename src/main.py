@@ -1,11 +1,17 @@
 import argparse
 
 import uvicorn
+from config import load_configuration
 from fastapi import FastAPI
 from routers.mldcat_ap.dataset import router as mldcat_ap_router
-from routers.v1.datasets import router as datasets_router_v1_format
-from routers.v1.qualities import router as qualities_router
-from routers.v2.datasets import router as datasets_router
+from routers.openml.datasets import router as datasets_router
+from routers.openml.estimation_procedure import router as estimationprocedure_router
+from routers.openml.evaluations import router as evaluationmeasures_router
+from routers.openml.flows import router as flows_router
+from routers.openml.qualities import router as qualities_router
+from routers.openml.study import router as study_router
+from routers.openml.tasks import router as task_router
+from routers.openml.tasktype import router as ttype_router
 
 
 def _parse_args() -> argparse.Namespace:
@@ -35,13 +41,18 @@ def _parse_args() -> argparse.Namespace:
 
 
 def create_api() -> FastAPI:
-    app = FastAPI()
+    fastapi_kwargs = load_configuration()["fastapi"]
+    app = FastAPI(**fastapi_kwargs)
 
     app.include_router(datasets_router)
-    app.include_router(datasets_router_v1_format)
     app.include_router(qualities_router)
     app.include_router(mldcat_ap_router)
-
+    app.include_router(ttype_router)
+    app.include_router(evaluationmeasures_router)
+    app.include_router(estimationprocedure_router)
+    app.include_router(task_router)
+    app.include_router(flows_router)
+    app.include_router(study_router)
     return app
 
 

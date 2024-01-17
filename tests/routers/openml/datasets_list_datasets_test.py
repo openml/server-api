@@ -19,33 +19,28 @@ def _assert_empty_result(
     assert response.json()["detail"] == {"code": "372", "message": "No results"}
 
 
-def test_list(api_client: TestClient) -> None:
-    response = api_client.get("/v1/datasets/list/")
+def test_list(py_api: TestClient) -> None:
+    response = py_api.get("/datasets/list/")
     assert response.status_code == http.client.OK
-    assert "data" in response.json()
-    assert "dataset" in response.json()["data"]
-
-    datasets = response.json()["data"]["dataset"]
-    assert len(datasets) >= 1
+    assert len(response.json()) >= 1
 
 
 @pytest.mark.parametrize(
     ("status", "amount"),
     [
-        ("active", constants.NUMBER_OF_ACTIVE_DATASETS),
+        ("active", constants.NUMBER_OF_PUBLIC_ACTIVE_DATASETS),
         ("deactivated", constants.NUMBER_OF_DEACTIVATED_DATASETS),
         ("in_preparation", constants.NUMBER_OF_DATASETS_IN_PREPARATION),
         ("all", constants.NUMBER_OF_DATASETS - constants.NUMBER_OF_PRIVATE_DATASETS),
     ],
 )
-def test_list_filter_active(status: str, amount: int, api_client: TestClient) -> None:
-    response = api_client.post(
-        "/v1/datasets/list",
+def test_list_filter_active(status: str, amount: int, py_api: TestClient) -> None:
+    response = py_api.post(
+        "/datasets/list",
         json={"status": status, "pagination": {"limit": constants.NUMBER_OF_DATASETS}},
     )
     assert response.status_code == http.client.OK, response.json()
-    datasets = response.json()["data"]["dataset"]
-    assert len(datasets) == amount
+    assert len(response.json()) == amount
 
 
 @pytest.mark.parametrize(
@@ -57,29 +52,28 @@ def test_list_filter_active(status: str, amount: int, api_client: TestClient) ->
         (None, constants.NUMBER_OF_DATASETS - constants.NUMBER_OF_PRIVATE_DATASETS),
     ],
 )
-def test_list_accounts_privacy(api_key: ApiKey | None, amount: int, api_client: TestClient) -> None:
+def test_list_accounts_privacy(api_key: ApiKey | None, amount: int, py_api: TestClient) -> None:
     key = f"?api_key={api_key}" if api_key else ""
-    response = api_client.post(
-        f"/v1/datasets/list{key}",
+    response = py_api.post(
+        f"/datasets/list{key}",
         json={"status": "all", "pagination": {"limit": 1000}},
     )
     assert response.status_code == http.client.OK, response.json()
-    datasets = response.json()["data"]["dataset"]
-    assert len(datasets) == amount
+    assert len(response.json()) == amount
 
 
 @pytest.mark.parametrize(
     ("name", "count"),
     [("abalone", 1), ("iris", 2)],
 )
-def test_list_data_name_present(name: str, count: int, api_client: TestClient) -> None:
+def test_list_data_name_present(name: str, count: int, py_api: TestClient) -> None:
     # The second iris dataset is private, so we need to authenticate.
-    response = api_client.post(
-        f"/v1/datasets/list?api_key={ApiKey.ADMIN}",
+    response = py_api.post(
+        f"/datasets/list?api_key={ApiKey.ADMIN}",
         json={"status": "all", "data_name": name},
     )
     assert response.status_code == http.client.OK
-    datasets = response.json()["data"]["dataset"]
+    datasets = response.json()
     assert len(datasets) == count
     assert all(dataset["name"] == name for dataset in datasets)
 
@@ -88,25 +82,21 @@ def test_list_data_name_present(name: str, count: int, api_client: TestClient) -
     "name",
     ["ir", "long_name_without_overlap"],
 )
-def test_list_data_name_absent(name: str, api_client: TestClient) -> None:
-    response = api_client.post(
-        f"/v1/datasets/list?api_key={ApiKey.ADMIN}",
+def test_list_data_name_absent(name: str, py_api: TestClient) -> None:
+    response = py_api.post(
+        f"/datasets/list?api_key={ApiKey.ADMIN}",
         json={"status": "all", "data_name": name},
     )
     _assert_empty_result(response)
 
 
-def test_list_quality_filers() -> None:
-    pytest.skip("Not implemented")
-
-
 @pytest.mark.parametrize("limit", [None, 5, 10, 200])
 @pytest.mark.parametrize("offset", [None, 0, 5, 129, 130, 200])
-def test_list_pagination(limit: int | None, offset: int | None, api_client: TestClient) -> None:
+def test_list_pagination(limit: int | None, offset: int | None, py_api: TestClient) -> None:
     all_ids = [
         did
         for did in range(1, 1 + constants.NUMBER_OF_DATASETS)
-        if did not in [constants.PRIVATE_DATASET_ID]
+        if did not in constants.PRIVATE_DATASET_ID
     ]
 
     start = 0 if offset is None else offset
@@ -116,14 +106,14 @@ def test_list_pagination(limit: int | None, offset: int | None, api_client: Test
     offset_body = {} if offset is None else {"offset": offset}
     limit_body = {} if limit is None else {"limit": limit}
     filters = {"status": "all", "pagination": offset_body | limit_body}
-    response = api_client.post("/v1/datasets/list", json=filters)
+    response = py_api.post("/datasets/list", json=filters)
 
     if offset in [130, 200]:
         _assert_empty_result(response)
         return
 
     assert response.status_code == http.client.OK
-    reported_ids = {dataset["did"] for dataset in response.json()["data"]["dataset"]}
+    reported_ids = {dataset["did"] for dataset in response.json()}
     assert reported_ids == set(expected_ids)
 
 
@@ -131,20 +121,20 @@ def test_list_pagination(limit: int | None, offset: int | None, api_client: Test
     ("version", "count"),
     [(1, 100), (2, 6), (5, 1)],
 )
-def test_list_data_version(version: int, count: int, api_client: TestClient) -> None:
-    response = api_client.post(
-        f"/v1/datasets/list?api_key={ApiKey.ADMIN}",
+def test_list_data_version(version: int, count: int, py_api: TestClient) -> None:
+    response = py_api.post(
+        f"/datasets/list?api_key={ApiKey.ADMIN}",
         json={"status": "all", "data_version": version},
     )
     assert response.status_code == http.client.OK
-    datasets = response.json()["data"]["dataset"]
+    datasets = response.json()
     assert len(datasets) == count
     assert {dataset["version"] for dataset in datasets} == {version}
 
 
-def test_list_data_version_no_result(api_client: TestClient) -> None:
-    response = api_client.post(
-        f"/v1/datasets/list?api_key={ApiKey.ADMIN}",
+def test_list_data_version_no_result(py_api: TestClient) -> None:
+    response = py_api.post(
+        f"/datasets/list?api_key={ApiKey.ADMIN}",
         json={"status": "all", "data_version": 4},
     )
     _assert_empty_result(response)
@@ -158,9 +148,9 @@ def test_list_data_version_no_result(api_client: TestClient) -> None:
     ("user_id", "count"),
     [(1, 59), (2, 34), (16, 1)],
 )
-def test_list_uploader(user_id: int, count: int, key: str, api_client: TestClient) -> None:
-    response = api_client.post(
-        f"/v1/datasets/list?api_key={key}",
+def test_list_uploader(user_id: int, count: int, key: str, py_api: TestClient) -> None:
+    response = py_api.post(
+        f"/datasets/list?api_key={key}",
         json={"status": "all", "uploader": user_id},
     )
     # The dataset of user 16 is private, so can not be retrieved by other users.
@@ -169,45 +159,42 @@ def test_list_uploader(user_id: int, count: int, key: str, api_client: TestClien
         return
 
     assert response.status_code == http.client.OK
-    datasets = response.json()["data"]["dataset"]
-    assert len(datasets) == count
+    assert len(response.json()) == count
 
 
 @pytest.mark.parametrize(
     "data_id",
     [[1], [1, 2, 3], [1, 2, 3, 3000], [1, 2, 3, 130]],
 )
-def test_list_data_id(data_id: list[int], api_client: TestClient) -> None:
-    response = api_client.post(
-        "/v1/datasets/list",
+def test_list_data_id(data_id: list[int], py_api: TestClient) -> None:
+    response = py_api.post(
+        "/datasets/list",
         json={"status": "all", "data_id": data_id},
     )
 
     assert response.status_code == http.client.OK
-    datasets = response.json()["data"]["dataset"]
     private_or_not_exist = {130, 3000}
-    assert len(datasets) == len(set(data_id) - private_or_not_exist)
+    assert len(response.json()) == len(set(data_id) - private_or_not_exist)
 
 
 @pytest.mark.parametrize(
     ("tag", "count"),
     [("study_14", 100), ("study_15", 1)],
 )
-def test_list_data_tag(tag: str, count: int, api_client: TestClient) -> None:
-    response = api_client.post(
-        "/v1/datasets/list",
+def test_list_data_tag(tag: str, count: int, py_api: TestClient) -> None:
+    response = py_api.post(
+        "/datasets/list",
         # study_14 has 100 datasets, we overwrite the default `limit` because otherwise
         # we don't know if the results are limited by filtering on the tag.
         json={"status": "all", "tag": tag, "pagination": {"limit": 101}},
     )
     assert response.status_code == http.client.OK
-    datasets = response.json()["data"]["dataset"]
-    assert len(datasets) == count
+    assert len(response.json()) == count
 
 
-def test_list_data_tag_empty(api_client: TestClient) -> None:
-    response = api_client.post(
-        "/v1/datasets/list",
+def test_list_data_tag_empty(py_api: TestClient) -> None:
+    response = py_api.post(
+        "/datasets/list",
         json={"status": "all", "tag": "not-a-tag"},
     )
     _assert_empty_result(response)
@@ -226,13 +213,13 @@ def test_list_data_tag_empty(api_client: TestClient) -> None:
         ("number_missing_values", "2..100000", 22),
     ],
 )
-def test_list_data_quality(quality: str, range_: str, count: int, api_client: TestClient) -> None:
-    response = api_client.post(
-        "/v1/datasets/list",
+def test_list_data_quality(quality: str, range_: str, count: int, py_api: TestClient) -> None:
+    response = py_api.post(
+        "/datasets/list",
         json={"status": "all", quality: range_},
     )
     assert response.status_code == http.client.OK, response.json()
-    assert len(response.json()["data"]["dataset"]) == count
+    assert len(response.json()) == count
 
 
 @pytest.mark.php()
@@ -258,7 +245,8 @@ def test_list_data_quality(quality: str, range_: str, count: int, api_client: Te
     api_key=st.sampled_from([None, ApiKey.REGULAR_USER, ApiKey.OWNER_USER]),
 )  # type: ignore[misc]  # https://github.com/openml/server-api/issues/108
 def test_list_data_identical(
-    api_client: TestClient,
+    py_api: TestClient,
+    php_api: httpx.Client,
     **kwargs: dict[str, Any],
 ) -> Any:
     limit, offset = kwargs["limit"], kwargs["offset"]
@@ -275,8 +263,8 @@ def test_list_data_identical(
     if offset is not None:
         new_style["pagination"]["offset"] = offset
 
-    response = api_client.post(
-        f"/v1/datasets/list{api_key_query}",
+    response = py_api.post(
+        f"/datasets/list{api_key_query}",
         json=new_style,
     )
 
@@ -286,16 +274,24 @@ def test_list_data_identical(
         for filter_, value in kwargs.items()
         if value is not None
     ]
-    uri = "http://server-api-php-api-1:80/api/v1/json/data/list"
+    uri = "/data/list"
     if query:
         uri += f"/{'/'.join([str(v) for q in query for v in q])}"
     uri += api_key_query
-    original = httpx.get(uri)
+    original = php_api.get(uri)
 
     assert original.status_code == response.status_code, response.json()
     if original.status_code == http.client.PRECONDITION_FAILED:
         assert original.json()["error"] == response.json()["detail"]
         return None
-    assert len(original.json()["data"]["dataset"]) == len(response.json()["data"]["dataset"])
-    assert original.json()["data"]["dataset"] == response.json()["data"]["dataset"]
+    new_json = response.json()
+    # Qualities in new response are typed
+    for dataset in new_json:
+        for quality in dataset["quality"]:
+            quality["value"] = str(quality["value"])
+
+    # PHP API has a double nested dictionary that never has other entries
+    php_json = original.json()["data"]["dataset"]
+    assert len(php_json) == len(new_json)
+    assert php_json == new_json
     return None

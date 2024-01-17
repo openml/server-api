@@ -5,8 +5,6 @@ from typing import Annotated, Self
 from pydantic import StringConstraints
 from sqlalchemy import Connection, text
 
-from database.meta import get_column_names
-
 # Enforces str is 32 hexadecimal characters, does not check validity.
 APIKey = Annotated[str, StringConstraints(pattern=r"^[0-9a-fA-F]{32}$")]
 
@@ -18,8 +16,7 @@ class UserGroup(IntEnum):
 
 
 def get_user_id_for(*, api_key: APIKey, connection: Connection) -> int | None:
-    columns = get_column_names(connection, "users")
-    row = connection.execute(
+    user = connection.execute(
         text(
             """
     SELECT *
@@ -28,13 +25,11 @@ def get_user_id_for(*, api_key: APIKey, connection: Connection) -> int | None:
     """,
         ),
         parameters={"api_key": api_key},
-    )
-    if not (user := next(row, None)):
-        return None
-    return int(dict(zip(columns, user, strict=True))["id"])
+    ).one_or_none()
+    return user.id if user else None
 
 
-def get_user_groups_for(*, user_id: int, connection: Connection) -> list[int]:
+def get_user_groups_for(*, user_id: int, connection: Connection) -> list[UserGroup]:
     row = connection.execute(
         text(
             """
@@ -45,7 +40,7 @@ def get_user_groups_for(*, user_id: int, connection: Connection) -> list[int]:
         ),
         parameters={"user_id": user_id},
     )
-    return [group for group, in row]
+    return [UserGroup(group) for group, in row]
 
 
 @dataclasses.dataclass

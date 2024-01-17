@@ -5,7 +5,7 @@ from schemas.datasets.mldcat_ap import JsonLDGraph, convert_to_mldcat_ap
 from sqlalchemy import Connection
 
 from routers.dependencies import expdb_connection, userdb_connection
-from routers.v2.datasets import get_dataset
+from routers.openml.datasets import get_dataset
 
 router = APIRouter(prefix="/mldcat_ap/datasets", tags=["datasets"])
 

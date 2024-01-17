@@ -43,3 +43,7 @@ def load_database_configuration(file: Path = Path(__file__).parent / "config.tom
         "ok",
     )
     return database_configuration
+
+
+def load_configuration(file: Path = Path(__file__).parent / "config.toml") -> TomlTable:
+    return tomllib.loads(file.read_text())

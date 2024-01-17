@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
+from typing import Any
 
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -22,6 +23,39 @@ class DatasetStatus(StrEnum):
     DEACTIVATED = "deactivated"
     IN_PROCESSING = "in processing"
     IN_PREPARATION = "in_preparation"
+
+
+class Quality(BaseModel):
+    name: str
+    value: float | None
+
+
+class FeatureType(StrEnum):
+    NUMERIC = "numeric"
+    NOMINAL = "nominal"
+    STRING = "string"
+
+
+class Feature(BaseModel):
+    index: int
+    name: str
+    data_type: FeatureType
+    is_target: bool
+    is_ignore: bool
+    is_row_identifier: bool
+    number_of_missing_values: int
+    nominal_values: list[str] | None
+
+
+class EstimationProcedure(BaseModel):
+    id_: int = Field(serialization_alias="id")
+    task_type_id: int
+    name: str
+    type_: str = Field(serialization_alias="type")
+    percentage: int | None
+    repeats: int | None
+    folds: int | None
+    stratified_sampling: bool | None
 
 
 class DatasetMetadata(BaseModel):
@@ -74,9 +108,9 @@ class DatasetMetadata(BaseModel):
     )
     description_version: int = Field(json_schema_extra={"example": 2})
     tags: list[str] = Field(json_schema_extra={"example": ["study_1", "uci"]}, alias="tag")
-    default_target_attribute: str | None = Field(json_schema_extra={"example": "class"})
-    ignore_attribute: list[str] | None = Field(json_schema_extra={"example": "sensitive_feature"})
-    row_id_attribute: list[str] | None = Field(json_schema_extra={"example": "ssn"})
+    default_target_attribute: list[str] = Field(json_schema_extra={"example": "class"})
+    ignore_attribute: list[str] = Field(json_schema_extra={"example": "sensitive_feature"})
+    row_id_attribute: list[str] = Field(json_schema_extra={"example": "ssn"})
 
     url: HttpUrl = Field(
         json_schema_extra={
@@ -105,3 +139,15 @@ class DatasetMetadata(BaseModel):
         json_schema_extra={"example": "https://www.openml.org/d/2"},
     )
     md5_checksum: str = Field(json_schema_extra={"example": "d01f6ccd68c88b749b20bbe897de3713"})
+
+
+class Task(BaseModel):
+    id_: int = Field(serialization_alias="id", json_schema_extra={"example": 59})
+    name: str = Field(
+        json_schema_extra={"example": "Task 59:  mfeat-pixel (Supervised Classification)"},
+    )
+    task_type_id: int = Field(json_schema_extra={"example": 1})
+    task_type: str = Field(json_schema_extra={"example": "Supervised Classification"})
+    input_: list[dict[str, Any]] = Field(serialization_alias="input")
+    output: list[dict[str, Any]]
+    tags: list[str] = Field(default_factory=list)
