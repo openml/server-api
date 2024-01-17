@@ -70,7 +70,11 @@ class Agent(JsonLDObject):
     """
 
     type_: Literal["Agent"] = Field(default="Agent", serialization_alias="@type")
-    name: list[JsonLiteral] = Field(default_factory=list, min_length=1)
+    name: list[JsonLiteral] = Field(
+        default_factory=list,
+        min_length=1,
+        serialization_alias="Agent.name",
+    )
 
 
 class MD5Checksum(JsonLDObject):
@@ -80,10 +84,11 @@ class MD5Checksum(JsonLDObject):
     """
 
     type_: Literal["Checksum"] = Field(default="Checksum", serialization_alias="@type")
-    algorithm: Literal[
-        "http://spdx.org/rdf/terms#checksumAlgorithm_md5"
-    ] = "http://spdx.org/rdf/terms#checksumAlgorithm_md5"
-    value: str = Field(serialization_alias="checksumValue")
+    algorithm: Literal["http://spdx.org/rdf/terms#checksumAlgorithm_md5"] = Field(
+        "http://spdx.org/rdf/terms#checksumAlgorithm_md5",
+        serialization_alias="Checksum.algorithm",
+    )
+    value: str = Field(serialization_alias="Checksum.checksumValue")
 
 
 class FeatureType(StrEnum):
@@ -93,21 +98,21 @@ class FeatureType(StrEnum):
 
 class Feature(JsonLDObject):
     type_: Literal["Feature"] = Field(default="Feature", serialization_alias="@type")
-    name: str = Field()
-    feature_type: FeatureType = Field(serialization_alias="type")
-    description: JsonLiteral | None = Field(default=None)
+    name: str = Field(serialization_alias="Feature.name")
+    feature_type: FeatureType = Field(serialization_alias="Feature.type")
+    description: JsonLiteral | None = Field(default=None, serialization_alias="Feature.description")
 
 
 class QualityType(JsonLDObject):
     type_: Literal["QualityType"] = Field(default="QualityType", serialization_alias="@type")
-    name: str = Field()
-    quality_id: str = Field(serialization_alias="id")
+    name: str = Field(serialization_alias="QualityType.name")
+    quality_id: str = Field(serialization_alias="QualityType.id")
 
 
 class Quality(JsonLDObject):
     type_: Literal["Quality"] = Field(default="Quality", serialization_alias="@type")
-    quality_type: QualityType = Field(serialization_alias="type")
-    value: JsonLiteral = Field()
+    quality_type: QualityType = Field(serialization_alias="Quality.type")
+    value: JsonLiteral = Field(serialization_alias="Quality.value")
 
 
 class Distribution(JsonLDObject):
@@ -116,48 +121,63 @@ class Distribution(JsonLDObject):
     access_url: list[HttpUrl] = Field(
         default_factory=list,
         min_length=1,
-        serialization_alias="accessUrl",
+        serialization_alias="Distribution.accessUrl",
     )
     has_feature: list[JsonLDObjectReference[Feature]] = Field(
         default_factory=list,
-        serialization_alias="hasFeature",
+        serialization_alias="Distribution.hasFeature",
         min_length=1,
     )
     has_quality: list[JsonLDObjectReference[Quality]] = Field(
         default_factory=list,
-        serialization_alias="hasQuality",
+        serialization_alias="Distribution.hasQuality",
         min_length=1,
     )
 
     # other
-    byte_size: JsonLiteral | None = Field(serialization_alias="byteSize", default=None)
+    byte_size: JsonLiteral | None = Field(serialization_alias="Distribution.byteSize", default=None)
     default_target_attribute: JsonLiteral | None = Field(
-        serialization_alias="defaultTargetAttribute",
+        serialization_alias="Distribution.defaultTargetAttribute",
         default=None,
     )
-    download_url: list[HttpUrl] = Field(default_factory=list, serialization_alias="downloadUrl")
-    format_: JsonLiteral | None = Field(serialization_alias="format", default=None)
-    identifier: JsonLiteral | None = Field(default=None)
+    download_url: list[HttpUrl] = Field(
+        default_factory=list,
+        serialization_alias="Distribution.downloadUrl",
+    )
+    format_: JsonLiteral | None = Field(serialization_alias="Distribution.format", default=None)
+    identifier: JsonLiteral | None = Field(
+        default=None,
+        serialization_alias="Distribution.identifier",
+    )
     ignore_attribute: list[JsonLiteral] = Field(
         default_factory=list,
-        serialization_alias="ignoreAttirbute",
+        serialization_alias="Distribution.ignoreAttribute",
     )
     processing_error: JsonLiteral | None = Field(
-        serialization_alias="processingError",
+        serialization_alias="Distribution.processingError",
         default=None,
     )
     processing_warning: JsonLiteral | None = Field(
-        serialization_alias="processingWarning",
+        serialization_alias="Distribution.processingWarning",
         default=None,
     )
-    processing_data: JsonLiteral | None = Field(serialization_alias="processingDate", default=None)
-    row_id_attribute: JsonLiteral | None = Field(serialization_alias="rowIDAttribute", default=None)
-    title: list[JsonLiteral] = Field(default_factory=list)
-    checksum: JsonLDObjectReference[MD5Checksum] | None = Field(default=None)
+    processing_data: JsonLiteral | None = Field(
+        serialization_alias="Distribution.processingDate",
+        default=None,
+    )
+    row_id_attribute: JsonLiteral | None = Field(
+        serialization_alias="Distribution.rowIDAttribute",
+        default=None,
+    )
+    title: list[JsonLiteral] = Field(default_factory=list, serialization_alias="Distribution.title")
+    checksum: JsonLDObjectReference[MD5Checksum] | None = Field(
+        default=None,
+        serialization_alias="Distribution.checksum",
+    )
 
     access_service: list[JsonLDObjectReference[DataService]] = Field(
         default_factory=list,
-        serialization_alias="accessService",
+        serialization_alias="Distribution.accessService",
     )
     # has_policy: Policy | None = Field(alias="hasPolicy")
     # language: list[LinguisticSystem] = Field(default_factory=list)
@@ -167,47 +187,78 @@ class Distribution(JsonLDObject):
 class Dataset(JsonLDObject):
     type_: Literal["Dataset"] = Field(default="Dataset", serialization_alias="@type")
     # required
-    collection_date: JsonLiteral = Field(serialization_alias="collectionDate")
-    description: list[JsonLiteral] = Field(default_factory=list, min_length=1)
-    title: list[JsonLiteral] = Field(default_factory=list, min_length=1)
+    collection_date: JsonLiteral = Field(serialization_alias="Dataset.collectionDate")
+    description: list[JsonLiteral] = Field(
+        default_factory=list,
+        min_length=1,
+        serialization_alias="Dataset.description",
+    )
+    title: list[JsonLiteral] = Field(
+        default_factory=list,
+        min_length=1,
+        serialization_alias="Dataset.title",
+    )
 
     # other
-    access_rights: AccessRights | None = Field(serialization_alias="accessRights", default=None)
-    contributor: list[JsonLDObjectReference[Agent]] = Field(default_factory=list)
-    creator: Agent | None = Field(default=None)
+    access_rights: AccessRights | None = Field(
+        serialization_alias="Dataset.accessRights",
+        default=None,
+    )
+    contributor: list[JsonLDObjectReference[Agent]] = Field(
+        default_factory=list,
+        serialization_alias="Dataset.contributor",
+    )
+    creator: Agent | None = Field(default=None, serialization_alias="Dataset.creator")
     distribution: list[JsonLDObjectReference[Distribution]] = Field(
         default_factory=list,
+        serialization_alias="Dataset.distribution",
     )
     has_version: list[JsonLDObjectReference[Dataset]] = Field(
         default_factory=list,
-        serialization_alias="hasVersion",
+        serialization_alias="Dataset.hasVersion",
     )
     identifier: list[JsonLiteral] = Field(default_factory=list)
     is_referenced_by: list[JsonLiteral] = Field(
         default_factory=list,
-        serialization_alias="isReferencedBy",
+        serialization_alias="Dataset.isReferencedBy",
     )
     is_version_of: list[JsonLDObjectReference[Dataset]] = Field(
         default_factory=list,
-        serialization_alias="isVersionOf",
+        serialization_alias="Dataset.isVersionOf",
     )
-    issued: JsonLiteral | None = Field(default=None)
-    keyword: list[JsonLiteral] = Field(default_factory=list)
-    landing_page: list[JsonLiteral] = Field(default_factory=list, serialization_alias="landingPage")
-    publisher: JsonLDObjectReference[Agent] | None = Field(default=None)
-    status: DatasetStatus | None = Field(default=None)
-    version_info: JsonLiteral | None = Field(serialization_alias="versionInfo", default=None)
-    version_label: JsonLiteral | None = Field(serialization_alias="versionLabel", default=None)
-    visibility: Visibility | None = Field(default=None)
+    issued: JsonLiteral | None = Field(default=None, serialization_alias="Dataset.issued")
+    keyword: list[JsonLiteral] = Field(default_factory=list, serialization_alias="Dataset.keyword")
+    landing_page: list[JsonLiteral] = Field(
+        default_factory=list,
+        serialization_alias="Dataset.landingPage",
+    )
+    publisher: JsonLDObjectReference[Agent] | None = Field(
+        default=None,
+        serialization_alias="Dataset.publisher",
+    )
+    status: DatasetStatus | None = Field(default=None, serialization_alias="Dataset.status")
+    version_info: JsonLiteral | None = Field(
+        serialization_alias="Dataset.versionInfo",
+        default=None,
+    )
+    version_label: JsonLiteral | None = Field(
+        serialization_alias="Dataset.versionLabel",
+        default=None,
+    )
+    visibility: Visibility | None = Field(default=None, serialization_alias="Dataset.visibility")
 
 
 class DataService(JsonLDObject):
     type_: Literal["DataService"] = Field(default="DataService", serialization_alias="@type")
     endpoint_url: HttpUrl = Field(serialization_alias="DataService.endpointUrl")
-    title: list[JsonLiteral] = Field(default_factory=list, min_length=1)
+    title: list[JsonLiteral] = Field(
+        default_factory=list,
+        min_length=1,
+        serialization_alias="DataService.title",
+    )
     serves_dataset: list[JsonLDObjectReference[Dataset]] = Field(
         default_factory=list,
-        serialization_alias="servesDataset",
+        serialization_alias="DataService.servesDataset",
     )
 
 
