@@ -12,6 +12,7 @@ in Europe. Its basic use case is to enable a cross-data portal search for datase
 make public sector data better searchable across borders and sectors. This can be
 achieved by the exchange of descriptions of data sets among data portals.
 """
+
 import datetime
 from abc import ABC
 from typing import Literal, Union

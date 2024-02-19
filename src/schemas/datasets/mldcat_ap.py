@@ -5,6 +5,7 @@ This is an application profile, aimed to extend the use of DCAT-AP,
 originally envisaged for the description of a machine learning process,
 developed in collaboration with OpenML.
 """
+
 from __future__ import annotations
 
 from abc import ABC
@@ -77,9 +78,9 @@ class MD5Checksum(JsonLDObject):
     """
 
     type_: Literal["Checksum"] = "Checksum"
-    algorithm: Literal[
+    algorithm: Literal["http://spdx.org/rdf/terms#checksumAlgorithm_md5"] = (
         "http://spdx.org/rdf/terms#checksumAlgorithm_md5"
-    ] = "http://spdx.org/rdf/terms#checksumAlgorithm_md5"
+    )
     value: str = Field(serialization_alias="checksumValue")
 
 
@@ -216,9 +217,9 @@ Distribution.model_rebuild()
 
 class JsonLDGraph(BaseModel):
     context: str | dict[str, HttpUrl] = Field(default_factory=dict, serialization_alias="@context")
-    graph: list[
-        Distribution | DataService | Dataset | Quality | Feature | Agent | MD5Checksum
-    ] = Field(default_factory=list, serialization_alias="@graph")
+    graph: list[Distribution | DataService | Dataset | Quality | Feature | Agent | MD5Checksum] = (
+        Field(default_factory=list, serialization_alias="@graph")
+    )
 
     model_config = {"populate_by_name": True, "extra": "forbid"}
 
