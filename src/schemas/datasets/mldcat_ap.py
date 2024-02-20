@@ -99,7 +99,7 @@ class FeatureType(StrEnum):
 class Feature(JsonLDObject):
     type_: Literal["Feature"] = Field(default="Feature", serialization_alias="@type")
     name: str = Field(serialization_alias="Feature.name")
-    feature_type: FeatureType = Field(serialization_alias="Feature.type")
+    feature_type: str  = Field(serialization_alias="Feature.type")
     description: JsonLiteral | None = Field(default=None, serialization_alias="Feature.description")
 
 
@@ -286,7 +286,7 @@ def convert_to_mldcat_ap(dataset: DatasetMetadata) -> JsonLDGraph:
     example_feature = Feature(
         id_="example-petal-width",
         name="example_petal_width",
-        feature_type=FeatureType.NUMERIC,
+        feature_type="https://schema.org/Number",
         description="Feature information not loaded, this is an example.",
     )
 
@@ -306,7 +306,7 @@ def convert_to_mldcat_ap(dataset: DatasetMetadata) -> JsonLDGraph:
         access_url=[f"https://www.openml.org/d/{dataset.id_}"],
         has_feature=[JsonLDObjectReference[Feature].to(example_feature)],
         has_quality=[JsonLDObjectReference[Quality].to(example_quality)],
-        default_target_attribute=dataset.default_target_attribute,
+        default_target_attribute=next(iter(dataset.default_target_attribute),None),
         download_url=[dataset.url],
         format_=dataset.format_,
         checksum=JsonLDObjectReference[MD5Checksum].to(checksum),
