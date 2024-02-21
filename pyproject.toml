@@ -39,7 +39,7 @@ docs = [
 "Bug Tracker" = "https://github.com/openml/server-api/issues"
 
 [tool.bandit.assert_used]
-skips = ["tests/*"]
+skips = ["./tests/*"]
 
 [tool.black]
 line-length = 100
