@@ -2,6 +2,7 @@
 We add separate endpoints for old-style JSON responses, so they don't clutter the schema of the
 new API, and are easily removed later.
 """
+
 import http.client
 import re
 from datetime import datetime
