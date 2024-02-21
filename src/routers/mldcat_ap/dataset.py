@@ -7,7 +7,7 @@ from sqlalchemy import Connection
 from routers.dependencies import expdb_connection, userdb_connection
 from routers.openml.datasets import get_dataset
 
-router = APIRouter(prefix="/mldcat_ap/datasets", tags=["datasets"])
+router = APIRouter(prefix="/mldcat_ap/datasets", tags=["MLDCAT-AP"])
 
 
 @router.get(
