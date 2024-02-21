@@ -14,6 +14,7 @@ from typing import Generic, Literal, TypeVar
 
 from pydantic import BaseModel, Field, HttpUrl
 
+import schemas.datasets.openml
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Visibility
 
 
@@ -342,4 +343,16 @@ def convert_to_mldcat_ap(dataset: DatasetMetadata) -> JsonLDGraph:
             example_quality,
             checksum,
         ],
+    )
+
+
+def convert_feature_to_mldcat_ap(
+    distribution_id: int,
+    feature: schemas.datasets.openml.Feature,
+) -> Feature:
+    return Feature(
+        id_=f"https://openml.org/mldcat_ap/feature/{distribution_id}/{feature.index}",
+        name=feature.name,
+        feature_type=f"https://openml.org/schema/feature-type#{feature.data_type}",
+        description=None,
     )
