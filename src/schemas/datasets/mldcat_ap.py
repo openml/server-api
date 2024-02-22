@@ -12,10 +12,9 @@ from abc import ABC
 from enum import StrEnum
 from typing import Generic, Literal, TypeVar
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, HttpUrl, model_serializer
 
-import schemas.datasets.openml
-from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Visibility
+from schemas.datasets.openml import DatasetStatus, Visibility
 
 
 class JsonLDQualifiedLiteral(BaseModel):
@@ -54,6 +53,10 @@ class JsonLDObjectReference(BaseModel, Generic[T]):
     def to(cls, json_ld_object: T) -> JsonLDObjectReference[T]:
         """Create a reference to `json_ld_object`"""
         return cls(id_=json_ld_object.id_)
+
+    @model_serializer
+    def ser_model(self) -> str:
+        return self.id_
 
 
 class AccessRights(StrEnum):
@@ -102,18 +105,11 @@ class Feature(JsonLDObject):
     type_: Literal["Feature"] = Field(default="Feature", serialization_alias="@type")
     name: str = Field(serialization_alias="Feature.name")
     feature_type: str = Field(serialization_alias="Feature.type")
-    description: JsonLiteral | None = Field(default=None, serialization_alias="Feature.description")
-
-
-class QualityType(JsonLDObject):
-    type_: Literal["QualityType"] = Field(default="QualityType", serialization_alias="@type")
-    name: str = Field(serialization_alias="QualityType.name")
-    quality_id: str = Field(serialization_alias="QualityType.id")
 
 
 class Quality(JsonLDObject):
     type_: Literal["Quality"] = Field(default="Quality", serialization_alias="@type")
-    quality_type: QualityType = Field(serialization_alias="Quality.type")
+    quality_type: str = Field(serialization_alias="Quality.type")
     value: JsonLiteral = Field(serialization_alias="Quality.value")
 
 
@@ -219,7 +215,10 @@ class Dataset(JsonLDObject):
         default_factory=list,
         serialization_alias="Dataset.hasVersion",
     )
-    identifier: list[JsonLiteral] = Field(default_factory=list)
+    identifier: list[JsonLiteral] = Field(
+        default_factory=list,
+        serialization_alias="Dataset.identifier",
+    )
     is_referenced_by: list[JsonLiteral] = Field(
         default_factory=list,
         serialization_alias="Dataset.isReferencedBy",
@@ -277,82 +276,3 @@ class JsonLDGraph(BaseModel):
     )
 
     model_config = {"populate_by_name": True, "extra": "forbid"}
-
-
-def convert_to_mldcat_ap(dataset: DatasetMetadata) -> JsonLDGraph:
-    arff_service = DataService(
-        id_="openml-arff-service",
-        title=["OpenML ARFF server"],
-        endpoint_url="https://www.openml.org/data/download",
-    )
-    example_feature = Feature(
-        id_="example-petal-width",
-        name="example_petal_width",
-        feature_type="https://schema.org/Number",
-        description="Feature information not loaded, this is an example.",
-    )
-
-    example_quality = Quality(
-        id_="example-quality",
-        quality_type=QualityType(
-            id_="quality-type-example",
-            name="number_of_features",
-            quality_id="link_to_definition",
-        ),
-        value="150",
-    )
-    checksum = MD5Checksum(id_="checksum-id", value=dataset.md5_checksum)
-    # contributor and creator N/A
-    distribution = Distribution(
-        id_="distribution-id",
-        access_url=[f"https://www.openml.org/d/{dataset.id_}"],
-        has_feature=[JsonLDObjectReference[Feature].to(example_feature)],
-        has_quality=[JsonLDObjectReference[Quality].to(example_quality)],
-        default_target_attribute=next(iter(dataset.default_target_attribute), None),
-        download_url=[dataset.url],
-        format_=dataset.format_,
-        checksum=JsonLDObjectReference[MD5Checksum].to(checksum),
-        access_service=[JsonLDObjectReference[DataService].to(arff_service)],
-    )
-
-    mldcat_dataset = Dataset(
-        id_=str(dataset.id_),
-        type_="Dataset",
-        collection_date=str(dataset.upload_date),
-        description=[dataset.description],
-        title=[dataset.name],
-        distribution=[JsonLDObjectReference[Distribution].to(distribution)],
-        status=dataset.status,
-        version_info=str(dataset.version),
-        version_label=dataset.version_label,
-        visibility=dataset.visibility,
-        keyword=dataset.tags,
-        issued=JsonLDQualifiedLiteral(
-            value=str(dataset.upload_date),
-            type_="http://www.w3.org/2001/XMLSchema#dateTime",
-        ),
-    )
-
-    return JsonLDGraph(
-        context="https://semiceu.github.io/MLDCAT-AP/releases/1.0.0/context/mldcat-ap.jsonld",
-        graph=[
-            arff_service,
-            distribution,
-            mldcat_dataset,
-            example_feature,
-            example_quality,
-            checksum,
-        ],
-    )
-
-
-def convert_feature_to_mldcat_ap(
-    distribution_id: int,
-    feature: schemas.datasets.openml.Feature,
-) -> Feature:
-    return Feature(
-        id_=f"https://openml.org/mldcat_ap/feature/{distribution_id}/{feature.index}",
-        name=feature.name,
-        feature_type=f"https://openml.org/schema/feature-type#{feature.data_type}",
-        description=None,
-    )

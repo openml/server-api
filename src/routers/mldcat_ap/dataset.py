@@ -1,75 +1,113 @@
-"""Router for MLDCAT-AP endpoints: https://semiceu.github.io/MLDCAT-AP/releases/1.0.0/#examples"""
+"""Router for MLDCAT-AP endpoints: https://semiceu.github.io/MLDCAT-AP/releases/1.0.0/#examples
+
+Incredibly inefficient, but it's just a proof of concept.
+Specific queries could be written to fetch e.g., a single feature or quality.
+"""
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+import config
+from database.users import User
+from fastapi import APIRouter, Depends, HTTPException
 from schemas.datasets.mldcat_ap import (
     DataService,
+    Dataset,
     Distribution,
     Feature,
     JsonLDGraph,
     JsonLDObjectReference,
+    JsonLDQualifiedLiteral,
     MD5Checksum,
     Quality,
-    QualityType,
-    convert_feature_to_mldcat_ap,
-    convert_to_mldcat_ap,
 )
 from sqlalchemy import Connection
 
 from routers.dependencies import expdb_connection, fetch_user, userdb_connection
 from routers.openml.datasets import get_dataset, get_dataset_features
+from routers.openml.qualities import get_qualities
 
 router = APIRouter(prefix="/mldcat_ap", tags=["MLDCAT-AP"])
+_configuration = config.load_configuration()
+_server_url = (
+    f"{_configuration['arff_base_url']}{_configuration['fastapi']['root_path']}{router.prefix}"
+)
 
 
 @router.get(
-    path="/dataset/{dataset_id}",
-    description="Get meta-data for dataset with ID `dataset_id`.",
+    path="/distribution/{distribution_id}",
+    description="Get meta-data for distribution with ID `distribution_id`.",
 )
-def get_mldcat_ap_dataset(
-    dataset_id: int,
-    user: Annotated[Connection, Depends(fetch_user)] = None,
+def get_mldcat_ap_distribution(
+    distribution_id: int,
+    user: Annotated[User | None, Depends(fetch_user)] = None,
     user_db: Annotated[Connection, Depends(userdb_connection)] = None,
     expdb: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> JsonLDGraph:
-    dataset = get_dataset(
-        dataset_id=dataset_id,
+    oml_dataset = get_dataset(
+        dataset_id=distribution_id,
         user=user,
         user_db=user_db,
         expdb_db=expdb,
     )
-    openml_features = get_dataset_features(dataset_id, user, expdb)
-    features = [convert_feature_to_mldcat_ap(dataset_id, feature) for feature in openml_features]
-    example_quality = Quality(
-        id_="example-quality",
-        quality_type=QualityType(
-            id_="quality-type-example",
-            name="number_of_features",
-            quality_id="link_to_definition",
-        ),
-        value="150",
+    openml_features = get_dataset_features(distribution_id, user, expdb)
+    features = [
+        Feature(
+            id_=f"{_server_url}/feature/{distribution_id}/{feature.index}",
+            name=feature.name,
+            feature_type=f"{_server_url}/schema/feature-type#{feature.data_type}",
+        )
+        for feature in openml_features
+    ]
+    oml_qualities = get_qualities(distribution_id, user, expdb)
+    qualities = [
+        Quality(
+            id_=f"{_server_url}/quality/{quality.name}/{distribution_id}",
+            quality_type=f"{_server_url}/quality/{quality.name}",
+            value=str(quality.value),
+        )
+        for quality in oml_qualities
+    ]
+    checksum = MD5Checksum(
+        id_=f"{_server_url}/checksum/{distribution_id}",
+        value=oml_dataset.md5_checksum,
     )
-    checksum = MD5Checksum(id_="checksum-id", value=dataset.md5_checksum)
     arff_service = DataService(
-        id_="openml-arff-service",
-        title=["OpenML ARFF server"],
-        endpoint_url="https://www.openml.org/data/download",
+        id_=f"{_server_url}/dataservice/1",
+        endpoint_url=_server_url,
+        title=["REST API for sharing OpenML metadata in MLDCAT-AP format."],
     )
     distribution = Distribution(
-        id_="distribution-id",
-        access_url=[f"https://www.openml.org/d/{dataset_id}"],
+        id_=f"{_server_url}/distribution/{distribution_id}",
+        access_url=[f"https://www.openml.org/d/{distribution_id}"],
         has_feature=[JsonLDObjectReference[Feature].to(feature) for feature in features],
-        has_quality=[JsonLDObjectReference[Quality].to(example_quality)],
-        default_target_attribute=next(iter(dataset.default_target_attribute), None),
-        download_url=[dataset.url],
-        format_=dataset.format_,
+        has_quality=[JsonLDObjectReference[Quality].to(quality) for quality in qualities],
+        default_target_attribute=next(iter(oml_dataset.default_target_attribute), None),
+        download_url=[oml_dataset.url],
+        format_=oml_dataset.format_,
         checksum=JsonLDObjectReference[MD5Checksum].to(checksum),
         access_service=[JsonLDObjectReference[DataService].to(arff_service)],
+    )
+    mldcat_dataset = Dataset(
+        id_=str(distribution_id),
+        type_="Dataset",
+        collection_date=str(oml_dataset.upload_date),
+        description=[oml_dataset.description],
+        title=[oml_dataset.name],
+        distribution=[JsonLDObjectReference[Distribution].to(distribution)],
+        status=oml_dataset.status,
+        version_info=str(oml_dataset.version),
+        version_label=oml_dataset.version_label,
+        visibility=oml_dataset.visibility,
+        keyword=oml_dataset.tags,
+        issued=JsonLDQualifiedLiteral(
+            value=str(oml_dataset.upload_date),
+            type_="http://www.w3.org/2001/XMLSchema#dateTime",
+        ),
     )
     return JsonLDGraph(
         context="https://semiceu.github.io/MLDCAT-AP/releases/1.0.0/context.jsonld",
         graph=[
+            mldcat_dataset,
             distribution,
             arff_service,
             checksum,
@@ -81,17 +119,19 @@ def get_mldcat_ap_dataset(
     path="/dataservice/{service_id}",
     description="Get meta-data for a specific data service.",
 )
-def get_dataservice(
-    dataset_id: int,
-    user_db: Annotated[Connection, Depends(userdb_connection)] = None,
-    expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
-) -> JsonLDGraph:
-    openml_dataset = get_dataset(
-        dataset_id=dataset_id,
-        user_db=user_db,
-        expdb_db=expdb_db,
+def get_dataservice(service_id: int) -> JsonLDGraph:
+    if service_id != 1:
+        raise HTTPException(status_code=404, detail="Service not found.")
+    return JsonLDGraph(
+        context="https://semiceu.github.io/MLDCAT-AP/releases/1.0.0/context.jsonld",
+        graph=[
+            DataService(
+                id_=f"{_server_url}/dataservice/{service_id}",
+                endpoint_url=_server_url,
+                title=["REST API for sharing OpenML metadata in MLDCAT-AP format."],
+            ),
+        ],
     )
-    return convert_to_mldcat_ap(openml_dataset)
 
 
 @router.get(
@@ -99,16 +139,25 @@ def get_dataservice(
     description="Get meta-data for a specific quality and distribution.",
 )
 def get_distribution_quality(
-    dataset_id: int,
-    user: Annotated[Connection, Depends(fetch_user)] = None,
+    quality_name: str,
+    distribution_id: int,
+    user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> JsonLDGraph:
-    openml_dataset = get_dataset(
-        dataset_id=dataset_id,
-        user=user,
-        expdb_db=expdb,
+    qualities = get_qualities(distribution_id, user, expdb)
+    quality = next(q for q in qualities if q.name == quality_name)
+    example_quality = Quality(
+        id_=f"{_server_url}/quality/{quality_name}/{distribution_id}",
+        quality_type=f"{_server_url}/quality/{quality_name}",
+        value=str(quality.value),
     )
-    return convert_to_mldcat_ap(openml_dataset)
+
+    return JsonLDGraph(
+        context="https://semiceu.github.io/MLDCAT-AP/releases/1.0.0/context.jsonld",
+        graph=[
+            example_quality,
+        ],
+    )
 
 
 @router.get(
@@ -126,9 +175,11 @@ def get_distribution_feature(
         user=user,
         expdb=expdb,
     )
-    mldcat_feature = convert_feature_to_mldcat_ap(
-        distribution_id,
-        features[feature_no],
+    feature = features[feature_no]
+    mldcat_feature = Feature(
+        id_=f"{_server_url}/feature/{distribution_id}/{feature.index}",
+        name=feature.name,
+        feature_type=f"{_server_url}/schema/feature-type#{feature.data_type}",
     )
     return JsonLDGraph(
         context="https://semiceu.github.io/MLDCAT-AP/releases/1.0.0/context.jsonld",
