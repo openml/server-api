@@ -12,7 +12,7 @@ from abc import ABC
 from enum import StrEnum
 from typing import Generic, Literal, TypeVar
 
-from pydantic import BaseModel, Field, HttpUrl, model_serializer
+from pydantic import BaseModel, Field, HttpUrl, field_serializer, model_serializer
 
 from schemas.datasets.openml import DatasetStatus, Visibility
 
@@ -247,6 +247,14 @@ class Dataset(JsonLDObject):
         default=None,
     )
     visibility: Visibility | None = Field(default=None, serialization_alias="Dataset.visibility")
+
+    @field_serializer("status")
+    def serialize_status(self, v: DatasetStatus) -> str:
+        return f"https://openml.org/mldcatap/mldcat-ap/dataset-status#{v}"
+
+    @field_serializer("visibility")
+    def serialize_visibility(self, v: Visibility) -> str:
+        return f"https://openml.org/mldcatap/mldcat-ap/dataset-visibility#{v}"
 
 
 class DataService(JsonLDObject):
