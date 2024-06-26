@@ -124,12 +124,12 @@ class DatasetMetadata(BaseModel):
             "description": "URL of the parquet dataset data file.",
         },
     )
-    minio_url: HttpUrl | None = Field(
-        json_schema_extra={
-            "example": "http://openml1.win.tue.nl/dataset2/dataset_2.pq",
-            "description": "Deprecated, I think.",
-        },
-    )
+    # minio_url: HttpUrl | None = Field(
+    #     json_schema_extra={
+    #         "example": "http://openml1.win.tue.nl/dataset2/dataset_2.pq",
+    #         "description": "Deprecated, I think.",
+    #     },
+    # )
     file_id: int = Field(json_schema_extra={"example": 1})
     format_: DatasetFileFormat = Field(
         json_schema_extra={"example": DatasetFileFormat.ARFF},
