@@ -29,7 +29,7 @@ def list_qualities(
 @router.get("/qualities/{dataset_id}")
 def get_qualities(
     dataset_id: int,
-    user: Annotated[User, Depends(fetch_user)],
+    user: Annotated[User | None, Depends(fetch_user)],
     expdb: Annotated[Connection, Depends(expdb_connection)],
 ) -> list[Quality]:
     dataset = get_dataset(dataset_id, expdb)
