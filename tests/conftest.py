@@ -2,7 +2,7 @@ import contextlib
 import json
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any, Iterator
 
 import httpx
 import pytest
@@ -21,7 +21,7 @@ class ApiKey(StrEnum):
 
 
 @contextlib.contextmanager
-def automatic_rollback(engine: Engine) -> Generator[Connection, None, None]:
+def automatic_rollback(engine: Engine) -> Iterator[Connection]:
     with engine.connect() as connection:
         transaction = connection.begin()
         yield connection
@@ -41,7 +41,7 @@ def user_test() -> Connection:
 
 
 @pytest.fixture()
-def php_api() -> httpx.Client:
+def php_api() -> Iterator[httpx.Client]:
     with httpx.Client(base_url="http://server-api-php-api-1:80/api/v1/json") as client:
         yield client
 
@@ -56,7 +56,7 @@ def py_api(expdb_test: Connection, user_test: Connection) -> TestClient:
 
 
 @pytest.fixture()
-def dataset_130() -> Generator[dict[str, Any], None, None]:
+def dataset_130() -> Iterator[dict[str, Any]]:
     json_path = Path(__file__).parent / "resources" / "datasets" / "dataset_130.json"
     with json_path.open("r") as dataset_file:
         yield json.load(dataset_file)

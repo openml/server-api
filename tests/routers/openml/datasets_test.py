@@ -1,7 +1,6 @@
 import http.client
-from typing import Any, cast
+from typing import Any
 
-import httpx
 import pytest
 from schemas.datasets.openml import DatasetStatus
 from starlette.testclient import TestClient
@@ -22,7 +21,7 @@ def test_error_unknown_dataset(
     response_code: int,
     py_api: TestClient,
 ) -> None:
-    response = cast(httpx.Response, py_api.get(f"/datasets/{dataset_id}"))
+    response = py_api.get(f"/datasets/{dataset_id}")
 
     assert response.status_code == response_code
     assert {"code": "111", "message": "Unknown dataset"} == response.json()["detail"]
@@ -80,7 +79,7 @@ def test_private_dataset_no_user_no_access(
     response_code: int,
 ) -> None:
     query = f"?api_key={api_key}" if api_key else ""
-    response = cast(httpx.Response, py_api.get(f"/datasets/130{query}"))
+    response = py_api.get(f"/datasets/130{query}")
 
     assert response.status_code == response_code
     assert {"code": "112", "message": "No access granted"} == response.json()["detail"]
@@ -91,14 +90,14 @@ def test_private_dataset_owner_access(
     py_api: TestClient,
     dataset_130: dict[str, Any],
 ) -> None:
-    response = cast(httpx.Response, py_api.get("/v2/datasets/130?api_key=..."))
+    response = py_api.get("/v2/datasets/130?api_key=...")
     assert response.status_code == http.client.OK
     assert dataset_130 == response.json()
 
 
 @pytest.mark.skip("Not sure how to include apikey in test yet.")
 def test_private_dataset_admin_access(py_api: TestClient) -> None:
-    cast(httpx.Response, py_api.get("/v2/datasets/130?api_key=..."))
+    py_api.get("/v2/datasets/130?api_key=...")
     # test against cached response
 
 

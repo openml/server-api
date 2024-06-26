@@ -11,24 +11,24 @@ def test_get_study_equal(py_api: TestClient, php_api: httpx.Client) -> None:
     old = php_api.get("/study/1")
     assert new.status_code == old.status_code
 
-    new = new.json()
+    new_json = new.json()
     # New implementation is typed
-    new = nested_num_to_str(new)
+    new_json = nested_num_to_str(new_json)
     # New implementation has same fields even if empty
-    new = nested_remove_nones(new)
-    new["tasks"] = {"task_id": new.pop("task_ids")}
-    new["data"] = {"data_id": new.pop("data_ids")}
-    if runs := new.pop("run_ids", None):
-        new["runs"] = {"run_id": runs}
-    if flows := new.pop("flow_ids", None):
-        new["flows"] = {"flow_id": flows}
-    if setups := new.pop("setup_ids", None):
-        new["setup"] = {"setup_id": setups}
+    new_json = nested_remove_nones(new_json)
+    new_json["tasks"] = {"task_id": new_json.pop("task_ids")}
+    new_json["data"] = {"data_id": new_json.pop("data_ids")}
+    if runs := new_json.pop("run_ids", None):
+        new_json["runs"] = {"run_id": runs}
+    if flows := new_json.pop("flow_ids", None):
+        new_json["flows"] = {"flow_id": flows}
+    if setups := new_json.pop("setup_ids", None):
+        new_json["setup"] = {"setup_id": setups}
 
     # New implementation is not nested
-    new = {"study": new}
+    new_json = {"study": new_json}
     difference = deepdiff.diff.DeepDiff(
-        new,
+        new_json,
         old.json(),
         ignore_order=True,
         ignore_numeric_type_changes=True,
