@@ -1,6 +1,6 @@
 import http.client
 import json
-from typing import Any, cast
+from typing import Any
 
 import httpx
 import pytest
@@ -32,16 +32,16 @@ def test_dataset_response_is_identical(
         return
 
     try:
-        original = original.json()["data_set_description"]
+        original_json = original.json()["data_set_description"]
     except json.decoder.JSONDecodeError:
         pytest.skip("A PHP error occurred on the test server.")
 
-    if "div" in original:
+    if "div" in original_json:
         pytest.skip("A PHP error occurred on the test server.")
 
     # There are a few changes between the old API and the new API, so we convert here:
     # The new API has normalized `format` field:
-    original["format"] = original["format"].lower()
+    original_json["format"] = original_json["format"].lower()
 
     # There is odd behavior in the live server that I don't want to recreate:
     # when the creator is a list of csv names, it can either be a str or a list
@@ -49,11 +49,11 @@ def test_dataset_response_is_identical(
     # '"Alice", "Bob"' -> ["Alice", "Bob"]
     # 'Alice, Bob' -> 'Alice, Bob'
     if (
-        "creator" in original
-        and isinstance(original["creator"], str)
-        and len(original["creator"].split(",")) > 1
+        "creator" in original_json
+        and isinstance(original_json["creator"], str)
+        and len(original_json["creator"].split(",")) > 1
     ):
-        original["creator"] = [name.strip() for name in original["creator"].split(",")]
+        original_json["creator"] = [name.strip() for name in original_json["creator"].split(",")]
 
     new_body = new.json()
     if processing_data := new_body.get("processing_date"):
@@ -92,7 +92,7 @@ def test_dataset_response_is_identical(
     if "description" not in new_body:
         new_body["description"] = []
 
-    assert original == new_body
+    assert original_json == new_body
 
 
 @pytest.mark.parametrize(
@@ -103,7 +103,7 @@ def test_error_unknown_dataset(
     dataset_id: int,
     py_api: TestClient,
 ) -> None:
-    response = cast(httpx.Response, py_api.get(f"/datasets/{dataset_id}"))
+    response = py_api.get(f"/datasets/{dataset_id}")
 
     # The new API has "404 Not Found" instead of "412 PRECONDITION_FAILED"
     assert response.status_code == http.client.NOT_FOUND
@@ -119,7 +119,7 @@ def test_private_dataset_no_user_no_access(
     api_key: str | None,
 ) -> None:
     query = f"?api_key={api_key}" if api_key else ""
-    response = cast(httpx.Response, py_api.get(f"/datasets/130{query}"))
+    response = py_api.get(f"/datasets/130{query}")
 
     # New response is 403: Forbidden instead of 412: PRECONDITION FAILED
     assert response.status_code == http.client.FORBIDDEN
@@ -131,15 +131,17 @@ def test_private_dataset_owner_access(
     py_api: TestClient,
     dataset_130: dict[str, Any],
 ) -> None:
-    response = cast(httpx.Response, py_api.get("/datasets/130?api_key=..."))
+    response = py_api.get("/datasets/130?api_key=...")
     assert response.status_code == http.client.OK
     assert dataset_130 == response.json()
 
 
 @pytest.mark.skip("Not sure how to include apikey in test yet.")
 def test_private_dataset_admin_access(py_api: TestClient) -> None:
-    cast(httpx.Response, py_api.get("/datasets/130?api_key=..."))
-    # test against cached response
+    py_api.get("/datasets/130?api_key=...")
+
+
+# test against cached response
 
 
 @pytest.mark.php()
@@ -179,12 +181,9 @@ def test_dataset_tag_response_is_identical(
             "/data/untag",
             data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
         )
-    new = cast(
-        httpx.Response,
-        py_api.post(
-            f"/datasets/tag?api_key={api_key}",
-            json={"data_id": dataset_id, "tag": tag},
-        ),
+    new = py_api.post(
+        f"/datasets/tag?api_key={api_key}",
+        json={"data_id": dataset_id, "tag": tag},
     )
 
     assert original.status_code == new.status_code, original.json()
