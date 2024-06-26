@@ -23,9 +23,10 @@ jobs:
       # start all services, which kickstarts Elastic Search and building indices.
       # But since those two steps are independent, we can parallelize them to save time.
       - run: |
-          { docker compose build python-api; docker compose up -d python-api; } &
-          docker compose up -d --wait php-api
+          docker compose build python-api
+          docker compose up -d --wait python-api php-api
       - run: docker container ls && docker image ls
+      - run: docker exec python-api python -m pip freeze
       - run: docker exec python-api python -m pytest -xv -m "php"
   python:
     runs-on: ubuntu-latest
@@ -35,5 +36,6 @@ jobs:
         with:
           python-version: 3.x
       - run: docker compose up -d --wait database python-api
-      - run: docker container ls
+      - run: docker container ls && docker image ls
+      - run: docker exec python-api python -m pip freeze
       - run: docker exec python-api python -m pytest -xv -m "not php"
