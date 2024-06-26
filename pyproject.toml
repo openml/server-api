@@ -14,6 +14,7 @@ classifiers = [
 ]
 dependencies = [
     "fastapi",
+    "pydantic<2.7",
     "uvicorn",
     "sqlalchemy",
     "mysqlclient",
