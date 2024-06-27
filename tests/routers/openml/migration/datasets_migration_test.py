@@ -58,14 +58,6 @@ def test_dataset_response_is_identical(
     new_body = new.json()
     if processing_data := new_body.get("processing_date"):
         new_body["processing_date"] = str(processing_data).replace("T", " ")
-    if parquet_url := new_body.get("parquet_url"):
-        bucket, prefix, did, filename = parquet_url.rsplit("/", 3)
-        new_body["parquet_url"] = f"{bucket}/dataset{did.lstrip('0')}/{filename}"
-        new_body["parquet_url"] = new_body["parquet_url"].replace("https", "http")
-    if minio_url := new_body.get("minio_url"):
-        bucket, prefix, did, filename = minio_url.rsplit("/", 3)
-        new_body["minio_url"] = f"{bucket}/dataset{did.lstrip('0')}/{filename}"
-        new_body["minio_url"] = new_body["minio_url"].replace("https", "http")
 
     manual = []
     # ref test.openml.org/d/33 (contributor) and d/34 (creator)

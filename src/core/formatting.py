@@ -27,7 +27,7 @@ def _format_parquet_url(dataset: Row) -> str | None:
 
     minio_base_url = load_configuration()["minio_base_url"]
     prefix = dataset.did // 10_000
-    return f"{minio_base_url}/{prefix:04d}/{dataset.did:04d}/dataset_{dataset.did}.pq"
+    return f"{minio_base_url}/datasets/{prefix:04d}/{dataset.did:04d}/dataset_{dataset.did}.pq"
 
 
 def _format_dataset_url(dataset: Row) -> str:

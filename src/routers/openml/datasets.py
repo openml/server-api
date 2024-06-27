@@ -443,7 +443,6 @@ def get_dataset(
         row_id_attribute=row_id_attribute,
         url=dataset_url,
         parquet_url=parquet_url,
-        minio_url=parquet_url,
         file_id=dataset.file_id,
         format=dataset.format.lower(),
         paper_url=dataset.paper_url or None,
