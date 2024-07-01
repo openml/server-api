@@ -24,7 +24,7 @@ def test_error_unknown_dataset(
     response = py_api.get(f"/datasets/{dataset_id}")
 
     assert response.status_code == response_code
-    assert {"code": "111", "message": "Unknown dataset"} == response.json()["detail"]
+    assert response.json()["detail"] == {"code": "111", "message": "Unknown dataset"}
 
 
 def test_get_dataset(py_api: TestClient) -> None:
@@ -81,7 +81,7 @@ def test_private_dataset_no_user_no_access(
     response = py_api.get(f"/datasets/130{query}")
 
     assert response.status_code == response_code
-    assert {"code": "112", "message": "No access granted"} == response.json()["detail"]
+    assert response.json()["detail"] == {"code": "112", "message": "No access granted"}
 
 
 @pytest.mark.skip("Not sure how to include apikey in test yet.")

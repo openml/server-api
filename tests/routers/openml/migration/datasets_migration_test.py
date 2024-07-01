@@ -99,7 +99,7 @@ def test_error_unknown_dataset(
 
     # The new API has "404 Not Found" instead of "412 PRECONDITION_FAILED"
     assert response.status_code == http.client.NOT_FOUND
-    assert {"code": "111", "message": "Unknown dataset"} == response.json()["detail"]
+    assert response.json()["detail"] == {"code": "111", "message": "Unknown dataset"}
 
 
 @pytest.mark.parametrize(
@@ -115,7 +115,7 @@ def test_private_dataset_no_user_no_access(
 
     # New response is 403: Forbidden instead of 412: PRECONDITION FAILED
     assert response.status_code == http.client.FORBIDDEN
-    assert {"code": "112", "message": "No access granted"} == response.json()["detail"]
+    assert response.json()["detail"] == {"code": "112", "message": "No access granted"}
 
 
 @pytest.mark.skip("Not sure how to include apikey in test yet.")

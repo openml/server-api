@@ -21,7 +21,7 @@ def test_dataset_tag_rejects_unauthorized(key: ApiKey, py_api: TestClient) -> No
         json={"data_id": list(constants.PRIVATE_DATASET_ID)[0], "tag": "test"},
     )
     assert response.status_code == http.client.PRECONDITION_FAILED
-    assert {"code": "103", "message": "Authentication failed"} == response.json()["detail"]
+    assert response.json()["detail"] == {"code": "103", "message": "Authentication failed"}
 
 
 @pytest.mark.parametrize(
@@ -36,7 +36,7 @@ def test_dataset_tag(key: ApiKey, expdb_test: Connection, py_api: TestClient) ->
         json={"data_id": dataset_id, "tag": tag},
     )
     assert response.status_code == http.client.OK
-    assert {"data_tag": {"id": str(dataset_id), "tag": tag}} == response.json()
+    assert response.json() == {"data_tag": {"id": str(dataset_id), "tag": tag}}
 
     tags = get_tags(dataset_id=dataset_id, connection=expdb_test)
     assert tag in tags
@@ -49,7 +49,7 @@ def test_dataset_tag_returns_existing_tags(py_api: TestClient) -> None:
         json={"data_id": dataset_id, "tag": tag},
     )
     assert response.status_code == http.client.OK
-    assert {"data_tag": {"id": str(dataset_id), "tag": ["study_14", tag]}} == response.json()
+    assert response.json() == {"data_tag": {"id": str(dataset_id), "tag": ["study_14", tag]}}
 
 
 def test_dataset_tag_fails_if_tag_exists(py_api: TestClient) -> None:
@@ -84,4 +84,4 @@ def test_dataset_tag_invalid_tag_is_rejected(
     )
 
     assert new.status_code == http.client.UNPROCESSABLE_ENTITY
-    assert ["body", "tag"] == new.json()["detail"][0]["loc"]
+    assert new.json()["detail"][0]["loc"] == ["body", "tag"]
