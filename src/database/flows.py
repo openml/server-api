@@ -49,6 +49,20 @@ def get_flow_parameters(flow_id: int, expdb: Connection) -> Sequence[Row]:
     )
 
 
+def get_flow_by_name(name: str, external_version: str, expdb: Connection) -> Row | None:
+    """Gets flow by name and external version."""
+    return expdb.execute(
+        text(
+            """
+            SELECT *, uploadDate as upload_date
+            FROM implementation
+            WHERE name = :name AND external_version = :external_version
+            """,
+        ),
+        parameters={"name": name, "external_version": external_version},
+    ).one_or_none()
+
+
 def get_flow(flow_id: int, expdb: Connection) -> Row | None:
     return expdb.execute(
         text(

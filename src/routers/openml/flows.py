@@ -1,9 +1,9 @@
 import http.client
-from typing import Annotated
+from typing import Annotated, Literal
 
 from core.conversions import _str_to_num
 from database.flows import get_flow as db_get_flow
-from database.flows import get_flow_parameters, get_flow_subflows, get_flow_tags
+from database.flows import get_flow_by_name, get_flow_parameters, get_flow_subflows, get_flow_tags
 from fastapi import APIRouter, Depends, HTTPException
 from schemas.flows import Flow, Parameter
 from sqlalchemy import Connection
@@ -11,6 +11,22 @@ from sqlalchemy import Connection
 from routers.dependencies import expdb_connection
 
 router = APIRouter(prefix="/flows", tags=["flows"])
+
+
+@router.get("/exists/{name}/{version}")
+def flow_exists(
+    name: str,
+    version: str,
+    expdb: Annotated[Connection, Depends(expdb_connection)],
+) -> dict[Literal["flow_id"], int]:
+    """Check if a Flow with the name and version exists, if so, return the flow id."""
+    flow = get_flow_by_name(name, version, expdb)
+    if flow is None:
+        raise HTTPException(
+            status_code=http.client.NOT_FOUND,
+            detail="Flow not found.",
+        )
+    return {"flow_id": 1}
 
 
 @router.get("/{flow_id}")

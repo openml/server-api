@@ -1,5 +1,18 @@
+import http.client
+
 import deepdiff.diff
 from starlette.testclient import TestClient
+
+
+def test_flow_exists(py_api: TestClient) -> None:
+    response = py_api.get("/flows/exists/weka.ZeroR/Weka_3.9.0_12024")
+    assert response.status_code == http.client.OK
+    assert response.json() == {"flow_id": 1}
+
+
+def test_flow_exists_not_exists(py_api: TestClient) -> None:
+    response = py_api.get("/flows/exists/does_not_exist/Weka_3.9.0_12024")
+    assert response.status_code == http.client.NOT_FOUND
 
 
 def test_get_flow_no_subflow(py_api: TestClient) -> None:
