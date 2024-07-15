@@ -25,7 +25,7 @@ def flow_exists(
             status_code=http.client.NOT_FOUND,
             detail="Flow not found.",
         )
-    return {"flow_id": 1}
+    return {"flow_id": flow.id}
 
 
 @router.get("/{flow_id}")

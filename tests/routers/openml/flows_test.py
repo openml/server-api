@@ -1,7 +1,25 @@
 import http.client
 
 import deepdiff.diff
+from pytest_mock import MockerFixture
 from starlette.testclient import TestClient
+
+
+def test_flow_exists_api(py_api: TestClient, mocker: MockerFixture) -> None:
+    # Mock database.flows.get_by_namne(...) returns the flow with id one.
+    fake_flow = mocker.MagicMock(id=2)
+    mocked_db = mocker.patch(
+        "database.flows.get_by_name",
+        return_value=fake_flow,
+    )
+    response = py_api.get("/flows/exists/weka.ZeroR/Weka_3.9.0_12024")
+    # assert mocked_db.assert_called_once_with(
+    #     name="weka.ZeroR",
+    #     external_version="Weka_3.9.0_12024",
+    # )
+    mocked_db.assert_called()
+    assert response.status_code == http.client.OK
+    assert response.json() == {"flow_id": fake_flow.id}
 
 
 def test_flow_exists(py_api: TestClient) -> None:
