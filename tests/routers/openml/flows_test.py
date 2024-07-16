@@ -1,25 +1,72 @@
 import http.client
 
+import database.flows
 import deepdiff.diff
+import pytest
 from pytest_mock import MockerFixture
+from sqlalchemy import Connection, text
 from starlette.testclient import TestClient
 
 
-def test_flow_exists_api(py_api: TestClient, mocker: MockerFixture) -> None:
-    # Mock database.flows.get_by_namne(...) returns the flow with id one.
-    fake_flow = mocker.MagicMock(id=2)
-    mocked_db = mocker.patch(
+@pytest.mark.parametrize(
+    ("name", "external_version"),
+    [
+        ("a", "b"),
+        ("c", "d"),
+    ],
+)
+def test_flow_exists_calls_db_correctly(
+    name: str,
+    external_version: str,
+    py_api: TestClient,
+    mocker: MockerFixture,
+) -> None:
+    mocked_db = mocker.patch("database.flows.get_by_name")
+    py_api.get(f"/flows/exists/{name}/{external_version}")
+    mocked_db.assert_called_once_with(
+        name=name,
+        external_version=external_version,
+        expdb=mocker.ANY,
+    )
+
+
+@pytest.mark.parametrize(
+    "flow_id",
+    [1, 2],
+)
+def test_flow_exists_handles_flow_found(
+    flow_id: int,
+    py_api: TestClient,
+    mocker: MockerFixture,
+) -> None:
+    fake_flow = mocker.MagicMock(id=flow_id)
+    mocker.patch(
         "database.flows.get_by_name",
         return_value=fake_flow,
     )
     response = py_api.get("/flows/exists/weka.ZeroR/Weka_3.9.0_12024")
-    mocked_db.assert_called_once_with(
-        name="weka.ZeroR",
-        external_version="Weka_3.9.0_12024",
-        expdb=mocker.ANY,
-    )
     assert response.status_code == http.client.OK
     assert response.json() == {"flow_id": fake_flow.id}
+
+
+def test_flow_exists_handles_flow_not_found(py_api: TestClient, mocker: MockerFixture) -> None:
+    mocker.patch("database.flows.get_by_name", return_value=None)
+    response = py_api.get("/flows/exists/weka.ZeroR/Weka_3.9.0_12024")
+    assert response.status_code == http.client.NOT_FOUND
+
+
+def test_database_flow_exists(expdb_test: Connection) -> None:
+    expdb_test.execute(
+        text(
+            """
+            INSERT INTO implementation(fullname,name,version,external_version,uploadDate)
+            VALUES ('a','name',2,'external_version','2024-02-02 02:23:23');
+            """,
+        ),
+    )
+    (flow_id,) = expdb_test.execute(text("""SELECT LAST_INSERT_ID();""")).one()
+    flow = database.flows.get_by_name("name", "external_version", expdb_test)
+    assert flow.id == flow_id
 
 
 def test_flow_exists(py_api: TestClient) -> None:
