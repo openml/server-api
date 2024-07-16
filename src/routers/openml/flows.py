@@ -12,14 +12,14 @@ from routers.dependencies import expdb_connection
 router = APIRouter(prefix="/flows", tags=["flows"])
 
 
-@router.get("/exists/{name}/{version}")
+@router.get("/exists/{name}/{external_version}")
 def flow_exists(
     name: str,
-    version: str,
+    external_version: str,
     expdb: Annotated[Connection, Depends(expdb_connection)],
 ) -> dict[Literal["flow_id"], int]:
     """Check if a Flow with the name and version exists, if so, return the flow id."""
-    flow = database.flows.get_by_name(name, version, expdb)
+    flow = database.flows.get_by_name(name=name, external_version=external_version, expdb=expdb)
     if flow is None:
         raise HTTPException(
             status_code=http.client.NOT_FOUND,

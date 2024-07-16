@@ -13,11 +13,11 @@ def test_flow_exists_api(py_api: TestClient, mocker: MockerFixture) -> None:
         return_value=fake_flow,
     )
     response = py_api.get("/flows/exists/weka.ZeroR/Weka_3.9.0_12024")
-    # assert mocked_db.assert_called_once_with(
-    #     name="weka.ZeroR",
-    #     external_version="Weka_3.9.0_12024",
-    # )
-    mocked_db.assert_called()
+    mocked_db.assert_called_once_with(
+        name="weka.ZeroR",
+        external_version="Weka_3.9.0_12024",
+        expdb=mocker.ANY,
+    )
     assert response.status_code == http.client.OK
     assert response.json() == {"flow_id": fake_flow.id}
 
