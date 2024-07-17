@@ -9,10 +9,17 @@ from core.conversions import (
 )
 from starlette.testclient import TestClient
 
+from tests.conftest import Flow
 
+
+@pytest.mark.mut()
 @pytest.mark.php()
-def test_flow_exists(py_api: TestClient, php_api: TestClient) -> None:
-    path = "exists/weka.ZeroR/Weka_3.9.0_12024"
+def test_flow_exists(
+    persisted_flow: Flow,
+    py_api: TestClient,
+    php_api: TestClient,
+) -> None:
+    path = f"exists/{persisted_flow.name}/{persisted_flow.external_version}"
     py_response = py_api.get(f"/flows/{path}")
     php_response = php_api.get(f"/flow/{path}")
 

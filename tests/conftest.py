@@ -87,3 +87,22 @@ def flow(expdb_test: Connection) -> Flow:
     )
     (flow_id,) = expdb_test.execute(text("""SELECT LAST_INSERT_ID();""")).one()
     return Flow(id=flow_id, name="name", external_version="external_version")
+
+
+@pytest.fixture()
+def persisted_flow(flow: Flow, expdb_test: Connection) -> Iterator[Flow]:
+    expdb_test.commit()
+    yield flow
+    # We want to ensure the commit below does not accidentally persist new
+    # data to the database.
+    expdb_test.rollback()
+    expdb_test.execute(
+        text(
+            """
+            DELETE FROM implementation
+            WHERE id = :flow_id
+            """,
+        ),
+        parameters={"flow_id": flow.id},
+    )
+    expdb_test.commit()
