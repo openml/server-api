@@ -11,6 +11,18 @@ from starlette.testclient import TestClient
 
 
 @pytest.mark.php()
+def test_flow_exists(py_api: TestClient, php_api: TestClient) -> None:
+    path = "exists/weka.ZeroR/Weka_3.9.0_12024"
+    py_response = py_api.get(f"/flows/{path}")
+    php_response = php_api.get(f"/flow/{path}")
+
+    assert py_response.status_code == php_response.status_code, php_response.content
+    assert php_response.json()["flow_exists"]["exists"]
+    flow_id = php_response.json()["flow_exists"]["id"]
+    assert py_response.json() == {"flow_id": int(flow_id)}
+
+
+@pytest.mark.php()
 @pytest.mark.parametrize(
     "flow_id",
     range(1, 16),
