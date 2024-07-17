@@ -1,30 +1,7 @@
-from typing import NamedTuple
-
 import database.flows
-import pytest
-from sqlalchemy import Connection, text
+from sqlalchemy import Connection
 
-
-class Flow(NamedTuple):
-    """To be replaced by an actual ORM class."""
-
-    id: int
-    name: str
-    external_version: str
-
-
-@pytest.fixture()
-def flow(expdb_test: Connection) -> Flow:
-    expdb_test.execute(
-        text(
-            """
-            INSERT INTO implementation(fullname,name,version,external_version,uploadDate)
-            VALUES ('a','name',2,'external_version','2024-02-02 02:23:23');
-            """,
-        ),
-    )
-    (flow_id,) = expdb_test.execute(text("""SELECT LAST_INSERT_ID();""")).one()
-    return Flow(id=flow_id, name="name", external_version="external_version")
+from tests.conftest import Flow
 
 
 def test_database_flow_exists(flow: Flow, expdb_test: Connection) -> None:

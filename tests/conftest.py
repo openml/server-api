@@ -2,7 +2,7 @@ import contextlib
 import json
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any, Iterator, NamedTuple
 
 import httpx
 import pytest
@@ -10,7 +10,7 @@ from database.setup import expdb_database, user_database
 from fastapi.testclient import TestClient
 from main import create_api
 from routers.dependencies import expdb_connection, userdb_connection
-from sqlalchemy import Connection, Engine
+from sqlalchemy import Connection, Engine, text
 
 
 class ApiKey(StrEnum):
@@ -65,3 +65,25 @@ def dataset_130() -> Iterator[dict[str, Any]]:
 @pytest.fixture()
 def default_configuration_file() -> Path:
     return Path().parent.parent / "src" / "config.toml"
+
+
+class Flow(NamedTuple):
+    """To be replaced by an actual ORM class."""
+
+    id: int
+    name: str
+    external_version: str
+
+
+@pytest.fixture()
+def flow(expdb_test: Connection) -> Flow:
+    expdb_test.execute(
+        text(
+            """
+            INSERT INTO implementation(fullname,name,version,external_version,uploadDate)
+            VALUES ('a','name',2,'external_version','2024-02-02 02:23:23');
+            """,
+        ),
+    )
+    (flow_id,) = expdb_test.execute(text("""SELECT LAST_INSERT_ID();""")).one()
+    return Flow(id=flow_id, name="name", external_version="external_version")

@@ -2,12 +2,13 @@ import http.client
 
 import deepdiff.diff
 import pytest
+from fastapi import HTTPException
 from pytest_mock import MockerFixture
 from routers.openml.flows import flow_exists
 from sqlalchemy import Connection
 from starlette.testclient import TestClient
 
-from tests.database.flows_test import Flow
+from tests.conftest import Flow
 
 
 @pytest.mark.parametrize(
@@ -36,7 +37,7 @@ def test_flow_exists_calls_db_correctly(
     "flow_id",
     [1, 2],
 )
-def test_flow_exists_handles_flow_found(
+def test_flow_exists_processes_found(
     flow_id: int,
     mocker: MockerFixture,
     expdb_test: Connection,
@@ -50,27 +51,24 @@ def test_flow_exists_handles_flow_found(
     assert response == {"flow_id": fake_flow.id}
 
 
-def test_flow_exists_handles_flow_not_found(py_api: TestClient, mocker: MockerFixture) -> None:
+def test_flow_exists_handles_flow_not_found(mocker: MockerFixture, expdb_test: Connection) -> None:
     mocker.patch("database.flows.get_by_name", return_value=None)
-    response = py_api.get("/flows/exists/weka.ZeroR/Weka_3.9.0_12024")
-    assert response.status_code == http.client.NOT_FOUND
+    with pytest.raises(HTTPException) as error:
+        flow_exists("foo", "bar", expdb_test)
+    assert error.value.status_code == http.client.NOT_FOUND
+    assert error.value.detail == "Flow not found."
 
 
-def test_full_stack_exists(flow: Flow, py_api: TestClient) -> None:
+def test_flow_exists(flow: Flow, py_api: TestClient) -> None:
     response = py_api.get(f"/flows/exists/{flow.name}/{flow.external_version}")
     assert response.status_code == http.client.OK
     assert response.json() == {"flow_id": flow.id}
 
 
-def test_flow_exists(py_api: TestClient) -> None:
-    response = py_api.get("/flows/exists/weka.ZeroR/Weka_3.9.0_12024")
-    assert response.status_code == http.client.OK
-    assert response.json() == {"flow_id": 1}
-
-
 def test_flow_exists_not_exists(py_api: TestClient) -> None:
-    response = py_api.get("/flows/exists/does_not_exist/Weka_3.9.0_12024")
+    response = py_api.get("/flows/exists/foo/bar")
     assert response.status_code == http.client.NOT_FOUND
+    assert response.json()["detail"] == "Flow not found."
 
 
 def test_get_flow_no_subflow(py_api: TestClient) -> None:
