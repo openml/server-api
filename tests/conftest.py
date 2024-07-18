@@ -25,7 +25,8 @@ def automatic_rollback(engine: Engine) -> Iterator[Connection]:
     with engine.connect() as connection:
         transaction = connection.begin()
         yield connection
-        transaction.rollback()
+        if transaction.is_active:
+            transaction.rollback()
 
 
 @pytest.fixture()
@@ -96,6 +97,7 @@ def persisted_flow(flow: Flow, expdb_test: Connection) -> Iterator[Flow]:
     # We want to ensure the commit below does not accidentally persist new
     # data to the database.
     expdb_test.rollback()
+
     expdb_test.execute(
         text(
             """
