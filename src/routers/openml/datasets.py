@@ -4,6 +4,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal, NamedTuple
 
+import database.datasets
 from core.access import _user_has_access
 from core.errors import DatasetError
 from core.formatting import (
@@ -12,20 +13,6 @@ from core.formatting import (
     _format_error,
     _format_parquet_url,
 )
-from database.datasets import (
-    _get_qualities_for_datasets,
-    get_feature_values,
-    get_features_for_dataset,
-    get_file,
-    get_latest_dataset_description,
-    get_latest_processing_update,
-    get_latest_status_update,
-    get_tags,
-    insert_status_for_dataset,
-    remove_deactivated_status,
-)
-from database.datasets import get_dataset as db_get_dataset
-from database.datasets import tag_dataset as db_tag_dataset
 from database.users import User, UserGroup
 from fastapi import APIRouter, Body, Depends, HTTPException
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Feature, FeatureType
@@ -47,7 +34,7 @@ def tag_dataset(
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[str, dict[str, Any]]:
-    tags = get_tags(data_id, expdb_db)
+    tags = database.datasets.get_tags(data_id, expdb_db)
     if tag.casefold() in [t.casefold() for t in tags]:
         raise HTTPException(
             status_code=http.client.INTERNAL_SERVER_ERROR,
@@ -63,7 +50,7 @@ def tag_dataset(
             status_code=http.client.PRECONDITION_FAILED,
             detail={"code": "103", "message": "Authentication failed"},
         ) from None
-    db_tag_dataset(user.user_id, data_id, tag, connection=expdb_db)
+    database.datasets.tag_dataset(user.user_id, data_id, tag, connection=expdb_db)
     all_tags = [*tags, tag]
     tag_value = all_tags if len(all_tags) > 1 else all_tags[0]
 
@@ -236,7 +223,7 @@ def list_datasets(
         "NumberOfNumericFeatures",
         "NumberOfSymbolicFeatures",
     ]
-    qualities_by_dataset = _get_qualities_for_datasets(
+    qualities_by_dataset = database.datasets._get_qualities_for_datasets(
         dataset_ids=datasets.keys(),
         qualities=qualities_to_show,
         connection=expdb_db,
@@ -254,7 +241,9 @@ class ProcessingInformation(NamedTuple):
 
 def _get_processing_information(dataset_id: int, connection: Connection) -> ProcessingInformation:
     """Return processing information, if any. Otherwise, all fields `None`."""
-    if not (data_processed := get_latest_processing_update(dataset_id, connection)):
+    if not (
+        data_processed := database.datasets.get_latest_processing_update(dataset_id, connection)
+    ):
         return ProcessingInformation(date=None, warning=None, error=None)
 
     date_processed = data_processed.processing_date
@@ -272,7 +261,7 @@ def _get_dataset_raise_otherwise(
 
     Raises HTTPException if the dataset does not exist or the user can not access it.
     """
-    if not (dataset := db_get_dataset(dataset_id, expdb)):
+    if not (dataset := database.datasets.get_dataset(dataset_id, expdb)):
         error = _format_error(code=DatasetError.NOT_FOUND, message="Unknown dataset")
         raise HTTPException(status_code=http.client.NOT_FOUND, detail=error)
 
@@ -290,12 +279,16 @@ def get_dataset_features(
     expdb: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> list[Feature]:
     _get_dataset_raise_otherwise(dataset_id, user, expdb)
-    features = get_features_for_dataset(dataset_id, expdb)
+    features = database.datasets.get_features_for_dataset(dataset_id, expdb)
     for feature in [f for f in features if f.data_type == FeatureType.NOMINAL]:
-        feature.nominal_values = get_feature_values(dataset_id, feature.index, expdb)
+        feature.nominal_values = database.datasets.get_feature_values(
+            dataset_id,
+            feature.index,
+            expdb,
+        )
 
     if not features:
-        processing_state = get_latest_processing_update(dataset_id, expdb)
+        processing_state = database.datasets.get_latest_processing_update(dataset_id, expdb)
         if processing_state is None:
             code, msg = (
                 273,
@@ -344,7 +337,7 @@ def update_dataset_status(
             detail={"code": 696, "message": "Only administrators can activate datasets."},
         )
 
-    current_status = get_latest_status_update(dataset_id, expdb)
+    current_status = database.datasets.get_latest_status_update(dataset_id, expdb)
     if current_status and current_status.status == status:
         raise HTTPException(
             status_code=http.client.PRECONDITION_FAILED,
@@ -358,9 +351,9 @@ def update_dataset_status(
     #  - active => deactivated  (add a row)
     #  - deactivated => active  (delete a row)
     if current_status is None or status == DatasetStatus.DEACTIVATED:
-        insert_status_for_dataset(dataset_id, user.user_id, status, expdb)
+        database.datasets.insert_status_for_dataset(dataset_id, user.user_id, status, expdb)
     elif current_status.status == DatasetStatus.DEACTIVATED:
-        remove_deactivated_status(dataset_id, expdb)
+        database.datasets.remove_deactivated_status(dataset_id, expdb)
     else:
         raise HTTPException(
             status_code=http.client.INTERNAL_SERVER_ERROR,
@@ -381,17 +374,17 @@ def get_dataset(
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> DatasetMetadata:
     dataset = _get_dataset_raise_otherwise(dataset_id, user, expdb_db)
-    if not (dataset_file := get_file(dataset.file_id, user_db)):
+    if not (dataset_file := database.datasets.get_file(dataset.file_id, user_db)):
         error = _format_error(
             code=DatasetError.NO_DATA_FILE,
             message="No data file found",
         )
         raise HTTPException(status_code=http.client.PRECONDITION_FAILED, detail=error)
 
-    tags = get_tags(dataset_id, expdb_db)
-    description = get_latest_dataset_description(dataset_id, expdb_db)
+    tags = database.datasets.get_tags(dataset_id, expdb_db)
+    description = database.datasets.get_latest_dataset_description(dataset_id, expdb_db)
     processing_result = _get_processing_information(dataset_id, expdb_db)
-    status = get_latest_status_update(dataset_id, expdb_db)
+    status = database.datasets.get_latest_status_update(dataset_id, expdb_db)
 
     status_ = DatasetStatus(status.status) if status else DatasetStatus.IN_PREPARATION
 
