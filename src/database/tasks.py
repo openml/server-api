@@ -3,7 +3,7 @@ from typing import Sequence, cast
 from sqlalchemy import Connection, Row, text
 
 
-def get(task_id: int, expdb: Connection) -> Row | None:
+def get(id_: int, expdb: Connection) -> Row | None:
     return expdb.execute(
         text(
             """
@@ -12,7 +12,7 @@ def get(task_id: int, expdb: Connection) -> Row | None:
             WHERE `task_id` = :task_id
             """,
         ),
-        parameters={"task_id": task_id},
+        parameters={"task_id": id_},
     ).one_or_none()
 
 
@@ -59,7 +59,7 @@ def get_input_for_task_type(task_type_id: int, expdb: Connection) -> Sequence[Ro
     )
 
 
-def get_input_for_task(task_id: int, expdb: Connection) -> Sequence[Row]:
+def get_input_for_task(id_: int, expdb: Connection) -> Sequence[Row]:
     return cast(
         Sequence[Row],
         expdb.execute(
@@ -70,7 +70,7 @@ def get_input_for_task(task_id: int, expdb: Connection) -> Sequence[Row]:
             WHERE task_id = :task_id
             """,
             ),
-            parameters={"task_id": task_id},
+            parameters={"task_id": id_},
         ).all(),
     )
 
@@ -91,7 +91,7 @@ def get_task_type_inout_with_template(task_type: int, expdb: Connection) -> Sequ
     )
 
 
-def get_tags(task_id: int, expdb: Connection) -> list[str]:
+def get_tags(id_: int, expdb: Connection) -> list[str]:
     tag_rows = expdb.execute(
         text(
             """
@@ -100,6 +100,6 @@ def get_tags(task_id: int, expdb: Connection) -> list[str]:
             WHERE `id` = :task_id
             """,
         ),
-        parameters={"task_id": task_id},
+        parameters={"task_id": id_},
     )
     return [row.tag for row in tag_rows]
