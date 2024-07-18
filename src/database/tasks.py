@@ -3,7 +3,7 @@ from typing import Sequence, cast
 from sqlalchemy import Connection, Row, text
 
 
-def get_task(task_id: int, expdb: Connection) -> Row | None:
+def get(task_id: int, expdb: Connection) -> Row | None:
     return expdb.execute(
         text(
             """
@@ -91,7 +91,7 @@ def get_task_type_inout_with_template(task_type: int, expdb: Connection) -> Sequ
     )
 
 
-def get_tags_for_task(task_id: int, expdb: Connection) -> list[str]:
+def get_tags(task_id: int, expdb: Connection) -> list[str]:
     tag_rows = expdb.execute(
         text(
             """

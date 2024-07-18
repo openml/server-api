@@ -3,15 +3,9 @@ import json
 import re
 from typing import Annotated, Any
 
+import database.datasets
+import database.tasks
 import xmltodict
-from database.datasets import get
-from database.tasks import (
-    get_input_for_task,
-    get_tags_for_task,
-    get_task_type,
-    get_task_type_inout_with_template,
-)
-from database.tasks import get_task as db_get_task
 from fastapi import APIRouter, Depends, HTTPException
 from schemas.datasets.openml import Task
 from sqlalchemy import Connection, RowMapping, text
@@ -154,9 +148,9 @@ def get_task(
     # user: Annotated[User | None, Depends(fetch_user)] = None,  #  Privacy is not respected
     expdb: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> Task:
-    if not (task := db_get_task(task_id, expdb)):
+    if not (task := database.tasks.get(task_id, expdb)):
         raise HTTPException(status_code=http.client.NOT_FOUND, detail="Task not found")
-    if not (task_type := get_task_type(task.ttid, expdb)):
+    if not (task_type := database.tasks.get_task_type(task.ttid, expdb)):
         raise HTTPException(
             status_code=http.client.INTERNAL_SERVER_ERROR,
             detail="Task type not found",
@@ -164,9 +158,9 @@ def get_task(
 
     task_inputs = {
         row.input: int(row.value) if row.value.isdigit() else row.value
-        for row in get_input_for_task(task_id, expdb)
+        for row in database.tasks.get_input_for_task(task_id, expdb)
     }
-    ttios = get_task_type_inout_with_template(task_type.ttid, expdb)
+    ttios = database.tasks.get_task_type_inout_with_template(task_type.ttid, expdb)
     templates = [(tt_io.name, tt_io.io, tt_io.requirement, tt_io.template_api) for tt_io in ttios]
     inputs = [
         fill_template(template, task, task_inputs, expdb) | {"name": name}
@@ -178,10 +172,10 @@ def get_task(
         for name, io, required, template in templates
         if io == "output"
     ]
-    tags = get_tags_for_task(task_id, expdb)
+    tags = database.tasks.get_tags(task_id, expdb)
     name = f"Task {task_id} ({task_type.name})"
     dataset_id = task_inputs.get("source_data")
-    if dataset_id and (dataset := get(dataset_id, expdb)):
+    if dataset_id and (dataset := database.datasets.get(dataset_id, expdb)):
         name = f"Task {task_id}: {dataset.name} ({task_type.name})"
 
     return Task(
