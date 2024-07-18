@@ -4,7 +4,7 @@ import re
 from typing import Annotated, Any
 
 import xmltodict
-from database.datasets import get_dataset
+from database.datasets import get
 from database.tasks import (
     get_input_for_task,
     get_tags_for_task,
@@ -181,7 +181,7 @@ def get_task(
     tags = get_tags_for_task(task_id, expdb)
     name = f"Task {task_id} ({task_type.name})"
     dataset_id = task_inputs.get("source_data")
-    if dataset_id and (dataset := get_dataset(dataset_id, expdb)):
+    if dataset_id and (dataset := get(dataset_id, expdb)):
         name = f"Task {task_id}: {dataset.name} ({task_type.name})"
 
     return Task(
