@@ -1,3 +1,4 @@
+import http.client
 from typing import Any
 
 import deepdiff
@@ -14,6 +15,24 @@ from tests.conftest import Flow
 
 @pytest.mark.mut()
 @pytest.mark.php()
+def test_flow_exists_not(
+    py_api: TestClient,
+    php_api: TestClient,
+) -> None:
+    path = "exists/foo/bar"
+    py_response = py_api.get(f"/flows/{path}")
+    php_response = php_api.get(f"/flow/{path}")
+
+    assert py_response.status_code == http.client.NOT_FOUND
+    assert php_response.status_code == http.client.OK
+
+    expect_php = {"flow_exists": {"exists": "false", "id": str(-1)}}
+    assert php_response.json() == expect_php
+    assert py_response.json() == {"detail": "Flow not found."}
+
+
+@pytest.mark.mut()
+@pytest.mark.php()
 def test_flow_exists(
     persisted_flow: Flow,
     py_api: TestClient,
@@ -24,9 +43,10 @@ def test_flow_exists(
     php_response = php_api.get(f"/flow/{path}")
 
     assert py_response.status_code == php_response.status_code, php_response.content
-    assert php_response.json()["flow_exists"]["exists"]
-    flow_id = php_response.json()["flow_exists"]["id"]
-    assert py_response.json() == {"flow_id": int(flow_id)}
+
+    expect_php = {"flow_exists": {"exists": "true", "id": str(persisted_flow.id)}}
+    assert php_response.json() == expect_php
+    assert py_response.json() == {"flow_id": persisted_flow.id}
 
 
 @pytest.mark.php()
