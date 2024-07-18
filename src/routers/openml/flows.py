@@ -30,7 +30,7 @@ def flow_exists(
 
 @router.get("/{flow_id}")
 def get_flow(flow_id: int, expdb: Annotated[Connection, Depends(expdb_connection)] = None) -> Flow:
-    flow = database.flows.get_by_id(flow_id, expdb)
+    flow = database.flows.get(flow_id, expdb)
     if not flow:
         raise HTTPException(status_code=http.client.NOT_FOUND, detail="Flow not found")
 

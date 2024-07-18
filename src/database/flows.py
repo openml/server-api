@@ -63,7 +63,7 @@ def get_by_name(name: str, external_version: str, expdb: Connection) -> Row | No
     ).one_or_none()
 
 
-def get_by_id(flow_id: int, expdb: Connection) -> Row | None:
+def get(id_: int, expdb: Connection) -> Row | None:
     return expdb.execute(
         text(
             """
@@ -72,5 +72,5 @@ def get_by_id(flow_id: int, expdb: Connection) -> Row | None:
             WHERE id = :flow_id
             """,
         ),
-        parameters={"flow_id": flow_id},
+        parameters={"flow_id": id_},
     ).one_or_none()
