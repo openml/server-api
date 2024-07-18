@@ -8,7 +8,7 @@ from sqlalchemy import Connection, Row, text
 from database.users import User
 
 
-def get_study_by_id(study_id: int, connection: Connection) -> Row | None:
+def get_by_id(study_id: int, connection: Connection) -> Row | None:
     return connection.execute(
         text(
             """
@@ -21,7 +21,7 @@ def get_study_by_id(study_id: int, connection: Connection) -> Row | None:
     ).one_or_none()
 
 
-def get_study_by_alias(alias: str, connection: Connection) -> Row | None:
+def get_by_alias(alias: str, connection: Connection) -> Row | None:
     return connection.execute(
         text(
             """
@@ -35,6 +35,11 @@ def get_study_by_alias(alias: str, connection: Connection) -> Row | None:
 
 
 def get_study_data(study: Row, expdb: Connection) -> Sequence[Row]:
+    """Return data related to the study, content depends on the study type.
+
+    For task studies: (task id, dataset id)
+    For run studies: (run id, task id, setup id, dataset id, flow id)
+    """
     if study.type_ == StudyType.TASK:
         return cast(
             Sequence[Row],
@@ -72,7 +77,7 @@ def get_study_data(study: Row, expdb: Connection) -> Sequence[Row]:
     )
 
 
-def create_study(study: CreateStudy, user: User, expdb: Connection) -> int:
+def create(study: CreateStudy, user: User, expdb: Connection) -> int:
     expdb.execute(
         text(
             """
@@ -100,7 +105,7 @@ def create_study(study: CreateStudy, user: User, expdb: Connection) -> int:
     return cast(int, study_id)
 
 
-def attach_task_to_study(task_id: int, study_id: int, user: User, expdb: Connection) -> None:
+def attach_task(task_id: int, study_id: int, user: User, expdb: Connection) -> None:
     expdb.execute(
         text(
             """
@@ -112,7 +117,7 @@ def attach_task_to_study(task_id: int, study_id: int, user: User, expdb: Connect
     )
 
 
-def attach_run_to_study(run_id: int, study_id: int, user: User, expdb: Connection) -> None:
+def attach_run(run_id: int, study_id: int, user: User, expdb: Connection) -> None:
     expdb.execute(
         text(
             """
@@ -124,7 +129,7 @@ def attach_run_to_study(run_id: int, study_id: int, user: User, expdb: Connectio
     )
 
 
-def attach_tasks_to_study(
+def attach_tasks(
     study_id: int,
     task_ids: list[int],
     user: User,
@@ -155,7 +160,7 @@ def attach_tasks_to_study(
         raise ValueError(msg) from e
 
 
-def attach_runs_to_study(
+def attach_runs(
     study_id: int,  # noqa: ARG001
     task_ids: list[int],  # noqa: ARG001
     user: User,  # noqa: ARG001

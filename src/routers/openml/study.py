@@ -17,9 +17,9 @@ router = APIRouter(prefix="/studies", tags=["studies"])
 
 def _get_study_raise_otherwise(id_or_alias: int | str, user: User | None, expdb: Connection) -> Row:
     if isinstance(id_or_alias, int) or id_or_alias.isdigit():
-        study = database.studies.get_study_by_id(int(id_or_alias), expdb)
+        study = database.studies.get_by_id(int(id_or_alias), expdb)
     else:
-        study = database.studies.get_study_by_alias(id_or_alias, expdb)
+        study = database.studies.get_by_alias(id_or_alias, expdb)
 
     if study is None:
         raise HTTPException(status_code=http.client.NOT_FOUND, detail="Study not found.")
@@ -69,9 +69,9 @@ def attach_to_study(
     # We let the database handle the constraints on whether
     # the entity is already attached or if it even exists.
     attach = (
-        database.studies.attach_tasks_to_study
+        database.studies.attach_tasks
         if study.type_ == StudyType.TASK
-        else database.studies.attach_runs_to_study
+        else database.studies.attach_runs
     )
     try:
         attach(study_id, entity_ids, user, expdb)
@@ -104,18 +104,18 @@ def create_study(
             status_code=http.client.BAD_REQUEST,
             detail="Cannot create a task study with runs.",
         )
-    if study.alias and database.studies.get_study_by_alias(study.alias, expdb):
+    if study.alias and database.studies.get_by_alias(study.alias, expdb):
         raise HTTPException(
             status_code=http.client.CONFLICT,
             detail="Study alias already exists.",
         )
-    study_id = database.studies.create_study(study, user, expdb)
+    study_id = database.studies.create(study, user, expdb)
     if study.main_entity_type == StudyType.TASK:
         for task_id in study.tasks:
-            database.studies.attach_task_to_study(task_id, study_id, user, expdb)
+            database.studies.attach_task(task_id, study_id, user, expdb)
     if study.main_entity_type == StudyType.RUN:
         for run_id in study.runs:
-            database.studies.attach_run_to_study(run_id, study_id, user, expdb)
+            database.studies.attach_run(run_id, study_id, user, expdb)
     # Make sure that invalid fields raise an error (e.g., "task_ids")
     return {"study_id": study_id}
 
