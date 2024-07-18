@@ -130,6 +130,25 @@ Old-style "legacy" studies which are solely based on tags are no longer supporte
     |50|	Hyper-parameter tuning of Decision Trees|
     |51|	ensemble on diabetes	|
 
+## Flows
+
+### `GET /flow/exists/{name}/{external_version}/`
+Behavior has changed slightly. When a flow is found:
+
+```diff
+- { "flow_exists": { "exists": "true", "flow_id": "123" } }
++ { "flow_id": 123 }
+```
+
+and when a flow is not found:
+```diff
+- { "flow_exists": { "exists": "false", "flow_id": "-1" } }
++ { "detail": "Flow not found." }
+```
+and the HTTP header status code is `404` (NOT FOUND) instead of `200` (OK).
+
+In the future the successful case will more likely just return the flow immediately instead (see #170).
+
 ## Others
 
 ### `GET /estimationprocedure/list`
