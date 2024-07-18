@@ -7,7 +7,7 @@ from sqlalchemy import Connection, text
 from sqlalchemy.engine import Row
 
 
-def get(dataset_id: int, connection: Connection) -> Row | None:
+def get(id_: int, connection: Connection) -> Row | None:
     row = connection.execute(
         text(
             """
@@ -16,12 +16,12 @@ def get(dataset_id: int, connection: Connection) -> Row | None:
     WHERE did = :dataset_id
     """,
         ),
-        parameters={"dataset_id": dataset_id},
+        parameters={"dataset_id": id_},
     )
     return row.one_or_none()
 
 
-def get_file(file_id: int, connection: Connection) -> Row | None:
+def get_file(*, file_id: int, connection: Connection) -> Row | None:
     row = connection.execute(
         text(
             """
@@ -35,7 +35,7 @@ def get_file(file_id: int, connection: Connection) -> Row | None:
     return row.one_or_none()
 
 
-def get_tags(dataset_id: int, connection: Connection) -> list[str]:
+def get_tags_for(id_: int, connection: Connection) -> list[str]:
     rows = connection.execute(
         text(
             """
@@ -44,12 +44,12 @@ def get_tags(dataset_id: int, connection: Connection) -> list[str]:
     WHERE id = :dataset_id
     """,
         ),
-        parameters={"dataset_id": dataset_id},
+        parameters={"dataset_id": id_},
     )
     return [row.tag for row in rows]
 
 
-def tag(dataset_id: int, tag_: str, user_id: int, connection: Connection) -> None:
+def tag(id_: int, tag_: str, *, user_id: int, connection: Connection) -> None:
     connection.execute(
         text(
             """
@@ -58,7 +58,7 @@ def tag(dataset_id: int, tag_: str, user_id: int, connection: Connection) -> Non
     """,
         ),
         parameters={
-            "dataset_id": dataset_id,
+            "dataset_id": id_,
             "user_id": user_id,
             "tag": tag_,
         },
@@ -66,7 +66,7 @@ def tag(dataset_id: int, tag_: str, user_id: int, connection: Connection) -> Non
 
 
 def get_description(
-    dataset_id: int,
+    id_: int,
     connection: Connection,
 ) -> Row | None:
     """Get the most recent description for the dataset."""
@@ -79,12 +79,12 @@ def get_description(
     ORDER BY version DESC
     """,
         ),
-        parameters={"dataset_id": dataset_id},
+        parameters={"dataset_id": id_},
     )
     return row.first()
 
 
-def get_status(dataset_id: int, connection: Connection) -> Row | None:
+def get_status(id_: int, connection: Connection) -> Row | None:
     """Get most recent status for the dataset."""
     row = connection.execute(
         text(
@@ -95,7 +95,7 @@ def get_status(dataset_id: int, connection: Connection) -> Row | None:
     ORDER BY status_date DESC
     """,
         ),
-        parameters={"dataset_id": dataset_id},
+        parameters={"dataset_id": id_},
     )
     return row.first()
 
@@ -130,7 +130,7 @@ def get_features(dataset_id: int, connection: Connection) -> list[Feature]:
     return [Feature(**row, nominal_values=None) for row in rows.mappings()]
 
 
-def get_feature_values(dataset_id: int, feature_index: int, connection: Connection) -> list[str]:
+def get_feature_values(dataset_id: int, *, feature_index: int, connection: Connection) -> list[str]:
     rows = connection.execute(
         text(
             """
@@ -146,8 +146,9 @@ def get_feature_values(dataset_id: int, feature_index: int, connection: Connecti
 
 def update_status(
     dataset_id: int,
-    user_id: int,
     status: str,
+    *,
+    user_id: int,
     connection: Connection,
 ) -> None:
     connection.execute(

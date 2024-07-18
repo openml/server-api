@@ -1,7 +1,7 @@
 import http.client
 
 import pytest
-from database.datasets import get_tags
+from database.datasets import get_tags_for
 from sqlalchemy import Connection
 from starlette.testclient import TestClient
 
@@ -38,7 +38,7 @@ def test_dataset_tag(key: ApiKey, expdb_test: Connection, py_api: TestClient) ->
     assert response.status_code == http.client.OK
     assert response.json() == {"data_tag": {"id": str(dataset_id), "tag": tag}}
 
-    tags = get_tags(dataset_id=dataset_id, connection=expdb_test)
+    tags = get_tags_for(id_=dataset_id, connection=expdb_test)
     assert tag in tags
 
 

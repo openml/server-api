@@ -35,7 +35,7 @@ def tag_dataset(
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[str, dict[str, Any]]:
-    tags = database.datasets.get_tags(data_id, expdb_db)
+    tags = database.datasets.get_tags_for(data_id, expdb_db)
     if tag.casefold() in [t.casefold() for t in tags]:
         raise HTTPException(
             status_code=http.client.INTERNAL_SERVER_ERROR,
@@ -51,7 +51,7 @@ def tag_dataset(
             status_code=http.client.PRECONDITION_FAILED,
             detail={"code": "103", "message": "Authentication failed"},
         ) from None
-    database.datasets.tag(data_id, tag, user.user_id, connection=expdb_db)
+    database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
     all_tags = [*tags, tag]
     tag_value = all_tags if len(all_tags) > 1 else all_tags[0]
 
@@ -284,8 +284,8 @@ def get_dataset_features(
     for feature in [f for f in features if f.data_type == FeatureType.NOMINAL]:
         feature.nominal_values = database.datasets.get_feature_values(
             dataset_id,
-            feature.index,
-            expdb,
+            feature_index=feature.index,
+            connection=expdb,
         )
 
     if not features:
@@ -352,7 +352,7 @@ def update_dataset_status(
     #  - active => deactivated  (add a row)
     #  - deactivated => active  (delete a row)
     if current_status is None or status == DatasetStatus.DEACTIVATED:
-        database.datasets.update_status(dataset_id, user.user_id, status, expdb)
+        database.datasets.update_status(dataset_id, status, user_id=user.user_id, connection=expdb)
     elif current_status.status == DatasetStatus.DEACTIVATED:
         database.datasets.remove_deactivated_status(dataset_id, expdb)
     else:
@@ -375,14 +375,16 @@ def get_dataset(
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> DatasetMetadata:
     dataset = _get_dataset_raise_otherwise(dataset_id, user, expdb_db)
-    if not (dataset_file := database.datasets.get_file(dataset.file_id, user_db)):
+    if not (
+        dataset_file := database.datasets.get_file(file_id=dataset.file_id, connection=user_db)
+    ):
         error = _format_error(
             code=DatasetError.NO_DATA_FILE,
             message="No data file found",
         )
         raise HTTPException(status_code=http.client.PRECONDITION_FAILED, detail=error)
 
-    tags = database.datasets.get_tags(dataset_id, expdb_db)
+    tags = database.datasets.get_tags_for(dataset_id, expdb_db)
     description = database.datasets.get_description(dataset_id, expdb_db)
     processing_result = _get_processing_information(dataset_id, expdb_db)
     status = database.datasets.get_status(dataset_id, expdb_db)
