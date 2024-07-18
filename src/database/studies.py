@@ -8,7 +8,7 @@ from sqlalchemy import Connection, Row, text
 from database.users import User
 
 
-def get_by_id(study_id: int, connection: Connection) -> Row | None:
+def get_by_id(id_: int, connection: Connection) -> Row | None:
     return connection.execute(
         text(
             """
@@ -17,7 +17,7 @@ def get_by_id(study_id: int, connection: Connection) -> Row | None:
             WHERE id = :study_id
             """,
         ),
-        parameters={"study_id": study_id},
+        parameters={"study_id": id_},
     ).one_or_none()
 
 
@@ -117,7 +117,7 @@ def attach_task(task_id: int, study_id: int, user: User, expdb: Connection) -> N
     )
 
 
-def attach_run(run_id: int, study_id: int, user: User, expdb: Connection) -> None:
+def attach_run(*, run_id: int, study_id: int, user: User, expdb: Connection) -> None:
     expdb.execute(
         text(
             """
@@ -130,6 +130,7 @@ def attach_run(run_id: int, study_id: int, user: User, expdb: Connection) -> Non
 
 
 def attach_tasks(
+    *,
     study_id: int,
     task_ids: list[int],
     user: User,
@@ -162,7 +163,7 @@ def attach_tasks(
 
 def attach_runs(
     study_id: int,  # noqa: ARG001
-    task_ids: list[int],  # noqa: ARG001
+    run_ids: list[int],  # noqa: ARG001
     user: User,  # noqa: ARG001
     connection: Connection,  # noqa: ARG001
 ) -> None:

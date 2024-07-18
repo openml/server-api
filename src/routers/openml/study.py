@@ -68,13 +68,16 @@ def attach_to_study(
 
     # We let the database handle the constraints on whether
     # the entity is already attached or if it even exists.
-    attach = (
-        database.studies.attach_tasks
-        if study.type_ == StudyType.TASK
-        else database.studies.attach_runs
-    )
+    attach_kwargs = {
+        "study_id": study_id,
+        "user": user,
+        "connection": expdb,
+    }
     try:
-        attach(study_id, entity_ids, user, expdb)
+        if study.type_ == StudyType.TASK:
+            database.studies.attach_tasks(task_ids=entity_ids, **attach_kwargs)
+        else:
+            database.studies.attach_runs(run_ids=entity_ids, **attach_kwargs)
     except ValueError as e:
         raise HTTPException(
             status_code=http.client.CONFLICT,
@@ -115,7 +118,7 @@ def create_study(
             database.studies.attach_task(task_id, study_id, user, expdb)
     if study.main_entity_type == StudyType.RUN:
         for run_id in study.runs:
-            database.studies.attach_run(run_id, study_id, user, expdb)
+            database.studies.attach_run(run_id=run_id, study_id=study_id, user=user, expdb=expdb)
     # Make sure that invalid fields raise an error (e.g., "task_ids")
     return {"study_id": study_id}
 
