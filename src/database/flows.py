@@ -3,7 +3,7 @@ from typing import Sequence, cast
 from sqlalchemy import Connection, Row, text
 
 
-def get_flow_subflows(flow_id: int, expdb: Connection) -> Sequence[Row]:
+def get_subflows(for_flow: int, expdb: Connection) -> Sequence[Row]:
     return cast(
         Sequence[Row],
         expdb.execute(
@@ -14,12 +14,12 @@ def get_flow_subflows(flow_id: int, expdb: Connection) -> Sequence[Row]:
             WHERE parent = :flow_id
             """,
             ),
-            parameters={"flow_id": flow_id},
+            parameters={"flow_id": for_flow},
         ),
     )
 
 
-def get_flow_tags(flow_id: int, expdb: Connection) -> list[str]:
+def get_tags(flow_id: int, expdb: Connection) -> list[str]:
     tag_rows = expdb.execute(
         text(
             """
@@ -33,7 +33,7 @@ def get_flow_tags(flow_id: int, expdb: Connection) -> list[str]:
     return [tag.tag for tag in tag_rows]
 
 
-def get_flow_parameters(flow_id: int, expdb: Connection) -> Sequence[Row]:
+def get_parameters(flow_id: int, expdb: Connection) -> Sequence[Row]:
     return cast(
         Sequence[Row],
         expdb.execute(
@@ -49,7 +49,21 @@ def get_flow_parameters(flow_id: int, expdb: Connection) -> Sequence[Row]:
     )
 
 
-def get_flow(flow_id: int, expdb: Connection) -> Row | None:
+def get_by_name(name: str, external_version: str, expdb: Connection) -> Row | None:
+    """Gets flow by name and external version."""
+    return expdb.execute(
+        text(
+            """
+            SELECT *, uploadDate as upload_date
+            FROM implementation
+            WHERE name = :name AND external_version = :external_version
+            """,
+        ),
+        parameters={"name": name, "external_version": external_version},
+    ).one_or_none()
+
+
+def get_by_id(flow_id: int, expdb: Connection) -> Row | None:
     return expdb.execute(
         text(
             """

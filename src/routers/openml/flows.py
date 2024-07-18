@@ -1,9 +1,8 @@
 import http.client
-from typing import Annotated
+from typing import Annotated, Literal
 
+import database.flows
 from core.conversions import _str_to_num
-from database.flows import get_flow as db_get_flow
-from database.flows import get_flow_parameters, get_flow_subflows, get_flow_tags
 from fastapi import APIRouter, Depends, HTTPException
 from schemas.flows import Flow, Parameter
 from sqlalchemy import Connection
@@ -13,13 +12,29 @@ from routers.dependencies import expdb_connection
 router = APIRouter(prefix="/flows", tags=["flows"])
 
 
+@router.get("/exists/{name}/{external_version}")
+def flow_exists(
+    name: str,
+    external_version: str,
+    expdb: Annotated[Connection, Depends(expdb_connection)],
+) -> dict[Literal["flow_id"], int]:
+    """Check if a Flow with the name and version exists, if so, return the flow id."""
+    flow = database.flows.get_by_name(name=name, external_version=external_version, expdb=expdb)
+    if flow is None:
+        raise HTTPException(
+            status_code=http.client.NOT_FOUND,
+            detail="Flow not found.",
+        )
+    return {"flow_id": flow.id}
+
+
 @router.get("/{flow_id}")
 def get_flow(flow_id: int, expdb: Annotated[Connection, Depends(expdb_connection)] = None) -> Flow:
-    flow = db_get_flow(flow_id, expdb)
+    flow = database.flows.get_by_id(flow_id, expdb)
     if not flow:
         raise HTTPException(status_code=http.client.NOT_FOUND, detail="Flow not found")
 
-    parameter_rows = get_flow_parameters(flow_id, expdb)
+    parameter_rows = database.flows.get_parameters(flow_id, expdb)
     parameters = [
         Parameter(
             name=parameter.name,
@@ -33,9 +48,8 @@ def get_flow(flow_id: int, expdb: Annotated[Connection, Depends(expdb_connection
         for parameter in parameter_rows
     ]
 
-    tags = get_flow_tags(flow_id, expdb)
-
-    flow_rows = get_flow_subflows(flow_id, expdb)
+    tags = database.flows.get_tags(flow_id, expdb)
+    flow_rows = database.flows.get_subflows(for_flow=flow_id, expdb=expdb)
     subflows = [
         {
             "identifier": flow.identifier,

@@ -1,5 +1,74 @@
+import http.client
+
 import deepdiff.diff
+import pytest
+from fastapi import HTTPException
+from pytest_mock import MockerFixture
+from routers.openml.flows import flow_exists
+from sqlalchemy import Connection
 from starlette.testclient import TestClient
+
+from tests.conftest import Flow
+
+
+@pytest.mark.parametrize(
+    ("name", "external_version"),
+    [
+        ("a", "b"),
+        ("c", "d"),
+    ],
+)
+def test_flow_exists_calls_db_correctly(
+    name: str,
+    external_version: str,
+    expdb_test: Connection,
+    mocker: MockerFixture,
+) -> None:
+    mocked_db = mocker.patch("database.flows.get_by_name")
+    flow_exists(name, external_version, expdb_test)
+    mocked_db.assert_called_once_with(
+        name=name,
+        external_version=external_version,
+        expdb=mocker.ANY,
+    )
+
+
+@pytest.mark.parametrize(
+    "flow_id",
+    [1, 2],
+)
+def test_flow_exists_processes_found(
+    flow_id: int,
+    mocker: MockerFixture,
+    expdb_test: Connection,
+) -> None:
+    fake_flow = mocker.MagicMock(id=flow_id)
+    mocker.patch(
+        "database.flows.get_by_name",
+        return_value=fake_flow,
+    )
+    response = flow_exists("name", "external_version", expdb_test)
+    assert response == {"flow_id": fake_flow.id}
+
+
+def test_flow_exists_handles_flow_not_found(mocker: MockerFixture, expdb_test: Connection) -> None:
+    mocker.patch("database.flows.get_by_name", return_value=None)
+    with pytest.raises(HTTPException) as error:
+        flow_exists("foo", "bar", expdb_test)
+    assert error.value.status_code == http.client.NOT_FOUND
+    assert error.value.detail == "Flow not found."
+
+
+def test_flow_exists(flow: Flow, py_api: TestClient) -> None:
+    response = py_api.get(f"/flows/exists/{flow.name}/{flow.external_version}")
+    assert response.status_code == http.client.OK
+    assert response.json() == {"flow_id": flow.id}
+
+
+def test_flow_exists_not_exists(py_api: TestClient) -> None:
+    response = py_api.get("/flows/exists/foo/bar")
+    assert response.status_code == http.client.NOT_FOUND
+    assert response.json()["detail"] == "Flow not found."
 
 
 def test_get_flow_no_subflow(py_api: TestClient) -> None:

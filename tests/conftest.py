@@ -2,7 +2,7 @@ import contextlib
 import json
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any, Iterator, NamedTuple
 
 import httpx
 import pytest
@@ -10,7 +10,7 @@ from database.setup import expdb_database, user_database
 from fastapi.testclient import TestClient
 from main import create_api
 from routers.dependencies import expdb_connection, userdb_connection
-from sqlalchemy import Connection, Engine
+from sqlalchemy import Connection, Engine, text
 
 
 class ApiKey(StrEnum):
@@ -25,7 +25,8 @@ def automatic_rollback(engine: Engine) -> Iterator[Connection]:
     with engine.connect() as connection:
         transaction = connection.begin()
         yield connection
-        transaction.rollback()
+        if transaction.is_active:
+            transaction.rollback()
 
 
 @pytest.fixture()
@@ -65,3 +66,45 @@ def dataset_130() -> Iterator[dict[str, Any]]:
 @pytest.fixture()
 def default_configuration_file() -> Path:
     return Path().parent.parent / "src" / "config.toml"
+
+
+class Flow(NamedTuple):
+    """To be replaced by an actual ORM class."""
+
+    id: int
+    name: str
+    external_version: str
+
+
+@pytest.fixture()
+def flow(expdb_test: Connection) -> Flow:
+    expdb_test.execute(
+        text(
+            """
+            INSERT INTO implementation(fullname,name,version,external_version,uploadDate)
+            VALUES ('a','name',2,'external_version','2024-02-02 02:23:23');
+            """,
+        ),
+    )
+    (flow_id,) = expdb_test.execute(text("""SELECT LAST_INSERT_ID();""")).one()
+    return Flow(id=flow_id, name="name", external_version="external_version")
+
+
+@pytest.fixture()
+def persisted_flow(flow: Flow, expdb_test: Connection) -> Iterator[Flow]:
+    expdb_test.commit()
+    yield flow
+    # We want to ensure the commit below does not accidentally persist new
+    # data to the database.
+    expdb_test.rollback()
+
+    expdb_test.execute(
+        text(
+            """
+            DELETE FROM implementation
+            WHERE id = :flow_id
+            """,
+        ),
+        parameters={"flow_id": flow.id},
+    )
+    expdb_test.commit()
