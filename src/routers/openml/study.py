@@ -1,17 +1,8 @@
 import http.client
 from typing import Annotated, Literal
 
+import database.studies
 from core.formatting import _str_to_bool
-from database.studies import (
-    attach_run_to_study,
-    attach_runs_to_study,
-    attach_task_to_study,
-    attach_tasks_to_study,
-    get_study_by_alias,
-    get_study_by_id,
-    get_study_data,
-)
-from database.studies import create_study as db_create_study
 from database.users import User, UserGroup
 from fastapi import APIRouter, Body, Depends, HTTPException
 from pydantic import BaseModel
@@ -26,9 +17,9 @@ router = APIRouter(prefix="/studies", tags=["studies"])
 
 def _get_study_raise_otherwise(id_or_alias: int | str, user: User | None, expdb: Connection) -> Row:
     if isinstance(id_or_alias, int) or id_or_alias.isdigit():
-        study = get_study_by_id(int(id_or_alias), expdb)
+        study = database.studies.get_by_id(int(id_or_alias), expdb)
     else:
-        study = get_study_by_alias(id_or_alias, expdb)
+        study = database.studies.get_by_alias(id_or_alias, expdb)
 
     if study is None:
         raise HTTPException(status_code=http.client.NOT_FOUND, detail="Study not found.")
@@ -77,9 +68,16 @@ def attach_to_study(
 
     # We let the database handle the constraints on whether
     # the entity is already attached or if it even exists.
-    attach = attach_tasks_to_study if study.type_ == StudyType.TASK else attach_runs_to_study
+    attach_kwargs = {
+        "study_id": study_id,
+        "user": user,
+        "connection": expdb,
+    }
     try:
-        attach(study_id, entity_ids, user, expdb)
+        if study.type_ == StudyType.TASK:
+            database.studies.attach_tasks(task_ids=entity_ids, **attach_kwargs)
+        else:
+            database.studies.attach_runs(run_ids=entity_ids, **attach_kwargs)
     except ValueError as e:
         raise HTTPException(
             status_code=http.client.CONFLICT,
@@ -109,18 +107,18 @@ def create_study(
             status_code=http.client.BAD_REQUEST,
             detail="Cannot create a task study with runs.",
         )
-    if study.alias and get_study_by_alias(study.alias, expdb):
+    if study.alias and database.studies.get_by_alias(study.alias, expdb):
         raise HTTPException(
             status_code=http.client.CONFLICT,
             detail="Study alias already exists.",
         )
-    study_id = db_create_study(study, user, expdb)
+    study_id = database.studies.create(study, user, expdb)
     if study.main_entity_type == StudyType.TASK:
         for task_id in study.tasks:
-            attach_task_to_study(task_id, study_id, user, expdb)
+            database.studies.attach_task(task_id, study_id, user, expdb)
     if study.main_entity_type == StudyType.RUN:
         for run_id in study.runs:
-            attach_run_to_study(run_id, study_id, user, expdb)
+            database.studies.attach_run(run_id=run_id, study_id=study_id, user=user, expdb=expdb)
     # Make sure that invalid fields raise an error (e.g., "task_ids")
     return {"study_id": study_id}
 
@@ -132,7 +130,7 @@ def get_study(
     expdb: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> Study:
     study = _get_study_raise_otherwise(alias_or_id, user, expdb)
-    study_data = get_study_data(study, expdb)
+    study_data = database.studies.get_study_data(study, expdb)
     return Study(
         _legacy=_str_to_bool(study.legacy),
         id_=study.id,

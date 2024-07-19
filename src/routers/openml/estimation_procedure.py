@@ -1,6 +1,6 @@
 from typing import Annotated, Iterable
 
-from database.evaluations import get_estimation_procedures as db_get_estimation_procedures
+import database.evaluations
 from fastapi import APIRouter, Depends
 from schemas.datasets.openml import EstimationProcedure
 from sqlalchemy import Connection
@@ -14,4 +14,4 @@ router = APIRouter(prefix="/estimationprocedure", tags=["estimationprocedure"])
 def get_estimation_procedures(
     expdb: Annotated[Connection, Depends(expdb_connection)],
 ) -> Iterable[EstimationProcedure]:
-    return db_get_estimation_procedures(expdb)
+    return database.evaluations.get_estimation_procedures(expdb)
