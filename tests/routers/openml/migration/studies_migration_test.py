@@ -1,11 +1,9 @@
 import deepdiff
 import httpx
-import pytest
 from core.conversions import nested_num_to_str, nested_remove_nones
 from starlette.testclient import TestClient
 
 
-@pytest.mark.php()
 def test_get_study_equal(py_api: TestClient, php_api: httpx.Client) -> None:
     new = py_api.get("/studies/1")
     old = php_api.get("/study/1")

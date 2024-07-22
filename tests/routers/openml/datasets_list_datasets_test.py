@@ -222,7 +222,6 @@ def test_list_data_quality(quality: str, range_: str, count: int, py_api: TestCl
     assert len(response.json()) == count
 
 
-@pytest.mark.php()
 @pytest.mark.slow()
 @hypothesis.settings(
     max_examples=5000,

@@ -9,7 +9,6 @@ from starlette.testclient import TestClient
 from tests.conftest import ApiKey
 
 
-@pytest.mark.php()
 @pytest.mark.parametrize(
     "dataset_id",
     range(1, 132),
@@ -136,7 +135,6 @@ def test_private_dataset_admin_access(py_api: TestClient) -> None:
 # test against cached response
 
 
-@pytest.mark.php()
 @pytest.mark.parametrize(
     "dataset_id",
     list(range(1, 10)) + [101],
@@ -188,7 +186,6 @@ def test_dataset_tag_response_is_identical(
     assert original == new
 
 
-@pytest.mark.php()
 @pytest.mark.parametrize(
     "data_id",
     list(range(1, 130)),
