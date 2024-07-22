@@ -4,8 +4,11 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any, Iterator, NamedTuple
 
+import _pytest.mark
 import httpx
 import pytest
+from _pytest.config import Config
+from _pytest.nodes import Item
 from database.setup import expdb_database, user_database
 from fastapi.testclient import TestClient
 from main import create_api
@@ -108,3 +111,9 @@ def persisted_flow(flow: Flow, expdb_test: Connection) -> Iterator[Flow]:
         parameters={"flow_id": flow.id},
     )
     expdb_test.commit()
+
+
+def pytest_collection_modifyitems(config: Config, items: list[Item]) -> None:  # noqa: ARG001
+    for test_item in items:
+        for fixture in test_item.fixturenames:  # type: ignore[attr-defined]
+            test_item.own_markers.append(_pytest.mark.Mark(fixture, (), {}))
