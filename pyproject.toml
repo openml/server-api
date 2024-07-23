@@ -61,10 +61,12 @@ pythonpath = [
   "src"
 ]
 markers = [
-    "php: tests that compare directly to an old PHP endpoint.",
     "slow: test or sets of tests which take more than a few seconds to run.",
     # While the `mut`ation marker below is not strictly necessary as every change is
     # executed within transaction that is rolled back, it can halt other unit tests which
     # whose queries may depend on the execution or rollback of the transaction.
     "mut: executes a mutation on the database (in a transaction which is rolled back)",
+]
+filterwarnings = [
+    'ignore:A private pytest class or function was used.:DeprecationWarning:tests.conftest:119',
 ]

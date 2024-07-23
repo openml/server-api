@@ -6,7 +6,6 @@ import pytest
 from starlette.testclient import TestClient
 
 
-@pytest.mark.php()
 def test_list_task_type(py_api: TestClient, php_api: httpx.Client) -> None:
     response = py_api.get("/tasktype/list")
     original = php_api.get("/tasktype/list")
@@ -14,7 +13,6 @@ def test_list_task_type(py_api: TestClient, php_api: httpx.Client) -> None:
     assert response.json() == original.json()
 
 
-@pytest.mark.php()
 @pytest.mark.parametrize(
     "ttype_id",
     list(range(1, 12)),

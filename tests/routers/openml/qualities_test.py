@@ -28,7 +28,6 @@ def _remove_quality_from_database(quality_name: str, expdb_test: Connection) -> 
     )
 
 
-@pytest.mark.php()
 def test_list_qualities_identical(py_api: TestClient, php_api: httpx.Client) -> None:
     original = php_api.get("/data/qualities/list")
     new = py_api.get("/datasets/qualities/list")
@@ -279,7 +278,6 @@ def test_get_quality(py_api: TestClient) -> None:
     assert not difference
 
 
-@pytest.mark.php()
 @pytest.mark.parametrize(
     "data_id",
     list(set(range(1, 132)) - {55, 56, 59, 116, 130}),
@@ -299,7 +297,6 @@ def test_get_quality_identical(data_id: int, py_api: TestClient, php_api: httpx.
     assert python_response.json() == expected
 
 
-@pytest.mark.php()
 @pytest.mark.parametrize(
     "data_id",
     [55, 56, 59, 116, 130, 132],

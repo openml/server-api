@@ -1,11 +1,9 @@
 from typing import Any
 
 import httpx
-import pytest
 from starlette.testclient import TestClient
 
 
-@pytest.mark.php()
 def test_evaluationmeasure_list(py_api: TestClient, php_api: httpx.Client) -> None:
     new = py_api.get("/evaluationmeasure/list")
     original = php_api.get("/evaluationmeasure/list")
@@ -13,7 +11,6 @@ def test_evaluationmeasure_list(py_api: TestClient, php_api: httpx.Client) -> No
     assert new.json() == original.json()["evaluation_measures"]["measures"]["measure"]
 
 
-@pytest.mark.php()
 def test_estimation_procedure_list(py_api: TestClient, php_api: httpx.Client) -> None:
     new = py_api.get("/estimationprocedure/list")
     original = php_api.get("/estimationprocedure/list")

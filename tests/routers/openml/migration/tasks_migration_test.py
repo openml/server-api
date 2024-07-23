@@ -9,7 +9,6 @@ from core.conversions import (
 from starlette.testclient import TestClient
 
 
-@pytest.mark.php()
 @pytest.mark.parametrize(
     "task_id",
     range(1, 1306),

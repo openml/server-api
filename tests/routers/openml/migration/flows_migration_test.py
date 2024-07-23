@@ -14,7 +14,6 @@ from tests.conftest import Flow
 
 
 @pytest.mark.mut()
-@pytest.mark.php()
 def test_flow_exists_not(
     py_api: TestClient,
     php_api: TestClient,
@@ -32,7 +31,6 @@ def test_flow_exists_not(
 
 
 @pytest.mark.mut()
-@pytest.mark.php()
 def test_flow_exists(
     persisted_flow: Flow,
     py_api: TestClient,
@@ -49,7 +47,6 @@ def test_flow_exists(
     assert py_response.json() == {"flow_id": persisted_flow.id}
 
 
-@pytest.mark.php()
 @pytest.mark.parametrize(
     "flow_id",
     range(1, 16),
