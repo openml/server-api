@@ -1,11 +1,11 @@
 from typing import Annotated, Iterable
 
-import database.evaluations
 from fastapi import APIRouter, Depends
-from schemas.datasets.openml import EstimationProcedure
 from sqlalchemy import Connection
 
+import database.evaluations
 from routers.dependencies import expdb_connection
+from schemas.datasets.openml import EstimationProcedure
 
 router = APIRouter(prefix="/estimationprocedure", tags=["estimationprocedure"])
 

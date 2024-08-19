@@ -1,6 +1,6 @@
-import database.flows
 from sqlalchemy import Connection
 
+import database.flows
 from tests.conftest import Flow
 
 

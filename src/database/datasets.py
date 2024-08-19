@@ -2,9 +2,10 @@
 
 import datetime
 
-from schemas.datasets.openml import Feature
 from sqlalchemy import Connection, text
 from sqlalchemy.engine import Row
+
+from schemas.datasets.openml import Feature
 
 
 def get(id_: int, connection: Connection) -> Row | None:

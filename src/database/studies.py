@@ -2,10 +2,10 @@ import re
 from datetime import datetime
 from typing import Sequence, cast
 
-from schemas.study import CreateStudy, StudyType
 from sqlalchemy import Connection, Row, text
 
 from database.users import User
+from schemas.study import CreateStudy, StudyType
 
 
 def get_by_id(id_: int, connection: Connection) -> Row | None:

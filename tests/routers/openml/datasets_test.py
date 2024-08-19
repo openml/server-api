@@ -2,9 +2,9 @@ import http.client
 from typing import Any
 
 import pytest
-from schemas.datasets.openml import DatasetStatus
 from starlette.testclient import TestClient
 
+from schemas.datasets.openml import DatasetStatus
 from tests.conftest import ApiKey
 
 
@@ -201,7 +201,7 @@ def _assert_status_update_is_successful(
     }
 
 
-@pytest.mark.mut()
+@pytest.mark.mut
 @pytest.mark.parametrize(
     "dataset_id",
     [3, 4],
@@ -215,7 +215,7 @@ def test_dataset_status_update_active_to_deactivated(dataset_id: int, py_api: Te
     )
 
 
-@pytest.mark.mut()
+@pytest.mark.mut
 def test_dataset_status_update_in_preparation_to_active(py_api: TestClient) -> None:
     _assert_status_update_is_successful(
         apikey=ApiKey.ADMIN,
@@ -225,7 +225,7 @@ def test_dataset_status_update_in_preparation_to_active(py_api: TestClient) -> N
     )
 
 
-@pytest.mark.mut()
+@pytest.mark.mut
 def test_dataset_status_update_in_preparation_to_deactivated(py_api: TestClient) -> None:
     _assert_status_update_is_successful(
         apikey=ApiKey.ADMIN,
@@ -235,7 +235,7 @@ def test_dataset_status_update_in_preparation_to_deactivated(py_api: TestClient)
     )
 
 
-@pytest.mark.mut()
+@pytest.mark.mut
 def test_dataset_status_update_deactivated_to_active(py_api: TestClient) -> None:
     _assert_status_update_is_successful(
         apikey=ApiKey.ADMIN,

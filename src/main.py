@@ -1,8 +1,9 @@
 import argparse
 
 import uvicorn
-from config import load_configuration
 from fastapi import FastAPI
+
+from config import load_configuration
 from routers.mldcat_ap.dataset import router as mldcat_ap_router
 from routers.openml.datasets import router as datasets_router
 from routers.openml.estimation_procedure import router as estimationprocedure_router

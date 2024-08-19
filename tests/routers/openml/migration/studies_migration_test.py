@@ -1,7 +1,8 @@
 import deepdiff
 import httpx
-from core.conversions import nested_num_to_str, nested_remove_nones
 from starlette.testclient import TestClient
+
+from core.conversions import nested_num_to_str, nested_remove_nones
 
 
 def test_get_study_equal(py_api: TestClient, php_api: httpx.Client) -> None:

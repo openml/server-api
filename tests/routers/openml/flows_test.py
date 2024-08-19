@@ -4,10 +4,10 @@ import deepdiff.diff
 import pytest
 from fastapi import HTTPException
 from pytest_mock import MockerFixture
-from routers.openml.flows import flow_exists
 from sqlalchemy import Connection
 from starlette.testclient import TestClient
 
+from routers.openml.flows import flow_exists
 from tests.conftest import Flow
 
 

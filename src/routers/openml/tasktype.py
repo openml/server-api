@@ -2,11 +2,11 @@ import http.client
 import json
 from typing import Annotated, Any, Literal, cast
 
-from database.tasks import get_input_for_task_type, get_task_types
-from database.tasks import get_task_type as db_get_task_type
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import Connection, Row
 
+from database.tasks import get_input_for_task_type, get_task_types
+from database.tasks import get_task_type as db_get_task_type
 from routers.dependencies import expdb_connection
 
 router = APIRouter(prefix="/tasktype", tags=["tasks"])

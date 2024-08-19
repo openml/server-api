@@ -1,16 +1,16 @@
 import http.client
 from typing import Annotated, Literal
 
+from fastapi import APIRouter, Body, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy import Connection, Row
+
 import database.studies
 from core.formatting import _str_to_bool
 from database.users import User, UserGroup
-from fastapi import APIRouter, Body, Depends, HTTPException
-from pydantic import BaseModel
+from routers.dependencies import expdb_connection, fetch_user
 from schemas.core import Visibility
 from schemas.study import CreateStudy, Study, StudyStatus, StudyType
-from sqlalchemy import Connection, Row
-
-from routers.dependencies import expdb_connection, fetch_user
 
 router = APIRouter(prefix="/studies", tags=["studies"])
 

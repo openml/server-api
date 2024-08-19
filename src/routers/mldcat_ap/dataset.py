@@ -6,9 +6,14 @@ Specific queries could be written to fetch e.g., a single feature or quality.
 
 from typing import Annotated
 
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import Connection
+
 import config
 from database.users import User
-from fastapi import APIRouter, Depends, HTTPException
+from routers.dependencies import expdb_connection, fetch_user, userdb_connection
+from routers.openml.datasets import get_dataset, get_dataset_features
+from routers.openml.qualities import get_qualities
 from schemas.datasets.mldcat_ap import (
     DataService,
     Dataset,
@@ -20,11 +25,6 @@ from schemas.datasets.mldcat_ap import (
     MD5Checksum,
     Quality,
 )
-from sqlalchemy import Connection
-
-from routers.dependencies import expdb_connection, fetch_user, userdb_connection
-from routers.openml.datasets import get_dataset, get_dataset_features
-from routers.openml.qualities import get_qualities
 
 router = APIRouter(prefix="/mldcat_ap", tags=["MLDCAT-AP"])
 _configuration = config.load_configuration()

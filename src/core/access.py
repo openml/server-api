@@ -1,6 +1,7 @@
+from sqlalchemy.engine import Row
+
 from database.users import User, UserGroup
 from schemas.datasets.openml import Visibility
-from sqlalchemy.engine import Row
 
 
 def _user_has_access(

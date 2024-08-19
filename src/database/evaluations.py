@@ -1,8 +1,9 @@
 from typing import Sequence, cast
 
+from sqlalchemy import Connection, Row, text
+
 from core.formatting import _str_to_bool
 from schemas.datasets.openml import EstimationProcedure
-from sqlalchemy import Connection, Row, text
 
 
 def get_math_functions(function_type: str, connection: Connection) -> Sequence[Row]:
