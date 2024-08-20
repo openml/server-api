@@ -1,10 +1,11 @@
 from typing import Annotated
 
-from database.setup import expdb_database, user_database
-from database.users import APIKey, User
 from fastapi import Depends
 from pydantic import BaseModel
 from sqlalchemy import Connection
+
+from database.setup import expdb_database, user_database
+from database.users import APIKey, User
 
 
 def expdb_connection() -> Connection:

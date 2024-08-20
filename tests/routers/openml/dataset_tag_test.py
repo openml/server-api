@@ -1,10 +1,10 @@
 import http.client
 
 import pytest
-from database.datasets import get_tags_for
 from sqlalchemy import Connection
 from starlette.testclient import TestClient
 
+from database.datasets import get_tags_for
 from tests import constants
 from tests.conftest import ApiKey
 

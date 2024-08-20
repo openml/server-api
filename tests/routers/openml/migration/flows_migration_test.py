@@ -4,16 +4,16 @@ from typing import Any
 import deepdiff
 import httpx
 import pytest
+from starlette.testclient import TestClient
+
 from core.conversions import (
     nested_remove_single_element_list,
     nested_str_to_num,
 )
-from starlette.testclient import TestClient
-
 from tests.conftest import Flow
 
 
-@pytest.mark.mut()
+@pytest.mark.mut
 def test_flow_exists_not(
     py_api: TestClient,
     php_api: TestClient,
@@ -30,7 +30,7 @@ def test_flow_exists_not(
     assert py_response.json() == {"detail": "Flow not found."}
 
 
-@pytest.mark.mut()
+@pytest.mark.mut
 def test_flow_exists(
     persisted_flow: Flow,
     py_api: TestClient,

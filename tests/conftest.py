@@ -9,11 +9,12 @@ import httpx
 import pytest
 from _pytest.config import Config
 from _pytest.nodes import Item
-from database.setup import expdb_database, user_database
 from fastapi.testclient import TestClient
+from sqlalchemy import Connection, Engine, text
+
+from database.setup import expdb_database, user_database
 from main import create_api
 from routers.dependencies import expdb_connection, userdb_connection
-from sqlalchemy import Connection, Engine, text
 
 
 class ApiKey(StrEnum):
@@ -32,25 +33,25 @@ def automatic_rollback(engine: Engine) -> Iterator[Connection]:
             transaction.rollback()
 
 
-@pytest.fixture()
+@pytest.fixture
 def expdb_test() -> Connection:
     with automatic_rollback(expdb_database()) as connection:
         yield connection
 
 
-@pytest.fixture()
+@pytest.fixture
 def user_test() -> Connection:
     with automatic_rollback(user_database()) as connection:
         yield connection
 
 
-@pytest.fixture()
+@pytest.fixture
 def php_api() -> Iterator[httpx.Client]:
     with httpx.Client(base_url="http://server-api-php-api-1:80/api/v1/json") as client:
         yield client
 
 
-@pytest.fixture()
+@pytest.fixture
 def py_api(expdb_test: Connection, user_test: Connection) -> TestClient:
     app = create_api()
     # We use the lambda definitions because fixtures may not be called directly.
@@ -59,14 +60,14 @@ def py_api(expdb_test: Connection, user_test: Connection) -> TestClient:
     return TestClient(app)
 
 
-@pytest.fixture()
+@pytest.fixture
 def dataset_130() -> Iterator[dict[str, Any]]:
     json_path = Path(__file__).parent / "resources" / "datasets" / "dataset_130.json"
     with json_path.open("r") as dataset_file:
         yield json.load(dataset_file)
 
 
-@pytest.fixture()
+@pytest.fixture
 def default_configuration_file() -> Path:
     return Path().parent.parent / "src" / "config.toml"
 
@@ -79,7 +80,7 @@ class Flow(NamedTuple):
     external_version: str
 
 
-@pytest.fixture()
+@pytest.fixture
 def flow(expdb_test: Connection) -> Flow:
     expdb_test.execute(
         text(
@@ -93,7 +94,7 @@ def flow(expdb_test: Connection) -> Flow:
     return Flow(id=flow_id, name="name", external_version="external_version")
 
 
-@pytest.fixture()
+@pytest.fixture
 def persisted_flow(flow: Flow, expdb_test: Connection) -> Iterator[Flow]:
     expdb_test.commit()
     yield flow

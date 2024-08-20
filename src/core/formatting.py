@@ -1,10 +1,10 @@
 import html
 
-from config import load_configuration
-from schemas.datasets.openml import DatasetFileFormat
 from sqlalchemy.engine import Row
 
+from config import load_configuration
 from core.errors import DatasetError
+from schemas.datasets.openml import DatasetFileFormat
 
 
 def _str_to_bool(string: str) -> bool:

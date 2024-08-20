@@ -2,9 +2,10 @@ import http.client
 from datetime import datetime
 
 import httpx
-from schemas.study import StudyType
 from sqlalchemy import Connection, text
 from starlette.testclient import TestClient
+
+from schemas.study import StudyType
 
 
 def test_get_task_study_by_id(py_api: TestClient) -> None:

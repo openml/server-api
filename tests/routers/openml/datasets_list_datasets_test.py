@@ -222,7 +222,7 @@ def test_list_data_quality(quality: str, range_: str, count: int, py_api: TestCl
     assert len(response.json()) == count
 
 
-@pytest.mark.slow()
+@pytest.mark.slow
 @hypothesis.settings(
     max_examples=5000,
     suppress_health_check=[hypothesis.HealthCheck.function_scoped_fixture],

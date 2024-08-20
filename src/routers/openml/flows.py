@@ -1,13 +1,13 @@
 import http.client
 from typing import Annotated, Literal
 
-import database.flows
-from core.conversions import _str_to_num
 from fastapi import APIRouter, Depends, HTTPException
-from schemas.flows import Flow, Parameter
 from sqlalchemy import Connection
 
+import database.flows
+from core.conversions import _str_to_num
 from routers.dependencies import expdb_connection
+from schemas.flows import Flow, Parameter
 
 router = APIRouter(prefix="/flows", tags=["flows"])
 

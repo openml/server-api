@@ -1,6 +1,7 @@
-from config import load_database_configuration
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.engine import URL
+
+from config import load_database_configuration
 
 _user_engine = None
 _expdb_engine = None

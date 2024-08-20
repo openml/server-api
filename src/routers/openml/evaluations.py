@@ -1,9 +1,9 @@
 from typing import Annotated
 
-import database.evaluations
 from fastapi import APIRouter, Depends
 from sqlalchemy import Connection
 
+import database.evaluations
 from routers.dependencies import expdb_connection
 
 router = APIRouter(prefix="/evaluationmeasure", tags=["evaluationmeasure"])

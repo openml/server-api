@@ -1,8 +1,9 @@
 from collections import defaultdict
 from typing import Iterable
 
-from schemas.datasets.openml import Quality
 from sqlalchemy import Connection, text
+
+from schemas.datasets.openml import Quality
 
 
 def get_for_dataset(dataset_id: int, connection: Connection) -> list[Quality]:

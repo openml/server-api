@@ -1,16 +1,16 @@
 import http.client
 from typing import Annotated, Literal
 
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import Connection
+
 import database.datasets
 import database.qualities
 from core.access import _user_has_access
 from core.errors import DatasetError
 from database.users import User
-from fastapi import APIRouter, Depends, HTTPException
-from schemas.datasets.openml import Quality
-from sqlalchemy import Connection
-
 from routers.dependencies import expdb_connection, fetch_user
+from schemas.datasets.openml import Quality
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 
