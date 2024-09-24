@@ -44,7 +44,7 @@ docs = [
 skips = ["./tests/*"]
 
 [tool.ruff]
-select = ["A", "ARG", "B", "COM", "C4", "E", "EM", "F", "I001", "PT", "PTH", "T20", "RET", "SIM"]
+lint.select = ["A", "ARG", "B", "COM", "C4", "E", "EM", "F", "I001", "PT", "PTH", "T20", "RET", "SIM"]
 line-length = 100
 
 [tool.mypy]
