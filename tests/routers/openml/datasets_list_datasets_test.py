@@ -247,7 +247,7 @@ def test_list_data_identical(
     py_api: TestClient,
     php_api: httpx.Client,
     **kwargs: dict[str, Any],
-) -> Any:
+) -> Any:  # noqa: ANN401
     limit, offset = kwargs["limit"], kwargs["offset"]
     if (limit and not offset) or (offset and not limit):
         # Behavior change: in new API these may be used independently, not in old.

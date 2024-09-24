@@ -15,7 +15,7 @@ from schemas.datasets.openml import Task
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
-def convert_template_xml_to_json(xml_template: str) -> Any:
+def convert_template_xml_to_json(xml_template: str) -> Any:  # noqa: ANN401
     json_template = xmltodict.parse(xml_template.replace("oml:", ""))
     json_str = json.dumps(json_template)
     # To account for the differences between PHP and Python conversions:
@@ -29,7 +29,7 @@ def fill_template(
     task: RowMapping,
     task_inputs: dict[str, str],
     connection: Connection,
-) -> Any:
+) -> Any:  # noqa: ANN401
     """Fill in the XML template as used for task descriptions and return the result,
      converted to JSON.
 
