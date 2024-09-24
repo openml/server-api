@@ -26,6 +26,7 @@ jobs:
           docker compose build python-api
           docker compose up -d --wait python-api php-api
       - run: docker container ls && docker image ls
+      - run: docker exec python-api python -m pip freeze
       - run: docker exec python-api python -m pytest -xv -m "php_api"
   python:
     runs-on: ubuntu-latest
@@ -36,4 +37,5 @@ jobs:
           python-version: 3.x
       - run: docker compose up -d --wait database python-api
       - run: docker container ls && docker image ls
+      - run: docker exec python-api python -m pip freeze
       - run: docker exec python-api python -m pytest -xv -m "not php_api"
