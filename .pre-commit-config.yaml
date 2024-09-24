@@ -18,7 +18,7 @@ repos:
 #    -   id: no-commit-to-branch
 
 -   repo: https://github.com/PyCQA/bandit
-    rev: '1.7.9'
+    rev: '1.7.10'
     hooks:
     - id: bandit
       args: [-c, pyproject.toml]
@@ -33,7 +33,7 @@ repos:
             - pytest
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 'v0.6.5'
+    rev: 'v0.6.7'
     hooks:
     -   id: ruff
         args: [--fix, --exit-non-zero-on-fix]
