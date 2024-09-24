@@ -13,7 +13,7 @@ from tests.conftest import ApiKey
     "dataset_id",
     range(1, 132),
 )
-def test_dataset_response_is_identical(
+def test_dataset_response_is_identical(  # noqa: C901
     dataset_id: int,
     py_api: TestClient,
     php_api: httpx.Client,
