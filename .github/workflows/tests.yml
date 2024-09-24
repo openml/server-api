@@ -5,6 +5,7 @@ on:
       - 'src/**'
       - 'docker/**'
       - 'docker-compose.yaml'
+      - 'pyproject.toml'
       - '.github/workflows/tests.yml'
 
 permissions:
