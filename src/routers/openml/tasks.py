@@ -1,6 +1,6 @@
-import http.client
 import json
 import re
+from http import HTTPStatus
 from typing import Annotated, Any
 
 import xmltodict
@@ -148,10 +148,10 @@ def get_task(
     expdb: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> Task:
     if not (task := database.tasks.get(task_id, expdb)):
-        raise HTTPException(status_code=http.client.NOT_FOUND, detail="Task not found")
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Task not found")
     if not (task_type := database.tasks.get_task_type(task.ttid, expdb)):
         raise HTTPException(
-            status_code=http.client.INTERNAL_SERVER_ERROR,
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail="Task type not found",
         )
 

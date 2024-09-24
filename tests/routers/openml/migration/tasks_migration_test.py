@@ -1,4 +1,4 @@
-import http.client
+from http import HTTPStatus
 
 import deepdiff
 import httpx
@@ -18,9 +18,9 @@ from core.conversions import (
 )
 def test_get_task_equal(task_id: int, py_api: TestClient, php_api: httpx.Client) -> None:
     response = py_api.get(f"/tasks/{task_id}")
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     php_response = php_api.get(f"/task/{task_id}")
-    assert php_response.status_code == http.client.OK
+    assert php_response.status_code == HTTPStatus.OK
 
     new_json = response.json()
     # Some fields are renamed (old = tag, new = tags)

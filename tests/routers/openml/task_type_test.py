@@ -1,4 +1,4 @@
-import http.client
+from http import HTTPStatus
 
 import deepdiff.diff
 import httpx
@@ -36,5 +36,5 @@ def test_get_task_type(ttype_id: int, py_api: TestClient, php_api: httpx.Client)
 
 def test_get_task_type_unknown(py_api: TestClient) -> None:
     response = py_api.get("/tasktype/1000")
-    assert response.status_code == http.client.PRECONDITION_FAILED
+    assert response.status_code == HTTPStatus.PRECONDITION_FAILED
     assert response.json() == {"detail": {"code": "241", "message": "Unknown task type."}}

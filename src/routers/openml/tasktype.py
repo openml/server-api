@@ -1,5 +1,5 @@
-import http.client
 import json
+from http import HTTPStatus
 from typing import Annotated, Any, Literal, cast
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -46,7 +46,7 @@ def get_task_type(
     task_type_record = db_get_task_type(task_type_id, expdb)
     if task_type_record is None:
         raise HTTPException(
-            status_code=http.client.PRECONDITION_FAILED,
+            status_code=HTTPStatus.PRECONDITION_FAILED,
             detail={"code": "241", "message": "Unknown task type."},
         ) from None
 

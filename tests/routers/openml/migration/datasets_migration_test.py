@@ -1,5 +1,5 @@
-import http.client
 import json
+from http import HTTPStatus
 from typing import Any
 
 import httpx
@@ -21,12 +21,12 @@ def test_dataset_response_is_identical(  # noqa: C901, PLR0912
     original = php_api.get(f"/data/{dataset_id}")
     new = py_api.get(f"/datasets/{dataset_id}")
 
-    if new.status_code == http.client.FORBIDDEN:
-        assert original.status_code == http.client.PRECONDITION_FAILED
+    if new.status_code == HTTPStatus.FORBIDDEN:
+        assert original.status_code == HTTPStatus.PRECONDITION_FAILED
     else:
         assert original.status_code == new.status_code
 
-    if new.status_code != http.client.OK:
+    if new.status_code != HTTPStatus.OK:
         assert original.json()["error"] == new.json()["detail"]
         return
 
@@ -97,7 +97,7 @@ def test_error_unknown_dataset(
     response = py_api.get(f"/datasets/{dataset_id}")
 
     # The new API has "404 Not Found" instead of "412 PRECONDITION_FAILED"
-    assert response.status_code == http.client.NOT_FOUND
+    assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json()["detail"] == {"code": "111", "message": "Unknown dataset"}
 
 
@@ -113,7 +113,7 @@ def test_private_dataset_no_user_no_access(
     response = py_api.get(f"/datasets/130{query}")
 
     # New response is 403: Forbidden instead of 412: PRECONDITION FAILED
-    assert response.status_code == http.client.FORBIDDEN
+    assert response.status_code == HTTPStatus.FORBIDDEN
     assert response.json()["detail"] == {"code": "112", "message": "No access granted"}
 
 
@@ -123,7 +123,7 @@ def test_private_dataset_owner_access(
     dataset_130: dict[str, Any],
 ) -> None:
     response = py_api.get("/datasets/130?api_key=...")
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     assert dataset_130 == response.json()
 
 
@@ -161,11 +161,11 @@ def test_dataset_tag_response_is_identical(
         data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
     )
     if (
-        original.status_code == http.client.PRECONDITION_FAILED
-        and original.json()["error"]["message"] == "An Elastic Search Exception occured."
+        original.status_code == HTTPStatus.PRECONDITION_FAILED
+        and original.json()["error"]["message"] == "An Elastic Search Exception occurred."
     ):
         pytest.skip("Encountered Elastic Search error.")
-    if original.status_code == http.client.OK:
+    if original.status_code == HTTPStatus.OK:
         # undo the tag, because we don't want to persist this change to the database
         php_api.post(
             "/data/untag",
@@ -177,7 +177,7 @@ def test_dataset_tag_response_is_identical(
     )
 
     assert original.status_code == new.status_code, original.json()
-    if new.status_code != http.client.OK:
+    if new.status_code != HTTPStatus.OK:
         assert original.json()["error"] == new.json()["detail"]
         return
 
@@ -199,7 +199,7 @@ def test_datasets_feature_is_identical(
     original = php_api.get(f"/data/features/{data_id}")
     assert response.status_code == original.status_code
 
-    if response.status_code != http.client.OK:
+    if response.status_code != HTTPStatus.OK:
         error = response.json()["detail"]
         error["code"] = str(error["code"])
         assert error == original.json()["error"]

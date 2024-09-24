@@ -1,4 +1,4 @@
-import http.client
+from http import HTTPStatus
 
 import deepdiff
 import httpx
@@ -38,7 +38,7 @@ def test_list_qualities_identical(py_api: TestClient, php_api: httpx.Client) -> 
 
 def test_list_qualities(py_api: TestClient, expdb_test: Connection) -> None:
     response = py_api.get("/datasets/qualities/list")
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     expected = {
         "data_qualities_list": {
             "quality": [
@@ -158,13 +158,13 @@ def test_list_qualities(py_api: TestClient, expdb_test: Connection) -> None:
     _remove_quality_from_database(quality_name=deleted, expdb_test=expdb_test)
 
     response = py_api.get("/datasets/qualities/list")
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     assert expected == response.json()
 
 
 def test_get_quality(py_api: TestClient) -> None:
     response = py_api.get("/datasets/qualities/1")
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     expected = [
         {"name": "AutoCorrelation", "value": 0.6064659977703456},
         {"name": "CfsSubsetEval_DecisionStumpAUC", "value": 0.9067742570970945},

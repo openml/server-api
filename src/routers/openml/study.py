@@ -1,4 +1,4 @@
-import http.client
+from http import HTTPStatus
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Body, Depends, HTTPException
@@ -22,18 +22,18 @@ def _get_study_raise_otherwise(id_or_alias: int | str, user: User | None, expdb:
         study = database.studies.get_by_alias(id_or_alias, expdb)
 
     if study is None:
-        raise HTTPException(status_code=http.client.NOT_FOUND, detail="Study not found.")
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Study not found.")
     if study.visibility == Visibility.PRIVATE:
         if user is None:
             raise HTTPException(
-                status_code=http.client.UNAUTHORIZED,
+                status_code=HTTPStatus.UNAUTHORIZED,
                 detail="Must authenticate for private study.",
             )
         if study.creator != user.user_id and UserGroup.ADMIN not in user.groups:
-            raise HTTPException(status_code=http.client.FORBIDDEN, detail="Study is private.")
+            raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Study is private.")
     if _str_to_bool(study.legacy):
         raise HTTPException(
-            status_code=http.client.GONE,
+            status_code=HTTPStatus.GONE,
             detail="Legacy studies are no longer supported",
         )
     return study
@@ -52,17 +52,17 @@ def attach_to_study(
     expdb: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> AttachDetachResponse:
     if user is None:
-        raise HTTPException(status_code=http.client.UNAUTHORIZED, detail="User not found.")
+        raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, detail="User not found.")
     study = _get_study_raise_otherwise(study_id, user, expdb)
     # PHP lets *anyone* edit *any* study. We're not going to do that.
     if study.creator != user.user_id and UserGroup.ADMIN not in user.groups:
         raise HTTPException(
-            status_code=http.client.FORBIDDEN,
+            status_code=HTTPStatus.FORBIDDEN,
             detail="Study can only be edited by its creator.",
         )
     if study.status != StudyStatus.IN_PREPARATION:
         raise HTTPException(
-            status_code=http.client.FORBIDDEN,
+            status_code=HTTPStatus.FORBIDDEN,
             detail="Study can only be edited while in preparation.",
         )
 
@@ -80,7 +80,7 @@ def attach_to_study(
             database.studies.attach_runs(run_ids=entity_ids, **attach_kwargs)
     except ValueError as e:
         raise HTTPException(
-            status_code=http.client.CONFLICT,
+            status_code=HTTPStatus.CONFLICT,
             detail=str(e),
         ) from None
     return AttachDetachResponse(study_id=study_id, main_entity_type=study.type_)
@@ -94,22 +94,22 @@ def create_study(
 ) -> dict[Literal["study_id"], int]:
     if user is None:
         raise HTTPException(
-            status_code=http.client.UNAUTHORIZED,
+            status_code=HTTPStatus.UNAUTHORIZED,
             detail="Creating a study requires authentication.",
         )
     if study.main_entity_type == StudyType.RUN and study.tasks:
         raise HTTPException(
-            status_code=http.client.BAD_REQUEST,
+            status_code=HTTPStatus.BAD_REQUEST,
             detail="Cannot create a run study with tasks.",
         )
     if study.main_entity_type == StudyType.TASK and study.runs:
         raise HTTPException(
-            status_code=http.client.BAD_REQUEST,
+            status_code=HTTPStatus.BAD_REQUEST,
             detail="Cannot create a task study with runs.",
         )
     if study.alias and database.studies.get_by_alias(study.alias, expdb):
         raise HTTPException(
-            status_code=http.client.CONFLICT,
+            status_code=HTTPStatus.CONFLICT,
             detail="Study alias already exists.",
         )
     study_id = database.studies.create(study, user, expdb)

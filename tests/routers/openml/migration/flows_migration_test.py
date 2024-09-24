@@ -1,4 +1,4 @@
-import http.client
+from http import HTTPStatus
 from typing import Any
 
 import deepdiff
@@ -22,8 +22,8 @@ def test_flow_exists_not(
     py_response = py_api.get(f"/flows/{path}")
     php_response = php_api.get(f"/flow/{path}")
 
-    assert py_response.status_code == http.client.NOT_FOUND
-    assert php_response.status_code == http.client.OK
+    assert py_response.status_code == HTTPStatus.NOT_FOUND
+    assert php_response.status_code == HTTPStatus.OK
 
     expect_php = {"flow_exists": {"exists": "false", "id": str(-1)}}
     assert php_response.json() == expect_php
@@ -53,7 +53,7 @@ def test_flow_exists(
 )
 def test_get_flow_equal(flow_id: int, py_api: TestClient, php_api: httpx.Client) -> None:
     response = py_api.get(f"/flows/{flow_id}")
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
 
     new = response.json()
 

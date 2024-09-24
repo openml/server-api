@@ -1,4 +1,4 @@
-import http.client
+from http import HTTPStatus
 
 import deepdiff
 from starlette.testclient import TestClient
@@ -6,7 +6,7 @@ from starlette.testclient import TestClient
 
 def test_get_task(py_api: TestClient) -> None:
     response = py_api.get("/tasks/59")
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     expected = {
         "id": 59,
         "name": "Task 59: mfeat-pixel (Supervised Classification)",

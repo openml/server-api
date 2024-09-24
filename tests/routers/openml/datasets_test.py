@@ -1,4 +1,4 @@
-import http.client
+from http import HTTPStatus
 from typing import Any
 
 import pytest
@@ -11,9 +11,9 @@ from tests.conftest import ApiKey
 @pytest.mark.parametrize(
     ("dataset_id", "response_code"),
     [
-        (-1, http.client.NOT_FOUND),
-        (138, http.client.NOT_FOUND),
-        (100_000, http.client.NOT_FOUND),
+        (-1, HTTPStatus.NOT_FOUND),
+        (138, HTTPStatus.NOT_FOUND),
+        (100_000, HTTPStatus.NOT_FOUND),
     ],
 )
 def test_error_unknown_dataset(
@@ -29,7 +29,7 @@ def test_error_unknown_dataset(
 
 def test_get_dataset(py_api: TestClient) -> None:
     response = py_api.get("/datasets/1")
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     description = response.json()
     assert description.pop("description").startswith("**Author**:")
 
@@ -68,8 +68,8 @@ def test_get_dataset(py_api: TestClient) -> None:
 @pytest.mark.parametrize(
     ("api_key", "response_code"),
     [
-        (None, http.client.FORBIDDEN),
-        ("a" * 32, http.client.FORBIDDEN),
+        (None, HTTPStatus.FORBIDDEN),
+        ("a" * 32, HTTPStatus.FORBIDDEN),
     ],
 )
 def test_private_dataset_no_user_no_access(
@@ -90,7 +90,7 @@ def test_private_dataset_owner_access(
     dataset_130: dict[str, Any],
 ) -> None:
     response = py_api.get("/v2/datasets/130?api_key=...")
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     assert dataset_130 == response.json()
 
 
@@ -103,7 +103,7 @@ def test_private_dataset_admin_access(py_api: TestClient) -> None:
 def test_dataset_features(py_api: TestClient) -> None:
     # Dataset 4 has both nominal and numerical features, so provides reasonable coverage
     response = py_api.get("/datasets/features/4")
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     assert response.json() == [
         {
             "index": 0,
@@ -156,7 +156,7 @@ def test_dataset_features(py_api: TestClient) -> None:
 
 def test_dataset_features_no_access(py_api: TestClient) -> None:
     response = py_api.get("/datasets/features/130")
-    assert response.status_code == http.client.FORBIDDEN
+    assert response.status_code == HTTPStatus.FORBIDDEN
 
 
 @pytest.mark.parametrize(
@@ -165,14 +165,14 @@ def test_dataset_features_no_access(py_api: TestClient) -> None:
 )
 def test_dataset_features_access_to_private(api_key: ApiKey, py_api: TestClient) -> None:
     response = py_api.get(f"/datasets/features/130?api_key={api_key}")
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
 
 
 def test_dataset_features_with_processing_error(py_api: TestClient) -> None:
     # When a dataset is processed to extract its feature metadata, errors may occur.
     # In that case, no feature information will ever be available.
     response = py_api.get("/datasets/features/55")
-    assert response.status_code == http.client.PRECONDITION_FAILED
+    assert response.status_code == HTTPStatus.PRECONDITION_FAILED
     assert response.json()["detail"] == {
         "code": 274,
         "message": "No features found. Additionally, dataset processed with error",
@@ -181,7 +181,7 @@ def test_dataset_features_with_processing_error(py_api: TestClient) -> None:
 
 def test_dataset_features_dataset_does_not_exist(py_api: TestClient) -> None:
     resource = py_api.get("/datasets/features/1000")
-    assert resource.status_code == http.client.NOT_FOUND
+    assert resource.status_code == HTTPStatus.NOT_FOUND
 
 
 def _assert_status_update_is_successful(
@@ -194,7 +194,7 @@ def _assert_status_update_is_successful(
         f"/datasets/status/update?api_key={apikey}",
         json={"dataset_id": dataset_id, "status": status},
     )
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     assert response.json() == {
         "dataset_id": dataset_id,
         "status": status,
@@ -265,4 +265,4 @@ def test_dataset_status_unauthorized(
         f"/datasets/status/update?api_key={api_key}",
         json={"dataset_id": dataset_id, "status": status},
     )
-    assert response.status_code == http.client.FORBIDDEN
+    assert response.status_code == HTTPStatus.FORBIDDEN

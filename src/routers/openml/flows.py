@@ -1,4 +1,4 @@
-import http.client
+from http import HTTPStatus
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -22,7 +22,7 @@ def flow_exists(
     flow = database.flows.get_by_name(name=name, external_version=external_version, expdb=expdb)
     if flow is None:
         raise HTTPException(
-            status_code=http.client.NOT_FOUND,
+            status_code=HTTPStatus.NOT_FOUND,
             detail="Flow not found.",
         )
     return {"flow_id": flow.id}
@@ -32,7 +32,7 @@ def flow_exists(
 def get_flow(flow_id: int, expdb: Annotated[Connection, Depends(expdb_connection)] = None) -> Flow:
     flow = database.flows.get(flow_id, expdb)
     if not flow:
-        raise HTTPException(status_code=http.client.NOT_FOUND, detail="Flow not found")
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Flow not found")
 
     parameter_rows = database.flows.get_parameters(flow_id, expdb)
     parameters = [

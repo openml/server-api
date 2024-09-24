@@ -1,4 +1,4 @@
-import http.client
+from http import HTTPStatus
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -36,7 +36,7 @@ def get_qualities(
     dataset = database.datasets.get(dataset_id, expdb)
     if not dataset or not _user_has_access(dataset, user):
         raise HTTPException(
-            status_code=http.client.PRECONDITION_FAILED,
+            status_code=HTTPStatus.PRECONDITION_FAILED,
             detail={"code": DatasetError.NO_DATA_FILE, "message": "Unknown dataset"},
         ) from None
     return database.qualities.get_for_dataset(dataset_id, expdb)

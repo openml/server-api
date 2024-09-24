@@ -1,4 +1,4 @@
-import http.client
+from http import HTTPStatus
 
 import pytest
 from sqlalchemy import Connection
@@ -20,7 +20,7 @@ def test_dataset_tag_rejects_unauthorized(key: ApiKey, py_api: TestClient) -> No
         f"/datasets/tag{apikey}",
         json={"data_id": next(iter(constants.PRIVATE_DATASET_ID)), "tag": "test"},
     )
-    assert response.status_code == http.client.PRECONDITION_FAILED
+    assert response.status_code == HTTPStatus.PRECONDITION_FAILED
     assert response.json()["detail"] == {"code": "103", "message": "Authentication failed"}
 
 
@@ -35,7 +35,7 @@ def test_dataset_tag(key: ApiKey, expdb_test: Connection, py_api: TestClient) ->
         f"/datasets/tag?api_key={key}",
         json={"data_id": dataset_id, "tag": tag},
     )
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     assert response.json() == {"data_tag": {"id": str(dataset_id), "tag": tag}}
 
     tags = get_tags_for(id_=dataset_id, connection=expdb_test)
@@ -48,7 +48,7 @@ def test_dataset_tag_returns_existing_tags(py_api: TestClient) -> None:
         f"/datasets/tag?api_key={ApiKey.ADMIN}",
         json={"data_id": dataset_id, "tag": tag},
     )
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     assert response.json() == {"data_tag": {"id": str(dataset_id), "tag": ["study_14", tag]}}
 
 
@@ -58,7 +58,7 @@ def test_dataset_tag_fails_if_tag_exists(py_api: TestClient) -> None:
         f"/datasets/tag?api_key={ApiKey.ADMIN}",
         json={"data_id": dataset_id, "tag": tag},
     )
-    assert response.status_code == http.client.INTERNAL_SERVER_ERROR
+    assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
     expected = {
         "detail": {
             "code": "473",
@@ -83,5 +83,5 @@ def test_dataset_tag_invalid_tag_is_rejected(
         json={"data_id": 1, "tag": tag},
     )
 
-    assert new.status_code == http.client.UNPROCESSABLE_ENTITY
+    assert new.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     assert new.json()["detail"][0]["loc"] == ["body", "tag"]
