@@ -47,14 +47,14 @@ skips = ["./tests/*"]
 line-length = 100
 
 [tool.ruff.lint]
-# The D doc class is current heavily violated, DTZ
+# The D (doc) and DTZ (datetime zone) lint classes current heavily violated - fix later
 select = ["ALL"]
-ignore = ["ANN101", "ANN102", "D203", "D204", "D213", "CPY", "D", "DTZ"]
-
+ignore = ["ANN101", "ANN102", "CPY", "D","D203", "D204", "D213", "DTZ"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = [ "S101", "COM812", "D"]
 "src/core/conversions.py" = ["ANN401"]
+
 [tool.mypy]
 strict = true
 plugins = [
