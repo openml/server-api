@@ -137,7 +137,7 @@ def test_private_dataset_admin_access(py_api: TestClient) -> None:
 
 @pytest.mark.parametrize(
     "dataset_id",
-    [*list(range(1, 10)), 101],
+    [*range(1, 10), 101],
 )
 @pytest.mark.parametrize(
     "api_key",
