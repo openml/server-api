@@ -224,7 +224,7 @@ def list_datasets(
         "NumberOfNumericFeatures",
         "NumberOfSymbolicFeatures",
     ]
-    qualities_by_dataset = database.qualities._get_for_datasets(
+    qualities_by_dataset = database.qualities.get_for_datasets(
         dataset_ids=datasets.keys(),
         quality_names=qualities_to_show,
         connection=expdb_db,
@@ -314,7 +314,7 @@ def get_dataset_features(
 )
 def update_dataset_status(
     dataset_id: Annotated[int, Body()],
-    status: Annotated[Literal[DatasetStatus.ACTIVE] | Literal[DatasetStatus.DEACTIVATED], Body()],
+    status: Annotated[Literal[DatasetStatus.ACTIVE, DatasetStatus.DEACTIVATED], Body()],
     user: Annotated[User | None, Depends(fetch_user)],
     expdb: Annotated[Connection, Depends(expdb_connection)],
 ) -> dict[str, str | int]:

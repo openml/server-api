@@ -277,7 +277,7 @@ def test_get_flow_with_subflow(py_api: TestClient) -> None:
                             "data_type": "flag",
                             "default_value": None,
                             "description": (
-                                "Do not use MDL correction for info" " gain on numeric attributes."
+                                "Do not use MDL correction for info gain on numeric attributes."
                             ),
                         },
                         {

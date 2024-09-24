@@ -20,7 +20,7 @@ def get_for_dataset(dataset_id: int, connection: Connection) -> list[Quality]:
     return [Quality(name=row.quality, value=row.value) for row in rows]
 
 
-def _get_for_datasets(
+def get_for_datasets(
     dataset_ids: Iterable[int],
     quality_names: Iterable[str],
     connection: Connection,

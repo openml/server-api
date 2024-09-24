@@ -47,9 +47,9 @@ skips = ["./tests/*"]
 line-length = 100
 
 [tool.ruff.lint]
-# The D doc class is current heavily violated
-select = ["A", "ANN", "ARG", "B", "COM", "C4", "C90","E", "EM", "F", "I", "N", "PT", "PTH", "T20", "UP","RET", "S","SIM","W", "YTT"]
-ignore = ["ANN101", "ANN102", "D203", "D204", "D213"]
+# The D doc class is current heavily violated, DTZ
+select = ["A", "ANN", "ARG", "ASYNC", "B", "BLE", "COM", "C4", "C90","DJ","E", "EM", "EXE","F", "FA","FBT", "G","I", "ISC","ICN","INP","LOG","N", "PT", "PIE", "PTH", "PYI","Q","T20", "UP","RET","RSE", "S","SIM","SLF","SLOT","T10","W", "YTT"]
+ignore = ["ANN101", "ANN102", "D203", "D204", "D213", "CPY", "D"]
 
 
 [tool.ruff.lint.per-file-ignores]

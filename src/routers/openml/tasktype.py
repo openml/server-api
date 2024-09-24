@@ -16,7 +16,7 @@ def _normalize_task_type(task_type: Row) -> dict[str, str | None | list[Any]]:
     # Task types may contain multi-line fields which have either \r\n or \n line endings
     ttype: dict[str, str | None | list[Any]] = {
         k: str(v).replace("\r\n", "\n").strip() if v is not None else v
-        for k, v in task_type._mapping.items()
+        for k, v in task_type._mapping.items()  # noqa: SLF001
         if k != "id"
     }
     ttype["id"] = ttype.pop("ttid")
