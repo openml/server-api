@@ -44,8 +44,13 @@ docs = [
 skips = ["./tests/*"]
 
 [tool.ruff]
-lint.select = ["A", "ARG", "B", "COM", "C4", "E", "EM", "F", "I001", "PT", "PTH", "T20", "RET", "SIM"]
 line-length = 100
+
+[tool.ruff.lint]
+select = ["A", "ARG", "B", "COM", "C4", "E", "EM", "F", "I001", "PT", "PTH", "T20", "RET", "S","SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]
 
 [tool.mypy]
 strict = true

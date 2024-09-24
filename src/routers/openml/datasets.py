@@ -160,7 +160,7 @@ def list_datasets(
                 FROM data_quality
                 WHERE `quality`='{quality}' AND {value}
             )
-        """  # nosec  - `quality` is not user provided, value is filtered with regex
+        """  # noqa: S608 - `quality` is not user provided, value is filtered with regex
 
     number_instances_filter = quality_clause("NumberOfInstances", number_instances)
     number_classes_filter = quality_clause("NumberOfClasses", number_classes)
@@ -177,7 +177,7 @@ def list_datasets(
         {number_classes_filter} {number_missing_values_filter}
         AND IFNULL(cs.`status`, 'in_preparation') IN ({where_status})
         LIMIT {pagination.limit} OFFSET {pagination.offset}
-        """,  # nosec
+        """,  # noqa: S608
         # I am not sure how to do this correctly without an error from Bandit here.
         # However, the `status` input is already checked by FastAPI to be from a set
         # of given options, so no injection is possible (I think). The `current_status`

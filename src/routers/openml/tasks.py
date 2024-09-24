@@ -125,7 +125,7 @@ def _fill_json_template(
                     SELECT *
                     FROM {table}
                     WHERE `id` = :id_
-                    """,  # nosec
+                    """,  # noqa: S608
                 ),
                 # Not sure how parametrize table names, as the parametrization adds
                 # quotes which is not legal.
