@@ -1,4 +1,5 @@
-from typing import Sequence, cast
+from collections.abc import Sequence
+from typing import cast
 
 from sqlalchemy import Connection, Row, text
 

@@ -1,8 +1,9 @@
 import contextlib
 import json
+from collections.abc import Iterator
 from enum import StrEnum
 from pathlib import Path
-from typing import Any, Iterator, NamedTuple
+from typing import Any, NamedTuple
 
 import _pytest.mark
 import httpx

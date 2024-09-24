@@ -15,7 +15,7 @@ achieved by the exchange of descriptions of data sets among data portals.
 
 import datetime
 from abc import ABC
-from typing import Literal, Union
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -208,15 +208,13 @@ class DcatApWrapper(BaseModel):
     # instead of list[DcatAPObject], a union with all the possible values is necessary.
     # See https://stackoverflow.com/questions/58301364/pydantic-and-subclasses-of-abstract-class
     graph_: list[
-        Union[
-            DcatAPDataset,
-            DcatAPDistribution,
-            DcatLocation,
-            SpdxChecksum,
-            VCardOrganisation,
-            VCardIndividual,
-            DctPeriodOfTime,
-        ]
+        DcatAPDataset
+        | DcatAPDistribution
+        | DcatLocation
+        | SpdxChecksum
+        | VCardOrganisation
+        | VCardIndividual
+        | DctPeriodOfTime
     ] = Field(serialization_alias="@graph")
 
     model_config = {"populate_by_name": True, "extra": "forbid"}

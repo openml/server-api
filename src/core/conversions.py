@@ -30,7 +30,7 @@ def nested_num_to_str(obj: Any) -> Any:
         return {key: nested_num_to_str(val) for key, val in obj.items()}
     if isinstance(obj, list):
         return [nested_num_to_str(val) for val in obj]
-    if isinstance(obj, (int, float)):
+    if isinstance(obj, int | float):
         return str(obj)
     return obj
 
