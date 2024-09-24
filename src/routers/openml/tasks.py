@@ -76,7 +76,7 @@ def fill_template(
             {"name": "number_folds", "value: 10},
         ]
     }
-    """  # noqa: E501
+    """
     json_template = convert_template_xml_to_json(template)
     return _fill_json_template(
         json_template,
@@ -145,7 +145,6 @@ def _fill_json_template(
 @router.get("/{task_id}")
 def get_task(
     task_id: int,
-    # user: Annotated[User | None, Depends(fetch_user)] = None,  #  Privacy is not respected
     expdb: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> Task:
     if not (task := database.tasks.get(task_id, expdb)):

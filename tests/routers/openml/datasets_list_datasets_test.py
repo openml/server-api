@@ -154,7 +154,8 @@ def test_list_uploader(user_id: int, count: int, key: str, py_api: TestClient) -
         json={"status": "all", "uploader": user_id},
     )
     # The dataset of user 16 is private, so can not be retrieved by other users.
-    if key == ApiKey.REGULAR_USER and user_id == 16:
+    owner_user_id = 16
+    if key == ApiKey.REGULAR_USER and user_id == owner_user_id:
         _assert_empty_result(response)
         return
 

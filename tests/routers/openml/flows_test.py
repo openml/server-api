@@ -73,7 +73,7 @@ def test_flow_exists_not_exists(py_api: TestClient) -> None:
 
 def test_get_flow_no_subflow(py_api: TestClient) -> None:
     response = py_api.get("/flows/1")
-    assert response.status_code == 200
+    assert response.status_code == http.client.OK
     expected = {
         "id": 1,
         "uploader": 16,
@@ -120,7 +120,7 @@ def test_get_flow_no_subflow(py_api: TestClient) -> None:
 
 def test_get_flow_with_subflow(py_api: TestClient) -> None:
     response = py_api.get("/flows/3")
-    assert response.status_code == 200
+    assert response.status_code == http.client.OK
     expected = {
         "id": 3,
         "uploader": 16,

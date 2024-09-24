@@ -10,7 +10,7 @@ from schemas.study import StudyType
 
 def test_get_task_study_by_id(py_api: TestClient) -> None:
     response = py_api.get("/studies/1")
-    assert response.status_code == 200
+    assert response.status_code == http.client.OK
     expected = {
         "id": 1,
         "alias": "OpenML100",
@@ -234,7 +234,7 @@ def test_get_task_study_by_id(py_api: TestClient) -> None:
 
 def test_get_task_study_by_alias(py_api: TestClient) -> None:
     response = py_api.get("/studies/OpenML100")
-    assert response.status_code == 200
+    assert response.status_code == http.client.OK
     expected = {
         "id": 1,
         "alias": "OpenML100",
@@ -468,14 +468,14 @@ def test_create_task_study(py_api: TestClient) -> None:
             "runs": [],
         },
     )
-    assert response.status_code == 200
+    assert response.status_code == http.client.OK
     new = response.json()
     assert "study_id" in new
     study_id = new["study_id"]
     assert isinstance(study_id, int)
 
     study = py_api.get(f"/studies/{study_id}")
-    assert study.status_code == 200
+    assert study.status_code == http.client.OK
     expected = {
         "id": study_id,
         "alias": "test-study",

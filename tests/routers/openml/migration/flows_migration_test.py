@@ -53,7 +53,7 @@ def test_flow_exists(
 )
 def test_get_flow_equal(flow_id: int, py_api: TestClient, php_api: httpx.Client) -> None:
     response = py_api.get(f"/flows/{flow_id}")
-    assert response.status_code == 200
+    assert response.status_code == http.client.OK
 
     new = response.json()
 

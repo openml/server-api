@@ -13,7 +13,7 @@ from tests.conftest import ApiKey
     "dataset_id",
     range(1, 132),
 )
-def test_dataset_response_is_identical(  # noqa: C901
+def test_dataset_response_is_identical(  # noqa: C901, PLR0912
     dataset_id: int,
     py_api: TestClient,
     php_api: httpx.Client,
@@ -137,7 +137,7 @@ def test_private_dataset_admin_access(py_api: TestClient) -> None:
 
 @pytest.mark.parametrize(
     "dataset_id",
-    list(range(1, 10)) + [101],
+    [*list(range(1, 10)), 101],
 )
 @pytest.mark.parametrize(
     "api_key",

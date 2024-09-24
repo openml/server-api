@@ -48,8 +48,8 @@ line-length = 100
 
 [tool.ruff.lint]
 # The D doc class is current heavily violated, DTZ
-select = ["A", "ANN", "ARG", "ASYNC", "B", "BLE", "COM", "C4", "C90","DJ","E", "EM", "EXE","F", "FA","FBT", "G","I", "ISC","ICN","INP","LOG","N", "PT", "PIE", "PTH", "PYI","Q","T20", "UP","RET","RSE", "S","SIM","SLF","SLOT","T10","W", "YTT"]
-ignore = ["ANN101", "ANN102", "D203", "D204", "D213", "CPY", "D"]
+select = ["ALL"]
+ignore = ["ANN101", "ANN102", "D203", "D204", "D213", "CPY", "D", "DTZ"]
 
 
 [tool.ruff.lint.per-file-ignores]

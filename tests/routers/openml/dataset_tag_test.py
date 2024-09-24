@@ -18,7 +18,7 @@ def test_dataset_tag_rejects_unauthorized(key: ApiKey, py_api: TestClient) -> No
     apikey = "" if key is None else f"?api_key={key}"
     response = py_api.post(
         f"/datasets/tag{apikey}",
-        json={"data_id": list(constants.PRIVATE_DATASET_ID)[0], "tag": "test"},
+        json={"data_id": next(iter(constants.PRIVATE_DATASET_ID)), "tag": "test"},
     )
     assert response.status_code == http.client.PRECONDITION_FAILED
     assert response.json()["detail"] == {"code": "103", "message": "Authentication failed"}
@@ -30,7 +30,7 @@ def test_dataset_tag_rejects_unauthorized(key: ApiKey, py_api: TestClient) -> No
     ids=["administrator", "non-owner", "owner"],
 )
 def test_dataset_tag(key: ApiKey, expdb_test: Connection, py_api: TestClient) -> None:
-    dataset_id, tag = list(constants.PRIVATE_DATASET_ID)[0], "test"
+    dataset_id, tag = next(iter(constants.PRIVATE_DATASET_ID)), "test"
     response = py_api.post(
         f"/datasets/tag?api_key={key}",
         json={"data_id": dataset_id, "tag": tag},

@@ -69,7 +69,7 @@ class DatasetStatusFilter(StrEnum):
 
 @router.post(path="/list", description="Provided for convenience, same as `GET` endpoint.")
 @router.get(path="/list")
-def list_datasets(
+def list_datasets(  # noqa: PLR0913
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     data_name: Annotated[str | None, CasualString128] = None,
     tag: Annotated[str | None, SystemString64] = None,
@@ -404,11 +404,6 @@ def get_dataset(
     row_id_attribute = _csv_as_list(dataset.row_id_attribute, unquote_items=True)
     original_data_url = _csv_as_list(dataset.original_data_url, unquote_items=True)
     default_target_attribute = _csv_as_list(dataset.default_target_attribute, unquote_items=True)
-
-    # Not sure which properties are set by this bit:
-    # foreach( $this->xml_fields_dataset['csv'] as $field ) {
-    #   $dataset->{$field} = getcsv( $dataset->{$field} );
-    # }
 
     return DatasetMetadata(
         id=dataset.did,

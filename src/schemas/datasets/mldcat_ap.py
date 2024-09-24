@@ -10,11 +10,12 @@ from __future__ import annotations
 
 from abc import ABC
 from enum import StrEnum
-from typing import Generic, Literal, TypeVar
+from typing import TYPE_CHECKING, Generic, Literal, TypeVar
 
 from pydantic import BaseModel, Field, HttpUrl, field_serializer, model_serializer
 
-from schemas.datasets.openml import DatasetStatus, Visibility
+if TYPE_CHECKING:
+    from schemas.datasets.openml import DatasetStatus, Visibility
 
 
 class JsonLDQualifiedLiteral(BaseModel):
@@ -177,9 +178,6 @@ class Distribution(JsonLDObject):
         default_factory=list,
         serialization_alias="Distribution.accessService",
     )
-    # has_policy: Policy | None = Field(alias="hasPolicy")
-    # language: list[LinguisticSystem] = Field(default_factory=list)
-    # licence: LicenceDocument | None = Field()
 
 
 class Dataset(JsonLDObject):
