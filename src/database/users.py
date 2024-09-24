@@ -40,7 +40,7 @@ def get_user_groups_for(*, user_id: int, connection: Connection) -> list[UserGro
         ),
         parameters={"user_id": user_id},
     )
-    return [UserGroup(group) for group, in row]
+    return [UserGroup(group) for (group,) in row]
 
 
 @dataclasses.dataclass

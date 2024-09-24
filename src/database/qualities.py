@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Iterable
+from collections.abc import Iterable
 
 from sqlalchemy import Connection, text
 
@@ -20,7 +20,7 @@ def get_for_dataset(dataset_id: int, connection: Connection) -> list[Quality]:
     return [Quality(name=row.quality, value=row.value) for row in rows]
 
 
-def _get_for_datasets(
+def get_for_datasets(
     dataset_ids: Iterable[int],
     quality_names: Iterable[str],
     connection: Connection,
@@ -33,7 +33,7 @@ def _get_for_datasets(
         SELECT `data`, `quality`, `value`
         FROM data_quality
         WHERE `data` in ({dids}) AND `quality` IN ({qualities_filter})
-        """,  # nosec  - dids and qualities are not user-provided
+        """,  # noqa: S608 - dids and qualities are not user-provided
     )
     rows = connection.execute(qualities_query)
     qualities_by_id = defaultdict(list)

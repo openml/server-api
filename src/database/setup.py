@@ -19,14 +19,14 @@ def _create_engine(database_name: str) -> Engine:
 
 
 def user_database() -> Engine:
-    global _user_engine
+    global _user_engine  # noqa: PLW0603
     if _user_engine is None:
         _user_engine = _create_engine("openml")
     return _user_engine
 
 
 def expdb_database() -> Engine:
-    global _expdb_engine
+    global _expdb_engine  # noqa: PLW0603
     if _expdb_engine is None:
         _expdb_engine = _create_engine("expdb")
     return _expdb_engine

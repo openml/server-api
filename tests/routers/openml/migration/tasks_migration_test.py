@@ -1,10 +1,12 @@
+from http import HTTPStatus
+
 import deepdiff
 import httpx
 import pytest
 from starlette.testclient import TestClient
 
 from core.conversions import (
-    nested_int_to_str,
+    nested_num_to_str,
     nested_remove_nones,
     nested_remove_single_element_list,
 )
@@ -16,9 +18,9 @@ from core.conversions import (
 )
 def test_get_task_equal(task_id: int, py_api: TestClient, php_api: httpx.Client) -> None:
     response = py_api.get(f"/tasks/{task_id}")
-    assert response.status_code == httpx.codes.OK
+    assert response.status_code == HTTPStatus.OK
     php_response = php_api.get(f"/task/{task_id}")
-    assert php_response.status_code == httpx.codes.OK
+    assert php_response.status_code == HTTPStatus.OK
 
     new_json = response.json()
     # Some fields are renamed (old = tag, new = tags)
@@ -27,7 +29,7 @@ def test_get_task_equal(task_id: int, py_api: TestClient, php_api: httpx.Client)
     new_json["task_name"] = new_json.pop("name")
     # PHP is not typed *and* automatically removes None values
     new_json = nested_remove_nones(new_json)
-    new_json = nested_int_to_str(new_json)
+    new_json = nested_num_to_str(new_json)
     # It also removes "value" entries for parameters if the list is empty,
     # it does not remove *all* empty lists, e.g., for cost_matrix input they are kept
     estimation_procedure = next(

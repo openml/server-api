@@ -1,4 +1,4 @@
-import http.client
+from http import HTTPStatus
 from typing import Any
 
 import httpx
@@ -15,13 +15,13 @@ from tests.conftest import ApiKey
 def _assert_empty_result(
     response: httpx.Response,
 ) -> None:
-    assert response.status_code == http.client.PRECONDITION_FAILED
+    assert response.status_code == HTTPStatus.PRECONDITION_FAILED
     assert response.json()["detail"] == {"code": "372", "message": "No results"}
 
 
 def test_list(py_api: TestClient) -> None:
     response = py_api.get("/datasets/list/")
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     assert len(response.json()) >= 1
 
 
@@ -39,7 +39,7 @@ def test_list_filter_active(status: str, amount: int, py_api: TestClient) -> Non
         "/datasets/list",
         json={"status": status, "pagination": {"limit": constants.NUMBER_OF_DATASETS}},
     )
-    assert response.status_code == http.client.OK, response.json()
+    assert response.status_code == HTTPStatus.OK, response.json()
     assert len(response.json()) == amount
 
 
@@ -58,7 +58,7 @@ def test_list_accounts_privacy(api_key: ApiKey | None, amount: int, py_api: Test
         f"/datasets/list{key}",
         json={"status": "all", "pagination": {"limit": 1000}},
     )
-    assert response.status_code == http.client.OK, response.json()
+    assert response.status_code == HTTPStatus.OK, response.json()
     assert len(response.json()) == amount
 
 
@@ -72,7 +72,7 @@ def test_list_data_name_present(name: str, count: int, py_api: TestClient) -> No
         f"/datasets/list?api_key={ApiKey.ADMIN}",
         json={"status": "all", "data_name": name},
     )
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     datasets = response.json()
     assert len(datasets) == count
     assert all(dataset["name"] == name for dataset in datasets)
@@ -112,7 +112,7 @@ def test_list_pagination(limit: int | None, offset: int | None, py_api: TestClie
         _assert_empty_result(response)
         return
 
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     reported_ids = {dataset["did"] for dataset in response.json()}
     assert reported_ids == set(expected_ids)
 
@@ -126,7 +126,7 @@ def test_list_data_version(version: int, count: int, py_api: TestClient) -> None
         f"/datasets/list?api_key={ApiKey.ADMIN}",
         json={"status": "all", "data_version": version},
     )
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     datasets = response.json()
     assert len(datasets) == count
     assert {dataset["version"] for dataset in datasets} == {version}
@@ -154,11 +154,12 @@ def test_list_uploader(user_id: int, count: int, key: str, py_api: TestClient) -
         json={"status": "all", "uploader": user_id},
     )
     # The dataset of user 16 is private, so can not be retrieved by other users.
-    if key == ApiKey.REGULAR_USER and user_id == 16:
+    owner_user_id = 16
+    if key == ApiKey.REGULAR_USER and user_id == owner_user_id:
         _assert_empty_result(response)
         return
 
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     assert len(response.json()) == count
 
 
@@ -172,7 +173,7 @@ def test_list_data_id(data_id: list[int], py_api: TestClient) -> None:
         json={"status": "all", "data_id": data_id},
     )
 
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     private_or_not_exist = {130, 3000}
     assert len(response.json()) == len(set(data_id) - private_or_not_exist)
 
@@ -188,7 +189,7 @@ def test_list_data_tag(tag: str, count: int, py_api: TestClient) -> None:
         # we don't know if the results are limited by filtering on the tag.
         json={"status": "all", "tag": tag, "pagination": {"limit": 101}},
     )
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     assert len(response.json()) == count
 
 
@@ -218,7 +219,7 @@ def test_list_data_quality(quality: str, range_: str, count: int, py_api: TestCl
         "/datasets/list",
         json={"status": "all", quality: range_},
     )
-    assert response.status_code == http.client.OK, response.json()
+    assert response.status_code == HTTPStatus.OK, response.json()
     assert len(response.json()) == count
 
 
@@ -247,7 +248,7 @@ def test_list_data_identical(
     py_api: TestClient,
     php_api: httpx.Client,
     **kwargs: dict[str, Any],
-) -> Any:
+) -> Any:  # noqa: ANN401
     limit, offset = kwargs["limit"], kwargs["offset"]
     if (limit and not offset) or (offset and not limit):
         # Behavior change: in new API these may be used independently, not in old.
@@ -280,7 +281,7 @@ def test_list_data_identical(
     original = php_api.get(uri)
 
     assert original.status_code == response.status_code, response.json()
-    if original.status_code == http.client.PRECONDITION_FAILED:
+    if original.status_code == HTTPStatus.PRECONDITION_FAILED:
         assert original.json()["error"] == response.json()["detail"]
         return None
     new_json = response.json()

@@ -1,4 +1,4 @@
-import http.client
+from http import HTTPStatus
 
 import deepdiff.diff
 import pytest
@@ -55,25 +55,25 @@ def test_flow_exists_handles_flow_not_found(mocker: MockerFixture, expdb_test: C
     mocker.patch("database.flows.get_by_name", return_value=None)
     with pytest.raises(HTTPException) as error:
         flow_exists("foo", "bar", expdb_test)
-    assert error.value.status_code == http.client.NOT_FOUND
+    assert error.value.status_code == HTTPStatus.NOT_FOUND
     assert error.value.detail == "Flow not found."
 
 
 def test_flow_exists(flow: Flow, py_api: TestClient) -> None:
     response = py_api.get(f"/flows/exists/{flow.name}/{flow.external_version}")
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     assert response.json() == {"flow_id": flow.id}
 
 
 def test_flow_exists_not_exists(py_api: TestClient) -> None:
     response = py_api.get("/flows/exists/foo/bar")
-    assert response.status_code == http.client.NOT_FOUND
+    assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json()["detail"] == "Flow not found."
 
 
 def test_get_flow_no_subflow(py_api: TestClient) -> None:
     response = py_api.get("/flows/1")
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.OK
     expected = {
         "id": 1,
         "uploader": 16,
@@ -120,7 +120,7 @@ def test_get_flow_no_subflow(py_api: TestClient) -> None:
 
 def test_get_flow_with_subflow(py_api: TestClient) -> None:
     response = py_api.get("/flows/3")
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.OK
     expected = {
         "id": 3,
         "uploader": 16,
@@ -277,7 +277,7 @@ def test_get_flow_with_subflow(py_api: TestClient) -> None:
                             "data_type": "flag",
                             "default_value": None,
                             "description": (
-                                "Do not use MDL correction for info" " gain on numeric attributes."
+                                "Do not use MDL correction for info gain on numeric attributes."
                             ),
                         },
                         {

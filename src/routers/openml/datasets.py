@@ -1,7 +1,7 @@
-import http.client
 import re
 from datetime import datetime
 from enum import StrEnum
+from http import HTTPStatus
 from typing import Annotated, Any, Literal, NamedTuple
 
 from fastapi import APIRouter, Body, Depends, HTTPException
@@ -38,7 +38,7 @@ def tag_dataset(
     tags = database.datasets.get_tags_for(data_id, expdb_db)
     if tag.casefold() in [t.casefold() for t in tags]:
         raise HTTPException(
-            status_code=http.client.INTERNAL_SERVER_ERROR,
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail={
                 "code": "473",
                 "message": "Entity already tagged by this tag.",
@@ -48,7 +48,7 @@ def tag_dataset(
 
     if user is None:
         raise HTTPException(
-            status_code=http.client.PRECONDITION_FAILED,
+            status_code=HTTPStatus.PRECONDITION_FAILED,
             detail={"code": "103", "message": "Authentication failed"},
         ) from None
     database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
@@ -69,7 +69,7 @@ class DatasetStatusFilter(StrEnum):
 
 @router.post(path="/list", description="Provided for convenience, same as `GET` endpoint.")
 @router.get(path="/list")
-def list_datasets(
+def list_datasets(  # noqa: PLR0913
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     data_name: Annotated[str | None, CasualString128] = None,
     tag: Annotated[str | None, SystemString64] = None,
@@ -160,7 +160,7 @@ def list_datasets(
                 FROM data_quality
                 WHERE `quality`='{quality}' AND {value}
             )
-        """  # nosec  - `quality` is not user provided, value is filtered with regex
+        """  # noqa: S608 - `quality` is not user provided, value is filtered with regex
 
     number_instances_filter = quality_clause("NumberOfInstances", number_instances)
     number_classes_filter = quality_clause("NumberOfClasses", number_classes)
@@ -177,7 +177,7 @@ def list_datasets(
         {number_classes_filter} {number_missing_values_filter}
         AND IFNULL(cs.`status`, 'in_preparation') IN ({where_status})
         LIMIT {pagination.limit} OFFSET {pagination.offset}
-        """,  # nosec
+        """,  # noqa: S608
         # I am not sure how to do this correctly without an error from Bandit here.
         # However, the `status` input is already checked by FastAPI to be from a set
         # of given options, so no injection is possible (I think). The `current_status`
@@ -198,7 +198,7 @@ def list_datasets(
     }
     if not datasets:
         raise HTTPException(
-            status_code=http.client.PRECONDITION_FAILED,
+            status_code=HTTPStatus.PRECONDITION_FAILED,
             detail={"code": "372", "message": "No results"},
         ) from None
 
@@ -224,7 +224,7 @@ def list_datasets(
         "NumberOfNumericFeatures",
         "NumberOfSymbolicFeatures",
     ]
-    qualities_by_dataset = database.qualities._get_for_datasets(
+    qualities_by_dataset = database.qualities.get_for_datasets(
         dataset_ids=datasets.keys(),
         quality_names=qualities_to_show,
         connection=expdb_db,
@@ -264,11 +264,11 @@ def _get_dataset_raise_otherwise(
     """
     if not (dataset := database.datasets.get(dataset_id, expdb)):
         error = _format_error(code=DatasetError.NOT_FOUND, message="Unknown dataset")
-        raise HTTPException(status_code=http.client.NOT_FOUND, detail=error)
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=error)
 
     if not _user_has_access(dataset=dataset, user=user):
         error = _format_error(code=DatasetError.NO_ACCESS, message="No access granted")
-        raise HTTPException(status_code=http.client.FORBIDDEN, detail=error)
+        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=error)
 
     return dataset
 
@@ -303,7 +303,7 @@ def get_dataset_features(
                 "No features found. The dataset did not contain any features, or we could not extract them.",  # noqa: E501
             )
         raise HTTPException(
-            status_code=http.client.PRECONDITION_FAILED,
+            status_code=HTTPStatus.PRECONDITION_FAILED,
             detail={"code": code, "message": msg},
         )
     return features
@@ -314,13 +314,13 @@ def get_dataset_features(
 )
 def update_dataset_status(
     dataset_id: Annotated[int, Body()],
-    status: Annotated[Literal[DatasetStatus.ACTIVE] | Literal[DatasetStatus.DEACTIVATED], Body()],
+    status: Annotated[Literal[DatasetStatus.ACTIVE, DatasetStatus.DEACTIVATED], Body()],
     user: Annotated[User | None, Depends(fetch_user)],
     expdb: Annotated[Connection, Depends(expdb_connection)],
 ) -> dict[str, str | int]:
     if user is None:
         raise HTTPException(
-            status_code=http.client.UNAUTHORIZED,
+            status_code=HTTPStatus.UNAUTHORIZED,
             detail="Updating dataset status required authorization",
         )
 
@@ -329,19 +329,19 @@ def update_dataset_status(
     can_deactivate = dataset.uploader == user.user_id or UserGroup.ADMIN in user.groups
     if status == DatasetStatus.DEACTIVATED and not can_deactivate:
         raise HTTPException(
-            status_code=http.client.FORBIDDEN,
+            status_code=HTTPStatus.FORBIDDEN,
             detail={"code": 693, "message": "Dataset is not owned by you"},
         )
     if status == DatasetStatus.ACTIVE and UserGroup.ADMIN not in user.groups:
         raise HTTPException(
-            status_code=http.client.FORBIDDEN,
+            status_code=HTTPStatus.FORBIDDEN,
             detail={"code": 696, "message": "Only administrators can activate datasets."},
         )
 
     current_status = database.datasets.get_status(dataset_id, expdb)
     if current_status and current_status.status == status:
         raise HTTPException(
-            status_code=http.client.PRECONDITION_FAILED,
+            status_code=HTTPStatus.PRECONDITION_FAILED,
             detail={"code": 694, "message": "Illegal status transition."},
         )
 
@@ -357,7 +357,7 @@ def update_dataset_status(
         database.datasets.remove_deactivated_status(dataset_id, expdb)
     else:
         raise HTTPException(
-            status_code=http.client.INTERNAL_SERVER_ERROR,
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail={"message": f"Unknown status transition: {current_status} -> {status}"},
         )
 
@@ -382,7 +382,7 @@ def get_dataset(
             code=DatasetError.NO_DATA_FILE,
             message="No data file found",
         )
-        raise HTTPException(status_code=http.client.PRECONDITION_FAILED, detail=error)
+        raise HTTPException(status_code=HTTPStatus.PRECONDITION_FAILED, detail=error)
 
     tags = database.datasets.get_tags_for(dataset_id, expdb_db)
     description = database.datasets.get_description(dataset_id, expdb_db)
@@ -404,11 +404,6 @@ def get_dataset(
     row_id_attribute = _csv_as_list(dataset.row_id_attribute, unquote_items=True)
     original_data_url = _csv_as_list(dataset.original_data_url, unquote_items=True)
     default_target_attribute = _csv_as_list(dataset.default_target_attribute, unquote_items=True)
-
-    # Not sure which properties are set by this bit:
-    # foreach( $this->xml_fields_dataset['csv'] as $field ) {
-    #   $dataset->{$field} = getcsv( $dataset->{$field} );
-    # }
 
     return DatasetMetadata(
         id=dataset.did,

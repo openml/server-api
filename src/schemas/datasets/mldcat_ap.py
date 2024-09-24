@@ -177,9 +177,6 @@ class Distribution(JsonLDObject):
         default_factory=list,
         serialization_alias="Distribution.accessService",
     )
-    # has_policy: Policy | None = Field(alias="hasPolicy")
-    # language: list[LinguisticSystem] = Field(default_factory=list)
-    # licence: LicenceDocument | None = Field()
 
 
 class Dataset(JsonLDObject):

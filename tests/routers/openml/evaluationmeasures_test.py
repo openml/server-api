@@ -1,11 +1,11 @@
-import http.client
+from http import HTTPStatus
 
 from starlette.testclient import TestClient
 
 
 def test_evaluationmeasure_list(py_api: TestClient) -> None:
     response = py_api.get("/evaluationmeasure/list")
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     assert response.json() == [
         "area_under_roc_curve",
         "average_cost",
@@ -83,7 +83,7 @@ def test_evaluationmeasure_list(py_api: TestClient) -> None:
 
 def test_estimation_procedure_list(py_api: TestClient) -> None:
     response = py_api.get("/estimationprocedure/list")
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     assert response.json() == [
         {
             "id": 1,

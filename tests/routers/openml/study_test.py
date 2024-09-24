@@ -1,5 +1,5 @@
-import http.client
 from datetime import datetime
+from http import HTTPStatus
 
 import httpx
 from sqlalchemy import Connection, text
@@ -10,7 +10,7 @@ from schemas.study import StudyType
 
 def test_get_task_study_by_id(py_api: TestClient) -> None:
     response = py_api.get("/studies/1")
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.OK
     expected = {
         "id": 1,
         "alias": "OpenML100",
@@ -234,7 +234,7 @@ def test_get_task_study_by_id(py_api: TestClient) -> None:
 
 def test_get_task_study_by_alias(py_api: TestClient) -> None:
     response = py_api.get("/studies/OpenML100")
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.OK
     expected = {
         "id": 1,
         "alias": "OpenML100",
@@ -468,14 +468,14 @@ def test_create_task_study(py_api: TestClient) -> None:
             "runs": [],
         },
     )
-    assert response.status_code == 200
+    assert response.status_code == HTTPStatus.OK
     new = response.json()
     assert "study_id" in new
     study_id = new["study_id"]
     assert isinstance(study_id, int)
 
     study = py_api.get(f"/studies/{study_id}")
-    assert study.status_code == 200
+    assert study.status_code == HTTPStatus.OK
     expected = {
         "id": study_id,
         "alias": "test-study",
@@ -525,7 +525,7 @@ def test_attach_task_to_study(py_api: TestClient, expdb_test: Connection) -> Non
         py_api=py_api,
         expdb_test=expdb_test,
     )
-    assert response.status_code == http.client.OK
+    assert response.status_code == HTTPStatus.OK
     assert response.json() == {"study_id": 1, "main_entity_type": StudyType.TASK}
 
 
@@ -538,7 +538,7 @@ def test_attach_task_to_study_needs_owner(py_api: TestClient, expdb_test: Connec
         py_api=py_api,
         expdb_test=expdb_test,
     )
-    assert response.status_code == http.client.FORBIDDEN
+    assert response.status_code == HTTPStatus.FORBIDDEN
 
 
 def test_attach_task_to_study_already_linked_raises(
@@ -553,7 +553,7 @@ def test_attach_task_to_study_already_linked_raises(
         py_api=py_api,
         expdb_test=expdb_test,
     )
-    assert response.status_code == http.client.CONFLICT
+    assert response.status_code == HTTPStatus.CONFLICT
     assert response.json() == {"detail": "Task 1 is already attached to study 1."}
 
 
@@ -569,5 +569,5 @@ def test_attach_task_to_study_but_task_not_exist_raises(
         py_api=py_api,
         expdb_test=expdb_test,
     )
-    assert response.status_code == http.client.CONFLICT
+    assert response.status_code == HTTPStatus.CONFLICT
     assert response.json() == {"detail": "One or more of the tasks do not exist."}

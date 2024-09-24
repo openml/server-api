@@ -1,6 +1,7 @@
 import re
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Sequence, cast
+from typing import cast
 
 from sqlalchemy import Connection, Row, text
 
@@ -162,9 +163,9 @@ def attach_tasks(
 
 
 def attach_runs(
-    study_id: int,  # noqa: ARG001
-    run_ids: list[int],  # noqa: ARG001
-    user: User,  # noqa: ARG001
-    connection: Connection,  # noqa: ARG001
+    study_id: int,
+    run_ids: list[int],
+    user: User,
+    connection: Connection,
 ) -> None:
     raise NotImplementedError

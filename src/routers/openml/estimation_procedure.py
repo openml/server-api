@@ -1,4 +1,5 @@
-from typing import Annotated, Iterable
+from collections.abc import Iterable
+from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import Connection
