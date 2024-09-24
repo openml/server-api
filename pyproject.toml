@@ -49,7 +49,19 @@ line-length = 100
 [tool.ruff.lint]
 # The D (doc) and DTZ (datetime zone) lint classes current heavily violated - fix later
 select = ["ALL"]
-ignore = ["ANN101", "ANN102", "CPY", "D","D203", "D204", "D213", "DTZ"]
+ignore = [
+    "ANN101",  # style choice - no annotation for self
+    "ANN102",  # style choice - no annotation for cls
+    "CPY",  # we do not require copyright in every file
+    "D",  # todo: docstring linting
+    "D203",
+    "D204",
+    "D213",
+    "DTZ", # To add
+    # Linter does not detect when types are used for Pydantic
+    "TCH001",
+    "TCH003",
+]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = [ "S101", "COM812", "D"]

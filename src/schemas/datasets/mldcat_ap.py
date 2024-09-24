@@ -10,12 +10,11 @@ from __future__ import annotations
 
 from abc import ABC
 from enum import StrEnum
-from typing import TYPE_CHECKING, Generic, Literal, TypeVar
+from typing import Generic, Literal, TypeVar
 
 from pydantic import BaseModel, Field, HttpUrl, field_serializer, model_serializer
 
-if TYPE_CHECKING:
-    from schemas.datasets.openml import DatasetStatus, Visibility
+from schemas.datasets.openml import DatasetStatus, Visibility
 
 
 class JsonLDQualifiedLiteral(BaseModel):
