@@ -28,7 +28,12 @@ jobs:
           docker compose up -d --wait python-api php-api
       - run: docker container ls && docker image ls
       - run: docker exec python-api python -m pip freeze
-      - run: docker exec python-api python -m pytest -xv -m "php_api"
+      - run: docker exec python-api coverage run -m pytest -xv -m "php_api"
+      - run: docker exec python-api coverage xml
+      - name: Upload results to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
   python:
     runs-on: ubuntu-latest
     steps:
@@ -39,4 +44,9 @@ jobs:
       - run: docker compose up -d --wait database python-api
       - run: docker container ls && docker image ls
       - run: docker exec python-api python -m pip freeze
-      - run: docker exec python-api python -m pytest -xv -m "not php_api"
+      - run: docker exec python-api coverage run -m pytest -xv -m "not php_api"
+      - run: docker exec python-api coverage xml
+      - name: Upload results to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}

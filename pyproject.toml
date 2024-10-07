@@ -24,6 +24,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "coverage",
     "pre-commit",
     "pytest",
     "pytest-mock",
@@ -40,8 +41,11 @@ docs = [
 "Homepage" = "https://github.com/openml/server-api"
 "Bug Tracker" = "https://github.com/openml/server-api/issues"
 
-[tool.bandit.assert_used]
-skips = ["./tests/*"]
+[tool.coverage.run]
+branch=true
+
+[tool.coverage.report]
+show_missing=true
 
 [tool.ruff]
 line-length = 100
