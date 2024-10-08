@@ -4,9 +4,9 @@ from typing import Any
 
 import httpx
 import pytest
-from core.conversions import nested_remove_single_element_list
 from starlette.testclient import TestClient
 
+from core.conversions import nested_remove_single_element_list
 from tests.conftest import ApiKey
 
 
@@ -161,7 +161,10 @@ def test_dataset_tag_response_is_identical(
         "/data/tag",
         data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
     )
-    already_tagged = original.status_code == HTTPStatus.INTERNAL_SERVER_ERROR and "already tagged" in original.json()["error"]["message"]
+    already_tagged = (
+        original.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        and "already tagged" in original.json()["error"]["message"]
+    )
     if not already_tagged:
         # undo the tag, because we don't want to persist this change to the database
         # Sometimes a change is already committed to the database even if an error occurs.
@@ -170,8 +173,8 @@ def test_dataset_tag_response_is_identical(
             data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
         )
     if (
-            original.status_code != HTTPStatus.OK
-            and original.json()["error"]["message"] == "An Elastic Search Exception occured."
+        original.status_code != HTTPStatus.OK
+        and original.json()["error"]["message"] == "An Elastic Search Exception occured."
     ):
         pytest.skip("Encountered Elastic Search error.")
     new = py_api.post(
