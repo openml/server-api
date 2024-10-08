@@ -43,11 +43,8 @@ def tag_dataset(
         raise create_authentication_failed_error()
 
     database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
-    all_tags = [*tags, tag]
-    tag_value = all_tags if len(all_tags) > 1 else all_tags[0]
-
     return {
-        "data_tag": {"id": str(data_id), "tag": tag_value},
+        "data_tag": {"id": str(data_id), "tag": [*tags, tag]},
     }
 
 
