@@ -36,7 +36,7 @@ def test_dataset_tag(key: ApiKey, expdb_test: Connection, py_api: TestClient) ->
         json={"data_id": dataset_id, "tag": tag},
     )
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"data_tag": {"id": str(dataset_id), "tag": tag}}
+    assert response.json() == {"data_tag": {"id": str(dataset_id), "tag": [tag]}}
 
     tags = get_tags_for(id_=dataset_id, connection=expdb_test)
     assert tag in tags

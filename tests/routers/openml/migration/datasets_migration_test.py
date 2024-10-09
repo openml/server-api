@@ -6,6 +6,7 @@ import httpx
 import pytest
 from starlette.testclient import TestClient
 
+from core.conversions import nested_remove_single_element_list
 from tests.conftest import ApiKey
 
 
@@ -137,7 +138,7 @@ def test_private_dataset_admin_access(py_api: TestClient) -> None:
 
 @pytest.mark.parametrize(
     "dataset_id",
-    [*range(1, 10), 101],
+    [*range(1, 10), 101, 131],
 )
 @pytest.mark.parametrize(
     "api_key",
@@ -160,17 +161,22 @@ def test_dataset_tag_response_is_identical(
         "/data/tag",
         data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
     )
-    if (
-        original.status_code == HTTPStatus.PRECONDITION_FAILED
-        and original.json()["error"]["message"] == "An Elastic Search Exception occurred."
-    ):
-        pytest.skip("Encountered Elastic Search error.")
-    if original.status_code == HTTPStatus.OK:
+    already_tagged = (
+        original.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        and "already tagged" in original.json()["error"]["message"]
+    )
+    if not already_tagged:
         # undo the tag, because we don't want to persist this change to the database
+        # Sometimes a change is already committed to the database even if an error occurs.
         php_api.post(
             "/data/untag",
             data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
         )
+    if (
+        original.status_code != HTTPStatus.OK
+        and original.json()["error"]["message"] == "An Elastic Search Exception occured."
+    ):
+        pytest.skip("Encountered Elastic Search error.")
     new = py_api.post(
         f"/datasets/tag?api_key={api_key}",
         json={"data_id": dataset_id, "tag": tag},
@@ -183,6 +189,7 @@ def test_dataset_tag_response_is_identical(
 
     original = original.json()
     new = new.json()
+    new = nested_remove_single_element_list(new)
     assert original == new
 
 

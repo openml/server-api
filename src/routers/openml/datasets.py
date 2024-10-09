@@ -37,27 +37,33 @@ def tag_dataset(
 ) -> dict[str, dict[str, Any]]:
     tags = database.datasets.get_tags_for(data_id, expdb_db)
     if tag.casefold() in [t.casefold() for t in tags]:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail={
-                "code": "473",
-                "message": "Entity already tagged by this tag.",
-                "additional_information": f"id={data_id}; tag={tag}",
-            },
-        )
+        raise create_tag_exists_error(data_id, tag)
 
     if user is None:
-        raise HTTPException(
-            status_code=HTTPStatus.PRECONDITION_FAILED,
-            detail={"code": "103", "message": "Authentication failed"},
-        ) from None
-    database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
-    all_tags = [*tags, tag]
-    tag_value = all_tags if len(all_tags) > 1 else all_tags[0]
+        raise create_authentication_failed_error()
 
+    database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
     return {
-        "data_tag": {"id": str(data_id), "tag": tag_value},
+        "data_tag": {"id": str(data_id), "tag": [*tags, tag]},
     }
+
+
+def create_authentication_failed_error() -> HTTPException:
+    return HTTPException(
+        status_code=HTTPStatus.PRECONDITION_FAILED,
+        detail={"code": "103", "message": "Authentication failed"},
+    )
+
+
+def create_tag_exists_error(data_id: int, tag: str) -> HTTPException:
+    return HTTPException(
+        status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+        detail={
+            "code": "473",
+            "message": "Entity already tagged by this tag.",
+            "additional_information": f"id={data_id}; tag={tag}",
+        },
+    )
 
 
 class DatasetStatusFilter(StrEnum):

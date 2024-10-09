@@ -91,6 +91,19 @@ includes datasets which are private.
 The `limit` and `offset` parameters can now be used independently, you no longer need
 to provide both if you wish to set only one.
 
+### `POST /datasets/tag`
+When successful, the "tag" property in the returned response is now always a list, even if only one tag exists for the entity.
+For example, after tagging dataset 21 with the tag `"foo"`:
+```diff
+{
+   data_tag": {
+      "id": "21",
+-      "tag": "foo"
++      "tag": ["foo"]
+   }
+}
+```
+
 ## Studies
 
 ### `GET /{id_or_alias}`
