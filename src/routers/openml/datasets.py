@@ -48,14 +48,14 @@ def tag_dataset(
     }
 
 
-def create_authentication_failed_error():
+def create_authentication_failed_error() -> HTTPException:
     return HTTPException(
         status_code=HTTPStatus.PRECONDITION_FAILED,
         detail={"code": "103", "message": "Authentication failed"},
     )
 
 
-def create_tag_exists_error(data_id, tag):
+def create_tag_exists_error(data_id: int, tag: str) -> HTTPException:
     return HTTPException(
         status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
         detail={
