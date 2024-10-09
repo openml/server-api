@@ -54,5 +54,7 @@ def nested_remove_single_element_list(obj: Any) -> Any:
     if isinstance(obj, Sequence):
         if len(obj) == 1:
             return nested_remove_single_element_list(obj[0])
+        if not obj:
+            return None
         return [nested_remove_single_element_list(val) for val in obj]
     return obj
