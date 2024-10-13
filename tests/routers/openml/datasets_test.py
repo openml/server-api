@@ -8,7 +8,7 @@ from starlette.testclient import TestClient
 from database.users import User
 from routers.openml.datasets import get_dataset
 from schemas.datasets.openml import DatasetStatus
-from tests.routers.openml.users_test import NO_USER, SOME_USER, ApiKey
+from tests.users import NO_USER, SOME_USER, ApiKey
 
 
 @pytest.mark.parametrize(

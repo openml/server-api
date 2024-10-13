@@ -1,22 +1,9 @@
-from enum import StrEnum
-
 import pytest
 from sqlalchemy import Connection
 
-from database.users import User, UserGroup
+from database.users import User
 from routers.dependencies import fetch_user
-
-NO_USER = None
-SOME_USER = User(user_id=2, _database=None, _groups=[UserGroup.READ_WRITE])
-OWNER_USER = User(user_id=16, _database=None, _groups=[UserGroup.READ_WRITE])
-ADMIN_USER = User(user_id=1, _database=None, _groups=[UserGroup.ADMIN, UserGroup.READ_WRITE])
-
-
-class ApiKey(StrEnum):
-    ADMIN: str = "AD000000000000000000000000000000"
-    REGULAR_USER: str = "00000000000000000000000000000000"
-    OWNER_USER: str = "DA1A0000000000000000000000000000"
-    INVALID: str = "11111111111111111111111111111111"
+from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
 
 
 @pytest.mark.parametrize(
