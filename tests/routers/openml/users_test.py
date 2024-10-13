@@ -29,6 +29,7 @@ class ApiKey(StrEnum):
 )
 def test_fetch_user(api_key: str, user: User, user_test: Connection) -> None:
     db_user = fetch_user(api_key, user_data=user_test)
+    assert db_user is not None
     assert user.user_id == db_user.user_id
     assert user.groups == db_user.groups
 
