@@ -63,8 +63,8 @@ It has a few upsides:
  - The test is not dependent on the database: you can run the test without a database.
 
 But it also has downsides:
- - behavior changes in the database, such as schema changes, are not automatically reflected in the tests.
- - the database layer (e.g., queries) are not actually tested.
+ - Behavior changes in the database, such as schema changes, are not automatically reflected in the tests.
+ - The database layer (e.g., queries) are not actually tested.
 
 Basically, the mocked behavior may not match real behavior when executed on a database.
 For this reason, for each mocked entity, we should add a test that verifies that if the database layer
