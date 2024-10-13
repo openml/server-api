@@ -7,7 +7,7 @@ from starlette.testclient import TestClient
 
 from database.users import User
 from routers.openml.datasets import get_dataset
-from schemas.datasets.openml import DatasetStatus
+from schemas.datasets.openml import DatasetMetadata, DatasetStatus
 from tests.users import NO_USER, SOME_USER, ApiKey
 
 
@@ -93,12 +93,13 @@ def test_private_dataset_no_owner_no_access(
 def test_private_dataset_owner_access(
     owner: User, expdb_test: Connection, user_test: Connection
 ) -> None:
-    get_dataset(
+    dataset = get_dataset(
         dataset_id=130,
         user=owner,
         user_db=user_test,
         expdb_db=expdb_test,
     )
+    assert isinstance(dataset, DatasetMetadata)
 
 
 @pytest.mark.skip("Not sure how to include apikey in test yet.")
