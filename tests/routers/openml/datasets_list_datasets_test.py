@@ -9,7 +9,7 @@ from hypothesis import strategies as st
 from starlette.testclient import TestClient
 
 from tests import constants
-from tests.conftest import ApiKey
+from tests.routers.openml.users_test import ApiKey
 
 
 def _assert_empty_result(

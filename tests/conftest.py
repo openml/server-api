@@ -1,7 +1,6 @@
 import contextlib
 import json
 from collections.abc import Iterator
-from enum import StrEnum
 from pathlib import Path
 from typing import Any, NamedTuple
 
@@ -16,13 +15,6 @@ from sqlalchemy import Connection, Engine, text
 from database.setup import expdb_database, user_database
 from main import create_api
 from routers.dependencies import expdb_connection, userdb_connection
-
-
-class ApiKey(StrEnum):
-    ADMIN: str = "AD000000000000000000000000000000"
-    REGULAR_USER: str = "00000000000000000000000000000000"
-    OWNER_USER: str = "DA1A0000000000000000000000000000"
-    INVALID: str = "11111111111111111111111111111111"
 
 
 @contextlib.contextmanager

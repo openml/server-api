@@ -6,7 +6,7 @@ from starlette.testclient import TestClient
 
 from database.datasets import get_tags_for
 from tests import constants
-from tests.conftest import ApiKey
+from tests.routers.openml.users_test import ApiKey
 
 
 @pytest.mark.parametrize(
