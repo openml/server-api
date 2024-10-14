@@ -370,6 +370,19 @@ def update_dataset_status(
     return {"dataset_id": dataset_id, "status": status}
 
 
+@router.post(
+    path="",
+)
+def upload_data(
+    user: Annotated[User | None, Depends(fetch_user)] = None,
+) -> None:
+    if user is None:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail="You need to authenticate to upload a dataset.",
+        )
+
+
 @router.get(
     path="/{dataset_id}",
     description="Get meta-data for dataset with ID `dataset_id`.",

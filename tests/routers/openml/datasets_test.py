@@ -6,7 +6,7 @@ from sqlalchemy import Connection
 from starlette.testclient import TestClient
 
 from database.users import User
-from routers.openml.datasets import get_dataset
+from routers.openml.datasets import get_dataset, upload_data
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus
 from tests.users import ADMIN_USER, NO_USER, OWNER_USER, SOME_USER, ApiKey
 
@@ -271,6 +271,6 @@ def test_dataset_status_unauthorized(
     assert response.status_code == HTTPStatus.FORBIDDEN
 
 
-def test_dataset_upload_needs_authentication(py_api: TestClient) -> None:
-    response = py_api.post("/datasets")
-    assert response.status_code == HTTPStatus.UNAUTHORIZED
+def test_dataset_upload_needs_authentication() -> None:
+    with pytest.raises(HTTPException, match="You need to authenticate to upload a dataset."):
+        upload_data(user=None)
