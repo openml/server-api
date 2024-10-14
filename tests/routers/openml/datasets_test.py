@@ -75,7 +75,7 @@ def test_get_dataset(py_api: TestClient) -> None:
         SOME_USER,
     ],
 )
-def test_private_dataset_no_owner_no_access(
+def test_private_dataset_no_access(
     user: User | None,
     expdb_test: Connection,
 ) -> None:
@@ -90,10 +90,10 @@ def test_private_dataset_no_owner_no_access(
     assert e.value.detail == {"code": "112", "message": "No access granted"}  # type: ignore[comparison-overlap]
 
 
-@pytest.mark.parametrize("user", [OWNER_USER, ADMIN_USER])
-def test_private_dataset_with_access(
-    user: User, expdb_test: Connection, user_test: Connection
-) -> None:
+@pytest.mark.parametrize(
+    "user", [OWNER_USER, ADMIN_USER, pytest.param(SOME_USER, marks=pytest.mark.xfail)]
+)
+def test_private_dataset_access(user: User, expdb_test: Connection, user_test: Connection) -> None:
     dataset = get_dataset(
         dataset_id=130,
         user=user,

@@ -1,6 +1,7 @@
 import json
 from http import HTTPStatus
 
+import constants
 import httpx
 import pytest
 from starlette.testclient import TestClient
@@ -126,9 +127,12 @@ def test_private_dataset_owner_access(
     php_api: TestClient,
     api_key: str,
 ) -> None:
-    new_response = py_api.get(f"/datasets/130?api_key={api_key}")
-    old_response = php_api.get(f"/data/130?api_key={api_key}")
+    [private_dataset] = constants.PRIVATE_DATASET_ID
+    new_response = py_api.get(f"/datasets/{private_dataset}?api_key={api_key}")
+    old_response = php_api.get(f"/data/{private_dataset}?api_key={api_key}")
+    assert old_response.status_code == HTTPStatus.OK
     assert old_response.status_code == new_response.status_code
+    assert new_response.json()["id"] == private_dataset
 
 
 @pytest.mark.parametrize(
