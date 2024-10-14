@@ -8,7 +8,7 @@ from starlette.testclient import TestClient
 from database.users import User
 from routers.openml.datasets import get_dataset
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus
-from tests.users import NO_USER, OWNER_USER, SOME_USER, ApiKey
+from tests.users import ADMIN_USER, NO_USER, OWNER_USER, SOME_USER, ApiKey
 
 
 @pytest.mark.parametrize(
@@ -90,20 +90,17 @@ def test_private_dataset_no_owner_no_access(
     assert e.value.detail == {"code": "112", "message": "No access granted"}  # type: ignore[comparison-overlap]
 
 
-def test_private_dataset_owner_access(expdb_test: Connection, user_test: Connection) -> None:
+@pytest.mark.parametrize("user", [OWNER_USER, ADMIN_USER])
+def test_private_dataset_with_access(
+    user: User, expdb_test: Connection, user_test: Connection
+) -> None:
     dataset = get_dataset(
         dataset_id=130,
-        user=OWNER_USER,
+        user=user,
         user_db=user_test,
         expdb_db=expdb_test,
     )
     assert isinstance(dataset, DatasetMetadata)
-
-
-@pytest.mark.skip("Not sure how to include apikey in test yet.")
-def test_private_dataset_admin_access(py_api: TestClient) -> None:
-    py_api.get("/v2/datasets/130?api_key=...")
-    # test against cached response
 
 
 def test_dataset_features(py_api: TestClient) -> None:
