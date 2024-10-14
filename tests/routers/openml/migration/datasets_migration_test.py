@@ -1,11 +1,11 @@
 import json
 from http import HTTPStatus
 
-import constants
 import httpx
 import pytest
 from starlette.testclient import TestClient
 
+import tests.constants
 from core.conversions import nested_remove_single_element_list
 from tests.users import ApiKey
 
@@ -127,7 +127,7 @@ def test_private_dataset_owner_access(
     php_api: TestClient,
     api_key: str,
 ) -> None:
-    [private_dataset] = constants.PRIVATE_DATASET_ID
+    [private_dataset] = tests.constants.PRIVATE_DATASET_ID
     new_response = py_api.get(f"/datasets/{private_dataset}?api_key={api_key}")
     old_response = php_api.get(f"/data/{private_dataset}?api_key={api_key}")
     assert old_response.status_code == HTTPStatus.OK
