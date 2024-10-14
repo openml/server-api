@@ -26,7 +26,7 @@ def test_dataset_tag_rejects_unauthorized(key: ApiKey, py_api: TestClient) -> No
 
 @pytest.mark.parametrize(
     "key",
-    [ApiKey.ADMIN, ApiKey.REGULAR_USER, ApiKey.OWNER_USER],
+    [ApiKey.ADMIN, ApiKey.SOME_USER, ApiKey.OWNER_USER],
     ids=["administrator", "non-owner", "owner"],
 )
 def test_dataset_tag(key: ApiKey, expdb_test: Connection, py_api: TestClient) -> None:

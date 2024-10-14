@@ -48,7 +48,7 @@ def test_list_filter_active(status: str, amount: int, py_api: TestClient) -> Non
     [
         (ApiKey.ADMIN, constants.NUMBER_OF_DATASETS),
         (ApiKey.OWNER_USER, constants.NUMBER_OF_DATASETS),
-        (ApiKey.REGULAR_USER, constants.NUMBER_OF_DATASETS - constants.NUMBER_OF_PRIVATE_DATASETS),
+        (ApiKey.SOME_USER, constants.NUMBER_OF_DATASETS - constants.NUMBER_OF_PRIVATE_DATASETS),
         (None, constants.NUMBER_OF_DATASETS - constants.NUMBER_OF_PRIVATE_DATASETS),
     ],
 )
@@ -142,7 +142,7 @@ def test_list_data_version_no_result(py_api: TestClient) -> None:
 
 @pytest.mark.parametrize(
     "key",
-    [ApiKey.REGULAR_USER, ApiKey.OWNER_USER, ApiKey.ADMIN],
+    [ApiKey.SOME_USER, ApiKey.OWNER_USER, ApiKey.ADMIN],
 )
 @pytest.mark.parametrize(
     ("user_id", "count"),
@@ -155,7 +155,7 @@ def test_list_uploader(user_id: int, count: int, key: str, py_api: TestClient) -
     )
     # The dataset of user 16 is private, so can not be retrieved by other users.
     owner_user_id = 16
-    if key == ApiKey.REGULAR_USER and user_id == owner_user_id:
+    if key == ApiKey.SOME_USER and user_id == owner_user_id:
         _assert_empty_result(response)
         return
 
@@ -242,7 +242,7 @@ def test_list_data_quality(quality: str, range_: str, count: int, py_api: TestCl
     data_version=st.sampled_from([None, 2, 4]),
     tag=st.sampled_from([None, "study_14", "study_not_in_db"]),
     # We don't test ADMIN user, as we fixed a bug which treated them as a regular user
-    api_key=st.sampled_from([None, ApiKey.REGULAR_USER, ApiKey.OWNER_USER]),
+    api_key=st.sampled_from([None, ApiKey.SOME_USER, ApiKey.OWNER_USER]),
 )  # type: ignore[misc]  # https://github.com/openml/server-api/issues/108
 def test_list_data_identical(
     py_api: TestClient,

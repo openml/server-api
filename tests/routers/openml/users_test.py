@@ -11,7 +11,7 @@ from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
     [
         (ApiKey.ADMIN, ADMIN_USER),
         (ApiKey.OWNER_USER, OWNER_USER),
-        (ApiKey.REGULAR_USER, SOME_USER),
+        (ApiKey.SOME_USER, SOME_USER),
     ],
 )
 def test_fetch_user(api_key: str, user: User, user_test: Connection) -> None:

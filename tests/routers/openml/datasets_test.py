@@ -254,11 +254,11 @@ def test_dataset_status_update_deactivated_to_active(py_api: TestClient) -> None
 @pytest.mark.parametrize(
     ("dataset_id", "api_key", "status"),
     [
-        (1, ApiKey.REGULAR_USER, DatasetStatus.ACTIVE),
-        (1, ApiKey.REGULAR_USER, DatasetStatus.DEACTIVATED),
-        (2, ApiKey.REGULAR_USER, DatasetStatus.DEACTIVATED),
-        (33, ApiKey.REGULAR_USER, DatasetStatus.ACTIVE),
-        (131, ApiKey.REGULAR_USER, DatasetStatus.ACTIVE),
+        (1, ApiKey.SOME_USER, DatasetStatus.ACTIVE),
+        (1, ApiKey.SOME_USER, DatasetStatus.DEACTIVATED),
+        (2, ApiKey.SOME_USER, DatasetStatus.DEACTIVATED),
+        (33, ApiKey.SOME_USER, DatasetStatus.ACTIVE),
+        (131, ApiKey.SOME_USER, DatasetStatus.ACTIVE),
     ],
 )
 def test_dataset_status_unauthorized(

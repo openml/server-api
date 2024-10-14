@@ -1,6 +1,5 @@
 import json
 from http import HTTPStatus
-from typing import Any
 
 import httpx
 import pytest
@@ -104,7 +103,7 @@ def test_error_unknown_dataset(
 
 @pytest.mark.parametrize(
     "api_key",
-    [None, "a" * 32],
+    [None, ApiKey.INVALID],
 )
 def test_private_dataset_no_user_no_access(
     py_api: TestClient,
@@ -118,22 +117,18 @@ def test_private_dataset_no_user_no_access(
     assert response.json()["detail"] == {"code": "112", "message": "No access granted"}
 
 
-@pytest.mark.skip("Not sure how to include apikey in test yet.")
+@pytest.mark.parametrize(
+    "api_key",
+    [ApiKey.OWNER_USER, ApiKey.ADMIN],
+)
 def test_private_dataset_owner_access(
     py_api: TestClient,
-    dataset_130: dict[str, Any],
+    php_api: TestClient,
+    api_key: str,
 ) -> None:
-    response = py_api.get("/datasets/130?api_key=...")
-    assert response.status_code == HTTPStatus.OK
-    assert dataset_130 == response.json()
-
-
-@pytest.mark.skip("Not sure how to include apikey in test yet.")
-def test_private_dataset_admin_access(py_api: TestClient) -> None:
-    py_api.get("/datasets/130?api_key=...")
-
-
-# test against cached response
+    new_response = py_api.get(f"/datasets/130?api_key={api_key}")
+    old_response = php_api.get(f"/data/130?api_key={api_key}")
+    assert old_response.status_code == new_response.status_code
 
 
 @pytest.mark.parametrize(
@@ -142,7 +137,7 @@ def test_private_dataset_admin_access(py_api: TestClient) -> None:
 )
 @pytest.mark.parametrize(
     "api_key",
-    [ApiKey.ADMIN, ApiKey.REGULAR_USER, ApiKey.OWNER_USER],
+    [ApiKey.ADMIN, ApiKey.SOME_USER, ApiKey.OWNER_USER],
     ids=["Administrator", "regular user", "possible owner"],
 )
 @pytest.mark.parametrize(
