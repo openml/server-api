@@ -269,3 +269,8 @@ def test_dataset_status_unauthorized(
         json={"dataset_id": dataset_id, "status": status},
     )
     assert response.status_code == HTTPStatus.FORBIDDEN
+
+
+def test_dataset_upload_needs_authentication(py_api: TestClient) -> None:
+    response = py_api.post("/datasets")
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
