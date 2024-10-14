@@ -1,11 +1,14 @@
 from http import HTTPStatus
-from typing import Any
 
 import pytest
+from fastapi import HTTPException
+from sqlalchemy import Connection
 from starlette.testclient import TestClient
 
-from schemas.datasets.openml import DatasetStatus
-from tests.conftest import ApiKey
+from database.users import User
+from routers.openml.datasets import get_dataset
+from schemas.datasets.openml import DatasetMetadata, DatasetStatus
+from tests.users import NO_USER, OWNER_USER, SOME_USER, ApiKey
 
 
 @pytest.mark.parametrize(
@@ -66,32 +69,35 @@ def test_get_dataset(py_api: TestClient) -> None:
 
 
 @pytest.mark.parametrize(
-    ("api_key", "response_code"),
+    "user",
     [
-        (None, HTTPStatus.FORBIDDEN),
-        ("a" * 32, HTTPStatus.FORBIDDEN),
+        NO_USER,
+        SOME_USER,
     ],
 )
-def test_private_dataset_no_user_no_access(
-    py_api: TestClient,
-    api_key: str | None,
-    response_code: int,
+def test_private_dataset_no_owner_no_access(
+    user: User | None,
+    expdb_test: Connection,
 ) -> None:
-    query = f"?api_key={api_key}" if api_key else ""
-    response = py_api.get(f"/datasets/130{query}")
+    with pytest.raises(HTTPException) as e:
+        get_dataset(
+            dataset_id=130,
+            user=user,
+            user_db=None,
+            expdb_db=expdb_test,
+        )
+    assert e.value.status_code == HTTPStatus.FORBIDDEN
+    assert e.value.detail == {"code": "112", "message": "No access granted"}  # type: ignore[comparison-overlap]
 
-    assert response.status_code == response_code
-    assert response.json()["detail"] == {"code": "112", "message": "No access granted"}
 
-
-@pytest.mark.skip("Not sure how to include apikey in test yet.")
-def test_private_dataset_owner_access(
-    py_api: TestClient,
-    dataset_130: dict[str, Any],
-) -> None:
-    response = py_api.get("/v2/datasets/130?api_key=...")
-    assert response.status_code == HTTPStatus.OK
-    assert dataset_130 == response.json()
+def test_private_dataset_owner_access(expdb_test: Connection, user_test: Connection) -> None:
+    dataset = get_dataset(
+        dataset_id=130,
+        user=OWNER_USER,
+        user_db=user_test,
+        expdb_db=expdb_test,
+    )
+    assert isinstance(dataset, DatasetMetadata)
 
 
 @pytest.mark.skip("Not sure how to include apikey in test yet.")

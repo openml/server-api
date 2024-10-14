@@ -7,7 +7,7 @@ import pytest
 from starlette.testclient import TestClient
 
 from core.conversions import nested_remove_single_element_list
-from tests.conftest import ApiKey
+from tests.users import ApiKey
 
 
 @pytest.mark.parametrize(

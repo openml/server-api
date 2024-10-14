@@ -17,6 +17,7 @@ nav:
   - Contributing:
       - contributing/index.md
       - Development: contributing/contributing.md
+      - Tests: contributing/tests.md
       - Documentation: contributing/documentation.md
       - Project Overview: contributing/project_overview.md
   - Changes: migration.md

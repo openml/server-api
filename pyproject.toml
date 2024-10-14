@@ -89,5 +89,5 @@ markers = [
     "mut: executes a mutation on the database (in a transaction which is rolled back)",
 ]
 filterwarnings = [
-    'ignore:A private pytest class or function was used.:DeprecationWarning:tests.conftest:119',
+    'ignore:A private pytest class or function was used.:DeprecationWarning:tests.conftest:',
 ]
