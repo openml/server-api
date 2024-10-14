@@ -8,7 +8,7 @@ from starlette.testclient import TestClient
 from database.users import User
 from routers.openml.datasets import get_dataset
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus
-from tests.users import NO_USER, SOME_USER, ApiKey
+from tests.users import NO_USER, OWNER_USER, SOME_USER, ApiKey
 
 
 @pytest.mark.parametrize(
@@ -90,12 +90,10 @@ def test_private_dataset_no_owner_no_access(
     assert e.value.detail == {"code": "112", "message": "No access granted"}  # type: ignore[comparison-overlap]
 
 
-def test_private_dataset_owner_access(
-    owner: User, expdb_test: Connection, user_test: Connection
-) -> None:
+def test_private_dataset_owner_access(expdb_test: Connection, user_test: Connection) -> None:
     dataset = get_dataset(
         dataset_id=130,
-        user=owner,
+        user=OWNER_USER,
         user_db=user_test,
         expdb_db=expdb_test,
     )
