@@ -8,7 +8,7 @@ from starlette.testclient import TestClient
 from database.users import User
 from routers.openml.datasets import get_dataset
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus
-from tests.users import NO_USER, OWNER_USER, SOME_USER, ApiKey
+from tests.users import ADMIN_USER, NO_USER, OWNER_USER, SOME_USER, ApiKey
 
 
 @pytest.mark.parametrize(
@@ -75,7 +75,7 @@ def test_get_dataset(py_api: TestClient) -> None:
         SOME_USER,
     ],
 )
-def test_private_dataset_no_owner_no_access(
+def test_private_dataset_no_access(
     user: User | None,
     expdb_test: Connection,
 ) -> None:
@@ -90,20 +90,17 @@ def test_private_dataset_no_owner_no_access(
     assert e.value.detail == {"code": "112", "message": "No access granted"}  # type: ignore[comparison-overlap]
 
 
-def test_private_dataset_owner_access(expdb_test: Connection, user_test: Connection) -> None:
+@pytest.mark.parametrize(
+    "user", [OWNER_USER, ADMIN_USER, pytest.param(SOME_USER, marks=pytest.mark.xfail)]
+)
+def test_private_dataset_access(user: User, expdb_test: Connection, user_test: Connection) -> None:
     dataset = get_dataset(
         dataset_id=130,
-        user=OWNER_USER,
+        user=user,
         user_db=user_test,
         expdb_db=expdb_test,
     )
     assert isinstance(dataset, DatasetMetadata)
-
-
-@pytest.mark.skip("Not sure how to include apikey in test yet.")
-def test_private_dataset_admin_access(py_api: TestClient) -> None:
-    py_api.get("/v2/datasets/130?api_key=...")
-    # test against cached response
 
 
 def test_dataset_features(py_api: TestClient) -> None:
@@ -254,11 +251,11 @@ def test_dataset_status_update_deactivated_to_active(py_api: TestClient) -> None
 @pytest.mark.parametrize(
     ("dataset_id", "api_key", "status"),
     [
-        (1, ApiKey.REGULAR_USER, DatasetStatus.ACTIVE),
-        (1, ApiKey.REGULAR_USER, DatasetStatus.DEACTIVATED),
-        (2, ApiKey.REGULAR_USER, DatasetStatus.DEACTIVATED),
-        (33, ApiKey.REGULAR_USER, DatasetStatus.ACTIVE),
-        (131, ApiKey.REGULAR_USER, DatasetStatus.ACTIVE),
+        (1, ApiKey.SOME_USER, DatasetStatus.ACTIVE),
+        (1, ApiKey.SOME_USER, DatasetStatus.DEACTIVATED),
+        (2, ApiKey.SOME_USER, DatasetStatus.DEACTIVATED),
+        (33, ApiKey.SOME_USER, DatasetStatus.ACTIVE),
+        (131, ApiKey.SOME_USER, DatasetStatus.ACTIVE),
     ],
 )
 def test_dataset_status_unauthorized(
