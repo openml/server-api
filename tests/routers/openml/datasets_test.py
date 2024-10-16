@@ -290,7 +290,7 @@ def test_dataset_upload_error_if_not_parquet(file_name: str) -> None:
     with pytest.raises(HTTPException) as e:
         upload_data(file=file, user=SOME_USER, metadata=None)  # type: ignore[arg-type]
 
-    assert e.value.status_code == HTTPStatus.IM_A_TEAPOT
+    assert e.value.status_code == HTTPStatus.BAD_REQUEST
     assert e.value.detail == "The uploaded file needs to be a parquet file (.pq)."
 
 

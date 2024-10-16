@@ -391,7 +391,7 @@ def upload_data(
     #  Spooled file-- where is it stored?
     if file.filename is None or Path(file.filename).suffix != ".pq":
         raise HTTPException(
-            status_code=HTTPStatus.IM_A_TEAPOT,
+            status_code=HTTPStatus.BAD_REQUEST,
             detail="The uploaded file needs to be a parquet file (.pq).",
         )
     #  use async interface
