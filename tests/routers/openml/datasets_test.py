@@ -8,7 +8,7 @@ from starlette.testclient import TestClient
 
 from database.users import User
 from routers.openml.datasets import get_dataset, upload_data
-from schemas.datasets.openml import DatasetMetadata, DatasetStatus
+from schemas.datasets.openml import DatasetMetadataView, DatasetStatus
 from tests.users import ADMIN_USER, NO_USER, OWNER_USER, SOME_USER, ApiKey
 
 
@@ -101,7 +101,7 @@ def test_private_dataset_access(user: User, expdb_test: Connection, user_test: C
         user_db=user_test,
         expdb_db=expdb_test,
     )
-    assert isinstance(dataset, DatasetMetadata)
+    assert isinstance(dataset, DatasetMetadataView)
 
 
 def test_dataset_features(py_api: TestClient) -> None:
@@ -274,7 +274,7 @@ def test_dataset_status_unauthorized(
 
 def test_dataset_upload_needs_authentication() -> None:
     with pytest.raises(HTTPException) as e:
-        upload_data(user=None, file=None)  # type: ignore[arg-type]
+        upload_data(user=None, file=None, metadata=None)  # type: ignore[arg-type]
 
     assert e.value.status_code == HTTPStatus.UNAUTHORIZED
     assert e.value.detail == "You need to authenticate to upload a dataset."
@@ -288,7 +288,11 @@ def test_dataset_upload_error_if_not_parquet(file_name: str) -> None:
     file = UploadFile(filename=file_name, file=BytesIO(b""))
 
     with pytest.raises(HTTPException) as e:
-        upload_data(file, SOME_USER)
+        upload_data(file=file, user=SOME_USER, metadata=None)  # type: ignore[arg-type]
 
     assert e.value.status_code == HTTPStatus.IM_A_TEAPOT
     assert e.value.detail == "The uploaded file needs to be a parquet file (.pq)."
+
+
+def test_dataset_upload() -> None:
+    pass

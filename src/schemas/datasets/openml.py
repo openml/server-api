@@ -59,10 +59,6 @@ class EstimationProcedure(BaseModel):
 
 
 class DatasetMetadata(BaseModel):
-    id_: int = Field(json_schema_extra={"example": 1}, alias="id")
-    visibility: Visibility = Field(json_schema_extra={"example": Visibility.PUBLIC})
-    status: DatasetStatus = Field(json_schema_extra={"example": DatasetStatus.ACTIVE})
-
     name: str = Field(json_schema_extra={"example": "Anneal"})
     licence: str = Field(json_schema_extra={"example": "CC0"})
     version: int = Field(json_schema_extra={"example": 2})
@@ -133,6 +129,12 @@ class DatasetMetadata(BaseModel):
         json_schema_extra={"example": "https://www.openml.org/d/2"},
     )
     md5_checksum: str = Field(json_schema_extra={"example": "d01f6ccd68c88b749b20bbe897de3713"})
+
+
+class DatasetMetadataView(DatasetMetadata):
+    id_: int = Field(json_schema_extra={"example": 1}, alias="id")
+    visibility: Visibility = Field(json_schema_extra={"example": Visibility.PUBLIC})
+    status: DatasetStatus = Field(json_schema_extra={"example": DatasetStatus.ACTIVE})
 
 
 class Task(BaseModel):
