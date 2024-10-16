@@ -20,6 +20,7 @@ dependencies = [
     "mysqlclient",
     "python_dotenv",
     "xmltodict",
+    "python-multipart",
 ]
 
 [project.optional-dependencies]
