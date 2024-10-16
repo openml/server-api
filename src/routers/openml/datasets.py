@@ -2,9 +2,10 @@ import re
 from datetime import datetime
 from enum import StrEnum
 from http import HTTPStatus
+from pathlib import Path
 from typing import Annotated, Any, Literal, NamedTuple
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile
 from sqlalchemy import Connection, text
 from sqlalchemy.engine import Row
 
@@ -370,10 +371,9 @@ def update_dataset_status(
     return {"dataset_id": dataset_id, "status": status}
 
 
-@router.post(
-    path="",
-)
+@router.post(path="")
 def upload_data(
+    file: Annotated[UploadFile, File(description="A pyarrow parquet file containing the data.")],
     user: Annotated[User | None, Depends(fetch_user)] = None,
 ) -> None:
     if user is None:
@@ -381,6 +381,13 @@ def upload_data(
             status_code=HTTPStatus.UNAUTHORIZED,
             detail="You need to authenticate to upload a dataset.",
         )
+    #  Spooled file-- where is it stored?
+    if file.filename is None or Path(file.filename).suffix != ".pq":
+        raise HTTPException(
+            status_code=HTTPStatus.IM_A_TEAPOT,
+            detail="The uploaded file needs to be a parquet file (.pq).",
+        )
+    #  use async interface
 
 
 @router.get(

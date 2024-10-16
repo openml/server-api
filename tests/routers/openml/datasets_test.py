@@ -1,7 +1,8 @@
 from http import HTTPStatus
+from io import BytesIO
 
 import pytest
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile
 from sqlalchemy import Connection
 from starlette.testclient import TestClient
 
@@ -272,5 +273,22 @@ def test_dataset_status_unauthorized(
 
 
 def test_dataset_upload_needs_authentication() -> None:
-    with pytest.raises(HTTPException, match="You need to authenticate to upload a dataset."):
-        upload_data(user=None)
+    with pytest.raises(HTTPException) as e:
+        upload_data(user=None, file=None)  # type: ignore[arg-type]
+
+    assert e.value.status_code == HTTPStatus.UNAUTHORIZED
+    assert e.value.detail == "You need to authenticate to upload a dataset."
+
+
+@pytest.mark.parametrize(
+    "file_name", ["parquet.csv", pytest.param("parquet.pq", marks=pytest.mark.xfail)]
+)
+def test_dataset_upload_error_if_not_parquet(file_name: str) -> None:
+    # we do not expect the server to actually check the parquet content
+    file = UploadFile(filename=file_name, file=BytesIO(b""))
+
+    with pytest.raises(HTTPException) as e:
+        upload_data(file, SOME_USER)
+
+    assert e.value.status_code == HTTPStatus.IM_A_TEAPOT
+    assert e.value.detail == "The uploaded file needs to be a parquet file (.pq)."
