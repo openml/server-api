@@ -62,13 +62,17 @@ class DatasetMetadata(BaseModel):
     name: str = Field(json_schema_extra={"example": "Anneal"})
     licence: str = Field(json_schema_extra={"example": "CC0"})
     version: int = Field(json_schema_extra={"example": 2})
-    version_label: str = Field(
+    version_label: str | None = Field(
         json_schema_extra={
             "example": 2,
             "description": "Not sure how this relates to `version`.",
         },
+        max_length=128,
     )
-    language: str = Field(json_schema_extra={"example": "English"})
+    language: str | None = Field(
+        json_schema_extra={"example": "English"},
+        max_length=128,
+    )
 
     creators: list[str] = Field(
         json_schema_extra={"example": ["David Sterling", "Wray Buntine"]},
@@ -78,7 +82,7 @@ class DatasetMetadata(BaseModel):
         json_schema_extra={"example": ["David Sterling", "Wray Buntine"]},
         alias="contributor",
     )
-    citation: str = Field(
+    citation: str | None = Field(
         json_schema_extra={"example": "https://archive.ics.uci.edu/ml/citation_policy.html"},
     )
     paper_url: HttpUrl | None = Field(
@@ -86,6 +90,30 @@ class DatasetMetadata(BaseModel):
             "example": "http://digital.library.adelaide.edu.au/dspace/handle/2440/15227",
         },
     )
+    collection_date: str | None = Field(json_schema_extra={"example": "1990"})
+
+    description: str = Field(
+        json_schema_extra={"example": "The original Annealing dataset from UCI."},
+    )
+    default_target_attribute: list[str] = Field(json_schema_extra={"example": "class"})
+    ignore_attribute: list[str] = Field(json_schema_extra={"example": "sensitive_feature"})
+    row_id_attribute: list[str] = Field(json_schema_extra={"example": "ssn"})
+
+    format_: DatasetFileFormat = Field(
+        json_schema_extra={"example": DatasetFileFormat.ARFF},
+        alias="format",
+    )
+    original_data_url: list[HttpUrl] | None = Field(
+        json_schema_extra={"example": "https://www.openml.org/d/2"},
+    )
+
+
+class DatasetMetadataView(DatasetMetadata):
+    id_: int = Field(json_schema_extra={"example": 1}, alias="id")
+    visibility: Visibility = Field(json_schema_extra={"example": Visibility.PUBLIC})
+    status: DatasetStatus = Field(json_schema_extra={"example": DatasetStatus.ACTIVE})
+    description_version: int = Field(json_schema_extra={"example": 2})
+    tags: list[str] = Field(json_schema_extra={"example": ["study_1", "uci"]}, alias="tag")
     upload_date: datetime = Field(
         json_schema_extra={"example": str(datetime(2014, 4, 6, 23, 12, 20))},
     )
@@ -97,17 +125,7 @@ class DatasetMetadata(BaseModel):
         alias="error",
     )
     processing_warning: str | None = Field(alias="warning")
-    collection_date: str | None = Field(json_schema_extra={"example": "1990"})
-
-    description: str = Field(
-        json_schema_extra={"example": "The original Annealing dataset from UCI."},
-    )
-    description_version: int = Field(json_schema_extra={"example": 2})
-    tags: list[str] = Field(json_schema_extra={"example": ["study_1", "uci"]}, alias="tag")
-    default_target_attribute: list[str] = Field(json_schema_extra={"example": "class"})
-    ignore_attribute: list[str] = Field(json_schema_extra={"example": "sensitive_feature"})
-    row_id_attribute: list[str] = Field(json_schema_extra={"example": "ssn"})
-
+    file_id: int = Field(json_schema_extra={"example": 1})
     url: HttpUrl = Field(
         json_schema_extra={
             "example": "https://www.openml.org/data/download/1/dataset_1_anneal.arff",
@@ -120,21 +138,7 @@ class DatasetMetadata(BaseModel):
             "description": "URL of the parquet dataset data file.",
         },
     )
-    file_id: int = Field(json_schema_extra={"example": 1})
-    format_: DatasetFileFormat = Field(
-        json_schema_extra={"example": DatasetFileFormat.ARFF},
-        alias="format",
-    )
-    original_data_url: list[HttpUrl] | None = Field(
-        json_schema_extra={"example": "https://www.openml.org/d/2"},
-    )
     md5_checksum: str = Field(json_schema_extra={"example": "d01f6ccd68c88b749b20bbe897de3713"})
-
-
-class DatasetMetadataView(DatasetMetadata):
-    id_: int = Field(json_schema_extra={"example": 1}, alias="id")
-    visibility: Visibility = Field(json_schema_extra={"example": Visibility.PUBLIC})
-    status: DatasetStatus = Field(json_schema_extra={"example": DatasetStatus.ACTIVE})
 
 
 class Task(BaseModel):
