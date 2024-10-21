@@ -13,6 +13,7 @@ theme:
     - content.code.copy
 
 nav:
+  - Intro: index.md
   - Getting Started: installation.md
   - Contributing:
       - contributing/index.md
