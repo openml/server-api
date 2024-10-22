@@ -183,7 +183,7 @@ def list_datasets(  # noqa: PLR0913
         {number_classes_filter} {number_missing_values_filter}
         AND IFNULL(cs.`status`, 'in_preparation') IN ({where_status})
         LIMIT {pagination.limit} OFFSET {pagination.offset}
-        """,  # noqa: S608
+        """,
         # I am not sure how to do this correctly without an error from Bandit here.
         # However, the `status` input is already checked by FastAPI to be from a set
         # of given options, so no injection is possible (I think). The `current_status`
