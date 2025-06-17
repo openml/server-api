@@ -2,9 +2,10 @@ import re
 from datetime import datetime
 from enum import StrEnum
 from http import HTTPStatus
+from pathlib import Path
 from typing import Annotated, Any, Literal, NamedTuple
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, File, HTTPException, UploadFile
 from sqlalchemy import Connection, text
 from sqlalchemy.engine import Row
 
@@ -21,7 +22,13 @@ from core.formatting import (
 from database.users import User, UserGroup
 from routers.dependencies import Pagination, expdb_connection, fetch_user, userdb_connection
 from routers.types import CasualString128, IntegerRange, SystemString64, integer_range_regex
-from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Feature, FeatureType
+from schemas.datasets.openml import (
+    DatasetMetadata,
+    DatasetMetadataView,
+    DatasetStatus,
+    Feature,
+    FeatureType,
+)
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 
@@ -370,6 +377,26 @@ def update_dataset_status(
     return {"dataset_id": dataset_id, "status": status}
 
 
+@router.post(path="")
+def upload_data(
+    file: Annotated[UploadFile, File(description="A pyarrow parquet file containing the data.")],
+    metadata: DatasetMetadata,  # noqa: ARG001
+    user: Annotated[User | None, Depends(fetch_user)] = None,
+) -> None:
+    if user is None:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail="You need to authenticate to upload a dataset.",
+        )
+    #  Spooled file-- where is it stored?
+    if file.filename is None or Path(file.filename).suffix != ".pq":
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail="The uploaded file needs to be a parquet file (.pq).",
+        )
+    #  use async interface
+
+
 @router.get(
     path="/{dataset_id}",
     description="Get meta-data for dataset with ID `dataset_id`.",
@@ -379,7 +406,7 @@ def get_dataset(
     user: Annotated[User | None, Depends(fetch_user)] = None,
     user_db: Annotated[Connection, Depends(userdb_connection)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
-) -> DatasetMetadata:
+) -> DatasetMetadataView:
     dataset = _get_dataset_raise_otherwise(dataset_id, user, expdb_db)
     if not (
         dataset_file := database.datasets.get_file(file_id=dataset.file_id, connection=user_db)
@@ -411,7 +438,7 @@ def get_dataset(
     original_data_url = _csv_as_list(dataset.original_data_url, unquote_items=True)
     default_target_attribute = _csv_as_list(dataset.default_target_attribute, unquote_items=True)
 
-    return DatasetMetadata(
+    return DatasetMetadataView(
         id=dataset.did,
         visibility=dataset.visibility,
         status=status_,

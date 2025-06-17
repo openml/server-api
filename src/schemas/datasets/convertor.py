@@ -6,10 +6,10 @@ from schemas.datasets.dcat import (
     SpdxChecksum,
     XSDDateTime,
 )
-from schemas.datasets.openml import DatasetMetadata
+from schemas.datasets.openml import DatasetMetadataView
 
 
-def openml_dataset_to_dcat(metadata: DatasetMetadata) -> DcatApWrapper:
+def openml_dataset_to_dcat(metadata: DatasetMetadataView) -> DcatApWrapper:
     checksum = SpdxChecksum(
         id_=metadata.md5_checksum,
         algorithm="md5",
