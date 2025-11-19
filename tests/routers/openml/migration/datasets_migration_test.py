@@ -128,9 +128,7 @@ def test_private_dataset_owner_access(
     api_key: str,
 ) -> None:
     [private_dataset] = constants.PRIVATE_DATASET_ID
-    new_response = py_api.get(
-        f"/datasets/{private_dataset}", headers={"Authorization": api_key}
-    )
+    new_response = py_api.get(f"/datasets/{private_dataset}", headers={"Authorization": api_key})
     old_response = php_api.get(f"/data/{private_dataset}?api_key={api_key}")
     assert old_response.status_code == HTTPStatus.OK
     assert old_response.status_code == new_response.status_code
