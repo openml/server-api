@@ -167,7 +167,7 @@ def test_dataset_features_no_access(py_api: TestClient) -> None:
     [ApiKey.ADMIN, ApiKey.OWNER_USER],
 )
 def test_dataset_features_access_to_private(api_key: ApiKey, py_api: TestClient) -> None:
-    response = py_api.get(f"/datasets/features/130?api_key={api_key}")
+    response = py_api.get("/datasets/features/130", headers={"Authorization": api_key})
     assert response.status_code == HTTPStatus.OK
 
 
@@ -194,8 +194,9 @@ def _assert_status_update_is_successful(
     py_api: TestClient,
 ) -> None:
     response = py_api.post(
-        f"/datasets/status/update?api_key={apikey}",
+        "/datasets/status/update",
         json={"dataset_id": dataset_id, "status": status},
+        headers={"Authorization": apikey},
     )
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {
@@ -265,7 +266,8 @@ def test_dataset_status_unauthorized(
     py_api: TestClient,
 ) -> None:
     response = py_api.post(
-        f"/datasets/status/update?api_key={api_key}",
+        "/datasets/status/update",
         json={"dataset_id": dataset_id, "status": status},
+        headers={"Authorization": api_key},
     )
     assert response.status_code == HTTPStatus.FORBIDDEN

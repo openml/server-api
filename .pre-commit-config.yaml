@@ -24,6 +24,7 @@ repos:
         additional_dependencies:
             - fastapi
             - pytest
+            - pydantic>=2.6,<2.7
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
     rev: 'v0.6.9'

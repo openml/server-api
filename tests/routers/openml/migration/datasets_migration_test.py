@@ -110,8 +110,8 @@ def test_private_dataset_no_user_no_access(
     py_api: TestClient,
     api_key: str | None,
 ) -> None:
-    query = f"?api_key={api_key}" if api_key else ""
-    response = py_api.get(f"/datasets/130{query}")
+    headers = {"Authorization": api_key} if api_key else {}
+    response = py_api.get("/datasets/130", headers=headers)
 
     # New response is 403: Forbidden instead of 412: PRECONDITION FAILED
     assert response.status_code == HTTPStatus.FORBIDDEN
@@ -128,7 +128,7 @@ def test_private_dataset_owner_access(
     api_key: str,
 ) -> None:
     [private_dataset] = constants.PRIVATE_DATASET_ID
-    new_response = py_api.get(f"/datasets/{private_dataset}?api_key={api_key}")
+    new_response = py_api.get(f"/datasets/{private_dataset}", headers={"Authorization": api_key})
     old_response = php_api.get(f"/data/{private_dataset}?api_key={api_key}")
     assert old_response.status_code == HTTPStatus.OK
     assert old_response.status_code == new_response.status_code
@@ -177,8 +177,9 @@ def test_dataset_tag_response_is_identical(
     ):
         pytest.skip("Encountered Elastic Search error.")
     new = py_api.post(
-        f"/datasets/tag?api_key={api_key}",
+        "/datasets/tag",
         json={"data_id": dataset_id, "tag": tag},
+        headers={"Authorization": api_key},
     )
 
     assert original.status_code == new.status_code, original.json()

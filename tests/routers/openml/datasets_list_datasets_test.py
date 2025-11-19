@@ -53,10 +53,11 @@ def test_list_filter_active(status: str, amount: int, py_api: TestClient) -> Non
     ],
 )
 def test_list_accounts_privacy(api_key: ApiKey | None, amount: int, py_api: TestClient) -> None:
-    key = f"?api_key={api_key}" if api_key else ""
+    headers = {"Authorization": api_key} if api_key else {}
     response = py_api.post(
-        f"/datasets/list{key}",
+        "/datasets/list",
         json={"status": "all", "pagination": {"limit": 1000}},
+        headers=headers,
     )
     assert response.status_code == HTTPStatus.OK, response.json()
     assert len(response.json()) == amount
@@ -69,8 +70,9 @@ def test_list_accounts_privacy(api_key: ApiKey | None, amount: int, py_api: Test
 def test_list_data_name_present(name: str, count: int, py_api: TestClient) -> None:
     # The second iris dataset is private, so we need to authenticate.
     response = py_api.post(
-        f"/datasets/list?api_key={ApiKey.ADMIN}",
+        "/datasets/list",
         json={"status": "all", "data_name": name},
+        headers={"Authorization": ApiKey.ADMIN},
     )
     assert response.status_code == HTTPStatus.OK
     datasets = response.json()
@@ -84,8 +86,9 @@ def test_list_data_name_present(name: str, count: int, py_api: TestClient) -> No
 )
 def test_list_data_name_absent(name: str, py_api: TestClient) -> None:
     response = py_api.post(
-        f"/datasets/list?api_key={ApiKey.ADMIN}",
+        "/datasets/list",
         json={"status": "all", "data_name": name},
+        headers={"Authorization": ApiKey.ADMIN},
     )
     _assert_empty_result(response)
 
@@ -123,8 +126,9 @@ def test_list_pagination(limit: int | None, offset: int | None, py_api: TestClie
 )
 def test_list_data_version(version: int, count: int, py_api: TestClient) -> None:
     response = py_api.post(
-        f"/datasets/list?api_key={ApiKey.ADMIN}",
+        "/datasets/list",
         json={"status": "all", "data_version": version},
+        headers={"Authorization": ApiKey.ADMIN},
     )
     assert response.status_code == HTTPStatus.OK
     datasets = response.json()
@@ -134,8 +138,9 @@ def test_list_data_version(version: int, count: int, py_api: TestClient) -> None
 
 def test_list_data_version_no_result(py_api: TestClient) -> None:
     response = py_api.post(
-        f"/datasets/list?api_key={ApiKey.ADMIN}",
+        "/datasets/list",
         json={"status": "all", "data_version": 4},
+        headers={"Authorization": ApiKey.ADMIN},
     )
     _assert_empty_result(response)
 
@@ -150,8 +155,9 @@ def test_list_data_version_no_result(py_api: TestClient) -> None:
 )
 def test_list_uploader(user_id: int, count: int, key: str, py_api: TestClient) -> None:
     response = py_api.post(
-        f"/datasets/list?api_key={key}",
+        "/datasets/list",
         json={"status": "all", "uploader": user_id},
+        headers={"Authorization": key},
     )
     # The dataset of user 16 is private, so can not be retrieved by other users.
     owner_user_id = 16
@@ -255,7 +261,7 @@ def test_list_data_identical(
         return hypothesis.reject()
 
     api_key = kwargs.pop("api_key")
-    api_key_query = f"?api_key={api_key}" if api_key else ""
+    headers = {"Authorization": api_key} if api_key else {}
 
     # Pagination parameters are nested in the new query style
     # The old style has no `limit` by default, so we mimic this with a high default
@@ -264,8 +270,9 @@ def test_list_data_identical(
         new_style["pagination"]["offset"] = offset
 
     response = py_api.post(
-        f"/datasets/list{api_key_query}",
+        "/datasets/list",
         json=new_style,
+        headers=headers,
     )
 
     # old style `/data/filter` encodes all filters as a path
@@ -274,6 +281,7 @@ def test_list_data_identical(
         for filter_, value in kwargs.items()
         if value is not None
     ]
+    api_key_query = f"?api_key={api_key}" if api_key else ""
     uri = "/data/list"
     if query:
         uri += f"/{'/'.join([str(v) for q in query for v in q])}"

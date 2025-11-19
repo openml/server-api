@@ -458,7 +458,7 @@ def test_get_task_study_by_alias(py_api: TestClient) -> None:
 
 def test_create_task_study(py_api: TestClient) -> None:
     response = py_api.post(
-        "/studies?api_key=00000000000000000000000000000000",
+        "/studies",
         json={
             "name": "Test Study",
             "alias": "test-study",
@@ -467,6 +467,7 @@ def test_create_task_study(py_api: TestClient) -> None:
             "tasks": [1, 2, 3],
             "runs": [],
         },
+        headers={"Authorization": "00000000000000000000000000000000"},
     )
     assert response.status_code == HTTPStatus.OK
     new = response.json()
@@ -512,8 +513,9 @@ def _attach_tasks_to_study(
     # but the current snapshot has no in-preparation studies.
     expdb_test.execute(text("UPDATE study SET status = 'in_preparation' WHERE id = 1"))
     return py_api.post(
-        f"/studies/attach?api_key={api_key}",
+        "/studies/attach",
         json={"study_id": study_id, "entity_ids": task_ids},
+        headers={"Authorization": api_key},
     )
 
 
