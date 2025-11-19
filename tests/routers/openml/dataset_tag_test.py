@@ -15,10 +15,11 @@ from tests.users import ApiKey
     ids=["no authentication", "invalid key"],
 )
 def test_dataset_tag_rejects_unauthorized(key: ApiKey, py_api: TestClient) -> None:
-    apikey = "" if key is None else f"?api_key={key}"
+    headers = {} if key is None else {"Authorization": key}
     response = py_api.post(
-        f"/datasets/tag{apikey}",
+        "/datasets/tag",
         json={"data_id": next(iter(constants.PRIVATE_DATASET_ID)), "tag": "test"},
+        headers=headers,
     )
     assert response.status_code == HTTPStatus.PRECONDITION_FAILED
     assert response.json()["detail"] == {"code": "103", "message": "Authentication failed"}
@@ -32,8 +33,9 @@ def test_dataset_tag_rejects_unauthorized(key: ApiKey, py_api: TestClient) -> No
 def test_dataset_tag(key: ApiKey, expdb_test: Connection, py_api: TestClient) -> None:
     dataset_id, tag = next(iter(constants.PRIVATE_DATASET_ID)), "test"
     response = py_api.post(
-        f"/datasets/tag?api_key={key}",
+        "/datasets/tag",
         json={"data_id": dataset_id, "tag": tag},
+        headers={"Authorization": key},
     )
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"data_tag": {"id": str(dataset_id), "tag": [tag]}}
@@ -45,8 +47,9 @@ def test_dataset_tag(key: ApiKey, expdb_test: Connection, py_api: TestClient) ->
 def test_dataset_tag_returns_existing_tags(py_api: TestClient) -> None:
     dataset_id, tag = 1, "test"
     response = py_api.post(
-        f"/datasets/tag?api_key={ApiKey.ADMIN}",
+        "/datasets/tag",
         json={"data_id": dataset_id, "tag": tag},
+        headers={"Authorization": ApiKey.ADMIN},
     )
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"data_tag": {"id": str(dataset_id), "tag": ["study_14", tag]}}
@@ -55,8 +58,9 @@ def test_dataset_tag_returns_existing_tags(py_api: TestClient) -> None:
 def test_dataset_tag_fails_if_tag_exists(py_api: TestClient) -> None:
     dataset_id, tag = 1, "study_14"  # Dataset 1 already is tagged with 'study_14'
     response = py_api.post(
-        f"/datasets/tag?api_key={ApiKey.ADMIN}",
+        "/datasets/tag",
         json={"data_id": dataset_id, "tag": tag},
+        headers={"Authorization": ApiKey.ADMIN},
     )
     assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
     expected = {
@@ -79,8 +83,9 @@ def test_dataset_tag_invalid_tag_is_rejected(
     py_api: TestClient,
 ) -> None:
     new = py_api.post(
-        f"/datasets/tag?api_key{ApiKey.ADMIN}",
+        "/datasets/tag",
         json={"data_id": 1, "tag": tag},
+        headers={"Authorization": ApiKey.ADMIN},
     )
 
     assert new.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
