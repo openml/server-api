@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any
-from typing_extensions import TypedDict
 
 from pydantic import BaseModel, ConfigDict, Field
+from typing_extensions import TypedDict
 
 
 class Parameter(BaseModel):
