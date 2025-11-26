@@ -276,7 +276,7 @@ Distribution.model_rebuild()
 
 class JsonLDGraph(BaseModel):
     context: str | dict[str, HttpUrl] = Field(
-        default_factory=lambda: {},
+        default_factory=dict,
         serialization_alias="@context",
     )
     graph: list[Distribution | DataService | Dataset | Quality | Feature | Agent | MD5Checksum] = (

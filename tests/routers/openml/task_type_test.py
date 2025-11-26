@@ -1,11 +1,9 @@
 from http import HTTPStatus
-from typing import Any
-from sqlalchemy import Connection, text
 
 import deepdiff.diff
 import httpx
 import pytest
-from sqlalchemy import Connection
+from sqlalchemy import Connection, text
 from starlette.testclient import TestClient
 
 
