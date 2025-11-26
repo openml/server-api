@@ -1,4 +1,6 @@
 from http import HTTPStatus
+from typing import Any
+from sqlalchemy import Connection
 
 import deepdiff.diff
 import httpx
@@ -38,3 +40,29 @@ def test_get_task_type_unknown(py_api: TestClient) -> None:
     response = py_api.get("/tasktype/1000")
     assert response.status_code == HTTPStatus.PRECONDITION_FAILED
     assert response.json() == {"detail": {"code": "241", "message": "Unknown task type."}}
+
+
+def test_get_task_type_invalid_constraint(
+    py_api: TestClient,
+    expdb_test: Connection,
+) -> None:
+    expdb_test.execute(
+        text(
+            """
+            INSERT INTO task_type (ttid, name, description, creator)
+            VALUES (100, 'test_type', 'description', 'me')
+            """,
+        ),
+    )
+    expdb_test.execute(
+        text(
+            """
+            INSERT INTO task_type_inout (ttid, name, api_constraints)
+            VALUES (100, 'test_input', '{"a": "b"}')
+            """,
+        ),
+    )
+    expdb_test.commit()
+    response = py_api.get("/tasktype/100")
+    assert response.status_code == HTTPStatus.OK
+    assert "data_type" not in response.json()["task_type"]["input"][0]

@@ -69,8 +69,11 @@ def get_task_type(
         input_["name"] = task_type_input.name
         # api_constraints is for one input only in the test database (TODO: patch db)
         if isinstance(task_type_input.api_constraints, str):
-            constraint = json.loads(task_type_input.api_constraints)
-            input_["data_type"] = constraint["data_type"]
+            try:
+                constraint = json.loads(task_type_input.api_constraints)
+                input_["data_type"] = constraint["data_type"]
+            except (json.JSONDecodeError, KeyError):
+                pass
         input_types.append(input_)
     task_type["input"] = input_types
     return {"task_type": task_type}
