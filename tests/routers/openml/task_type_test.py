@@ -1,4 +1,6 @@
 from http import HTTPStatus
+from typing import Any
+from sqlalchemy import Connection, text
 
 import deepdiff.diff
 import httpx
@@ -64,4 +66,41 @@ def test_get_task_type_invalid_constraint(
     expdb_test.commit()
     response = py_api.get("/tasktype/100")
     assert response.status_code == HTTPStatus.OK
-    assert "data_type" not in response.json()["task_type"]["input"][0]
+    task_type = response.json()["task_type"]
+    assert task_type["name"] == "test_type"
+    assert task_type["description"] == "description"
+    assert len(task_type["input"]) == 1
+    assert task_type["input"][0]["name"] == "test_input"
+    assert "data_type" not in task_type["input"][0]
+
+
+def test_get_task_type_invalid_json_in_constraint(
+    py_api: TestClient,
+    expdb_test: Connection,
+) -> None:
+    """Test that invalid JSON in api_constraints is handled gracefully."""
+    expdb_test.execute(
+        text(
+            """
+            INSERT INTO task_type (ttid, name, description, creator)
+            VALUES (101, 'test_type_invalid_json', 'description', 'me')
+            """,
+        ),
+    )
+    expdb_test.execute(
+        text(
+            """
+            INSERT INTO task_type_inout (ttid, name, api_constraints)
+            VALUES (101, 'test_input', '{not valid json')
+            """,
+        ),
+    )
+    expdb_test.commit()
+
+    response = py_api.get("/tasktype/101")
+    assert response.status_code == HTTPStatus.OK
+    task_type = response.json()["task_type"]
+    assert "data_type" not in task_type["input"][0]
+    # Verify other fields are intact
+    assert task_type["name"] == "test_type_invalid_json"
+    assert task_type["input"][0]["name"] == "test_input"
