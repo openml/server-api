@@ -21,18 +21,18 @@ def _parse_args() -> argparse.Namespace:
         "uvicorn",
         "arguments forwarded to uvicorn",
     )
-    uvicorn_options.add_argument(
+    _ = uvicorn_options.add_argument(
         "--reload",
         action="store_true",
         help="Enable auto-reload",
     )
-    uvicorn_options.add_argument(
+    _ = uvicorn_options.add_argument(
         "--host",
         default="127.0.0.1",
         type=str,
         help="Bind socket to this host.",
     )
-    uvicorn_options.add_argument(
+    _ = uvicorn_options.add_argument(
         "--port",
         default=8000,
         type=int,
