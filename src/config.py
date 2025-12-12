@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 
 TomlTable = dict[str, typing.Any]
 
+CONFIG_PATH = Path(__file__).parent / "config.toml"
+
 
 def _apply_defaults_to_siblings(configuration: TomlTable) -> TomlTable:
     defaults = configuration["defaults"]
@@ -19,9 +21,17 @@ def _apply_defaults_to_siblings(configuration: TomlTable) -> TomlTable:
 
 
 @functools.cache
-def load_database_configuration(file: Path = Path(__file__).parent / "config.toml") -> TomlTable:
-    configuration = tomllib.loads(file.read_text())
+def _load_configuration(file: Path) -> TomlTable:
+    return typing.cast(TomlTable, tomllib.loads(file.read_text()))
 
+
+def load_routing_configuration(file: Path = CONFIG_PATH) -> TomlTable:
+    return typing.cast(TomlTable, _load_configuration(file)["routing"])
+
+
+@functools.cache
+def load_database_configuration(file: Path = CONFIG_PATH) -> TomlTable:
+    configuration = _load_configuration(file)
     database_configuration = _apply_defaults_to_siblings(
         configuration["databases"],
     )

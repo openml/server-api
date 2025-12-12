@@ -9,3 +9,7 @@ database="openml_expdb"
 
 [databases.openml]
 database="openml"
+
+[routing]
+minio_url="http://minio:9000"
+server_url="http://php-api:80"

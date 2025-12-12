@@ -43,6 +43,9 @@ def test_dataset_response_is_identical(
     # The new API has normalized `format` field:
     original["format"] = original["format"].lower()
 
+    # Pydantic HttpURL serialization omits port 80 for HTTP urls.
+    original["url"] = original["url"].replace(":80", "")
+
     # There is odd behavior in the live server that I don't want to recreate:
     # when the creator is a list of csv names, it can either be a str or a list
     # depending on whether the names are quoted. E.g.:
