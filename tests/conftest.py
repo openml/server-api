@@ -12,6 +12,8 @@ from main import create_api
 from routers.dependencies import expdb_connection, userdb_connection
 from sqlalchemy import Connection, Engine
 
+PHP_API_URL = "http://server-api-php-api-1:80/api/v1/json"
+
 
 class ApiKey(StrEnum):
     ADMIN: str = "AD000000000000000000000000000000"
@@ -42,7 +44,7 @@ def user_test() -> Connection:
 
 @pytest.fixture()
 def php_api() -> httpx.Client:
-    with httpx.Client(base_url="http://server-api-php-api-1:80/api/v1/json") as client:
+    with httpx.Client(base_url=PHP_API_URL) as client:
         yield client
 
 
