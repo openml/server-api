@@ -12,7 +12,7 @@ from main import create_api
 from routers.dependencies import expdb_connection, userdb_connection
 from sqlalchemy import Connection, Engine
 
-PHP_API_URL = "http://server-api-php-api-1:80/api/v1/json"
+PHP_API_URL = "http://openml-php-rest-api:80/api/v1/json"
 
 
 class ApiKey(StrEnum):

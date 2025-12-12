@@ -6,6 +6,7 @@ import pytest
 from schemas.datasets.openml import DatasetStatus
 from starlette.testclient import TestClient
 
+from tests import constants
 from tests.conftest import ApiKey
 
 
@@ -50,7 +51,7 @@ def test_get_dataset(py_api: TestClient) -> None:
         "tag": ["study_14"],
         "visibility": "public",
         "minio_url": "https://openml1.win.tue.nl/dataset1/dataset_1.pq",
-        "status": "in_preparation",
+        "status": "active",
         "processing_date": "2024-01-04T10:13:59",
         "md5_checksum": "4eaed8b6ec9d8211024b6c089b064761",
         "row_id_attribute": [],
@@ -221,7 +222,7 @@ def test_dataset_status_update_active_to_deactivated(dataset_id: int, py_api: Te
 def test_dataset_status_update_in_preparation_to_active(py_api: TestClient) -> None:
     _assert_status_update_is_successful(
         apikey=ApiKey.ADMIN,
-        dataset_id=1,
+        dataset_id=next(iter(constants.IN_PREPARATION_ID)),
         status=DatasetStatus.ACTIVE,
         py_api=py_api,
     )
@@ -231,7 +232,7 @@ def test_dataset_status_update_in_preparation_to_active(py_api: TestClient) -> N
 def test_dataset_status_update_in_preparation_to_deactivated(py_api: TestClient) -> None:
     _assert_status_update_is_successful(
         apikey=ApiKey.ADMIN,
-        dataset_id=1,
+        dataset_id=next(iter(constants.IN_PREPARATION_ID)),
         status=DatasetStatus.DEACTIVATED,
         py_api=py_api,
     )
@@ -241,7 +242,7 @@ def test_dataset_status_update_in_preparation_to_deactivated(py_api: TestClient)
 def test_dataset_status_update_deactivated_to_active(py_api: TestClient) -> None:
     _assert_status_update_is_successful(
         apikey=ApiKey.ADMIN,
-        dataset_id=131,
+        dataset_id=next(iter(constants.DEACTIVATED_DATASETS)),
         status=DatasetStatus.ACTIVE,
         py_api=py_api,
     )

@@ -36,13 +36,7 @@ def get_flow(flow_id: int, expdb: Annotated[Connection, Depends(expdb_connection
     tags = get_flow_tags(flow_id, expdb)
 
     flow_rows = get_flow_subflows(flow_id, expdb)
-    subflows = [
-        {
-            "identifier": flow.identifier,
-            "flow": get_flow(flow_id=flow.child_id, expdb=expdb),
-        }
-        for flow in flow_rows
-    ]
+    subflows = [get_flow(flow_id=flow.child_id, expdb=expdb) for flow in flow_rows]
 
     return Flow(
         id_=flow.id,
