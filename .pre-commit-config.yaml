@@ -3,7 +3,7 @@
 
 repos:
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
     -   id: check-ast
     -   id: check-toml
@@ -18,7 +18,7 @@ repos:
 #    -   id: no-commit-to-branch
 
 -   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: 'v1.11.2'
+    rev: 'v1.19.1'
     hooks:
     -   id: mypy
         additional_dependencies:
@@ -26,7 +26,7 @@ repos:
             - pytest
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: 'v0.6.9'
+    rev: 'v0.14.9'
     hooks:
     -   id: ruff
         args: [--fix]
