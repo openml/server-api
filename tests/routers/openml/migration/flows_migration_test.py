@@ -29,9 +29,7 @@ def test_get_flow_equal(flow_id: int, py_api: TestClient, php_api: httpx.Client)
             if parameter["default_value"] is None:
                 parameter["default_value"] = []
         for subflow in flow["subflows"]:
-            subflow["flow"] = convert_flow_naming_and_defaults(subflow["flow"])
-            if subflow["identifier"] is None:
-                subflow["identifier"] = []
+            subflow = convert_flow_naming_and_defaults(subflow)
         flow["component"] = flow.pop("subflows")
         if flow["component"] == []:
             flow.pop("component")
@@ -41,6 +39,8 @@ def test_get_flow_equal(flow_id: int, py_api: TestClient, php_api: httpx.Client)
     new = nested_remove_single_element_list(new)
 
     expected = php_api.get(f"/flow/{flow_id}").json()["flow"]
+    if subflow := expected.get("component"):
+        expected["component"] = subflow["flow"]
     # The reason we don't transform "new" to str is that it becomes harder to ignore numeric type
     # differences (e.g., '1.0' vs '1')
     expected = nested_str_to_num(expected)
