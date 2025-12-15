@@ -43,7 +43,7 @@ def get_study_data(study: Row, expdb: Connection) -> Sequence[Row]:
     """
     if study.type_ == StudyType.TASK:
         return cast(
-            Sequence[Row],
+            "Sequence[Row]",
             expdb.execute(
                 text(
                     """
@@ -56,7 +56,7 @@ def get_study_data(study: Row, expdb: Connection) -> Sequence[Row]:
             ).all(),
         )
     return cast(
-        Sequence[Row],
+        "Sequence[Row]",
         expdb.execute(
             text(
                 """
@@ -103,7 +103,7 @@ def create(study: CreateStudy, user: User, expdb: Connection) -> int:
         },
     )
     (study_id,) = expdb.execute(text("""SELECT LAST_INSERT_ID();""")).one()
-    return cast(int, study_id)
+    return cast("int", study_id)
 
 
 def attach_task(task_id: int, study_id: int, user: User, expdb: Connection) -> None:

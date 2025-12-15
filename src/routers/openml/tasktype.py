@@ -53,11 +53,11 @@ def get_task_type(
     task_type = _normalize_task_type(task_type_record)
     # Some names are quoted, or have typos in their comma-separation (e.g. 'A ,B')
     task_type["creator"] = [
-        creator.strip(' "') for creator in cast(str, task_type["creator"]).split(",")
+        creator.strip(' "') for creator in cast("str", task_type["creator"]).split(",")
     ]
     if contributors := task_type.pop("contributors"):
         task_type["contributor"] = [
-            creator.strip(' "') for creator in cast(str, contributors).split(",")
+            creator.strip(' "') for creator in cast("str", contributors).split(",")
         ]
     task_type["creation_date"] = task_type.pop("creationDate")
     task_type_inputs = get_input_for_task_type(task_type_id, expdb)
