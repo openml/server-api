@@ -3,6 +3,7 @@ import json
 import re
 from typing import Annotated, Any
 
+import config
 import xmltodict
 from database.datasets import get_dataset
 from database.tasks import (
@@ -145,7 +146,8 @@ def _fill_json_template(
     # I believe that the operations below are always part of string output, so
     # we don't need to be careful to avoid losing typedness
     template = template.replace("[TASK:id]", str(task.task_id))
-    return template.replace("[CONSTANT:base_url]", "https://test.openml.org/")
+    server_url = config.load_routing_configuration()["server_url"]
+    return template.replace("[CONSTANT:base_url]", server_url)
 
 
 @router.get("/{task_id}")
