@@ -21,7 +21,7 @@ jobs:
 
       - run: docker compose --profile "python" --profile "php" up -d --wait
       - run: docker container ls && docker image ls
-      - run: docker exec python-api python -m pytest -xv -m "php"
+      - run: docker exec openml-python-rest-api python -m pytest -xv -m "php"
   python:
     runs-on: ubuntu-latest
     steps:
@@ -31,4 +31,4 @@ jobs:
           python-version: 3.x
       - run: docker compose --profile "python" up -d --wait database python-api
       - run: docker container ls
-      - run: docker exec python-api python -m pytest -xv -m "not php"
+      - run: docker exec openml-python-rest-api python -m pytest -xv -m "not php"
