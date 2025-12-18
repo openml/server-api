@@ -14,18 +14,15 @@ jobs:
   compare-php:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6  # This repository
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: 3.x
 
       # https://github.com/docker/compose/issues/10596
       - run: docker compose --profile "python" --profile "php" up --detach --wait --remove-orphans || exit $(docker compose ps -q | xargs docker inspect -f '{{.State.ExitCode}}' | grep -v '^0' | wc -l)
-      - run: docker container ls && docker image ls
-      - run: docker exec openml-python-rest-api /bin/bash -c "curl http://openml-php-rest-api:80/api/v1/json/data/1"
+      - run: docker container ls
       - run: docker exec openml-python-rest-api python -m pytest -xv -m "php"
-      - run: docker compose logs
-        if: always()
   python:
     runs-on: ubuntu-latest
     steps:
@@ -33,6 +30,6 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: 3.x
-      - run: docker compose --profile "python" up -d --wait database python-api
+      - run: docker compose --profile "python" up --detach --wait --remove-orphans || exit $(docker compose ps -q | xargs docker inspect -f '{{.State.ExitCode}}' | grep -v '^0' | wc -l)
       - run: docker container ls
       - run: docker exec openml-python-rest-api python -m pytest -xv -m "not php"
