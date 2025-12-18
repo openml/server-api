@@ -22,7 +22,7 @@ jobs:
       # https://github.com/docker/compose/issues/10596
       - run: docker compose --profile "python" --profile "php" up --detach --wait --remove-orphans || exit $(docker compose ps -q | xargs docker inspect -f '{{.State.ExitCode}}' | grep -v '^0' | wc -l)
       - run: docker container ls
-      - run: docker exec openml-python-rest-api python -m pytest -xv -m "php"
+      - run: docker exec openml-python-rest-api python -m pytest -v -m "php"
   python:
     runs-on: ubuntu-latest
     steps:
@@ -32,4 +32,4 @@ jobs:
           python-version: 3.x
       - run: docker compose --profile "python" up --detach --wait --remove-orphans || exit $(docker compose ps -q | xargs docker inspect -f '{{.State.ExitCode}}' | grep -v '^0' | wc -l)
       - run: docker container ls
-      - run: docker exec openml-python-rest-api python -m pytest -xv -m "not php"
+      - run: docker exec openml-python-rest-api python -m pytest -v -m "not php"
