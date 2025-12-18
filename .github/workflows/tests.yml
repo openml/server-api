@@ -19,9 +19,11 @@ jobs:
         with:
           python-version: 3.x
 
-      - run: docker compose --profile "python" --profile "php" up -d --wait
+      - run: docker compose --profile "python" --profile "php" up -d
       - run: docker container ls && docker image ls
       - run: docker exec openml-python-rest-api python -m pytest -xv -m "php"
+      - run: docker compose logs
+        if: always()
   python:
     runs-on: ubuntu-latest
     steps:
