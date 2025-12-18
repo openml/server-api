@@ -19,7 +19,7 @@ jobs:
         with:
           python-version: 3.x
 
-      - run: docker compose --profile "python" --profile "php" up -d
+      - run: docker compose --profile "python" --profile "php" up -d --wait
       - run: docker container ls && docker image ls
       - run: docker exec openml-python-rest-api /bin/bash -c "curl http://openml-php-rest-api:80/api/v1/json/data/1"
       - run: docker exec openml-python-rest-api python -m pytest -xv -m "php"
