@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from abc import ABC
 from enum import StrEnum
-from typing import Generic, Literal, TypeVar
+from typing import Literal
 
 from pydantic import BaseModel, Field, HttpUrl, field_serializer, model_serializer
 
@@ -41,10 +41,7 @@ class JsonLDObject(BaseModel, ABC):
     }
 
 
-T = TypeVar("T", bound=JsonLDObject)
-
-
-class JsonLDObjectReference(BaseModel, Generic[T]):
+class JsonLDObjectReference[T: JsonLDObject](BaseModel):
     id_: str = Field(serialization_alias="@id")
 
     model_config = {"populate_by_name": True, "extra": "forbid"}
@@ -275,7 +272,7 @@ Distribution.model_rebuild()
 
 
 class JsonLDGraph(BaseModel):
-    context: str | dict[str, HttpUrl] = Field(default_factory=dict, serialization_alias="@context")  # type: ignore[arg-type]
+    context: str | dict[str, HttpUrl] = Field(default_factory=dict, serialization_alias="@context")
     graph: list[Distribution | DataService | Dataset | Quality | Feature | Agent | MD5Checksum] = (
         Field(default_factory=list, serialization_alias="@graph")
     )

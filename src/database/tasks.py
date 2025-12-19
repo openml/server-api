@@ -19,7 +19,7 @@ def get(id_: int, expdb: Connection) -> Row | None:
 
 def get_task_types(expdb: Connection) -> Sequence[Row]:
     return cast(
-        Sequence[Row],
+        "Sequence[Row]",
         expdb.execute(
             text(
                 """
@@ -46,7 +46,7 @@ def get_task_type(task_type_id: int, expdb: Connection) -> Row | None:
 
 def get_input_for_task_type(task_type_id: int, expdb: Connection) -> Sequence[Row]:
     return cast(
-        Sequence[Row],
+        "Sequence[Row]",
         expdb.execute(
             text(
                 """
@@ -62,7 +62,7 @@ def get_input_for_task_type(task_type_id: int, expdb: Connection) -> Sequence[Ro
 
 def get_input_for_task(id_: int, expdb: Connection) -> Sequence[Row]:
     return cast(
-        Sequence[Row],
+        "Sequence[Row]",
         expdb.execute(
             text(
                 """
@@ -78,7 +78,7 @@ def get_input_for_task(id_: int, expdb: Connection) -> Sequence[Row]:
 
 def get_task_type_inout_with_template(task_type: int, expdb: Connection) -> Sequence[Row]:
     return cast(
-        Sequence[Row],
+        "Sequence[Row]",
         expdb.execute(
             text(
                 """

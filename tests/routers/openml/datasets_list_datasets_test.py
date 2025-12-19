@@ -224,12 +224,12 @@ def test_list_data_quality(quality: str, range_: str, count: int, py_api: TestCl
 
 
 @pytest.mark.slow
-@hypothesis.settings(
+@hypothesis.settings(  # type: ignore[untyped-decorator]  # 108
     max_examples=5000,
     suppress_health_check=[hypothesis.HealthCheck.function_scoped_fixture],
     deadline=None,
-)  # type: ignore[misc]  # https://github.com/openml/server-api/issues/108
-@given(
+)
+@given(  # type: ignore[untyped-decorator]  # 108
     number_missing_values=st.sampled_from([None, "2", "2..10000"]),
     number_features=st.sampled_from([None, "5", "2..100"]),
     number_classes=st.sampled_from([None, "5", "2..100"]),
@@ -243,7 +243,7 @@ def test_list_data_quality(quality: str, range_: str, count: int, py_api: TestCl
     tag=st.sampled_from([None, "study_14", "study_not_in_db"]),
     # We don't test ADMIN user, as we fixed a bug which treated them as a regular user
     api_key=st.sampled_from([None, ApiKey.SOME_USER, ApiKey.OWNER_USER]),
-)  # type: ignore[misc]  # https://github.com/openml/server-api/issues/108
+)
 def test_list_data_identical(
     py_api: TestClient,
     php_api: httpx.Client,
