@@ -1,11 +1,11 @@
 import json
 from http import HTTPStatus
 
-import constants
 import httpx
 import pytest
 from starlette.testclient import TestClient
 
+import tests.constants
 from core.conversions import nested_remove_single_element_list
 from tests.users import ApiKey
 
@@ -42,6 +42,9 @@ def test_dataset_response_is_identical(  # noqa: C901, PLR0912
     # There are a few changes between the old API and the new API, so we convert here:
     # The new API has normalized `format` field:
     original_json["format"] = original_json["format"].lower()
+
+    # Pydantic HttpURL serialization omits port 80 for HTTP urls.
+    original_json["url"] = original_json["url"].replace(":80", "")
 
     # There is odd behavior in the live server that I don't want to recreate:
     # when the creator is a list of csv names, it can either be a str or a list
@@ -127,7 +130,7 @@ def test_private_dataset_owner_access(
     php_api: TestClient,
     api_key: str,
 ) -> None:
-    [private_dataset] = constants.PRIVATE_DATASET_ID
+    [private_dataset] = tests.constants.PRIVATE_DATASET_ID
     new_response = py_api.get(f"/datasets/{private_dataset}?api_key={api_key}")
     old_response = php_api.get(f"/data/{private_dataset}?api_key={api_key}")
     assert old_response.status_code == HTTPStatus.OK

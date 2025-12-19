@@ -8,6 +8,7 @@ from starlette.testclient import TestClient
 from database.users import User
 from routers.openml.datasets import get_dataset
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus
+from tests import constants
 from tests.users import ADMIN_USER, NO_USER, OWNER_USER, SOME_USER, ApiKey
 
 
@@ -44,14 +45,14 @@ def test_get_dataset(py_api: TestClient) -> None:
         "description_version": 1,
         "upload_date": "2014-04-06T23:19:24",
         "licence": "Public",
-        "url": "https://test.openml.org/data/v1/download/1/anneal.arff",
-        "parquet_url": "https://openml1.win.tue.nl/datasets/0000/0001/dataset_1.pq",
+        "url": "http://php-api/data/v1/download/1/anneal.arff",
+        "parquet_url": "http://minio:9000/datasets/0000/0001/dataset_1.pq",
         "file_id": 1,
         "default_target_attribute": ["class"],
         "version_label": "1",
         "tag": ["study_14"],
         "visibility": "public",
-        "status": "in_preparation",
+        "status": "active",
         "processing_date": "2024-01-04T10:13:59",
         "md5_checksum": "4eaed8b6ec9d8211024b6c089b064761",
         "row_id_attribute": [],
@@ -222,7 +223,7 @@ def test_dataset_status_update_active_to_deactivated(dataset_id: int, py_api: Te
 def test_dataset_status_update_in_preparation_to_active(py_api: TestClient) -> None:
     _assert_status_update_is_successful(
         apikey=ApiKey.ADMIN,
-        dataset_id=1,
+        dataset_id=next(iter(constants.IN_PREPARATION_ID)),
         status=DatasetStatus.ACTIVE,
         py_api=py_api,
     )
@@ -232,7 +233,7 @@ def test_dataset_status_update_in_preparation_to_active(py_api: TestClient) -> N
 def test_dataset_status_update_in_preparation_to_deactivated(py_api: TestClient) -> None:
     _assert_status_update_is_successful(
         apikey=ApiKey.ADMIN,
-        dataset_id=1,
+        dataset_id=next(iter(constants.IN_PREPARATION_ID)),
         status=DatasetStatus.DEACTIVATED,
         py_api=py_api,
     )
@@ -242,7 +243,7 @@ def test_dataset_status_update_in_preparation_to_deactivated(py_api: TestClient)
 def test_dataset_status_update_deactivated_to_active(py_api: TestClient) -> None:
     _assert_status_update_is_successful(
         apikey=ApiKey.ADMIN,
-        dataset_id=131,
+        dataset_id=next(iter(constants.DEACTIVATED_DATASETS)),
         status=DatasetStatus.ACTIVE,
         py_api=py_api,
     )

@@ -16,6 +16,8 @@ from database.setup import expdb_database, user_database
 from main import create_api
 from routers.dependencies import expdb_connection, userdb_connection
 
+PHP_API_URL = "http://openml-php-rest-api:80/api/v1/json"
+
 
 @contextlib.contextmanager
 def automatic_rollback(engine: Engine) -> Iterator[Connection]:
@@ -39,8 +41,8 @@ def user_test() -> Connection:
 
 
 @pytest.fixture
-def php_api() -> Iterator[httpx.Client]:
-    with httpx.Client(base_url="http://server-api-php-api-1:80/api/v1/json") as client:
+def php_api() -> httpx.Client:
+    with httpx.Client(base_url=PHP_API_URL) as client:
         yield client
 
 
