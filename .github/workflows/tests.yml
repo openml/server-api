@@ -12,7 +12,11 @@ permissions:
   contents: write
 
 jobs:
-  compare-php:
+  tests:
+    strategy:
+      matrix:
+        php: ["not php_api", "php_api"]
+        mutations: ["not mut", "mut"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -22,21 +26,7 @@ jobs:
 
       # https://github.com/docker/compose/issues/10596
       - run: docker compose --profile "python" --profile "php" up --detach --wait --remove-orphans || exit $(docker compose ps -q | xargs docker inspect -f '{{.State.ExitCode}}' | grep -v '^0' | wc -l)
-      - run: docker exec openml-python-rest-api coverage run -m pytest -v -m "php_api"
-      - run: docker exec openml-python-rest-api coverage xml
-      - name: Upload results to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-  python:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: 3.x
-      - run: docker compose --profile "python" up --detach --wait --remove-orphans || exit $(docker compose ps -q | xargs docker inspect -f '{{.State.ExitCode}}' | grep -v '^0' | wc -l)
-      - run: docker exec openml-python-rest-api coverage run -m pytest -v -m "not php_api"
+      - run: docker exec openml-python-rest-api coverage run -m pytest -n auto -v -m "${{ matrix.php }} and ${{ matrix.mutations }}"
       - run: docker exec openml-python-rest-api coverage xml
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v4
