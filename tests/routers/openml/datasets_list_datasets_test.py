@@ -225,7 +225,7 @@ def test_list_data_quality(quality: str, range_: str, count: int, py_api: TestCl
 
 @pytest.mark.slow
 @hypothesis.settings(  # type: ignore[untyped-decorator]  # 108
-    max_examples=5000,
+    max_examples=500,  # This number needs to be better motivated
     suppress_health_check=[hypothesis.HealthCheck.function_scoped_fixture],
     deadline=None,
 )

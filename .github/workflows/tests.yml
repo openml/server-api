@@ -12,7 +12,12 @@ permissions:
   contents: write
 
 jobs:
-  compare-php:
+  tests:
+    name: "${{ matrix.php_api == true && 'Migration' || 'Python-only' }} ${{ matrix.mutations == true && 'with mutations' || 'read-only' }}"
+    strategy:
+      matrix:
+        php_api: [true, false]
+        mutations: [true, false]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -21,23 +26,20 @@ jobs:
           python-version: 3.x
 
       # https://github.com/docker/compose/issues/10596
-      - run: docker compose --profile "python" --profile "php" up --detach --wait --remove-orphans || exit $(docker compose ps -q | xargs docker inspect -f '{{.State.ExitCode}}' | grep -v '^0' | wc -l)
-      - run: docker exec openml-python-rest-api coverage run -m pytest -v -m "php_api"
-      - run: docker exec openml-python-rest-api coverage xml
-      - name: Upload results to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-  python:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: 3.x
-      - run: docker compose --profile "python" up --detach --wait --remove-orphans || exit $(docker compose ps -q | xargs docker inspect -f '{{.State.ExitCode}}' | grep -v '^0' | wc -l)
-      - run: docker exec openml-python-rest-api coverage run -m pytest -v -m "not php_api"
-      - run: docker exec openml-python-rest-api coverage xml
+      - name: Start services
+        run: |
+          profiles="--profile python"
+          if [ "${{ matrix.php_api }}" = "true" ]; then
+            profiles="$profiles --profile php"
+          fi
+          docker compose $profiles up --detach --wait --remove-orphans || exit $(docker compose ps -q | xargs docker inspect -f '{{.State.ExitCode}}' | grep -v '^0' | wc -l)
+
+      - name: Run tests
+        run: |
+          marker="${{ matrix.php_api == true && 'php_api' || 'not php_api' }} and ${{ matrix.mutations == true && 'mut' || 'not mut' }}"
+          docker exec openml-python-rest-api coverage run -m pytest -n auto -v -m "$marker"
+      - name: Produce coverage report
+        run: docker exec openml-python-rest-api coverage xml
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v4
         with:
