@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, Self
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -25,12 +25,7 @@ class Flow(BaseModel):
     language: str | None = Field(max_length=128)
     dependencies: str | None
     parameter: list[Parameter]
-    subflows: list[Subflow]
+    subflows: list[Self]
     tag: list[str]
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
-
-
-class Subflow(TypedDict):
-    identifier: str | None
-    flow: Flow

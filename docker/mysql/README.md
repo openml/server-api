@@ -16,7 +16,7 @@ which sets:
 
 You should be able to connect to it using `mysql`:
 ```bash
-
+mysql --host 127.0.0.1 --port 3306 -uroot -pok
 ```
 If you do not have `mysql` installed, you may refer to the MySQL image documentation on
 how to use the image instead to connect over a docker network if you want to connect

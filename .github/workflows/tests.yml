@@ -15,21 +15,15 @@ jobs:
   compare-php:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: 3.x
 
-      # A naive `docker compose up` would first build the `python-api` container and then
-      # start all services, which kickstarts Elastic Search and building indices.
-      # But since those two steps are independent, we can parallelize them to save time.
-      - run: |
-          docker compose build python-api
-          docker compose up -d --wait python-api php-api
-      - run: docker container ls && docker image ls
-      - run: docker exec python-api python -m pip freeze
-      - run: docker exec python-api coverage run -m pytest -xv -m "php_api"
-      - run: docker exec python-api coverage xml
+      # https://github.com/docker/compose/issues/10596
+      - run: docker compose --profile "python" --profile "php" up --detach --wait --remove-orphans || exit $(docker compose ps -q | xargs docker inspect -f '{{.State.ExitCode}}' | grep -v '^0' | wc -l)
+      - run: docker exec openml-python-rest-api coverage run -m pytest -v -m "php_api"
+      - run: docker exec openml-python-rest-api coverage xml
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v4
         with:
@@ -37,15 +31,13 @@ jobs:
   python:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: 3.x
-      - run: docker compose up -d --wait database python-api
-      - run: docker container ls && docker image ls
-      - run: docker exec python-api python -m pip freeze
-      - run: docker exec python-api coverage run -m pytest -xv -m "not php_api"
-      - run: docker exec python-api coverage xml
+      - run: docker compose --profile "python" up --detach --wait --remove-orphans || exit $(docker compose ps -q | xargs docker inspect -f '{{.State.ExitCode}}' | grep -v '^0' | wc -l)
+      - run: docker exec openml-python-rest-api coverage run -m pytest -v -m "not php_api"
+      - run: docker exec openml-python-rest-api coverage xml
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v4
         with:

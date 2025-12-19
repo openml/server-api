@@ -2,7 +2,7 @@ import html
 
 from sqlalchemy.engine import Row
 
-from config import load_configuration
+from config import load_routing_configuration
 from core.errors import DatasetError
 from schemas.datasets.openml import DatasetFileFormat
 
@@ -25,15 +25,16 @@ def _format_parquet_url(dataset: Row) -> str | None:
     if dataset.format.lower() != DatasetFileFormat.ARFF:
         return None
 
-    minio_base_url = load_configuration()["minio_base_url"]
-    prefix = dataset.did // 10_000
-    return f"{minio_base_url}/datasets/{prefix:04d}/{dataset.did:04d}/dataset_{dataset.did}.pq"
+    minio_base_url = load_routing_configuration()["minio_url"]
+    ten_thousands_prefix = f"{dataset.did // 10_000:04d}"
+    padded_id = f"{dataset.did:04d}"
+    return f"{minio_base_url}datasets/{ten_thousands_prefix}/{padded_id}/dataset_{dataset.did}.pq"
 
 
 def _format_dataset_url(dataset: Row) -> str:
-    base_url = load_configuration()["arff_base_url"]
+    base_url = load_routing_configuration()["server_url"]
     filename = f"{html.escape(dataset.name)}.{dataset.format.lower()}"
-    return f"{base_url}/data/v1/download/{dataset.file_id}/{filename}"
+    return f"{base_url}data/v1/download/{dataset.file_id}/{filename}"
 
 
 def _safe_unquote(text: str | None) -> str | None:

@@ -19,7 +19,7 @@ def test_get_task(py_api: TestClient) -> None:
                 "estimation_procedure": {
                     "id": 5,
                     "type": "holdout",
-                    "data_splits_url": "https://test.openml.org/api_splits/get/59/Task_59_splits.arff",
+                    "data_splits_url": "http://php-api:80/api_splits/get/59/Task_59_splits.arff",
                     "parameter": [
                         {"name": "number_repeats", "value": 1},
                         {"name": "number_folds", "value": None},
