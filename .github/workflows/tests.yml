@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   tests:
-    name: "${{ matrix.php_api == true && 'Migration' || 'Unit' }} ${{ matrix.mutations == true && 'write' || 'read-only' }} tests"
+    name: "${{ matrix.php_api == true && 'Migration' || 'Python-only' }} ${{ matrix.mutations == true && 'with mutations' || 'read-only' }}"
     strategy:
       matrix:
         php_api: [true, false]
