@@ -30,7 +30,7 @@ def convert_template_xml_to_json(xml_template: str) -> dict[str, JSON]:
 def fill_template(
     template: str,
     task: RowMapping,
-    task_inputs: dict[str, str],
+    task_inputs: dict[str, str | int],
     connection: Connection,
 ) -> dict[str, JSON]:
     """Fill in the XML template as used for task descriptions and return the result,
@@ -96,7 +96,7 @@ def fill_template(
 def _fill_json_template(
     template: JSON,
     task: RowMapping,
-    task_inputs: dict[str, str],
+    task_inputs: dict[str, str | int],
     fetched_data: dict[str, str],
     connection: Connection,
 ) -> JSON:
@@ -120,7 +120,7 @@ def _fill_json_template(
         if match.string == template:
             # How do we know the default value? probably ttype_io table?
             return task_inputs.get(field, [])
-        template = template.replace(match.group(), task_inputs[field])
+        template = template.replace(match.group(), str(task_inputs[field]))
     if match := re.search(r"\[LOOKUP:(.*)]", template):
         (field,) = match.groups()
         if field not in fetched_data:
@@ -163,7 +163,7 @@ def get_task(
         )
 
     task_inputs = {
-        row.input: str(int(row.value)) if row.value.isdigit() else row.value
+        row.input: int(row.value) if row.value.isdigit() else row.value
         for row in database.tasks.get_input_for_task(task_id, expdb)
     }
     ttios = database.tasks.get_task_type_inout_with_template(task_type.ttid, expdb)
