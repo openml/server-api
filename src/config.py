@@ -22,11 +22,11 @@ def _apply_defaults_to_siblings(configuration: TomlTable) -> TomlTable:
 
 @functools.cache
 def _load_configuration(file: Path) -> TomlTable:
-    return typing.cast(TomlTable, tomllib.loads(file.read_text()))
+    return tomllib.loads(file.read_text())
 
 
 def load_routing_configuration(file: Path = CONFIG_PATH) -> TomlTable:
-    return typing.cast(TomlTable, _load_configuration(file)["routing"])
+    return typing.cast("TomlTable", _load_configuration(file)["routing"])
 
 
 @functools.cache

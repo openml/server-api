@@ -6,7 +6,7 @@ from sqlalchemy import Connection, Row, text
 
 def get_subflows(for_flow: int, expdb: Connection) -> Sequence[Row]:
     return cast(
-        Sequence[Row],
+        "Sequence[Row]",
         expdb.execute(
             text(
                 """
@@ -36,7 +36,7 @@ def get_tags(flow_id: int, expdb: Connection) -> list[str]:
 
 def get_parameters(flow_id: int, expdb: Connection) -> Sequence[Row]:
     return cast(
-        Sequence[Row],
+        "Sequence[Row]",
         expdb.execute(
             text(
                 """

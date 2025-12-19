@@ -9,7 +9,7 @@ from schemas.datasets.openml import EstimationProcedure
 
 def get_math_functions(function_type: str, connection: Connection) -> Sequence[Row]:
     return cast(
-        Sequence[Row],
+        "Sequence[Row]",
         connection.execute(
             text(
                 """

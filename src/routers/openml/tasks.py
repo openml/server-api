@@ -1,7 +1,7 @@
 import json
 import re
 from http import HTTPStatus
-from typing import Annotated, Any
+from typing import Annotated, cast
 
 import xmltodict
 from fastapi import APIRouter, Depends, HTTPException
@@ -15,14 +15,16 @@ from schemas.datasets.openml import Task
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
+type JSON = dict[str, "JSON"] | list["JSON"] | str | int | float | bool | None
 
-def convert_template_xml_to_json(xml_template: str) -> Any:  # noqa: ANN401
+
+def convert_template_xml_to_json(xml_template: str) -> dict[str, JSON]:
     json_template = xmltodict.parse(xml_template.replace("oml:", ""))
     json_str = json.dumps(json_template)
     # To account for the differences between PHP and Python conversions:
     for py, php in [("@name", "name"), ("#text", "value"), ("@type", "type")]:
         json_str = json_str.replace(py, php)
-    return json.loads(json_str)
+    return cast("dict[str, JSON]", json.loads(json_str))
 
 
 def fill_template(
@@ -30,7 +32,7 @@ def fill_template(
     task: RowMapping,
     task_inputs: dict[str, str],
     connection: Connection,
-) -> Any:  # noqa: ANN401
+) -> dict[str, JSON]:
     """Fill in the XML template as used for task descriptions and return the result,
      converted to JSON.
 
@@ -79,22 +81,25 @@ def fill_template(
     }
     """
     json_template = convert_template_xml_to_json(template)
-    return _fill_json_template(
-        json_template,
-        task,
-        task_inputs,
-        fetched_data={},
-        connection=connection,
+    return cast(
+        "dict[str, JSON]",
+        _fill_json_template(
+            json_template,
+            task,
+            task_inputs,
+            fetched_data={},
+            connection=connection,
+        ),
     )
 
 
 def _fill_json_template(
-    template: dict[str, Any],
+    template: JSON,
     task: RowMapping,
     task_inputs: dict[str, str],
-    fetched_data: dict[str, Any],
+    fetched_data: dict[str, str],
     connection: Connection,
-) -> dict[str, Any] | list[dict[str, Any]] | str:
+) -> JSON:
     if isinstance(template, dict):
         return {
             k: _fill_json_template(v, task, task_inputs, fetched_data, connection)
@@ -158,7 +163,7 @@ def get_task(
         )
 
     task_inputs = {
-        row.input: int(row.value) if row.value.isdigit() else row.value
+        row.input: str(int(row.value)) if row.value.isdigit() else row.value
         for row in database.tasks.get_input_for_task(task_id, expdb)
     }
     ttios = database.tasks.get_task_type_inout_with_template(task_type.ttid, expdb)
@@ -176,7 +181,7 @@ def get_task(
     tags = database.tasks.get_tags(task_id, expdb)
     name = f"Task {task_id} ({task_type.name})"
     dataset_id = task_inputs.get("source_data")
-    if dataset_id and (dataset := database.datasets.get(dataset_id, expdb)):
+    if isinstance(dataset_id, int) and (dataset := database.datasets.get(dataset_id, expdb)):
         name = f"Task {task_id}: {dataset.name} ({task_type.name})"
 
     return Task(
