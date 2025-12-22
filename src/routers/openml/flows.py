@@ -7,7 +7,7 @@ from sqlalchemy import Connection
 import database.flows
 from core.conversions import _str_to_num
 from routers.dependencies import expdb_connection
-from schemas.flows import Flow, Parameter
+from schemas.flows import Flow, Parameter, Subflow
 
 router = APIRouter(prefix="/flows", tags=["flows"])
 
@@ -51,10 +51,10 @@ def get_flow(flow_id: int, expdb: Annotated[Connection, Depends(expdb_connection
     tags = database.flows.get_tags(flow_id, expdb)
     subflow_rows = database.flows.get_subflows(flow_id, expdb)
     subflows = [
-        {
-            "identifier": subflow.identifier,
-            "flow": get_flow(flow_id=subflow.child_id, expdb=expdb),
-        }
+        Subflow(
+            identifier=subflow.identifier,
+            flow=get_flow(flow_id=subflow.child_id, expdb=expdb),
+        )
         for subflow in subflow_rows
     ]
 
