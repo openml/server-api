@@ -221,142 +221,149 @@ def test_get_flow_with_subflow(py_api: TestClient) -> None:
         ],
         "subflows": [
             {
-                "id": 4,
-                "uploader": 16,
-                "name": "weka.J48",
-                "class_name": "weka.classifiers.trees.J48",
-                "version": 1,
-                "external_version": "Weka_3.9.0_11194",
-                "description": (
-                    "Ross Quinlan (1993). C4.5: Programs for Machine Learning. "
-                    "Morgan Kaufmann Publishers, San Mateo, CA."
-                ),
-                "upload_date": "2017-03-24T14:26:40",
-                "language": "English",
-                "dependencies": "Weka_3.9.0",
-                "parameter": [
-                    {
-                        "name": "-do-not-check-capabilities",
-                        "data_type": "flag",
-                        "default_value": None,
-                        "description": (
-                            "If set, classifier capabilities are not checked"
-                            " before classifier is built\n\t(use with caution)."
-                        ),
-                    },
-                    {
-                        "name": "-doNotMakeSplitPointActualValue",
-                        "data_type": "flag",
-                        "default_value": None,
-                        "description": "Do not make split point actual value.",
-                    },
-                    {
-                        "name": "A",
-                        "data_type": "flag",
-                        "default_value": None,
-                        "description": "Laplace smoothing for predicted probabilities.",
-                    },
-                    {
-                        "name": "B",
-                        "data_type": "flag",
-                        "default_value": None,
-                        "description": "Use binary splits only.",
-                    },
-                    {
-                        "name": "C",
-                        "data_type": "option",
-                        "default_value": 0.25,
-                        "description": ("Set confidence threshold for pruning.\n\t(default 0.25)"),
-                    },
-                    {
-                        "name": "J",
-                        "data_type": "flag",
-                        "default_value": None,
-                        "description": (
-                            "Do not use MDL correction for info gain on numeric attributes."
-                        ),
-                    },
-                    {
-                        "name": "L",
-                        "data_type": "flag",
-                        "default_value": None,
-                        "description": "Do not clean up after the tree has been built.",
-                    },
-                    {
-                        "name": "M",
-                        "data_type": "option",
-                        "default_value": 2,
-                        "description": ("Set minimum number of instances per leaf.\n\t(default 2)"),
-                    },
-                    {
-                        "name": "N",
-                        "data_type": "option",
-                        "default_value": None,
-                        "description": (
-                            "Set number of folds for reduced error\n\t"
-                            "pruning. One fold is used as pruning set.\n\t(default 3)"
-                        ),
-                    },
-                    {
-                        "name": "O",
-                        "data_type": "flag",
-                        "default_value": None,
-                        "description": "Do not collapse tree.",
-                    },
-                    {
-                        "name": "Q",
-                        "data_type": "option",
-                        "default_value": None,
-                        "description": "Seed for random data shuffling (default 1).",
-                    },
-                    {
-                        "name": "R",
-                        "data_type": "flag",
-                        "default_value": None,
-                        "description": "Use reduced error pruning.",
-                    },
-                    {
-                        "name": "S",
-                        "data_type": "flag",
-                        "default_value": None,
-                        "description": "Do not perform subtree raising.",
-                    },
-                    {
-                        "name": "U",
-                        "data_type": "flag",
-                        "default_value": None,
-                        "description": "Use unpruned tree.",
-                    },
-                    {
-                        "name": "batch-size",
-                        "data_type": "option",
-                        "default_value": None,
-                        "description": (
-                            "The desired batch size for batch prediction  (default 100)."
-                        ),
-                    },
-                    {
-                        "name": "num-decimal-places",
-                        "data_type": "option",
-                        "default_value": None,
-                        "description": (
-                            "The number of decimal places for the output of numbers"
-                            " in the model (default 2)."
-                        ),
-                    },
-                    {
-                        "name": "output-debug-info",
-                        "data_type": "flag",
-                        "default_value": None,
-                        "description": (
-                            "If set, classifier is run in debug mode and\n\t"
-                            "may output additional info to the console"
-                        ),
-                    },
-                ],
-                "tag": ["OpenmlWeka", "weka"],
-                "subflows": [],
-            },
+                "identifier": None,
+                "flow": {
+                    "id": 4,
+                    "uploader": 16,
+                    "name": "weka.J48",
+                    "class_name": "weka.classifiers.trees.J48",
+                    "version": 1,
+                    "external_version": "Weka_3.9.0_11194",
+                    "description": (
+                        "Ross Quinlan (1993). C4.5: Programs for Machine Learning. "
+                        "Morgan Kaufmann Publishers, San Mateo, CA."
+                    ),
+                    "upload_date": "2017-03-24T14:26:40",
+                    "language": "English",
+                    "dependencies": "Weka_3.9.0",
+                    "parameter": [
+                        {
+                            "name": "-do-not-check-capabilities",
+                            "data_type": "flag",
+                            "default_value": None,
+                            "description": (
+                                "If set, classifier capabilities are not checked"
+                                " before classifier is built\n\t(use with caution)."
+                            ),
+                        },
+                        {
+                            "name": "-doNotMakeSplitPointActualValue",
+                            "data_type": "flag",
+                            "default_value": None,
+                            "description": "Do not make split point actual value.",
+                        },
+                        {
+                            "name": "A",
+                            "data_type": "flag",
+                            "default_value": None,
+                            "description": "Laplace smoothing for predicted probabilities.",
+                        },
+                        {
+                            "name": "B",
+                            "data_type": "flag",
+                            "default_value": None,
+                            "description": "Use binary splits only.",
+                        },
+                        {
+                            "name": "C",
+                            "data_type": "option",
+                            "default_value": 0.25,
+                            "description": (
+                                "Set confidence threshold for pruning.\n\t(default 0.25)"
+                            ),
+                        },
+                        {
+                            "name": "J",
+                            "data_type": "flag",
+                            "default_value": None,
+                            "description": (
+                                "Do not use MDL correction for info gain on numeric attributes."
+                            ),
+                        },
+                        {
+                            "name": "L",
+                            "data_type": "flag",
+                            "default_value": None,
+                            "description": "Do not clean up after the tree has been built.",
+                        },
+                        {
+                            "name": "M",
+                            "data_type": "option",
+                            "default_value": 2,
+                            "description": (
+                                "Set minimum number of instances per leaf.\n\t(default 2)"
+                            ),
+                        },
+                        {
+                            "name": "N",
+                            "data_type": "option",
+                            "default_value": None,
+                            "description": (
+                                "Set number of folds for reduced error\n\t"
+                                "pruning. One fold is used as pruning set.\n\t(default 3)"
+                            ),
+                        },
+                        {
+                            "name": "O",
+                            "data_type": "flag",
+                            "default_value": None,
+                            "description": "Do not collapse tree.",
+                        },
+                        {
+                            "name": "Q",
+                            "data_type": "option",
+                            "default_value": None,
+                            "description": "Seed for random data shuffling (default 1).",
+                        },
+                        {
+                            "name": "R",
+                            "data_type": "flag",
+                            "default_value": None,
+                            "description": "Use reduced error pruning.",
+                        },
+                        {
+                            "name": "S",
+                            "data_type": "flag",
+                            "default_value": None,
+                            "description": "Do not perform subtree raising.",
+                        },
+                        {
+                            "name": "U",
+                            "data_type": "flag",
+                            "default_value": None,
+                            "description": "Use unpruned tree.",
+                        },
+                        {
+                            "name": "batch-size",
+                            "data_type": "option",
+                            "default_value": None,
+                            "description": (
+                                "The desired batch size for batch prediction  (default 100)."
+                            ),
+                        },
+                        {
+                            "name": "num-decimal-places",
+                            "data_type": "option",
+                            "default_value": None,
+                            "description": (
+                                "The number of decimal places for the output of numbers"
+                                " in the model (default 2)."
+                            ),
+                        },
+                        {
+                            "name": "output-debug-info",
+                            "data_type": "flag",
+                            "default_value": None,
+                            "description": (
+                                "If set, classifier is run in debug mode and\n\t"
+                                "may output additional info to the console"
+                            ),
+                        },
+                    ],
+                    "tag": ["OpenmlWeka", "weka"],
+                    "subflows": [],
+                },
+            }
         ],
         "tag": ["OpenmlWeka", "weka"],
     }
