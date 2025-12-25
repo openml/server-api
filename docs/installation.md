@@ -1,6 +1,6 @@
 # Installation
 
-The primary way to run this service is through a docker container.
+The primary way to run this service is through a Docker container.
 The REST API needs to be able to connect to a MySQL database with the OpenML "openml" and "openml_expdb" databases.
 The `docker-compose.yaml` file of this project defines these together out of the box.
 This is useful for development purposes, but the database does not persist between restarts in the current configuration.
