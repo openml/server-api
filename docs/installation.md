@@ -10,7 +10,7 @@ For development, it should suffice to run the services from a fresh clone by run
 The REST API will be exposed on port 8001 on the host machine. To visit the Swagger Docs, visit http://localhost:8001/docs.
 
 Once the containers are started, you can run tests with `docker exec -it openml-python-rest-api python -m pytest -m "not php_api" tests`.
-For migration testing, which compares output of the Python based REST API with the old PHP based one, also start the PHP server (`docker compose --profile "php" --profile "python" up -d`) and include tests with the `php_api` marker/fixture: `docker exec -it openml-python-rest-api python -m pytest tests`.
+For migration testing, which compares output of the Python-based REST API with the old PHP-based one, also start the PHP server (`docker compose --profile "php" --profile "python" up -d`) and include tests with the `php_api` marker/fixture: `docker exec -it openml-python-rest-api python -m pytest tests`.
 
 !!! note
 
