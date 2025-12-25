@@ -14,7 +14,7 @@ For migration testing, which compares output of the Python-based REST API with t
 
 !!! note
 
-    The PHP REST API needs Elastic Search. In some cases, it also needs the ES indices to be built.
+    The PHP REST API needs Elasticsearch. In some cases, it also needs the ES indices to be built.
     The current set up does not automatically build ES indices, because that takes a long time.
     When we start testing more upload functionality, for which the PHP API needs built indices, we'll work on an ES image with prebuilt indices.
 
