@@ -732,16 +732,11 @@ name = "openml-server-api"
 version = "0.0.1"
 source = { virtual = "." }
 dependencies = [
-    { name = "cryptography" },
     { name = "fastapi" },
     { name = "mysqlclient" },
-    { name = "pre-commit" },
     { name = "pydantic" },
-    { name = "pymysql" },
-    { name = "pytest" },
     { name = "python-dotenv" },
     { name = "sqlalchemy" },
-    { name = "testcontainers" },
     { name = "uvicorn" },
     { name = "xmltodict" },
 ]
@@ -749,13 +744,16 @@ dependencies = [
 [package.optional-dependencies]
 dev = [
     { name = "coverage" },
+    { name = "cryptography" },
     { name = "deepdiff" },
     { name = "httpx" },
     { name = "hypothesis" },
     { name = "pre-commit" },
+    { name = "pymysql" },
     { name = "pytest" },
     { name = "pytest-mock" },
     { name = "pytest-xdist" },
+    { name = "testcontainers" },
 ]
 docs = [
     { name = "mkdocs-material" },
@@ -765,7 +763,7 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "coverage", marker = "extra == 'dev'" },
-    { name = "cryptography", specifier = ">=46.0.3" },
+    { name = "cryptography", marker = "extra == 'dev'" },
     { name = "deepdiff", marker = "extra == 'dev'" },
     { name = "fastapi" },
     { name = "httpx", marker = "extra == 'dev'" },
@@ -773,17 +771,15 @@ requires-dist = [
     { name = "mkdocs-material", marker = "extra == 'docs'" },
     { name = "mkdocs-section-index", marker = "extra == 'docs'" },
     { name = "mysqlclient" },
-    { name = "pre-commit", specifier = ">=4.5.1" },
     { name = "pre-commit", marker = "extra == 'dev'" },
     { name = "pydantic" },
-    { name = "pymysql", specifier = ">=1.1.2" },
-    { name = "pytest", specifier = ">=9.0.2" },
+    { name = "pymysql", marker = "extra == 'dev'" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pytest-mock", marker = "extra == 'dev'" },
     { name = "pytest-xdist", marker = "extra == 'dev'" },
     { name = "python-dotenv" },
     { name = "sqlalchemy" },
-    { name = "testcontainers", specifier = ">=4.14.0" },
+    { name = "testcontainers", marker = "extra == 'dev'" },
     { name = "uvicorn" },
     { name = "xmltodict" },
 ]

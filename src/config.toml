@@ -19,6 +19,3 @@ database="openml"
 [routing]
 minio_url="http://minio:9000/"
 server_url="http://php-api:80/"
-
-[testcontainers]
-docker_container_name="openml/test-database:20240105"

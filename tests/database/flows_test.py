@@ -11,5 +11,9 @@ def test_database_flow_exists(flow: Flow, expdb_test: Connection) -> None:
 
 
 def test_database_flow_exists_returns_none_if_no_match(expdb_test: Connection) -> None:
-    retrieved_flow = database.flows.get_by_name("foo", "bar", expdb_test)
+    retrieved_flow = database.flows.get_by_name(
+        name="foo",
+        external_version="bar",
+        expdb=expdb_test,
+    )
     assert retrieved_flow is None

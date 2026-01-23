@@ -20,11 +20,6 @@ dependencies = [
     "mysqlclient",
     "python_dotenv",
     "xmltodict",
-    "pre-commit>=4.5.1",
-    "pytest>=9.0.2",
-    "testcontainers>=4.14.0",
-    "pymysql>=1.1.2",
-    "cryptography>=46.0.3",
 ]
 
 [project.optional-dependencies]
@@ -37,6 +32,10 @@ dev = [
     "hypothesis",
     "deepdiff",
     "pytest-xdist",
+    "testcontainers",
+    "pymysql",
+    "cryptography",
+
 ]
 docs = [
     "mkdocs-material",
