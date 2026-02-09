@@ -10,14 +10,12 @@ import _pytest.mark
 import httpx
 import pytest
 import sqlalchemy
-from _pytest.config import Config
 from _pytest.nodes import Item
 from dotenv import load_dotenv
 from fastapi.testclient import TestClient
 from sqlalchemy import Connection, Engine, text
 from testcontainers.mysql import LogMessageWaitStrategy, MySqlContainer
 
-from database.setup import user_database
 from main import create_api
 from routers.dependencies import expdb_connection, userdb_connection
 
@@ -84,8 +82,14 @@ def automatic_rollback(engine: Engine) -> Iterator[Connection]:
 
 
 @pytest.fixture
-def user_test() -> Connection:
-    with automatic_rollback(user_database()) as connection:
+def user_test(mysql_container: MySqlContainer) -> Connection:
+    """Get a connection to the user database using the testcontainer."""
+    url = mysql_container.get_connection_url()
+    url = url.replace("mysql://", "mysql+pymysql://")
+    url = url.replace("openml_expdb", "openml")
+
+    engine = sqlalchemy.create_engine(url)
+    with automatic_rollback(engine) as connection:
         yield connection
 
 
@@ -158,7 +162,7 @@ def persisted_flow(flow: Flow, expdb_test: Connection) -> Iterator[Flow]:
     expdb_test.commit()
 
 
-def pytest_collection_modifyitems(config: Config, items: list[Item]) -> None:  # noqa: ARG001
+def pytest_collection_modifyitems(items: list[Item]) -> None:
     for test_item in items:
         for fixture in test_item.fixturenames:  # type: ignore[attr-defined]
             test_item.own_markers.append(_pytest.mark.Mark(fixture, (), {}))
