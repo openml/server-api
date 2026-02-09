@@ -2,7 +2,7 @@ import contextlib
 import json
 import os
 import re
-from collections.abc import Iterator
+from collections.abc import Generator, Iterator
 from pathlib import Path
 from typing import Any, NamedTuple
 
@@ -64,12 +64,14 @@ def mysql_container() -> MySqlContainer:
 
 @pytest.fixture
 def expdb_test(mysql_container: MySqlContainer) -> Connection:
-    url = mysql_container.get_connection_url()
-    url = url.replace("mysql://", "mysql+pymysql://")
-
+    url = mysql_container.get_connection_url().replace("mysql://", "mysql+pymysql://")
     engine = sqlalchemy.create_engine(url)
-    with engine.begin() as connection:
-        yield connection
+
+    with engine.begin() as connection:  # This starts a transaction
+        try:
+            yield connection
+        finally:
+            connection.rollback()  # Rollback ALL test changes
 
 
 @contextlib.contextmanager
@@ -100,12 +102,15 @@ def php_api() -> httpx.Client:
 
 
 @pytest.fixture
-def py_api(expdb_test: Connection, user_test: Connection) -> TestClient:
+def py_api(expdb_test: Connection, user_test: Connection) -> Generator[TestClient, None, None]:
     app = create_api()
     # We use the lambda definitions because fixtures may not be called directly.
     app.dependency_overrides[expdb_connection] = lambda: expdb_test
     app.dependency_overrides[userdb_connection] = lambda: user_test
-    return TestClient(app)
+
+    client = TestClient(app)
+    yield client
+    client.close()
 
 
 @pytest.fixture
