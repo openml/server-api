@@ -1,7 +1,7 @@
 services:
   database:
     profiles: ["python", "php", "all"]
-    image: "openml/test-database:20240105"
+    image: "openml/test-database:v0.1.20260204"
     container_name: "openml-test-database"
     environment:
       MYSQL_ROOT_PASSWORD: ok
