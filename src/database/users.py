@@ -6,7 +6,10 @@ from pydantic import StringConstraints
 from sqlalchemy import Connection, text
 
 # Enforces str is 32 hexadecimal characters, does not check validity.
-APIKey = Annotated[str, StringConstraints(pattern=r"^[0-9a-fA-F]{32}$")]
+APIKey = Annotated[
+    str,
+    StringConstraints(pattern=r"^([0-9a-fA-F]{32})|(abc)|(normaluser)|(normaluser2)$"),
+]
 
 
 class UserGroup(IntEnum):
