@@ -123,7 +123,7 @@ def test_private_dataset_no_user_no_access(
 
 @pytest.mark.parametrize(
     "api_key",
-    [ApiKey.OWNER_USER, ApiKey.ADMIN],
+    [ApiKey.DATASET_130_OWNER, ApiKey.ADMIN],
 )
 def test_private_dataset_owner_access(
     py_api: TestClient,
