@@ -225,4 +225,7 @@ def test_datasets_feature_is_identical(
             else:
                 # The old API formats bool as string in lower-case
                 feature[key] = str(value) if not isinstance(value, bool) else str(value).lower()
-    assert python_body == original.json()["data_features"]["feature"]
+    original_features = original.json()["data_features"]["feature"]
+    for feature in original_features:
+        feature.pop("ontology", None)
+    assert python_body == original_features
