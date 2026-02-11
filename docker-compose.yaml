@@ -15,17 +15,6 @@ services:
       interval: 5s
       retries: 10
 
-  database-setup:
-    profiles: ["python", "php", "all"]
-    image: mysql
-    container_name: "openml-test-database-setup"
-    volumes:
-      - ./docker/database/update.sh:/database-update.sh
-    command: /bin/sh -c "/database-update.sh"
-    depends_on:
-      database:
-        condition: service_healthy
-
   docs:
     profiles: ["all"]
     build:
