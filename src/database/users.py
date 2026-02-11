@@ -5,10 +5,16 @@ from typing import Annotated, Self
 from pydantic import StringConstraints
 from sqlalchemy import Connection, text
 
+from config import load_configuration
+
 # Enforces str is 32 hexadecimal characters, does not check validity.
+api_key_pattern = r"^[0-9a-fA-F]{32}$"
+if load_configuration()["development"].get("allow_test_api_keys"):
+    api_key_pattern = r"^([0-9a-fA-F]{32}|normaluser|normaluser2|abc)$"
+
 APIKey = Annotated[
     str,
-    StringConstraints(pattern=r"^([0-9a-fA-F]{32})|(abc)|(normaluser)|(normaluser2)$"),
+    StringConstraints(pattern=api_key_pattern),
 ]
 
 
