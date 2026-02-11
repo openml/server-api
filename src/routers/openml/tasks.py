@@ -4,12 +4,13 @@ from http import HTTPStatus
 from typing import Annotated, cast
 
 import xmltodict
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy import Connection, RowMapping, text
 
 import config
 import database.datasets
 import database.tasks
+from core.errors import ProblemType, raise_problem
 from routers.dependencies import expdb_connection
 from schemas.datasets.openml import Task
 
@@ -155,11 +156,16 @@ def get_task(
     expdb: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> Task:
     if not (task := database.tasks.get(task_id, expdb)):
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Task not found")
+        raise_problem(
+            status_code=HTTPStatus.NOT_FOUND,
+            type_=ProblemType.TASK_NOT_FOUND,
+            detail="Task not found.",
+        )
     if not (task_type := database.tasks.get_task_type(task.ttid, expdb)):
-        raise HTTPException(
+        raise_problem(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail="Task type not found",
+            type_=ProblemType.INTERNAL_ERROR,
+            detail="Task type not found.",
         )
 
     task_inputs = {

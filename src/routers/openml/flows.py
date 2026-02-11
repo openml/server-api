@@ -1,11 +1,12 @@
 from http import HTTPStatus
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy import Connection
 
 import database.flows
 from core.conversions import _str_to_num
+from core.errors import ProblemType, raise_problem
 from routers.dependencies import expdb_connection
 from schemas.flows import Flow, Parameter, Subflow
 
@@ -21,8 +22,9 @@ def flow_exists(
     """Check if a Flow with the name and version exists, if so, return the flow id."""
     flow = database.flows.get_by_name(name=name, external_version=external_version, expdb=expdb)
     if flow is None:
-        raise HTTPException(
+        raise_problem(
             status_code=HTTPStatus.NOT_FOUND,
+            type_=ProblemType.FLOW_NOT_FOUND,
             detail="Flow not found.",
         )
     return {"flow_id": flow.id}
@@ -32,7 +34,11 @@ def flow_exists(
 def get_flow(flow_id: int, expdb: Annotated[Connection, Depends(expdb_connection)] = None) -> Flow:
     flow = database.flows.get(flow_id, expdb)
     if not flow:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Flow not found")
+        raise_problem(
+            status_code=HTTPStatus.NOT_FOUND,
+            type_=ProblemType.FLOW_NOT_FOUND,
+            detail="Flow not found.",
+        )
 
     parameter_rows = database.flows.get_parameters(flow_id, expdb)
     parameters = [

@@ -10,6 +10,7 @@ from core.conversions import (
     nested_remove_single_element_list,
     nested_str_to_num,
 )
+from core.errors import ProblemType
 from tests.conftest import Flow
 
 
@@ -27,7 +28,11 @@ def test_flow_exists_not(
 
     expect_php = {"flow_exists": {"exists": "false", "id": str(-1)}}
     assert php_response.json() == expect_php
-    assert py_response.json() == {"detail": "Flow not found."}
+    # RFC 9457: Python API now returns problem+json format
+    assert py_response.headers["content-type"] == "application/problem+json"
+    error = py_response.json()
+    assert error["type"] == ProblemType.FLOW_NOT_FOUND
+    assert error["detail"] == "Flow not found."
 
 
 @pytest.mark.mut
