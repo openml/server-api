@@ -259,7 +259,7 @@ def _get_dataset_raise_otherwise(
 ) -> Row:
     """Fetches the dataset from the database if it exists and the user has permissions.
 
-    Raises ProblemDetailException if the dataset does not exist or the user can not access it.
+    Raises ProblemDetailError if the dataset does not exist or the user can not access it.
     """
     if not (dataset := database.datasets.get(dataset_id, expdb)):
         raise_problem(

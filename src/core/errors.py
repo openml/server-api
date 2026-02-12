@@ -56,7 +56,7 @@ class ProblemDetailError(Exception):
     """Exception that produces RFC 9457 compliant error responses.
 
     Usage:
-        raise ProblemDetailException(
+        raise ProblemDetailError(
             status_code=HTTPStatus.NOT_FOUND,
             detail="Dataset 123 was not found.",
             title="Dataset Not Found",
@@ -90,7 +90,7 @@ def problem_detail_exception_handler(
     request: Request,  # noqa: ARG001
     exc: ProblemDetailError,
 ) -> JSONResponse:
-    """FastAPI exception handler for ProblemDetailException.
+    """FastAPI exception handler for ProblemDetailError.
 
     Returns a response with:
     - Content-Type: application/problem+json
