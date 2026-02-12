@@ -48,7 +48,7 @@ def mysql_container() -> MySqlContainer:
     container = MySqlContainer(
         os.environ.get(
             "OPENML_DATABASES_OPENML_URL",
-            "openml/test-database:20240105",
+            "openml/test-database:v0.1.20260204",
         ),
         username=os.environ.get("OPENML_DATABASES_OPENML_USERNAME", ""),
         password=os.environ.get("OPENML_DATABASES_OPENML_PASSWORD", ""),
