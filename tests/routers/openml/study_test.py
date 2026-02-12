@@ -6,6 +6,7 @@ from sqlalchemy import Connection, text
 from starlette.testclient import TestClient
 
 from schemas.study import StudyType
+from tests.users import ApiKey
 
 
 def test_get_task_study_by_id(py_api: TestClient) -> None:
@@ -458,7 +459,7 @@ def test_get_task_study_by_alias(py_api: TestClient) -> None:
 
 def test_create_task_study(py_api: TestClient) -> None:
     response = py_api.post(
-        "/studies?api_key=00000000000000000000000000000000",
+        f"/studies?api_key={ApiKey.SOME_USER}",
         json={
             "name": "Test Study",
             "alias": "test-study",
@@ -518,27 +519,28 @@ def _attach_tasks_to_study(
 
 
 def test_attach_task_to_study(py_api: TestClient, expdb_test: Connection) -> None:
+    expdb_test.execute(text("UPDATE study SET status = 'in_preparation' WHERE id = 7"))
     response = _attach_tasks_to_study(
-        study_id=1,
-        task_ids=[2, 3, 4],
-        api_key="AD000000000000000000000000000000",
+        study_id=7,
+        task_ids=[50],
+        api_key=ApiKey.OWNER_USER,
         py_api=py_api,
         expdb_test=expdb_test,
     )
-    assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"study_id": 1, "main_entity_type": StudyType.TASK}
+    assert response.status_code == HTTPStatus.OK, response.content
+    assert response.json() == {"study_id": 7, "main_entity_type": StudyType.TASK}
 
 
 def test_attach_task_to_study_needs_owner(py_api: TestClient, expdb_test: Connection) -> None:
-    expdb_test.execute(text("UPDATE study SET status = 'in_preparation' WHERE id = 1"))
+    expdb_test.execute(text("UPDATE study SET status = 'in_preparation' WHERE id = 7"))
     response = _attach_tasks_to_study(
         study_id=1,
         task_ids=[2, 3, 4],
-        api_key="00000000000000000000000000000000",
+        api_key=ApiKey.OWNER_USER,
         py_api=py_api,
         expdb_test=expdb_test,
     )
-    assert response.status_code == HTTPStatus.FORBIDDEN
+    assert response.status_code == HTTPStatus.FORBIDDEN, response.content
 
 
 def test_attach_task_to_study_already_linked_raises(
@@ -549,11 +551,11 @@ def test_attach_task_to_study_already_linked_raises(
     response = _attach_tasks_to_study(
         study_id=1,
         task_ids=[1, 3, 4],
-        api_key="AD000000000000000000000000000000",
+        api_key=ApiKey.ADMIN,
         py_api=py_api,
         expdb_test=expdb_test,
     )
-    assert response.status_code == HTTPStatus.CONFLICT
+    assert response.status_code == HTTPStatus.CONFLICT, response.content
     assert response.json() == {"detail": "Task 1 is already attached to study 1."}
 
 
@@ -565,7 +567,7 @@ def test_attach_task_to_study_but_task_not_exist_raises(
     response = _attach_tasks_to_study(
         study_id=1,
         task_ids=[80123, 78914],
-        api_key="AD000000000000000000000000000000",
+        api_key=ApiKey.ADMIN,
         py_api=py_api,
         expdb_test=expdb_test,
     )

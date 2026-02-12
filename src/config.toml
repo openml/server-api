@@ -1,6 +1,9 @@
 arff_base_url="https://test.openml.org"
 minio_base_url="https://openml1.win.tue.nl"
 
+[development]
+allow_test_api_keys=true
+
 [fastapi]
 root_path=""
 
