@@ -10,7 +10,7 @@ from typing import NoReturn
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 # JSON-serializable extension value type for RFC 9457 problem details
 type ExtensionValue = str | int | float | bool | None | list[str] | list[int]
@@ -29,11 +29,8 @@ class ProblemDetail(BaseModel):
     when not provided. The `status` field is advisory and should match the HTTP status code.
     """
 
-    model_config = ConfigDict(populate_by_name=True)
-
     type_: str = Field(
         default="about:blank",
-        alias="type",
         serialization_alias="type",
         description="A URI reference identifying the problem type. Defaults to 'about:blank'.",
     )
