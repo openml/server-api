@@ -47,7 +47,7 @@ def test_list_filter_active(status: str, amount: int, py_api: TestClient) -> Non
     ("api_key", "amount"),
     [
         (ApiKey.ADMIN, constants.NUMBER_OF_DATASETS),
-        (ApiKey.OWNER_USER, constants.NUMBER_OF_DATASETS),
+        (ApiKey.DATASET_130_OWNER, constants.NUMBER_OF_DATASETS),
         (ApiKey.SOME_USER, constants.NUMBER_OF_DATASETS - constants.NUMBER_OF_PRIVATE_DATASETS),
         (None, constants.NUMBER_OF_DATASETS - constants.NUMBER_OF_PRIVATE_DATASETS),
     ],
@@ -91,13 +91,15 @@ def test_list_data_name_absent(name: str, py_api: TestClient) -> None:
 
 
 @pytest.mark.parametrize("limit", [None, 5, 10, 200])
-@pytest.mark.parametrize("offset", [None, 0, 5, 129, 130, 200])
+@pytest.mark.parametrize("offset", [None, 0, 5, 129, 140, 200])
 def test_list_pagination(limit: int | None, offset: int | None, py_api: TestClient) -> None:
+    # dataset ids are contiguous until 131, then there are 161, 162, and 163.
+    extra_datasets = [161, 162, 163]
     all_ids = [
         did
-        for did in range(1, 1 + constants.NUMBER_OF_DATASETS)
+        for did in range(1, 1 + constants.NUMBER_OF_DATASETS - len(extra_datasets))
         if did not in constants.PRIVATE_DATASET_ID
-    ]
+    ] + extra_datasets
 
     start = 0 if offset is None else offset
     end = start + (100 if limit is None else limit)
@@ -108,7 +110,7 @@ def test_list_pagination(limit: int | None, offset: int | None, py_api: TestClie
     filters = {"status": "all", "pagination": offset_body | limit_body}
     response = py_api.post("/datasets/list", json=filters)
 
-    if offset in [130, 200]:
+    if offset in [140, 200]:
         _assert_empty_result(response)
         return
 
@@ -119,7 +121,7 @@ def test_list_pagination(limit: int | None, offset: int | None, py_api: TestClie
 
 @pytest.mark.parametrize(
     ("version", "count"),
-    [(1, 100), (2, 6), (5, 1)],
+    [(1, 100), (2, 7), (5, 1)],
 )
 def test_list_data_version(version: int, count: int, py_api: TestClient) -> None:
     response = py_api.post(
@@ -133,16 +135,17 @@ def test_list_data_version(version: int, count: int, py_api: TestClient) -> None
 
 
 def test_list_data_version_no_result(py_api: TestClient) -> None:
+    version_with_no_datasets = 42
     response = py_api.post(
         f"/datasets/list?api_key={ApiKey.ADMIN}",
-        json={"status": "all", "data_version": 4},
+        json={"status": "all", "data_version": version_with_no_datasets},
     )
     _assert_empty_result(response)
 
 
 @pytest.mark.parametrize(
     "key",
-    [ApiKey.SOME_USER, ApiKey.OWNER_USER, ApiKey.ADMIN],
+    [ApiKey.SOME_USER, ApiKey.DATASET_130_OWNER, ApiKey.ADMIN],
 )
 @pytest.mark.parametrize(
     ("user_id", "count"),
@@ -211,7 +214,7 @@ def test_list_data_tag_empty(py_api: TestClient) -> None:
         ("number_classes", "2", 51),
         ("number_classes", "2..3", 56),
         ("number_missing_values", "2", 1),
-        ("number_missing_values", "2..100000", 22),
+        ("number_missing_values", "2..100000", 23),
     ],
 )
 def test_list_data_quality(quality: str, range_: str, count: int, py_api: TestClient) -> None:
