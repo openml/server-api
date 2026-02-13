@@ -46,7 +46,7 @@ def get_task_type(
     task_type_record = db_get_task_type(task_type_id, expdb)
     if task_type_record is None:
         msg = "Unknown task type."
-        raise TaskTypeNotFoundError(msg, code=241)
+        raise TaskTypeNotFoundError(msg)
 
     task_type = _normalize_task_type(task_type_record)
     # Some names are quoted, or have typos in their comma-separation (e.g. 'A ,B')

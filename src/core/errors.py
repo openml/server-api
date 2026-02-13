@@ -4,18 +4,10 @@ This module provides RFC 9457 compliant error handling for the OpenML REST API.
 See: https://www.rfc-editor.org/rfc/rfc9457.html
 """
 
-from enum import IntEnum
 from http import HTTPStatus
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
-
-
-class DatasetError(IntEnum):
-    NOT_FOUND = 111
-    NO_ACCESS = 112
-    NO_DATA_FILE = 113
-
 
 # =============================================================================
 # Base Exception
@@ -28,14 +20,16 @@ class ProblemDetailError(Exception):
     Subclasses should define class attributes:
         - uri: The problem type URI
         - title: Human-readable title
-        - status_code: HTTP status code
+        - _default_status_code: HTTP status code
+        - _default_code: Legacy error code (optional)
 
-    The status_code can be overridden per-instance for backwards compatibility.
+    The status_code and code can be overridden per-instance.
     """
 
     uri: str = "about:blank"
     title: str = "An error occurred"
     _default_status_code: HTTPStatus = HTTPStatus.INTERNAL_SERVER_ERROR
+    _default_code: int | None = None
 
     def __init__(
         self,
@@ -46,7 +40,7 @@ class ProblemDetailError(Exception):
         status_code: HTTPStatus | None = None,
     ) -> None:
         self.detail = detail
-        self.code = code
+        self._code_override = code
         self.instance = instance
         self._status_code_override = status_code
         super().__init__(detail)
@@ -57,6 +51,13 @@ class ProblemDetailError(Exception):
         if self._status_code_override is not None:
             return self._status_code_override
         return self._default_status_code
+
+    @property
+    def code(self) -> int | str | None:
+        """Return the code, preferring instance override over class default."""
+        if self._code_override is not None:
+            return self._code_override
+        return self._default_code
 
 
 def problem_detail_exception_handler(
@@ -93,111 +94,84 @@ def problem_detail_exception_handler(
 
 
 class DatasetNotFoundError(ProblemDetailError):
-    """Raised when a dataset cannot be found.
-
-    # Future: detail=f"Dataset {dataset_id} not found."
-    # Future: validate dataset_id is positive int
-    """
+    """Raised when a dataset cannot be found."""
 
     uri = "https://openml.org/problems/dataset-not-found"
     title = "Dataset Not Found"
     _default_status_code = HTTPStatus.NOT_FOUND
+    _default_code = 111
 
 
 class DatasetNoAccessError(ProblemDetailError):
-    """Raised when user doesn't have access to a dataset.
-
-    # Future: detail=f"Access denied to dataset {dataset_id}."
-    # Future: validate dataset_id is positive int
-    """
+    """Raised when user doesn't have access to a dataset."""
 
     uri = "https://openml.org/problems/dataset-no-access"
     title = "Dataset Access Denied"
     _default_status_code = HTTPStatus.FORBIDDEN
+    _default_code = 112
 
 
 class DatasetNoDataFileError(ProblemDetailError):
-    """Raised when a dataset's data file is missing.
-
-    # Future: detail=f"Data file for dataset {dataset_id} not found."
-    # Future: validate dataset_id is positive int
-    """
+    """Raised when a dataset's data file is missing."""
 
     uri = "https://openml.org/problems/dataset-no-data-file"
     title = "Dataset Data File Missing"
     _default_status_code = HTTPStatus.PRECONDITION_FAILED
+    _default_code = 113
 
 
 class DatasetNotProcessedError(ProblemDetailError):
-    """Raised when a dataset has not been processed yet.
-
-    # Future: detail=f"Dataset {dataset_id} has not been processed yet."
-    # Future: validate dataset_id is positive int
-    """
+    """Raised when a dataset has not been processed yet."""
 
     uri = "https://openml.org/problems/dataset-not-processed"
     title = "Dataset Not Processed"
     _default_status_code = HTTPStatus.PRECONDITION_FAILED
+    _default_code = 273
 
 
 class DatasetProcessingError(ProblemDetailError):
-    """Raised when a dataset had an error during processing.
-
-    # Future: detail=f"Dataset {dataset_id} encountered an error during processing."
-    # Future: validate dataset_id is positive int
-    """
+    """Raised when a dataset had an error during processing."""
 
     uri = "https://openml.org/problems/dataset-processing-error"
     title = "Dataset Processing Error"
     _default_status_code = HTTPStatus.PRECONDITION_FAILED
+    _default_code = 274
 
 
 class DatasetNoFeaturesError(ProblemDetailError):
-    """Raised when a dataset has no features available.
-
-    # Future: detail=f"No features found for dataset {dataset_id}."
-    # Future: validate dataset_id is positive int
-    """
+    """Raised when a dataset has no features available."""
 
     uri = "https://openml.org/problems/dataset-no-features"
     title = "Dataset Features Not Available"
     _default_status_code = HTTPStatus.PRECONDITION_FAILED
+    _default_code = 272
 
 
 class DatasetStatusTransitionError(ProblemDetailError):
-    """Raised when an invalid dataset status transition is attempted.
-
-    # Future: detail=f"Cannot transition dataset {dataset_id} from {from_status} to {to_status}."
-    # Future: validate statuses are valid DatasetStatus values
-    """
+    """Raised when an invalid dataset status transition is attempted."""
 
     uri = "https://openml.org/problems/dataset-status-transition"
     title = "Invalid Status Transition"
     _default_status_code = HTTPStatus.PRECONDITION_FAILED
+    _default_code = 694
 
 
 class DatasetNotOwnedError(ProblemDetailError):
-    """Raised when user tries to modify a dataset they don't own.
-
-    # Future: detail=f"Dataset {dataset_id} is not owned by you."
-    # Future: validate dataset_id is positive int
-    """
+    """Raised when user tries to modify a dataset they don't own."""
 
     uri = "https://openml.org/problems/dataset-not-owned"
     title = "Dataset Not Owned"
     _default_status_code = HTTPStatus.FORBIDDEN
+    _default_code = 693
 
 
 class DatasetAdminOnlyError(ProblemDetailError):
-    """Raised when a non-admin tries to perform an admin-only action.
-
-    # Future: detail=f"Only administrators can {action}."
-    # Future: validate action is non-empty string
-    """
+    """Raised when a non-admin tries to perform an admin-only action."""
 
     uri = "https://openml.org/problems/dataset-admin-only"
     title = "Administrator Only"
     _default_status_code = HTTPStatus.FORBIDDEN
+    _default_code = 696
 
 
 # =============================================================================
@@ -206,11 +180,7 @@ class DatasetAdminOnlyError(ProblemDetailError):
 
 
 class AuthenticationRequiredError(ProblemDetailError):
-    """Raised when authentication is required but not provided.
-
-    # Future: detail=f"{action} requires authentication."
-    # Future: validate action is non-empty string
-    """
+    """Raised when authentication is required but not provided."""
 
     uri = "https://openml.org/problems/authentication-required"
     title = "Authentication Required"
@@ -218,22 +188,16 @@ class AuthenticationRequiredError(ProblemDetailError):
 
 
 class AuthenticationFailedError(ProblemDetailError):
-    """Raised when authentication credentials are invalid.
-
-    # Future: detail="Authentication failed. Invalid or expired credentials."
-    """
+    """Raised when authentication credentials are invalid."""
 
     uri = "https://openml.org/problems/authentication-failed"
     title = "Authentication Failed"
     _default_status_code = HTTPStatus.UNAUTHORIZED
+    _default_code = 103
 
 
 class ForbiddenError(ProblemDetailError):
-    """Raised when user is authenticated but not authorized.
-
-    # Future: detail=f"You do not have permission to {action}."
-    # Future: validate action is non-empty string
-    """
+    """Raised when user is authenticated but not authorized."""
 
     uri = "https://openml.org/problems/forbidden"
     title = "Forbidden"
@@ -246,15 +210,12 @@ class ForbiddenError(ProblemDetailError):
 
 
 class TagAlreadyExistsError(ProblemDetailError):
-    """Raised when trying to add a tag that already exists.
-
-    # Future: detail=f"Entity {entity_id} is already tagged with '{tag}'."
-    # Future: validate entity_id is positive int, tag is non-empty string
-    """
+    """Raised when trying to add a tag that already exists."""
 
     uri = "https://openml.org/problems/tag-already-exists"
     title = "Tag Already Exists"
     _default_status_code = HTTPStatus.CONFLICT
+    _default_code = 473
 
 
 # =============================================================================
@@ -263,14 +224,12 @@ class TagAlreadyExistsError(ProblemDetailError):
 
 
 class NoResultsError(ProblemDetailError):
-    """Raised when a search returns no results.
-
-    # Future: detail="No results match the search criteria."
-    """
+    """Raised when a search returns no results."""
 
     uri = "https://openml.org/problems/no-results"
     title = "No Results Found"
     _default_status_code = HTTPStatus.NOT_FOUND
+    _default_code = 372
 
 
 # =============================================================================
@@ -279,11 +238,7 @@ class NoResultsError(ProblemDetailError):
 
 
 class StudyNotFoundError(ProblemDetailError):
-    """Raised when a study cannot be found.
-
-    # Future: detail=f"Study {study_id} not found."
-    # Future: validate study_id is positive int or valid alias string
-    """
+    """Raised when a study cannot be found."""
 
     uri = "https://openml.org/problems/study-not-found"
     title = "Study Not Found"
@@ -291,11 +246,7 @@ class StudyNotFoundError(ProblemDetailError):
 
 
 class StudyPrivateError(ProblemDetailError):
-    """Raised when trying to access a private study without permission.
-
-    # Future: detail=f"Study {study_id} is private."
-    # Future: validate study_id is positive int
-    """
+    """Raised when trying to access a private study without permission."""
 
     uri = "https://openml.org/problems/study-private"
     title = "Study Is Private"
@@ -303,11 +254,7 @@ class StudyPrivateError(ProblemDetailError):
 
 
 class StudyLegacyError(ProblemDetailError):
-    """Raised when trying to access a legacy study that's no longer supported.
-
-    # Future: detail=f"Study {study_id} is a legacy study and no longer supported."
-    # Future: validate study_id is positive int
-    """
+    """Raised when trying to access a legacy study that's no longer supported."""
 
     uri = "https://openml.org/problems/study-legacy"
     title = "Legacy Study Not Supported"
@@ -315,11 +262,7 @@ class StudyLegacyError(ProblemDetailError):
 
 
 class StudyAliasExistsError(ProblemDetailError):
-    """Raised when trying to create a study with an alias that already exists.
-
-    # Future: detail=f"Study alias '{alias}' already exists."
-    # Future: validate alias is non-empty string
-    """
+    """Raised when trying to create a study with an alias that already exists."""
 
     uri = "https://openml.org/problems/study-alias-exists"
     title = "Study Alias Already Exists"
@@ -327,10 +270,7 @@ class StudyAliasExistsError(ProblemDetailError):
 
 
 class StudyInvalidTypeError(ProblemDetailError):
-    """Raised when study type configuration is invalid.
-
-    # Future: detail=f"Cannot create {study_type} study with {invalid_field}."
-    """
+    """Raised when study type configuration is invalid."""
 
     uri = "https://openml.org/problems/study-invalid-type"
     title = "Invalid Study Type"
@@ -338,11 +278,7 @@ class StudyInvalidTypeError(ProblemDetailError):
 
 
 class StudyNotEditableError(ProblemDetailError):
-    """Raised when trying to edit a study that cannot be edited.
-
-    # Future: detail=f"Study {study_id} cannot be edited. {reason}"
-    # Future: validate study_id is positive int
-    """
+    """Raised when trying to edit a study that cannot be edited."""
 
     uri = "https://openml.org/problems/study-not-editable"
     title = "Study Not Editable"
@@ -350,10 +286,7 @@ class StudyNotEditableError(ProblemDetailError):
 
 
 class StudyConflictError(ProblemDetailError):
-    """Raised when there's a conflict with study data (e.g., duplicate attachment).
-
-    # Future: detail=f"Conflict: {reason}"
-    """
+    """Raised when there's a conflict with study data (e.g., duplicate attachment)."""
 
     uri = "https://openml.org/problems/study-conflict"
     title = "Study Conflict"
@@ -366,11 +299,7 @@ class StudyConflictError(ProblemDetailError):
 
 
 class TaskNotFoundError(ProblemDetailError):
-    """Raised when a task cannot be found.
-
-    # Future: detail=f"Task {task_id} not found."
-    # Future: validate task_id is positive int
-    """
+    """Raised when a task cannot be found."""
 
     uri = "https://openml.org/problems/task-not-found"
     title = "Task Not Found"
@@ -378,15 +307,12 @@ class TaskNotFoundError(ProblemDetailError):
 
 
 class TaskTypeNotFoundError(ProblemDetailError):
-    """Raised when a task type cannot be found.
-
-    # Future: detail=f"Task type {task_type_id} not found."
-    # Future: validate task_type_id is positive int
-    """
+    """Raised when a task type cannot be found."""
 
     uri = "https://openml.org/problems/task-type-not-found"
     title = "Task Type Not Found"
     _default_status_code = HTTPStatus.NOT_FOUND
+    _default_code = 241
 
 
 # =============================================================================
@@ -395,11 +321,7 @@ class TaskTypeNotFoundError(ProblemDetailError):
 
 
 class FlowNotFoundError(ProblemDetailError):
-    """Raised when a flow cannot be found.
-
-    # Future: detail=f"Flow {flow_id} not found." or "Flow '{name}' version '{version}' not found."
-    # Future: validate flow_id is positive int
-    """
+    """Raised when a flow cannot be found."""
 
     uri = "https://openml.org/problems/flow-not-found"
     title = "Flow Not Found"
@@ -412,11 +334,7 @@ class FlowNotFoundError(ProblemDetailError):
 
 
 class ServiceNotFoundError(ProblemDetailError):
-    """Raised when a service cannot be found.
-
-    # Future: detail=f"Service {service_id} not found."
-    # Future: validate service_id is positive int
-    """
+    """Raised when a service cannot be found."""
 
     uri = "https://openml.org/problems/service-not-found"
     title = "Service Not Found"
@@ -429,10 +347,7 @@ class ServiceNotFoundError(ProblemDetailError):
 
 
 class InternalError(ProblemDetailError):
-    """Raised for unexpected internal server errors.
-
-    # Future: detail="An unexpected error occurred. Please try again later."
-    """
+    """Raised for unexpected internal server errors."""
 
     uri = "https://openml.org/problems/internal-error"
     title = "Internal Server Error"

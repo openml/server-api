@@ -14,7 +14,6 @@ from core.errors import (
     AuthenticationFailedError,
     AuthenticationRequiredError,
     DatasetAdminOnlyError,
-    DatasetError,
     DatasetNoAccessError,
     DatasetNoDataFileError,
     DatasetNoFeaturesError,
@@ -52,11 +51,11 @@ def tag_dataset(
     tags = database.datasets.get_tags_for(data_id, expdb_db)
     if tag.casefold() in [t.casefold() for t in tags]:
         msg = f"Entity already tagged by this tag. id={data_id}; tag={tag}"
-        raise TagAlreadyExistsError(msg, code=473)
+        raise TagAlreadyExistsError(msg)
 
     if user is None:
         msg = "Authentication failed."
-        raise AuthenticationFailedError(msg, code=103)
+        raise AuthenticationFailedError(msg)
 
     database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
     return {
@@ -202,7 +201,7 @@ def list_datasets(  # noqa: PLR0913
     }
     if not datasets:
         msg = "No datasets match the search criteria."
-        raise NoResultsError(msg, code=372)
+        raise NoResultsError(msg)
 
     for dataset in datasets.values():
         # The old API does not actually provide the checksum but just an empty field
@@ -266,11 +265,11 @@ def _get_dataset_raise_otherwise(
     """
     if not (dataset := database.datasets.get(dataset_id, expdb)):
         msg = "Unknown dataset."
-        raise DatasetNotFoundError(msg, code=DatasetError.NOT_FOUND)
+        raise DatasetNotFoundError(msg)
 
     if not _user_has_access(dataset=dataset, user=user):
         msg = "No access granted."
-        raise DatasetNoAccessError(msg, code=DatasetError.NO_ACCESS)
+        raise DatasetNoAccessError(msg)
 
     return dataset
 
@@ -297,15 +296,15 @@ def get_dataset_features(
                 "Dataset not processed yet. The dataset was not processed yet, "
                 "features are not yet available. Please wait for a few minutes."
             )
-            raise DatasetNotProcessedError(msg, code=273)
+            raise DatasetNotProcessedError(msg)
         if processing_state.error:
             msg = "No features found. Additionally, dataset processed with error."
-            raise DatasetProcessingError(msg, code=274)
+            raise DatasetProcessingError(msg)
         msg = (
             "No features found. "
             "The dataset did not contain any features, or we could not extract them."
         )
-        raise DatasetNoFeaturesError(msg, code=272)
+        raise DatasetNoFeaturesError(msg)
     return features
 
 
@@ -327,15 +326,15 @@ def update_dataset_status(
     can_deactivate = dataset.uploader == user.user_id or UserGroup.ADMIN in user.groups
     if status == DatasetStatus.DEACTIVATED and not can_deactivate:
         msg = "Dataset is not owned by you."
-        raise DatasetNotOwnedError(msg, code=693)
+        raise DatasetNotOwnedError(msg)
     if status == DatasetStatus.ACTIVE and UserGroup.ADMIN not in user.groups:
         msg = "Only administrators can activate datasets."
-        raise DatasetAdminOnlyError(msg, code=696)
+        raise DatasetAdminOnlyError(msg)
 
     current_status = database.datasets.get_status(dataset_id, expdb)
     if current_status and current_status.status == status:
         msg = "Illegal status transition."
-        raise DatasetStatusTransitionError(msg, code=694)
+        raise DatasetStatusTransitionError(msg)
 
     # If current status is unknown, it is effectively "in preparation",
     # So the following transitions are allowed (first 3 transitions are first clause)
@@ -369,7 +368,7 @@ def get_dataset(
         dataset_file := database.datasets.get_file(file_id=dataset.file_id, connection=user_db)
     ):
         msg = "No data file found."
-        raise DatasetNoDataFileError(msg, code=DatasetError.NO_DATA_FILE)
+        raise DatasetNoDataFileError(msg)
 
     tags = database.datasets.get_tags_for(dataset_id, expdb_db)
     description = database.datasets.get_description(dataset_id, expdb_db)

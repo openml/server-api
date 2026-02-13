@@ -5,7 +5,6 @@ from sqlalchemy import Connection
 from starlette.testclient import TestClient
 
 from core.errors import (
-    DatasetError,
     DatasetNoAccessError,
     DatasetNotFoundError,
     DatasetProcessingError,
@@ -100,7 +99,8 @@ def test_private_dataset_no_access(
         )
     assert e.value.status_code == HTTPStatus.FORBIDDEN
     assert e.value.uri == DatasetNoAccessError.uri
-    assert e.value.code == DatasetError.NO_ACCESS
+    no_access = 112
+    assert e.value.code == no_access
 
 
 @pytest.mark.parametrize(
