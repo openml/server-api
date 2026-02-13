@@ -443,36 +443,6 @@ class InternalError(ProblemDetailError):
 # Backwards Compatibility
 # =============================================================================
 
-# Mapping from old ProblemType strings to new exception classes
-_PROBLEM_TYPE_TO_EXCEPTION: dict[str, type[ProblemDetailError]] = {
-    "https://openml.org/problems/dataset-not-found": DatasetNotFoundError,
-    "https://openml.org/problems/dataset-no-access": DatasetNoAccessError,
-    "https://openml.org/problems/dataset-no-data-file": DatasetNoDataFileError,
-    "https://openml.org/problems/dataset-not-processed": DatasetNotProcessedError,
-    "https://openml.org/problems/dataset-processing-error": DatasetProcessingError,
-    "https://openml.org/problems/dataset-no-features": DatasetNoFeaturesError,
-    "https://openml.org/problems/dataset-status-transition": DatasetStatusTransitionError,
-    "https://openml.org/problems/dataset-not-owned": DatasetNotOwnedError,
-    "https://openml.org/problems/dataset-admin-only": DatasetAdminOnlyError,
-    "https://openml.org/problems/authentication-required": AuthenticationRequiredError,
-    "https://openml.org/problems/authentication-failed": AuthenticationFailedError,
-    "https://openml.org/problems/forbidden": ForbiddenError,
-    "https://openml.org/problems/tag-already-exists": TagAlreadyExistsError,
-    "https://openml.org/problems/no-results": NoResultsError,
-    "https://openml.org/problems/study-not-found": StudyNotFoundError,
-    "https://openml.org/problems/study-private": StudyPrivateError,
-    "https://openml.org/problems/study-legacy": StudyLegacyError,
-    "https://openml.org/problems/study-alias-exists": StudyAliasExistsError,
-    "https://openml.org/problems/study-invalid-type": StudyInvalidTypeError,
-    "https://openml.org/problems/study-not-editable": StudyNotEditableError,
-    "https://openml.org/problems/study-conflict": StudyConflictError,
-    "https://openml.org/problems/task-not-found": TaskNotFoundError,
-    "https://openml.org/problems/task-type-not-found": TaskTypeNotFoundError,
-    "https://openml.org/problems/flow-not-found": FlowNotFoundError,
-    "https://openml.org/problems/service-not-found": ServiceNotFoundError,
-    "https://openml.org/problems/internal-error": InternalError,
-}
-
 
 class ProblemType:
     """Problem type URIs for common OpenML errors.
