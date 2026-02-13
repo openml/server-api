@@ -7,7 +7,11 @@ from starlette.testclient import TestClient
 
 import tests.constants
 from core.conversions import nested_remove_single_element_list
-from core.errors import ProblemType
+from core.errors import (
+    DatasetNoAccessError,
+    DatasetNotFoundError,
+    TagAlreadyExistsError,
+)
 from tests.users import ApiKey
 
 
@@ -109,7 +113,7 @@ def test_error_unknown_dataset(
     # RFC 9457: Python API now returns problem+json format
     assert response.headers["content-type"] == "application/problem+json"
     error = response.json()
-    assert error["type"] == ProblemType.DATASET_NOT_FOUND
+    assert error["type"] == DatasetNotFoundError.uri
     assert error["code"] == "111"
 
 
@@ -128,7 +132,7 @@ def test_private_dataset_no_user_no_access(
     assert response.status_code == HTTPStatus.FORBIDDEN
     assert response.headers["content-type"] == "application/problem+json"
     error = response.json()
-    assert error["type"] == ProblemType.DATASET_NO_ACCESS
+    assert error["type"] == DatasetNoAccessError.uri
     assert error["code"] == "112"
 
 
@@ -200,7 +204,7 @@ def test_dataset_tag_response_is_identical(
         assert new.status_code == HTTPStatus.CONFLICT
         assert new.headers["content-type"] == "application/problem+json"
         error = new.json()
-        assert error["type"] == ProblemType.TAG_ALREADY_EXISTS
+        assert error["type"] == TagAlreadyExistsError.uri
         assert error["code"] == "473"
         return
 

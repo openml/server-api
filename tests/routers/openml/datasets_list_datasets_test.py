@@ -8,7 +8,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 from starlette.testclient import TestClient
 
-from core.errors import ProblemType
+from core.errors import NoResultsError
 from tests import constants
 from tests.users import ApiKey
 
@@ -19,7 +19,7 @@ def _assert_empty_result(
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.headers["content-type"] == "application/problem+json"
     error = response.json()
-    assert error["type"] == ProblemType.NO_RESULTS
+    assert error["type"] == NoResultsError.uri
     assert error["code"] == "372"
 
 
@@ -300,7 +300,7 @@ def test_list_data_identical(
         # Verify Python API returns RFC 9457 format
         assert response.headers["content-type"] == "application/problem+json"
         error = response.json()
-        assert error["type"] == ProblemType.NO_RESULTS
+        assert error["type"] == NoResultsError.uri
         assert error["code"] == "372"
         return None
     new_json = response.json()

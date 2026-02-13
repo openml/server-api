@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import Connection
 from starlette.testclient import TestClient
 
-from core.errors import ProblemType
+from core.errors import AuthenticationFailedError, TagAlreadyExistsError
 from database.datasets import get_tags_for
 from tests import constants
 from tests.users import ApiKey
@@ -24,7 +24,7 @@ def test_dataset_tag_rejects_unauthorized(key: ApiKey, py_api: TestClient) -> No
     assert response.status_code == HTTPStatus.UNAUTHORIZED
     assert response.headers["content-type"] == "application/problem+json"
     error = response.json()
-    assert error["type"] == ProblemType.AUTHENTICATION_FAILED
+    assert error["type"] == AuthenticationFailedError.uri
     assert error["code"] == "103"
 
 
@@ -65,7 +65,7 @@ def test_dataset_tag_fails_if_tag_exists(py_api: TestClient) -> None:
     assert response.status_code == HTTPStatus.CONFLICT
     assert response.headers["content-type"] == "application/problem+json"
     error = response.json()
-    assert error["type"] == ProblemType.TAG_ALREADY_EXISTS
+    assert error["type"] == TagAlreadyExistsError.uri
     assert error["code"] == "473"
     assert f"id={dataset_id}" in error["detail"]
     assert f"tag={tag}" in error["detail"]

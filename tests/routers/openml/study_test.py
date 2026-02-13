@@ -5,7 +5,7 @@ import httpx
 from sqlalchemy import Connection, text
 from starlette.testclient import TestClient
 
-from core.errors import ProblemType
+from core.errors import StudyConflictError
 from schemas.study import StudyType
 from tests.users import ApiKey
 
@@ -559,7 +559,7 @@ def test_attach_task_to_study_already_linked_raises(
     assert response.status_code == HTTPStatus.CONFLICT, response.content
     assert response.headers["content-type"] == "application/problem+json"
     error = response.json()
-    assert error["type"] == ProblemType.STUDY_CONFLICT
+    assert error["type"] == StudyConflictError.uri
     assert "Task 1 is already attached to study 1" in error["detail"]
 
 
@@ -578,5 +578,5 @@ def test_attach_task_to_study_but_task_not_exist_raises(
     assert response.status_code == HTTPStatus.CONFLICT
     assert response.headers["content-type"] == "application/problem+json"
     error = response.json()
-    assert error["type"] == ProblemType.STUDY_CONFLICT
+    assert error["type"] == StudyConflictError.uri
     assert "do not exist" in error["detail"]

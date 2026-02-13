@@ -10,7 +10,7 @@ from core.conversions import (
     nested_remove_single_element_list,
     nested_str_to_num,
 )
-from core.errors import ProblemType
+from core.errors import FlowNotFoundError
 from tests.conftest import Flow
 
 
@@ -31,7 +31,7 @@ def test_flow_exists_not(
     # RFC 9457: Python API now returns problem+json format
     assert py_response.headers["content-type"] == "application/problem+json"
     error = py_response.json()
-    assert error["type"] == ProblemType.FLOW_NOT_FOUND
+    assert error["type"] == FlowNotFoundError.uri
     assert error["detail"] == "Flow not found."
 
 

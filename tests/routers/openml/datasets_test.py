@@ -4,7 +4,12 @@ import pytest
 from sqlalchemy import Connection
 from starlette.testclient import TestClient
 
-from core.errors import DatasetError, DatasetNoAccessError, ProblemType
+from core.errors import (
+    DatasetError,
+    DatasetNoAccessError,
+    DatasetNotFoundError,
+    DatasetProcessingError,
+)
 from database.users import User
 from routers.openml.datasets import get_dataset
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus
@@ -30,7 +35,7 @@ def test_error_unknown_dataset(
     assert response.status_code == response_code
     assert response.headers["content-type"] == "application/problem+json"
     error = response.json()
-    assert error["type"] == ProblemType.DATASET_NOT_FOUND
+    assert error["type"] == DatasetNotFoundError.uri
     assert error["title"] == "Dataset Not Found"
     assert error["status"] == HTTPStatus.NOT_FOUND
     assert error["detail"] == "Unknown dataset."
@@ -94,7 +99,7 @@ def test_private_dataset_no_access(
             expdb_db=expdb_test,
         )
     assert e.value.status_code == HTTPStatus.FORBIDDEN
-    assert e.value.uri == ProblemType.DATASET_NO_ACCESS
+    assert e.value.uri == DatasetNoAccessError.uri
     assert e.value.code == DatasetError.NO_ACCESS
 
 
@@ -186,7 +191,7 @@ def test_dataset_features_with_processing_error(py_api: TestClient) -> None:
     assert response.status_code == HTTPStatus.PRECONDITION_FAILED
     assert response.headers["content-type"] == "application/problem+json"
     error = response.json()
-    assert error["type"] == ProblemType.DATASET_PROCESSING_ERROR
+    assert error["type"] == DatasetProcessingError.uri
     assert error["code"] == "274"
     assert "No features found" in error["detail"]
 

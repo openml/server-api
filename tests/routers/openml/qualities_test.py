@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import Connection, text
 from starlette.testclient import TestClient
 
-from core.errors import ProblemType
+from core.errors import DatasetNotFoundError
 
 
 def _remove_quality_from_database(quality_name: str, expdb_test: Connection) -> None:
@@ -318,6 +318,6 @@ def test_get_quality_identical_error(
     # RFC 9457: Python API now returns problem+json format
     assert python_response.headers["content-type"] == "application/problem+json"
     error = python_response.json()
-    assert error["type"] == ProblemType.DATASET_NOT_FOUND
+    assert error["type"] == DatasetNotFoundError.uri
     # Verify the error message matches the PHP API semantically
     assert "Unknown dataset" in error["detail"]
