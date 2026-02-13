@@ -7,7 +7,7 @@ from sqlalchemy import Connection
 import database.datasets
 import database.qualities
 from core.access import _user_has_access
-from core.errors import DatasetError, ProblemType, raise_problem
+from core.errors import DatasetError, DatasetNotFoundError
 from database.users import User
 from routers.dependencies import expdb_connection, fetch_user
 from schemas.datasets.openml import Quality
@@ -35,11 +35,12 @@ def get_qualities(
 ) -> list[Quality]:
     dataset = database.datasets.get(dataset_id, expdb)
     if not dataset or not _user_has_access(dataset, user):
-        raise_problem(
-            status_code=HTTPStatus.PRECONDITION_FAILED,
-            type_=ProblemType.DATASET_NOT_FOUND,
-            detail="Unknown dataset.",
+        # Backwards compatibility: PHP API returns 412 PRECONDITION_FAILED
+        msg = "Unknown dataset."
+        raise DatasetNotFoundError(
+            msg,
             code=DatasetError.NO_DATA_FILE,
+            status_code=HTTPStatus.PRECONDITION_FAILED,
         )
     return database.qualities.get_for_dataset(dataset_id, expdb)
     # The PHP API provided (sometime) helpful error messages

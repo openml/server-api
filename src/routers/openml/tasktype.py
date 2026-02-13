@@ -1,11 +1,10 @@
 import json
-from http import HTTPStatus
 from typing import Annotated, Any, Literal, cast
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import Connection, Row
 
-from core.errors import ProblemType, raise_problem
+from core.errors import TaskTypeNotFoundError
 from database.tasks import get_input_for_task_type, get_task_types
 from database.tasks import get_task_type as db_get_task_type
 from routers.dependencies import expdb_connection
@@ -46,12 +45,8 @@ def get_task_type(
 ) -> dict[Literal["task_type"], dict[str, str | None | list[str] | list[dict[str, str]]]]:
     task_type_record = db_get_task_type(task_type_id, expdb)
     if task_type_record is None:
-        raise_problem(
-            status_code=HTTPStatus.NOT_FOUND,
-            type_=ProblemType.TASK_TYPE_NOT_FOUND,
-            detail="Unknown task type.",
-            code=241,
-        )
+        msg = "Unknown task type."
+        raise TaskTypeNotFoundError(msg, code=241)
 
     task_type = _normalize_task_type(task_type_record)
     # Some names are quoted, or have typos in their comma-separation (e.g. 'A ,B')

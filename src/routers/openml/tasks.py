@@ -1,6 +1,5 @@
 import json
 import re
-from http import HTTPStatus
 from typing import Annotated, cast
 
 import xmltodict
@@ -10,7 +9,7 @@ from sqlalchemy import Connection, RowMapping, text
 import config
 import database.datasets
 import database.tasks
-from core.errors import ProblemType, raise_problem
+from core.errors import InternalError, TaskNotFoundError
 from routers.dependencies import expdb_connection
 from schemas.datasets.openml import Task
 
@@ -156,17 +155,11 @@ def get_task(
     expdb: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> Task:
     if not (task := database.tasks.get(task_id, expdb)):
-        raise_problem(
-            status_code=HTTPStatus.NOT_FOUND,
-            type_=ProblemType.TASK_NOT_FOUND,
-            detail="Task not found.",
-        )
+        msg = "Task not found."
+        raise TaskNotFoundError(msg)
     if not (task_type := database.tasks.get_task_type(task.ttid, expdb)):
-        raise_problem(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            type_=ProblemType.INTERNAL_ERROR,
-            detail="Task type not found.",
-        )
+        msg = "Task type not found."
+        raise InternalError(msg)
 
     task_inputs = {
         row.input: int(row.value) if row.value.isdigit() else row.value

@@ -4,14 +4,13 @@ Incredibly inefficient, but it's just a proof of concept.
 Specific queries could be written to fetch e.g., a single feature or quality.
 """
 
-from http import HTTPStatus
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import Connection
 
 import config
-from core.errors import ProblemType, raise_problem
+from core.errors import ServiceNotFoundError
 from database.users import User
 from routers.dependencies import expdb_connection, fetch_user, userdb_connection
 from routers.openml.datasets import get_dataset, get_dataset_features
@@ -123,11 +122,8 @@ def get_mldcat_ap_distribution(
 )
 def get_dataservice(service_id: int) -> JsonLDGraph:
     if service_id != 1:
-        raise_problem(
-            status_code=HTTPStatus.NOT_FOUND,
-            type_=ProblemType.SERVICE_NOT_FOUND,
-            detail="Service not found.",
-        )
+        msg = "Service not found."
+        raise ServiceNotFoundError(msg)
     return JsonLDGraph(
         context="https://semiceu.github.io/MLDCAT-AP/releases/1.0.0/context.jsonld",
         graph=[

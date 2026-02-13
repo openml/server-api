@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import Connection
 from starlette.testclient import TestClient
 
-from core.errors import ProblemDetailError, ProblemType
+from core.errors import DatasetError, DatasetNoAccessError, ProblemType
 from database.users import User
 from routers.openml.datasets import get_dataset
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus
@@ -86,7 +86,7 @@ def test_private_dataset_no_access(
     user: User | None,
     expdb_test: Connection,
 ) -> None:
-    with pytest.raises(ProblemDetailError) as e:
+    with pytest.raises(DatasetNoAccessError) as e:
         get_dataset(
             dataset_id=130,
             user=user,
@@ -94,8 +94,8 @@ def test_private_dataset_no_access(
             expdb_db=expdb_test,
         )
     assert e.value.status_code == HTTPStatus.FORBIDDEN
-    assert e.value.problem.type_ == ProblemType.DATASET_NO_ACCESS
-    assert e.value.extensions.get("code") == "112"
+    assert e.value.uri == ProblemType.DATASET_NO_ACCESS
+    assert e.value.code == DatasetError.NO_ACCESS
 
 
 @pytest.mark.parametrize(

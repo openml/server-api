@@ -6,7 +6,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy import Connection
 from starlette.testclient import TestClient
 
-from core.errors import ProblemDetailError, ProblemType
+from core.errors import FlowNotFoundError, ProblemType
 from routers.openml.flows import flow_exists
 from tests.conftest import Flow
 
@@ -53,10 +53,10 @@ def test_flow_exists_processes_found(
 
 def test_flow_exists_handles_flow_not_found(mocker: MockerFixture, expdb_test: Connection) -> None:
     mocker.patch("database.flows.get_by_name", return_value=None)
-    with pytest.raises(ProblemDetailError) as error:
+    with pytest.raises(FlowNotFoundError) as error:
         flow_exists("foo", "bar", expdb_test)
     assert error.value.status_code == HTTPStatus.NOT_FOUND
-    assert error.value.problem.type_ == ProblemType.FLOW_NOT_FOUND
+    assert error.value.uri == ProblemType.FLOW_NOT_FOUND
 
 
 def test_flow_exists(flow: Flow, py_api: TestClient) -> None:

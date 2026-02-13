@@ -1,7 +1,6 @@
 import re
 from datetime import datetime
 from enum import StrEnum
-from http import HTTPStatus
 from typing import Annotated, Any, Literal, NamedTuple
 
 from fastapi import APIRouter, Body, Depends
@@ -11,7 +10,23 @@ from sqlalchemy.engine import Row
 import database.datasets
 import database.qualities
 from core.access import _user_has_access
-from core.errors import DatasetError, ProblemType, raise_problem
+from core.errors import (
+    AuthenticationFailedError,
+    AuthenticationRequiredError,
+    DatasetAdminOnlyError,
+    DatasetError,
+    DatasetNoAccessError,
+    DatasetNoDataFileError,
+    DatasetNoFeaturesError,
+    DatasetNotFoundError,
+    DatasetNotOwnedError,
+    DatasetNotProcessedError,
+    DatasetProcessingError,
+    DatasetStatusTransitionError,
+    InternalError,
+    NoResultsError,
+    TagAlreadyExistsError,
+)
 from core.formatting import (
     _csv_as_list,
     _format_dataset_url,
@@ -36,20 +51,12 @@ def tag_dataset(
 ) -> dict[str, dict[str, Any]]:
     tags = database.datasets.get_tags_for(data_id, expdb_db)
     if tag.casefold() in [t.casefold() for t in tags]:
-        raise_problem(
-            status_code=HTTPStatus.CONFLICT,
-            type_=ProblemType.TAG_ALREADY_EXISTS,
-            detail=f"Entity already tagged by this tag. id={data_id}; tag={tag}",
-            code=473,
-        )
+        msg = f"Entity already tagged by this tag. id={data_id}; tag={tag}"
+        raise TagAlreadyExistsError(msg, code=473)
 
     if user is None:
-        raise_problem(
-            status_code=HTTPStatus.UNAUTHORIZED,
-            type_=ProblemType.AUTHENTICATION_FAILED,
-            detail="Authentication failed.",
-            code=103,
-        )
+        msg = "Authentication failed."
+        raise AuthenticationFailedError(msg, code=103)
 
     database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
     return {
@@ -194,12 +201,8 @@ def list_datasets(  # noqa: PLR0913
         row.did: dict(zip(columns, row, strict=True)) for row in rows
     }
     if not datasets:
-        raise_problem(
-            status_code=HTTPStatus.NOT_FOUND,
-            type_=ProblemType.NO_RESULTS,
-            detail="No datasets match the search criteria.",
-            code=372,
-        )
+        msg = "No datasets match the search criteria."
+        raise NoResultsError(msg, code=372)
 
     for dataset in datasets.values():
         # The old API does not actually provide the checksum but just an empty field
@@ -262,20 +265,12 @@ def _get_dataset_raise_otherwise(
     Raises ProblemDetailError if the dataset does not exist or the user can not access it.
     """
     if not (dataset := database.datasets.get(dataset_id, expdb)):
-        raise_problem(
-            status_code=HTTPStatus.NOT_FOUND,
-            type_=ProblemType.DATASET_NOT_FOUND,
-            detail="Unknown dataset.",
-            code=DatasetError.NOT_FOUND,
-        )
+        msg = "Unknown dataset."
+        raise DatasetNotFoundError(msg, code=DatasetError.NOT_FOUND)
 
     if not _user_has_access(dataset=dataset, user=user):
-        raise_problem(
-            status_code=HTTPStatus.FORBIDDEN,
-            type_=ProblemType.DATASET_NO_ACCESS,
-            detail="No access granted.",
-            code=DatasetError.NO_ACCESS,
-        )
+        msg = "No access granted."
+        raise DatasetNoAccessError(msg, code=DatasetError.NO_ACCESS)
 
     return dataset
 
@@ -298,32 +293,19 @@ def get_dataset_features(
     if not features:
         processing_state = database.datasets.get_latest_processing_update(dataset_id, expdb)
         if processing_state is None:
-            raise_problem(
-                status_code=HTTPStatus.PRECONDITION_FAILED,
-                type_=ProblemType.DATASET_NOT_PROCESSED,
-                detail=(
-                    "Dataset not processed yet. The dataset was not processed yet, "
-                    "features are not yet available. Please wait for a few minutes."
-                ),
-                code=273,
+            msg = (
+                "Dataset not processed yet. The dataset was not processed yet, "
+                "features are not yet available. Please wait for a few minutes."
             )
-        elif processing_state.error:
-            raise_problem(
-                status_code=HTTPStatus.PRECONDITION_FAILED,
-                type_=ProblemType.DATASET_PROCESSING_ERROR,
-                detail="No features found. Additionally, dataset processed with error.",
-                code=274,
-            )
-        else:
-            raise_problem(
-                status_code=HTTPStatus.PRECONDITION_FAILED,
-                type_=ProblemType.DATASET_NO_FEATURES,
-                detail=(
-                    "No features found. "
-                    "The dataset did not contain any features, or we could not extract them."
-                ),
-                code=272,
-            )
+            raise DatasetNotProcessedError(msg, code=273)
+        if processing_state.error:
+            msg = "No features found. Additionally, dataset processed with error."
+            raise DatasetProcessingError(msg, code=274)
+        msg = (
+            "No features found. "
+            "The dataset did not contain any features, or we could not extract them."
+        )
+        raise DatasetNoFeaturesError(msg, code=272)
     return features
 
 
@@ -337,38 +319,23 @@ def update_dataset_status(
     expdb: Annotated[Connection, Depends(expdb_connection)],
 ) -> dict[str, str | int]:
     if user is None:
-        raise_problem(
-            status_code=HTTPStatus.UNAUTHORIZED,
-            type_=ProblemType.AUTHENTICATION_REQUIRED,
-            detail="Updating dataset status requires authentication.",
-        )
+        msg = "Updating dataset status requires authentication."
+        raise AuthenticationRequiredError(msg)
 
     dataset = _get_dataset_raise_otherwise(dataset_id, user, expdb)
 
     can_deactivate = dataset.uploader == user.user_id or UserGroup.ADMIN in user.groups
     if status == DatasetStatus.DEACTIVATED and not can_deactivate:
-        raise_problem(
-            status_code=HTTPStatus.FORBIDDEN,
-            type_=ProblemType.DATASET_NOT_OWNED,
-            detail="Dataset is not owned by you.",
-            code=693,
-        )
+        msg = "Dataset is not owned by you."
+        raise DatasetNotOwnedError(msg, code=693)
     if status == DatasetStatus.ACTIVE and UserGroup.ADMIN not in user.groups:
-        raise_problem(
-            status_code=HTTPStatus.FORBIDDEN,
-            type_=ProblemType.DATASET_ADMIN_ONLY,
-            detail="Only administrators can activate datasets.",
-            code=696,
-        )
+        msg = "Only administrators can activate datasets."
+        raise DatasetAdminOnlyError(msg, code=696)
 
     current_status = database.datasets.get_status(dataset_id, expdb)
     if current_status and current_status.status == status:
-        raise_problem(
-            status_code=HTTPStatus.PRECONDITION_FAILED,
-            type_=ProblemType.DATASET_STATUS_TRANSITION,
-            detail="Illegal status transition.",
-            code=694,
-        )
+        msg = "Illegal status transition."
+        raise DatasetStatusTransitionError(msg, code=694)
 
     # If current status is unknown, it is effectively "in preparation",
     # So the following transitions are allowed (first 3 transitions are first clause)
@@ -381,11 +348,8 @@ def update_dataset_status(
     elif current_status.status == DatasetStatus.DEACTIVATED:
         database.datasets.remove_deactivated_status(dataset_id, expdb)
     else:
-        raise_problem(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            type_=ProblemType.INTERNAL_ERROR,
-            detail=f"Unknown status transition: {current_status} -> {status}",
-        )
+        msg = f"Unknown status transition: {current_status} -> {status}"
+        raise InternalError(msg)
 
     return {"dataset_id": dataset_id, "status": status}
 
@@ -404,12 +368,8 @@ def get_dataset(
     if not (
         dataset_file := database.datasets.get_file(file_id=dataset.file_id, connection=user_db)
     ):
-        raise_problem(
-            status_code=HTTPStatus.PRECONDITION_FAILED,
-            type_=ProblemType.DATASET_NO_DATA_FILE,
-            detail="No data file found.",
-            code=DatasetError.NO_DATA_FILE,
-        )
+        msg = "No data file found."
+        raise DatasetNoDataFileError(msg, code=DatasetError.NO_DATA_FILE)
 
     tags = database.datasets.get_tags_for(dataset_id, expdb_db)
     description = database.datasets.get_description(dataset_id, expdb_db)
