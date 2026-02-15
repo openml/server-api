@@ -51,7 +51,7 @@ services:
 
   php-api:
     profiles: ["php", "all"]
-    image: "openml/php-rest-api:v1.2.2"
+    image: "openml/php-rest-api:v1.2.4"
     container_name: "openml-php-rest-api"
     env_file: docker/php/.env
     ports:
