@@ -106,30 +106,6 @@ def create(study: CreateStudy, user: User, expdb: Connection) -> int:
     return cast("int", study_id)
 
 
-def attach_task(task_id: int, study_id: int, user: User, expdb: Connection) -> None:
-    expdb.execute(
-        text(
-            """
-            INSERT INTO task_study (study_id, task_id, uploader)
-            VALUES (:study_id, :task_id, :user_id)
-            """,
-        ),
-        parameters={"study_id": study_id, "task_id": task_id, "user_id": user.user_id},
-    )
-
-
-def attach_run(*, run_id: int, study_id: int, user: User, expdb: Connection) -> None:
-    expdb.execute(
-        text(
-            """
-            INSERT INTO run_study (study_id, run_id, uploader)
-            VALUES (:study_id, :run_id, :user_id)
-            """,
-        ),
-        parameters={"study_id": study_id, "run_id": run_id, "user_id": user.user_id},
-    )
-
-
 def attach_tasks(
     *,
     study_id: int,
@@ -137,7 +113,6 @@ def attach_tasks(
     user: User,
     connection: Connection,
 ) -> None:
-    to_link = [(study_id, task_id, user.user_id) for task_id in task_ids]
     try:
         connection.execute(
             text(
@@ -146,7 +121,10 @@ def attach_tasks(
                 VALUES (:study_id, :task_id, :user_id)
                 """,
             ),
-            parameters=[{"study_id": s, "task_id": t, "user_id": u} for s, t, u in to_link],
+            parameters=[
+                {"study_id": study_id, "task_id": task_ids, "user_id": user.user_id}
+                for task_id in task_ids
+            ],
         )
     except Exception as e:
         (msg,) = e.args
@@ -168,4 +146,28 @@ def attach_runs(
     user: User,
     connection: Connection,
 ) -> None:
-    raise NotImplementedError
+    try:
+        connection.execute(
+            text(
+                """
+                INSERT INTO run_study (study_id, run_id, uploader)
+                VALUES (:study_id, :run_id, :user_id)
+                """,
+            ),
+            parameters=[
+                {"study_id": study_id, "run_id": run_id, "user_id": user.user_id}
+                for run_id in run_ids
+            ],
+        )
+    except Exception as e:
+        (msg,) = e.args
+        if match := re.search(r"Duplicate entry '(\d+)-(\d+)' for key 'run_study.PRIMARY'", msg):
+            msg = f"Run {match.group(2)} is already attached to study {match.group(1)}."
+        elif "a foreign key constraint fails" in msg:
+            # The message and exception have no information about which task is invalid.
+            msg = "One or more of the runs do not exist."
+        elif "Out of range value for column 'run_id'" in msg:
+            msg = "One specified ids is not in the valid range of run ids."
+        else:
+            raise
+        raise ValueError(msg) from e
