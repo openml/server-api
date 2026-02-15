@@ -45,32 +45,32 @@ This will spin up 5 containers, as defined in the `docker-compose.yaml` file:
  - `openml-php-rest-api`: this container serves the old PHP REST API at `localhost:8002`.
     For example, visit [http://localhost:8002/api/v1/json/data/1](http://localhost:8002/api/v1/json/data/1)
     to fetch a JSON description of dataset 1.
- - `openml-elasticsearch`: Elastic search, required for the PHP REST API to function.
+ - `openml-elasticsearch`: Elasticsearch, required for the PHP REST API to function.
  - `openml-python-rest-api`: this container serves the new Python-based REST API at `localhost:8001`.
     For example, visit [http://localhost:8001/docs](http://localhost:8001/docs) to see
     the REST API documentation. Changes to the code in `src/` will be reflected in this
     container.
 
 !!! note
-    On arm-based Macs, you need to enable Rosetta emulation for Docker for the Elastic Search container to work.
+    On arm-based Macs, you need to enable Rosetta emulation for Docker for the Elasticsearch container to work.
 
 We can now run the full test suite, which takes about 4 minutes:
 
 ```bash
 docker exec openml-python-rest-api python -m pytest tests
 ```
-There three important [test markers](https://docs.pytest.org/en/7.1.x/example/markers.html) to be aware of:
+There are three important [test markers](https://docs.pytest.org/en/7.1.x/example/markers.html) to be aware of:
 
  - `php_api`: all tests that require the PHP API container. These are tests which
  - `python_api`: all tests that require the Python API container. That's almost all of them.
  - `slow`: for long-running tests. Currently only one test.
 
-In many cases during development it's sufficient to either run with `not php_api and not slow` when initially adding the endpoint and implemting its response, or later `php_api and not slow` when working on the 'migration' tests that validate against the old PHP API.
+In many cases during development it's sufficient to either run with `not php_api and not slow` when initially adding the endpoint and implementing its response, or later `php_api and not slow` when working on the 'migration' tests that validate against the old PHP API.
 The `not slow` is only needed if a slow test would be included in your test selection. In many cases, you might prefer to only run the specific tests (or test modules) that you are working on and excluding it through markers may be unnecessary.
 Examples:
 
  - `docker exec openml-python-rest-api python -m pytest tests -m "not php_api and not slow"`, here the test selection is made primarily through markers. This command takes a few seconds.
- - `docker exec openml-python-rest-api python -m pytest tests/routers/openml/dataset_tag_test.py `, here the test selection is made through specifying the file with tests. Since this test file naturally includes neither migration tests (in `tests/routers/openml/migration`) nor the slow test (at `tests/routers/openml/datasets_list_datasets_test.py`), excluding tests through markers is unnecessary. This command takes a few seconds.
+ - `docker exec openml-python-rest-api python -m pytest tests/routers/openml/dataset_tag_test.py`, here the test selection is made through specifying the file with tests. Since this test file naturally includes neither migration tests (in `tests/routers/openml/migration`) nor the slow test (at `tests/routers/openml/datasets_list_datasets_test.py`), excluding tests through markers is unnecessary. This command takes a few seconds.
 
 
 You don't always need every container, often just having a database and the Python-based
@@ -116,7 +116,7 @@ An invocation could look like this:
 python -m pytest -v -x --lf -m "not php_api"
 ```
 
-Where `-v` show the name of each test ran, `-x` ensures testing stops on first failure,
+Where `-v` shows the name of each test run, `-x` ensures testing stops on first failure,
 `--lf` will first run the test(s) which failed last, and `-m "not php_api"` specifies
 which tests (not) to run (in this case, the tests that check against the PHP API).
 
