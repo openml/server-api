@@ -20,17 +20,17 @@ PHP_API_URL = "http://openml-php-rest-api:80/api/v1/json"
 
 def pytest_addoption(parser: Parser) -> None:
     parser.addoption(
-        "--use-test-container",  # CLI flag
+        "--use-testcontainer",  # CLI flag
         action="store_true",  # True if provided, False if omitted
         help="Use testcontainers for database tests",
     )
 
 
 def pytest_configure(config: Config) -> None:
-    use_test_container = config.getoption("--use-test-container")
+    use_test_container = config.getoption("--use-testcontainer")
 
     if use_test_container:
-        config.pluginmanager.import_plugin("tests.fixtures_container")
+        config.pluginmanager.import_plugin("tests.fixtures_testcontainer")
     else:
         config.pluginmanager.import_plugin("tests.fixtures_local")
 
