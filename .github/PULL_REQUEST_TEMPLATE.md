@@ -2,7 +2,8 @@
 
 Please include a summary of the change and which issue is fixed. Please also include relevant motivation and context.
 
-Fixes # (issue) (e.g., Fixes #123, or Fixes #123, #456)
+Fixes #
+
 
 # Type of change
 
@@ -18,7 +19,7 @@ Please describe the tests that you ran to verify your changes.
 - [ ] Test A
 - [ ] Test B
 
-# Checklist:
+# Checklist
 
 _Please check all that apply. You can mark items as N/A if they don't apply to your change._
 
