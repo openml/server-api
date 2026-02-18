@@ -134,7 +134,9 @@ async def get_features(dataset_id: int, connection: AsyncConnection) -> list[Fea
     return [Feature(**row, nominal_values=None) for row in rows]
 
 
-async def get_feature_values(dataset_id: int, *, feature_index: int, connection: AsyncConnection) -> list[str]:
+async def get_feature_values(
+    dataset_id: int, *, feature_index: int, connection: AsyncConnection
+) -> list[str]:
     row = await connection.execute(
         text(
             """
