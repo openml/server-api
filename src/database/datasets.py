@@ -2,14 +2,15 @@
 
 import datetime
 
-from sqlalchemy import Connection, text
+from sqlalchemy import text
 from sqlalchemy.engine import Row
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 from schemas.datasets.openml import Feature
 
 
-def get(id_: int, connection: Connection) -> Row | None:
-    row = connection.execute(
+async def get(id_: int, connection: AsyncConnection) -> Row | None:
+    row = await connection.execute(
         text(
             """
     SELECT *
@@ -22,8 +23,8 @@ def get(id_: int, connection: Connection) -> Row | None:
     return row.one_or_none()
 
 
-def get_file(*, file_id: int, connection: Connection) -> Row | None:
-    row = connection.execute(
+async def get_file(*, file_id: int, connection: AsyncConnection) -> Row | None:
+    row = await connection.execute(
         text(
             """
     SELECT *
@@ -36,8 +37,8 @@ def get_file(*, file_id: int, connection: Connection) -> Row | None:
     return row.one_or_none()
 
 
-def get_tags_for(id_: int, connection: Connection) -> list[str]:
-    rows = connection.execute(
+async def get_tags_for(id_: int, connection: AsyncConnection) -> list[str]:
+    row = await connection.execute(
         text(
             """
     SELECT *
@@ -47,11 +48,12 @@ def get_tags_for(id_: int, connection: Connection) -> list[str]:
         ),
         parameters={"dataset_id": id_},
     )
+    rows = row.all()
     return [row.tag for row in rows]
 
 
-def tag(id_: int, tag_: str, *, user_id: int, connection: Connection) -> None:
-    connection.execute(
+async def tag(id_: int, tag_: str, *, user_id: int, connection: AsyncConnection) -> None:
+    await connection.execute(
         text(
             """
     INSERT INTO dataset_tag(`id`, `tag`, `uploader`)
@@ -66,12 +68,12 @@ def tag(id_: int, tag_: str, *, user_id: int, connection: Connection) -> None:
     )
 
 
-def get_description(
+async def get_description(
     id_: int,
-    connection: Connection,
+    connection: AsyncConnection,
 ) -> Row | None:
     """Get the most recent description for the dataset."""
-    row = connection.execute(
+    row = await connection.execute(
         text(
             """
     SELECT *
@@ -85,9 +87,9 @@ def get_description(
     return row.first()
 
 
-def get_status(id_: int, connection: Connection) -> Row | None:
+async def get_status(id_: int, connection: AsyncConnection) -> Row | None:
     """Get most recent status for the dataset."""
-    row = connection.execute(
+    row = await connection.execute(
         text(
             """
     SELECT *
@@ -101,8 +103,8 @@ def get_status(id_: int, connection: Connection) -> Row | None:
     return row.first()
 
 
-def get_latest_processing_update(dataset_id: int, connection: Connection) -> Row | None:
-    row = connection.execute(
+async def get_latest_processing_update(dataset_id: int, connection: AsyncConnection) -> Row | None:
+    row = await connection.execute(
         text(
             """
     SELECT *
@@ -116,8 +118,8 @@ def get_latest_processing_update(dataset_id: int, connection: Connection) -> Row
     return row.one_or_none()
 
 
-def get_features(dataset_id: int, connection: Connection) -> list[Feature]:
-    rows = connection.execute(
+async def get_features(dataset_id: int, connection: AsyncConnection) -> list[Feature]:
+    row = await connection.execute(
         text(
             """
             SELECT `index`,`name`,`data_type`,`is_target`,
@@ -128,11 +130,12 @@ def get_features(dataset_id: int, connection: Connection) -> list[Feature]:
         ),
         parameters={"dataset_id": dataset_id},
     )
-    return [Feature(**row, nominal_values=None) for row in rows.mappings()]
+    rows = row.mappings().all()
+    return [Feature(**row, nominal_values=None) for row in rows]
 
 
-def get_feature_values(dataset_id: int, *, feature_index: int, connection: Connection) -> list[str]:
-    rows = connection.execute(
+async def get_feature_values(dataset_id: int, *, feature_index: int, connection: AsyncConnection) -> list[str]:
+    row = await connection.execute(
         text(
             """
             SELECT `value`
@@ -142,17 +145,18 @@ def get_feature_values(dataset_id: int, *, feature_index: int, connection: Conne
         ),
         parameters={"dataset_id": dataset_id, "feature_index": feature_index},
     )
+    rows = row.all()
     return [row.value for row in rows]
 
 
-def update_status(
+async def update_status(
     dataset_id: int,
     status: str,
     *,
     user_id: int,
-    connection: Connection,
+    connection: AsyncConnection,
 ) -> None:
-    connection.execute(
+    await connection.execute(
         text(
             """
             INSERT INTO dataset_status(`did`,`status`,`status_date`,`user_id`)
@@ -168,8 +172,8 @@ def update_status(
     )
 
 
-def remove_deactivated_status(dataset_id: int, connection: Connection) -> None:
-    connection.execute(
+async def remove_deactivated_status(dataset_id: int, connection: AsyncConnection) -> None:
+    await connection.execute(
         text(
             """
             DELETE FROM dataset_status
