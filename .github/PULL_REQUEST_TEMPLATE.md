@@ -1,11 +1,10 @@
-
 # Description
 
-Please include a summary of the change and which issue is fixed.
+Please include a summary of the change and which issue is fixed. Please also include relevant motivation and context.
 
-Fixes # (issue)
+Fixes # (issue) (e.g., Fixes #123, or Fixes #123, #456)
 
-## Type of change
+# Type of change
 
 - [ ] Bug fix (non-breaking change which fixes an issue)
 - [ ] New feature (non-breaking change which adds functionality)
@@ -20,6 +19,8 @@ Please describe the tests that you ran to verify your changes.
 - [ ] Test B
 
 # Checklist:
+
+_Please check all that apply. You can mark items as N/A if they don't apply to your change._
 
 - [ ] My code follows the style guidelines of this project
 - [ ] I have performed a self-review of my own code
