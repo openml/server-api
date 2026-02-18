@@ -1,10 +1,14 @@
 from http import HTTPStatus
 
 import pytest
-from fastapi import HTTPException
 from sqlalchemy import Connection
 from starlette.testclient import TestClient
 
+from core.errors import (
+    DatasetNoAccessError,
+    DatasetNotFoundError,
+    DatasetProcessingError,
+)
 from database.users import User
 from routers.openml.datasets import get_dataset
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus
@@ -28,7 +32,13 @@ def test_error_unknown_dataset(
     response = py_api.get(f"/datasets/{dataset_id}")
 
     assert response.status_code == response_code
-    assert response.json()["detail"] == {"code": "111", "message": "Unknown dataset"}
+    assert response.headers["content-type"] == "application/problem+json"
+    error = response.json()
+    assert error["type"] == DatasetNotFoundError.uri
+    assert error["title"] == "Dataset Not Found"
+    assert error["status"] == HTTPStatus.NOT_FOUND
+    assert error["detail"] == "Unknown dataset."
+    assert error["code"] == "111"
 
 
 def test_get_dataset(py_api: TestClient) -> None:
@@ -80,7 +90,7 @@ def test_private_dataset_no_access(
     user: User | None,
     expdb_test: Connection,
 ) -> None:
-    with pytest.raises(HTTPException) as e:
+    with pytest.raises(DatasetNoAccessError) as e:
         get_dataset(
             dataset_id=130,
             user=user,
@@ -88,7 +98,9 @@ def test_private_dataset_no_access(
             expdb_db=expdb_test,
         )
     assert e.value.status_code == HTTPStatus.FORBIDDEN
-    assert e.value.detail == {"code": "112", "message": "No access granted"}  # type: ignore[comparison-overlap]
+    assert e.value.uri == DatasetNoAccessError.uri
+    no_access = 112
+    assert e.value.code == no_access
 
 
 @pytest.mark.parametrize(
@@ -177,10 +189,11 @@ def test_dataset_features_with_processing_error(py_api: TestClient) -> None:
     # In that case, no feature information will ever be available.
     response = py_api.get("/datasets/features/55")
     assert response.status_code == HTTPStatus.PRECONDITION_FAILED
-    assert response.json()["detail"] == {
-        "code": 274,
-        "message": "No features found. Additionally, dataset processed with error",
-    }
+    assert response.headers["content-type"] == "application/problem+json"
+    error = response.json()
+    assert error["type"] == DatasetProcessingError.uri
+    assert error["code"] == "274"
+    assert "No features found" in error["detail"]
 
 
 def test_dataset_features_dataset_does_not_exist(py_api: TestClient) -> None:

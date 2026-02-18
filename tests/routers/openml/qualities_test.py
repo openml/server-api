@@ -6,6 +6,8 @@ import pytest
 from sqlalchemy import Connection, text
 from starlette.testclient import TestClient
 
+from core.errors import DatasetNotFoundError
+
 
 def _remove_quality_from_database(quality_name: str, expdb_test: Connection) -> None:
     expdb_test.execute(
@@ -313,6 +315,9 @@ def test_get_quality_identical_error(
     php_response = php_api.get(f"/data/qualities/{data_id}")
     python_response = py_api.get(f"/datasets/qualities/{data_id}")
     assert python_response.status_code == php_response.status_code
-    # The "dataset unknown" error currently has a separate code in PHP depending on
-    # where it occurs (e.g., get dataset->113 get quality->361)
-    assert python_response.json()["detail"]["message"] == php_response.json()["error"]["message"]
+    # RFC 9457: Python API now returns problem+json format
+    assert python_response.headers["content-type"] == "application/problem+json"
+    error = python_response.json()
+    assert error["type"] == DatasetNotFoundError.uri
+    # Verify the error message matches the PHP API semantically
+    assert "Unknown dataset" in error["detail"]

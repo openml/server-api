@@ -1,11 +1,20 @@
-from http import HTTPStatus
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends
 from pydantic import BaseModel
 from sqlalchemy import Connection, Row
 
 import database.studies
+from core.errors import (
+    AuthenticationRequiredError,
+    StudyAliasExistsError,
+    StudyConflictError,
+    StudyInvalidTypeError,
+    StudyLegacyError,
+    StudyNotEditableError,
+    StudyNotFoundError,
+    StudyPrivateError,
+)
 from core.formatting import _str_to_bool
 from database.users import User, UserGroup
 from routers.dependencies import expdb_connection, fetch_user
@@ -22,20 +31,18 @@ def _get_study_raise_otherwise(id_or_alias: int | str, user: User | None, expdb:
         study = database.studies.get_by_alias(id_or_alias, expdb)
 
     if study is None:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Study not found.")
+        msg = "Study not found."
+        raise StudyNotFoundError(msg)
     if study.visibility == Visibility.PRIVATE:
         if user is None:
-            raise HTTPException(
-                status_code=HTTPStatus.UNAUTHORIZED,
-                detail="Must authenticate for private study.",
-            )
+            msg = "Must authenticate for private study."
+            raise AuthenticationRequiredError(msg)
         if study.creator != user.user_id and UserGroup.ADMIN not in user.groups:
-            raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail="Study is private.")
+            msg = "Study is private."
+            raise StudyPrivateError(msg)
     if _str_to_bool(study.legacy):
-        raise HTTPException(
-            status_code=HTTPStatus.GONE,
-            detail="Legacy studies are no longer supported",
-        )
+        msg = "Legacy studies are no longer supported."
+        raise StudyLegacyError(msg)
     return study
 
 
@@ -52,19 +59,16 @@ def attach_to_study(
     expdb: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> AttachDetachResponse:
     if user is None:
-        raise HTTPException(status_code=HTTPStatus.UNAUTHORIZED, detail="User not found.")
+        msg = "Authentication required."
+        raise AuthenticationRequiredError(msg)
     study = _get_study_raise_otherwise(study_id, user, expdb)
     # PHP lets *anyone* edit *any* study. We're not going to do that.
     if study.creator != user.user_id and UserGroup.ADMIN not in user.groups:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail="Study can only be edited by its creator.",
-        )
+        msg = "Study can only be edited by its creator."
+        raise StudyNotEditableError(msg)
     if study.status != StudyStatus.IN_PREPARATION:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail="Study can only be edited while in preparation.",
-        )
+        msg = "Study can only be edited while in preparation."
+        raise StudyNotEditableError(msg)
 
     # We let the database handle the constraints on whether
     # the entity is already attached or if it even exists.
@@ -79,10 +83,8 @@ def attach_to_study(
         else:
             database.studies.attach_runs(run_ids=entity_ids, **attach_kwargs)
     except ValueError as e:
-        raise HTTPException(
-            status_code=HTTPStatus.CONFLICT,
-            detail=str(e),
-        ) from None
+        msg = str(e)
+        raise StudyConflictError(msg) from e
     return AttachDetachResponse(study_id=study_id, main_entity_type=study.type_)
 
 
@@ -93,25 +95,17 @@ def create_study(
     expdb: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[Literal["study_id"], int]:
     if user is None:
-        raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
-            detail="Creating a study requires authentication.",
-        )
+        msg = "Creating a study requires authentication."
+        raise AuthenticationRequiredError(msg)
     if study.main_entity_type == StudyType.RUN and study.tasks:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail="Cannot create a run study with tasks.",
-        )
+        msg = "Cannot create a run study with tasks."
+        raise StudyInvalidTypeError(msg)
     if study.main_entity_type == StudyType.TASK and study.runs:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST,
-            detail="Cannot create a task study with runs.",
-        )
+        msg = "Cannot create a task study with runs."
+        raise StudyInvalidTypeError(msg)
     if study.alias and database.studies.get_by_alias(study.alias, expdb):
-        raise HTTPException(
-            status_code=HTTPStatus.CONFLICT,
-            detail="Study alias already exists.",
-        )
+        msg = "Study alias already exists."
+        raise StudyAliasExistsError(msg)
     study_id = database.studies.create(study, user, expdb)
     if study.main_entity_type == StudyType.TASK:
         for task_id in study.tasks:
