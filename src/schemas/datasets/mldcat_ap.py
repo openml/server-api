@@ -1,5 +1,6 @@
-"""
-Based on MLDCAT-AP 1.0.0: https://semiceu.github.io/MLDCAT-AP/releases/1.0.0/
+"""MLDCAT-AP schema definitions based on MLDCAT-AP 1.0.0.
+
+See: https://semiceu.github.io/MLDCAT-AP/releases/1.0.0/
 
 This is an application profile, aimed to extend the use of DCAT-AP,
 originally envisaged for the description of a machine learning process,
@@ -18,7 +19,7 @@ from schemas.datasets.openml import DatasetStatus, Visibility
 
 
 class JsonLDQualifiedLiteral(BaseModel):
-    """Base class for all JSON-LD objects"""
+    """Base class for all JSON-LD objects."""
 
     type_: str = Field(serialization_alias="@type")
     value: str = Field(serialization_alias="@value")
@@ -30,7 +31,7 @@ JsonLiteral = JsonLDQualifiedLiteral | str
 
 
 class JsonLDObject(BaseModel, ABC):
-    """Base class for all JSON-LD objects"""
+    """Base class for all JSON-LD objects."""
 
     id_: str = Field(serialization_alias="@id")
     type_: str = Field(serialization_alias="@type")
@@ -48,7 +49,7 @@ class JsonLDObjectReference[T: JsonLDObject](BaseModel):
 
     @classmethod
     def to(cls, json_ld_object: T) -> JsonLDObjectReference[T]:
-        """Create a reference to `json_ld_object`"""
+        """Create a reference to `json_ld_object`."""
         return cls(id_=json_ld_object.id_)
 
     @model_serializer
@@ -57,7 +58,7 @@ class JsonLDObjectReference[T: JsonLDObject](BaseModel):
 
 
 class AccessRights(StrEnum):
-    """Recommend values for 'access rights' within DCAT-AP context"""
+    """Recommend values for 'access rights' within DCAT-AP context."""
 
     #  https://op.europa.eu/en/web/eu-vocabularies/dataset/-/resource?uri=http://publications.europa.eu/resource/dataset/access-right
     PUBLIC = "PUBLIC"
@@ -66,9 +67,10 @@ class AccessRights(StrEnum):
 
 
 class Agent(JsonLDObject):
-    """Any entity carrying out actions with respect to the (Core) entities Catalogue,
-    Datasets, Data Services and Distributions. If the Agent is an organisation,
-    the use of the Organization Ontology is recommended.
+    """Any entity carrying out actions with respect to the (Core) entities.
+
+    Catalogue, Datasets, Data Services and Distributions. If the Agent is an
+    organisation, the use of the Organization Ontology is recommended.
     """
 
     type_: Literal["Agent"] = Field(default="Agent", serialization_alias="@type")
@@ -81,6 +83,7 @@ class Agent(JsonLDObject):
 
 class MD5Checksum(JsonLDObject):
     """A value that allows the contents of a file to be authenticated.
+
     This class allows the results of a variety of checksum and cryptographic
     message digest algorithms to be represented.
     """

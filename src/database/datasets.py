@@ -1,4 +1,4 @@
-"""Translation from https://github.com/openml/OpenML/blob/c19c9b99568c0fabb001e639ff6724b9a754bbc9/openml_OS/models/api/v1/Api_data.php#L707"""
+"""Translation from https://github.com/openml/OpenML/blob/c19c9b99568c0fabb001e639ff6724b9a754bbc9/openml_OS/models/api/v1/Api_data.php#L707."""
 
 import datetime
 
@@ -162,7 +162,7 @@ def update_status(
         parameters={
             "dataset": dataset_id,
             "status": status,
-            "date": datetime.datetime.now(),
+            "date": datetime.datetime.now(datetime.UTC),
             "user": user_id,
         },
     )
