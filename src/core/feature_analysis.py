@@ -1,8 +1,12 @@
-from typing import IO, Iterable
+from collections.abc import Iterable
+from typing import IO
+
 import arff
-import pyarrow.parquet as pq
 import pyarrow as pa
+import pyarrow.parquet as pq
+
 from schemas.datasets.openml import Feature, FeatureType
+
 
 def analyze_arff(
     arff_stream: IO[str],
@@ -43,15 +47,15 @@ def analyze_arff(
                 if isinstance(row, dict):
                     # Sparse format: only present values are in the dict
                     if i not in row:
-                        # In sparse ARFF, if an index is missing from the dict, 
+                        # In sparse ARFF, if an index is missing from the dict,
                         # it means it has the default value, which is usually 0.
                         # sparse ARFF in liac-arff:
                         # {index: value, ...}
-                        # If it's missing, it's 0. 
+                        # If it's missing, it's 0.
                         # Missing values are represented as None in the dict if explicitly present.
-                        # OpenML's sparse ARFF uses {index value, ...} 
-                        # and missing values are simply not there if they are 0, 
-                        # but if they are really missing they should be there as '?' 
+                        # OpenML's sparse ARFF uses {index value, ...}
+                        # and missing values are simply not there if they are 0,
+                        # but if they are really missing they should be there as '?'
                         # which liac-arff converts to None.
                         pass
                     elif row[i] is None:
@@ -69,9 +73,10 @@ def analyze_arff(
                 is_row_identifier=name in row_id_features,
                 number_of_missing_values=missing_count,
                 nominal_values=nominal_values,
-            )
+            ),
         )
     return features
+
 
 def analyze_parquet(
     source: str | IO[bytes],
@@ -82,7 +87,7 @@ def analyze_parquet(
     """Analyze a Parquet file and return a list of Feature objects."""
     table = pq.read_table(source)
     schema = table.schema
-    
+
     target_features = set(target_features or [])
     ignore_features = set(ignore_features or [])
     row_id_features = set(row_id_features or [])
@@ -91,7 +96,7 @@ def analyze_parquet(
     for i, field in enumerate(schema):
         name = field.name
         pa_type = field.type
-        
+
         # Determine data_type and nominal_values
         nominal_values = None
         if pa.types.is_floating(pa_type) or pa.types.is_integer(pa_type):
@@ -112,12 +117,12 @@ def analyze_parquet(
             # For Parquet, strings might be nominal if they don't have a dictionary
             # We needed to "Extract unique values from the data" for nominals in non-ARFF
             # In OpenML, if it's used for classification, it's nominal.
-            # If we don't know, we might have to guess or treat all strings as nominal if they have 
-            # few unique values. 
-            
-            # For Parquet, let's assume if it's not numeric, it's nominal for now, 
+            # If we don't know, we might have to guess or treat all strings as nominal if they have
+            # few unique values.
+
+            # For Parquet, let's assume if it's not numeric, it's nominal for now,
             # as that's common in ML datasets, unless it's explicitly string.
-            
+
             # If it's boolean, it's definitely nominal [False, True].
             if pa.types.is_boolean(pa_type):
                 data_type = FeatureType.NOMINAL
@@ -132,8 +137,8 @@ def analyze_parquet(
                         v = val.as_py()
                         if v is not None:
                             unique_values.add(str(v))
-                
-                # OpenML usually has a threshold, but let's just call it nominal if it's string 
+
+                # OpenML usually has a threshold, but let's just call it nominal if it's string
                 data_type = FeatureType.NOMINAL
                 nominal_values = sorted(list(unique_values))
         else:
@@ -153,6 +158,6 @@ def analyze_parquet(
                 is_row_identifier=name in row_id_features,
                 number_of_missing_values=missing_count,
                 nominal_values=nominal_values,
-            )
+            ),
         )
     return features
