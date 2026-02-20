@@ -18,7 +18,7 @@ COPY . /app
 
 RUN mkdir /config
 COPY ./src/config.toml /config/config.toml
-ENV OPENML_REST_API_CONFIG_FILE_PATH=/config/config.toml
+ENV OPENML_REST_API_CONFIG_FILE=/config/config.toml
 COPY ./docker/python/README.md /README.md
 
 EXPOSE 8000
