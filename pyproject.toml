@@ -56,19 +56,49 @@ line-length = 100
 select = ["ALL"]
 ignore = [
     "CPY",  # we do not require copyright in every file
-    "D",  # todo: docstring linting
     "D203",
     "D204",
     "D213",
-    "DTZ", # To add
     # Linter does not detect when types are used for Pydantic
     "TC001",
     "TC003",
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = [ "S101", "COM812", "D"]
-"src/core/conversions.py" = ["ANN401"]
+"tests/*" = ["S101", "COM812", "D"]
+"src/config.py" = ["D100", "D101", "D102", "D103"]
+"src/core/access.py" = ["D100", "D101", "D102", "D103"]
+"src/core/conversions.py" = ["ANN401", "D100", "D101", "D102", "D103"]
+"src/core/errors.py" = ["D100", "D101", "D102", "D103"]
+"src/core/formatting.py" = ["D100", "D101", "D102", "D103"]
+"src/database/datasets.py" = ["D100", "D101", "D102", "D103"]
+"src/database/evaluations.py" = ["D100", "D101", "D102", "D103"]
+"src/database/flows.py" = ["D100", "D101", "D102", "D103"]
+"src/database/qualities.py" = ["D100", "D101", "D102", "D103"]
+"src/database/setup.py" = ["D100", "D101", "D102", "D103"]
+"src/database/studies.py" = ["D100", "D101", "D102", "D103"]
+"src/database/tasks.py" = ["D100", "D101", "D102", "D103"]
+"src/database/users.py" = ["D100", "D101", "D102", "D103"]
+"src/main.py" = ["D100", "D101", "D102", "D103"]
+"src/routers/dependencies.py" = ["D100", "D101", "D102", "D103"]
+"src/routers/mldcat_ap/dataset.py" = ["D100", "D101", "D102", "D103"]
+"src/routers/openml/datasets.py" = ["D100", "D101", "D102", "D103"]
+"src/routers/openml/estimation_procedure.py" = ["D100", "D101", "D102", "D103"]
+"src/routers/openml/evaluations.py" = ["D100", "D101", "D102", "D103"]
+"src/routers/openml/flows.py" = ["D100", "D101", "D102", "D103"]
+"src/routers/openml/qualities.py" = ["D100", "D101", "D102", "D103"]
+"src/routers/openml/study.py" = ["D100", "D101", "D102", "D103"]
+"src/routers/openml/tasks.py" = ["D100", "D101", "D102", "D103"]
+"src/routers/openml/tasktype.py" = ["D100", "D101", "D102", "D103"]
+"src/routers/types.py" = ["D100", "D101", "D102", "D103"]
+"src/schemas/core.py" = ["D100", "D101", "D102", "D103"]
+"src/schemas/datasets/__init__.py" = ["D100", "D101", "D102", "D103"]
+"src/schemas/datasets/convertor.py" = ["D100", "D101", "D102", "D103"]
+"src/schemas/datasets/dcat.py" = ["D100", "D101", "D102", "D103"]
+"src/schemas/datasets/mldcat_ap.py" = ["D100", "D101", "D102", "D103"]
+"src/schemas/datasets/openml.py" = ["D100", "D101", "D102", "D103"]
+"src/schemas/flows.py" = ["D100", "D101", "D102", "D103"]
+"src/schemas/study.py" = ["D100", "D101", "D102", "D103"]
 
 [tool.mypy]
 strict = true

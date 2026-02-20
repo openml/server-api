@@ -1,8 +1,9 @@
-"""
+"""DCAT-AP schema definitions.
+
 This file is copied over from an external source.
 Original Author: Jos van der Velde
 Source: https://github.com/aiondemand/AIOD-rest-api/blob/develop/src/converters/schema/dcat.py
-License: MIT
+License: MIT.
 
 Based on DCAT Application Profile for data portals in Europe Version 2.1.1
 
@@ -36,7 +37,7 @@ class DcatAPContext(BaseModel):
 
 
 class DcatAPObject(BaseModel, ABC):
-    """Base class for all DCAT-AP objects"""
+    """Base class for all DCAT-AP objects."""
 
     id_: str = Field(serialization_alias="@id")
 
@@ -198,7 +199,7 @@ class DcatAPDataset(DcatAPObject):
 
 
 class DcatApWrapper(BaseModel):
-    """The resulting class, containing a dataset and related entities in the graph"""
+    """The resulting class, containing a dataset and related entities in the graph."""
 
     context_: DcatAPContext = Field(
         default=DcatAPContext(),
