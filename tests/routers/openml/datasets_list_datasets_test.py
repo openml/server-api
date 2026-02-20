@@ -262,7 +262,7 @@ def test_list_data_identical(
 
     # Pagination parameters are nested in the new query style
     # The old style has no `limit` by default, so we mimic this with a high default
-    new_style = kwargs | {"pagination": {"limit": limit if limit else 1_000_000}}
+    new_style = kwargs | {"pagination": {"limit": limit or 1_000_000}}
     if offset is not None:
         new_style["pagination"]["offset"] = offset
 
