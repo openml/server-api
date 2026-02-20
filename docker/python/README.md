@@ -4,7 +4,7 @@ This should not be considered production ready.
 New releases may contain breaking changes without deprecation warnings.
 
 ## Usage
-The image is not inteded to be used as a standalone image.
+The image is not intended to be used as a standalone image.
 Please reference either the docker compose file at [server-api](https://www.github.com/openml/server-api) for development purposes, or [services](https://www.github.com/openml/services) for deployment purposes.
 
 ## Configuration
