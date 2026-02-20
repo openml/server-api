@@ -5,16 +5,21 @@ RUN apt-get update  \
 
 ENV VIRTUAL_ENV=/opt/venv
 RUN python -m venv $VIRTUAL_ENV
+# Prepending the path here means that `python` invocations below use the virtual environment
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 RUN python -m pip install uv
 
-WORKDIR /python-api
+WORKDIR /app
 COPY pyproject.toml .
 
 RUN uv pip install -e ".[dev]"
-COPY . /python-api
+COPY . /app
 
+RUN mkdir /config
+COPY ./src/config.toml /config/config.toml
+ENV OPENML_REST_API_CONFIG_FILE_PATH=/config/config.toml
+COPY ./docker/python/README.md /README.md
 
 EXPOSE 8000
 ENTRYPOINT ["python", "src/main.py"]
