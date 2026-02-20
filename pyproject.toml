@@ -32,6 +32,10 @@ dev = [
     "hypothesis",
     "deepdiff",
     "pytest-xdist",
+    "testcontainers",
+    "pymysql",
+    "cryptography",
+
 ]
 docs = [
     "mkdocs-material",
