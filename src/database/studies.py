@@ -3,14 +3,15 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import cast
 
-from sqlalchemy import Connection, Row, text
+from sqlalchemy import Row, text
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 from database.users import User
 from schemas.study import CreateStudy, StudyType
 
 
-def get_by_id(id_: int, connection: Connection) -> Row | None:
-    return connection.execute(
+async def get_by_id(id_: int, connection: AsyncConnection) -> Row | None:
+    row = await connection.execute(
         text(
             """
             SELECT *, main_entity_type as type_
@@ -19,11 +20,12 @@ def get_by_id(id_: int, connection: Connection) -> Row | None:
             """,
         ),
         parameters={"study_id": id_},
-    ).one_or_none()
+    )
+    return row.one_or_none()
 
 
-def get_by_alias(alias: str, connection: Connection) -> Row | None:
-    return connection.execute(
+async def get_by_alias(alias: str, connection: AsyncConnection) -> Row | None:
+    row = await connection.execute(
         text(
             """
             SELECT *, main_entity_type as type_
@@ -32,34 +34,34 @@ def get_by_alias(alias: str, connection: Connection) -> Row | None:
             """,
         ),
         parameters={"study_id": alias},
-    ).one_or_none()
+    )
+    return row.one_or_none()
 
 
-def get_study_data(study: Row, expdb: Connection) -> Sequence[Row]:
+async def get_study_data(study: Row, expdb: AsyncConnection) -> Sequence[Row]:
     """Return data related to the study, content depends on the study type.
 
     For task studies: (task id, dataset id)
     For run studies: (run id, task id, setup id, dataset id, flow id)
     """
     if study.type_ == StudyType.TASK:
-        return cast(
-            "Sequence[Row]",
-            expdb.execute(
-                text(
-                    """
+        rows = await expdb.execute(
+            text(
+                """
                 SELECT ts.task_id as task_id, ti.value as data_id
                 FROM task_study as ts LEFT JOIN task_inputs ti ON ts.task_id = ti.task_id
                 WHERE ts.study_id = :study_id AND ti.input = 'source_data'
                 """,
-                ),
-                parameters={"study_id": study.id},
-            ).all(),
+            ),
+            parameters={"study_id": study.id},
         )
-    return cast(
-        "Sequence[Row]",
-        expdb.execute(
-            text(
-                """
+        return cast(
+            "Sequence[Row]",
+            rows.all(),
+        )
+    rows = await expdb.execute(
+        text(
+            """
             SELECT
                 rs.run_id as run_id,
                 run.task_id as task_id,
@@ -72,14 +74,17 @@ def get_study_data(study: Row, expdb: Connection) -> Sequence[Row]:
             JOIN task_inputs as ti ON ti.task_id = run.task_id
             WHERE rs.study_id = :study_id AND ti.input = 'source_data'
             """,
-            ),
-            parameters={"study_id": study.id},
-        ).all(),
+        ),
+        parameters={"study_id": study.id},
+    )
+    return cast(
+        "Sequence[Row]",
+        rows.all(),
     )
 
 
-def create(study: CreateStudy, user: User, expdb: Connection) -> int:
-    expdb.execute(
+async def create(study: CreateStudy, user: User, expdb: AsyncConnection) -> int:
+    await expdb.execute(
         text(
             """
             INSERT INTO study (
@@ -102,12 +107,13 @@ def create(study: CreateStudy, user: User, expdb: Connection) -> int:
             "benchmark_suite": study.benchmark_suite,
         },
     )
-    (study_id,) = expdb.execute(text("""SELECT LAST_INSERT_ID();""")).one()
+    row = await expdb.execute(text("""SELECT LAST_INSERT_ID();"""))
+    (study_id,) = row.one()
     return cast("int", study_id)
 
 
-def attach_task(task_id: int, study_id: int, user: User, expdb: Connection) -> None:
-    expdb.execute(
+async def attach_task(task_id: int, study_id: int, user: User, expdb: AsyncConnection) -> None:
+    await expdb.execute(
         text(
             """
             INSERT INTO task_study (study_id, task_id, uploader)
@@ -118,8 +124,8 @@ def attach_task(task_id: int, study_id: int, user: User, expdb: Connection) -> N
     )
 
 
-def attach_run(*, run_id: int, study_id: int, user: User, expdb: Connection) -> None:
-    expdb.execute(
+async def attach_run(*, run_id: int, study_id: int, user: User, expdb: AsyncConnection) -> None:
+    await expdb.execute(
         text(
             """
             INSERT INTO run_study (study_id, run_id, uploader)
@@ -130,16 +136,16 @@ def attach_run(*, run_id: int, study_id: int, user: User, expdb: Connection) -> 
     )
 
 
-def attach_tasks(
+async def attach_tasks(
     *,
     study_id: int,
     task_ids: list[int],
     user: User,
-    connection: Connection,
+    connection: AsyncConnection,
 ) -> None:
     to_link = [(study_id, task_id, user.user_id) for task_id in task_ids]
     try:
-        connection.execute(
+        await connection.execute(
             text(
                 """
                 INSERT INTO task_study (study_id, task_id, uploader)
@@ -162,10 +168,10 @@ def attach_tasks(
         raise ValueError(msg) from e
 
 
-def attach_runs(
+async def attach_runs(
     study_id: int,
     run_ids: list[int],
     user: User,
-    connection: Connection,
+    connection: AsyncConnection,
 ) -> None:
     raise NotImplementedError
