@@ -1,16 +1,18 @@
 import json
 import re
 from http import HTTPStatus
-from typing import Annotated, cast
+from typing import Annotated, Any, cast
 
 import xmltodict
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy import Connection, RowMapping, text
 
 import config
 import database.datasets
 import database.tasks
-from routers.dependencies import expdb_connection
+from database.users import User, UserGroup
+from routers.dependencies import expdb_connection, fetch_user
+from routers.types import SystemString64
 from schemas.datasets.openml import Task
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -147,6 +149,68 @@ def _fill_json_template(
     template = template.replace("[TASK:id]", str(task.task_id))
     server_url = config.load_routing_configuration()["server_url"]
     return template.replace("[CONSTANT:base_url]", server_url)
+
+
+@router.post(path="/tag")
+def tag_task(
+    task_id: Annotated[int, Body()],
+    tag: Annotated[str, SystemString64],
+    user: Annotated[User | None, Depends(fetch_user)] = None,
+    expdb: Annotated[Connection, Depends(expdb_connection)] = None,
+) -> dict[str, dict[str, Any]]:
+    if user is None:
+        raise HTTPException(
+            status_code=HTTPStatus.PRECONDITION_FAILED,
+            detail={"code": "103", "message": "Authentication failed"},
+        )
+    tags = database.tasks.get_tags(task_id, expdb)
+    if tag.casefold() in [t.casefold() for t in tags]:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail={
+                "code": "473",
+                "message": "Entity already tagged by this tag.",
+                "additional_information": f"id={task_id}; tag={tag}",
+            },
+        )
+    database.tasks.tag(task_id, tag, user_id=user.user_id, connection=expdb)
+    return {"task_tag": {"id": str(task_id), "tag": [*tags, tag]}}
+
+
+@router.post(path="/untag")
+def untag_task(
+    task_id: Annotated[int, Body()],
+    tag: Annotated[str, SystemString64],
+    user: Annotated[User | None, Depends(fetch_user)] = None,
+    expdb: Annotated[Connection, Depends(expdb_connection)] = None,
+) -> dict[str, dict[str, Any]]:
+    if user is None:
+        raise HTTPException(
+            status_code=HTTPStatus.PRECONDITION_FAILED,
+            detail={"code": "103", "message": "Authentication failed"},
+        )
+    existing = database.tasks.get_tag(task_id, tag, expdb)
+    if existing is None:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail={
+                "code": "477",
+                "message": "Tag not found.",
+                "additional_information": f"id={task_id}; tag={tag}",
+            },
+        )
+    if existing.uploader != user.user_id and UserGroup.ADMIN not in user.groups:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail={
+                "code": "478",
+                "message": "Tag is not owned by you.",
+                "additional_information": f"id={task_id}; tag={tag}",
+            },
+        )
+    database.tasks.delete_tag(task_id, tag, expdb)
+    tags = database.tasks.get_tags(task_id, expdb)
+    return {"task_tag": {"id": str(task_id), "tag": tags}}
 
 
 @router.get("/{task_id}")
