@@ -1,7 +1,7 @@
 from http import HTTPStatus
 
 import pytest
-from sqlalchemy import Connection
+from sqlalchemy.ext.asyncio import AsyncConnection
 from starlette.testclient import TestClient
 
 from database.datasets import get_tags_for
@@ -29,7 +29,8 @@ def test_dataset_tag_rejects_unauthorized(key: ApiKey, py_api: TestClient) -> No
     [ApiKey.ADMIN, ApiKey.SOME_USER, ApiKey.OWNER_USER],
     ids=["administrator", "non-owner", "owner"],
 )
-def test_dataset_tag(key: ApiKey, expdb_test: Connection, py_api: TestClient) -> None:
+@pytest.mark.asyncio
+async def test_dataset_tag(key: ApiKey, expdb_test: AsyncConnection, py_api: TestClient) -> None:
     dataset_id, tag = next(iter(constants.PRIVATE_DATASET_ID)), "test"
     response = py_api.post(
         f"/datasets/tag?api_key={key}",
@@ -38,7 +39,7 @@ def test_dataset_tag(key: ApiKey, expdb_test: Connection, py_api: TestClient) ->
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"data_tag": {"id": str(dataset_id), "tag": [tag]}}
 
-    tags = get_tags_for(id_=dataset_id, connection=expdb_test)
+    tags = await get_tags_for(id_=dataset_id, connection=expdb_test)
     assert tag in tags
 
 

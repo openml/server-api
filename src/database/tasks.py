@@ -1,11 +1,12 @@
 from collections.abc import Sequence
 from typing import cast
 
-from sqlalchemy import Connection, Row, text
+from sqlalchemy import Row, text
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 
-def get(id_: int, expdb: Connection) -> Row | None:
-    return expdb.execute(
+async def get(id_: int, expdb: AsyncConnection) -> Row | None:
+    return (await expdb.execute(
         text(
             """
             SELECT *
@@ -14,25 +15,25 @@ def get(id_: int, expdb: Connection) -> Row | None:
             """,
         ),
         parameters={"task_id": id_},
-    ).one_or_none()
+    )).one_or_none()
 
 
-def get_task_types(expdb: Connection) -> Sequence[Row]:
+async def get_task_types(expdb: AsyncConnection) -> Sequence[Row]:
     return cast(
         "Sequence[Row]",
-        expdb.execute(
+        (await expdb.execute(
             text(
                 """
        SELECT `ttid`, `name`, `description`, `creator`
        FROM task_type
        """,
             ),
-        ).all(),
+        )).all(),
     )
 
 
-def get_task_type(task_type_id: int, expdb: Connection) -> Row | None:
-    return expdb.execute(
+async def get_task_type(task_type_id: int, expdb: AsyncConnection) -> Row | None:
+    return (await expdb.execute(
         text(
             """
         SELECT *
@@ -41,13 +42,13 @@ def get_task_type(task_type_id: int, expdb: Connection) -> Row | None:
         """,
         ),
         parameters={"ttid": task_type_id},
-    ).one_or_none()
+    )).one_or_none()
 
 
-def get_input_for_task_type(task_type_id: int, expdb: Connection) -> Sequence[Row]:
+async def get_input_for_task_type(task_type_id: int, expdb: AsyncConnection) -> Sequence[Row]:
     return cast(
         "Sequence[Row]",
-        expdb.execute(
+        (await expdb.execute(
             text(
                 """
         SELECT *
@@ -56,14 +57,14 @@ def get_input_for_task_type(task_type_id: int, expdb: Connection) -> Sequence[Ro
         """,
             ),
             parameters={"ttid": task_type_id},
-        ).all(),
+        )).all(),
     )
 
 
-def get_input_for_task(id_: int, expdb: Connection) -> Sequence[Row]:
+async def get_input_for_task(id_: int, expdb: AsyncConnection) -> Sequence[Row]:
     return cast(
         "Sequence[Row]",
-        expdb.execute(
+        (await expdb.execute(
             text(
                 """
             SELECT `input`, `value`
@@ -72,14 +73,14 @@ def get_input_for_task(id_: int, expdb: Connection) -> Sequence[Row]:
             """,
             ),
             parameters={"task_id": id_},
-        ).all(),
+        )).all(),
     )
 
 
-def get_task_type_inout_with_template(task_type: int, expdb: Connection) -> Sequence[Row]:
+async def get_task_type_inout_with_template(task_type: int, expdb: AsyncConnection) -> Sequence[Row]:
     return cast(
         "Sequence[Row]",
-        expdb.execute(
+        (await expdb.execute(
             text(
                 """
             SELECT *
@@ -88,12 +89,12 @@ def get_task_type_inout_with_template(task_type: int, expdb: Connection) -> Sequ
             """,
             ),
             parameters={"ttid": task_type},
-        ).all(),
+        )).all(),
     )
 
 
-def get_tags(id_: int, expdb: Connection) -> list[str]:
-    tag_rows = expdb.execute(
+async def get_tags(id_: int, expdb: AsyncConnection) -> list[str]:
+    tag_rows = await expdb.execute(
         text(
             """
             SELECT `tag`

@@ -2,7 +2,7 @@ from http import HTTPStatus
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import Connection
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 import database.datasets
 import database.qualities
@@ -16,10 +16,10 @@ router = APIRouter(prefix="/datasets", tags=["datasets"])
 
 
 @router.get("/qualities/list")
-def list_qualities(
-    expdb: Annotated[Connection, Depends(expdb_connection)],
+async def list_qualities(
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[Literal["data_qualities_list"], dict[Literal["quality"], list[str]]]:
-    qualities = database.qualities.list_all_qualities(connection=expdb)
+    qualities = await database.qualities.list_all_qualities(connection=expdb)
     return {
         "data_qualities_list": {
             "quality": qualities,
@@ -28,18 +28,18 @@ def list_qualities(
 
 
 @router.get("/qualities/{dataset_id}")
-def get_qualities(
+async def get_qualities(
     dataset_id: int,
     user: Annotated[User | None, Depends(fetch_user)],
-    expdb: Annotated[Connection, Depends(expdb_connection)],
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> list[Quality]:
-    dataset = database.datasets.get(dataset_id, expdb)
-    if not dataset or not _user_has_access(dataset, user):
+    dataset = await database.datasets.get(dataset_id, expdb)
+    if not dataset or not await _user_has_access(dataset, user):
         raise HTTPException(
             status_code=HTTPStatus.PRECONDITION_FAILED,
             detail={"code": DatasetError.NO_DATA_FILE, "message": "Unknown dataset"},
         ) from None
-    return database.qualities.get_for_dataset(dataset_id, expdb)
+    return await database.qualities.get_for_dataset(dataset_id, expdb)
     # The PHP API provided (sometime) helpful error messages
     # if not qualities:
     # check if dataset exists: error 360

@@ -2,7 +2,7 @@ from http import HTTPStatus
 
 import pytest
 from fastapi import HTTPException
-from sqlalchemy import Connection
+from sqlalchemy.ext.asyncio import AsyncConnection
 from starlette.testclient import TestClient
 
 from database.users import User
@@ -76,12 +76,13 @@ def test_get_dataset(py_api: TestClient) -> None:
         SOME_USER,
     ],
 )
-def test_private_dataset_no_access(
+@pytest.mark.asyncio
+async def test_private_dataset_no_access(
     user: User | None,
-    expdb_test: Connection,
+    expdb_test: AsyncConnection,
 ) -> None:
     with pytest.raises(HTTPException) as e:
-        get_dataset(
+        await get_dataset(
             dataset_id=130,
             user=user,
             user_db=None,
@@ -94,8 +95,9 @@ def test_private_dataset_no_access(
 @pytest.mark.parametrize(
     "user", [DATASET_130_OWNER, ADMIN_USER, pytest.param(SOME_USER, marks=pytest.mark.xfail)]
 )
-def test_private_dataset_access(user: User, expdb_test: Connection, user_test: Connection) -> None:
-    dataset = get_dataset(
+@pytest.mark.asyncio
+async def test_private_dataset_access(user: User, expdb_test: AsyncConnection, user_test: AsyncConnection) -> None:
+    dataset = await get_dataset(
         dataset_id=130,
         user=user,
         user_db=user_test,
