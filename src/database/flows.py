@@ -50,6 +50,43 @@ def get_parameters(flow_id: int, expdb: Connection) -> Sequence[Row]:
     )
 
 
+def tag(id_: int, tag_: str, *, user_id: int, connection: Connection) -> None:
+    connection.execute(
+        text(
+            """
+            INSERT INTO implementation_tag(`id`, `tag`, `uploader`)
+            VALUES (:flow_id, :tag, :user_id)
+            """,
+        ),
+        parameters={"flow_id": id_, "tag": tag_, "user_id": user_id},
+    )
+
+
+def get_tag(id_: int, tag_: str, connection: Connection) -> Row | None:
+    return connection.execute(
+        text(
+            """
+            SELECT `id`, `tag`, `uploader`
+            FROM implementation_tag
+            WHERE `id` = :flow_id AND `tag` = :tag
+            """,
+        ),
+        parameters={"flow_id": id_, "tag": tag_},
+    ).one_or_none()
+
+
+def delete_tag(id_: int, tag_: str, connection: Connection) -> None:
+    connection.execute(
+        text(
+            """
+            DELETE FROM implementation_tag
+            WHERE `id` = :flow_id AND `tag` = :tag
+            """,
+        ),
+        parameters={"flow_id": id_, "tag": tag_},
+    )
+
+
 def get_by_name(name: str, external_version: str, expdb: Connection) -> Row | None:
     """Gets flow by name and external version."""
     return expdb.execute(
