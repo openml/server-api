@@ -46,8 +46,69 @@ def tag_dataset(
     return {
         "data_tag": {"id": str(data_id), "tag": [*tags, tag]},
     }
+@router.post(path="/untag")
+def untag_dataset(
+    data_id: Annotated[int, Body()],
+    tag: Annotated[str, SystemString64],
+    user: Annotated[User | None, Depends(fetch_user)] = None,
+    expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
+) -> dict[str, dict[str, Any]]:
 
+    tags = database.datasets.get_tags_for(data_id, expdb_db)
 
+    if tag.casefold() not in [t.casefold() for t in tags]:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            detail={"message": "Tag does not exist for this dataset"},
+        )
+
+    if user is None:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail="Authentication required",
+        )
+    database.datasets.untag(
+        data_id,
+        tag,
+        user_id=user.user_id,
+        connection=expdb_db,
+    )
+
+    return {
+        "data_untag": {"id": str(data_id)},
+    }
+@router.post(path="/untag")
+def untag_dataset(
+    data_id: Annotated[int, Body()],
+    tag: Annotated[str, SystemString64],
+    user: Annotated[User | None, Depends(fetch_user)] = None,
+    expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
+) -> dict[str, dict[str, Any]]:
+
+    tags = database.datasets.get_tags_for(data_id, expdb_db)
+
+    if tag.casefold() not in [t.casefold() for t in tags]:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            detail={"message": "Tag does not exist for this dataset"},
+        )
+
+    if user is None:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail="Authentication required",
+        )
+
+    database.datasets.untag(
+        data_id,
+        tag,
+        user_id=user.user_id,
+        connection=expdb_db,
+    )
+
+    return {
+        "data_untag": {"id": str(data_id)},
+    }
 def create_authentication_failed_error() -> HTTPException:
     return HTTPException(
         status_code=HTTPStatus.PRECONDITION_FAILED,
@@ -441,4 +502,29 @@ def get_dataset(
         original_data_url=original_data_url,
         collection_date=dataset.collection_date,
         md5_checksum=dataset_file.md5_hash,
+    )
+from sqlalchemy import text
+
+
+def tag(data_id: int, tag: str, user_id: int, connection: Connection) -> None:
+    connection.execute(
+        text(
+            """
+            INSERT INTO dataset_tag (id, tag)
+            VALUES (:data_id, :tag)
+            """
+        ),
+        {"data_id": data_id, "tag": tag},
+    )
+
+
+def untag(data_id: int, tag: str, user_id: int, connection: Connection) -> None:
+    connection.execute(
+        text(
+            """
+            DELETE FROM dataset_tag
+            WHERE id = :data_id AND tag = :tag
+            """
+        ),
+        {"data_id": data_id, "tag": tag},
     )
