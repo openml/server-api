@@ -535,7 +535,9 @@ async def test_attach_task_to_study(py_api: TestClient, expdb_test: AsyncConnect
 
 
 @pytest.mark.asyncio
-async def test_attach_task_to_study_needs_owner(py_api: TestClient, expdb_test: AsyncConnection) -> None:
+async def test_attach_task_to_study_needs_owner(
+    py_api: TestClient, expdb_test: AsyncConnection
+) -> None:
     await expdb_test.execute(text("UPDATE study SET status = 'in_preparation' WHERE id = 7"))
     response = await _attach_tasks_to_study(
         study_id=1,

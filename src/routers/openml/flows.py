@@ -19,7 +19,9 @@ async def flow_exists(
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[Literal["flow_id"], int]:
     """Check if a Flow with the name and version exists, if so, return the flow id."""
-    flow = await database.flows.get_by_name(name=name, external_version=external_version, expdb=expdb)
+    flow = await database.flows.get_by_name(
+        name=name, external_version=external_version, expdb=expdb
+    )
     if flow is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
@@ -29,7 +31,9 @@ async def flow_exists(
 
 
 @router.get("/{flow_id}")
-async def get_flow(flow_id: int, expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None) -> Flow:
+async def get_flow(
+    flow_id: int, expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None
+) -> Flow:
     flow = await database.flows.get(flow_id, expdb)
     if not flow:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Flow not found")

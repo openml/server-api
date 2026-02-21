@@ -11,29 +11,33 @@ from schemas.study import CreateStudy, StudyType
 
 
 async def get_by_id(id_: int, connection: AsyncConnection) -> Row | None:
-    return (await connection.execute(
-        text(
-            """
+    return (
+        await connection.execute(
+            text(
+                """
             SELECT *, main_entity_type as type_
             FROM study
             WHERE id = :study_id
             """,
-        ),
-        parameters={"study_id": id_},
-    )).one_or_none()
+            ),
+            parameters={"study_id": id_},
+        )
+    ).one_or_none()
 
 
 async def get_by_alias(alias: str, connection: AsyncConnection) -> Row | None:
-    return (await connection.execute(
-        text(
-            """
+    return (
+        await connection.execute(
+            text(
+                """
             SELECT *, main_entity_type as type_
             FROM study
             WHERE alias = :study_id
             """,
-        ),
-        parameters={"study_id": alias},
-    )).one_or_none()
+            ),
+            parameters={"study_id": alias},
+        )
+    ).one_or_none()
 
 
 async def get_study_data(study: Row, expdb: AsyncConnection) -> Sequence[Row]:
@@ -45,22 +49,25 @@ async def get_study_data(study: Row, expdb: AsyncConnection) -> Sequence[Row]:
     if study.type_ == StudyType.TASK:
         return cast(
             "Sequence[Row]",
-            (await expdb.execute(
-                text(
-                    """
+            (
+                await expdb.execute(
+                    text(
+                        """
                 SELECT ts.task_id as task_id, ti.value as data_id
                 FROM task_study as ts LEFT JOIN task_inputs ti ON ts.task_id = ti.task_id
                 WHERE ts.study_id = :study_id AND ti.input = 'source_data'
                 """,
-                ),
-                parameters={"study_id": study.id},
-            )).all(),
+                    ),
+                    parameters={"study_id": study.id},
+                )
+            ).all(),
         )
     return cast(
         "Sequence[Row]",
-        (await expdb.execute(
-            text(
-                """
+        (
+            await expdb.execute(
+                text(
+                    """
             SELECT
                 rs.run_id as run_id,
                 run.task_id as task_id,
@@ -73,9 +80,10 @@ async def get_study_data(study: Row, expdb: AsyncConnection) -> Sequence[Row]:
             JOIN task_inputs as ti ON ti.task_id = run.task_id
             WHERE rs.study_id = :study_id AND ti.input = 'source_data'
             """,
-            ),
-            parameters={"study_id": study.id},
-        )).all(),
+                ),
+                parameters={"study_id": study.id},
+            )
+        ).all(),
     )
 
 

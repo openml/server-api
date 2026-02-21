@@ -108,7 +108,8 @@ async def _fill_json_template(
         }
     if isinstance(template, list):
         return [
-            await _fill_json_template(v, task, task_inputs, fetched_data, connection) for v in template
+            await _fill_json_template(v, task, task_inputs, fetched_data, connection)
+            for v in template
         ]
     if not isinstance(template, str):
         msg = f"Unexpected type for `template`: {template=}, {type(template)=}"
