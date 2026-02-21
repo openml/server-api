@@ -49,6 +49,8 @@ def tag_dataset(
     return {
         "data_untag": {"id": str(data_id)},
     }
+
+
 @router.post(path="/untag")
 def untag_dataset(
     data_id: Annotated[int, Body()],
@@ -56,7 +58,6 @@ def untag_dataset(
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[str, dict[str, Any]]:
-
     tags = database.datasets.get_tags_for(data_id, expdb_db)
 
     if tag.casefold() not in [t.casefold() for t in tags]:
@@ -81,6 +82,8 @@ def untag_dataset(
     return {
         "data_untag": {"id": str(data_id)},
     }
+
+
 def create_authentication_failed_error() -> HTTPException:
     return HTTPException(
         status_code=HTTPStatus.PRECONDITION_FAILED,
@@ -475,7 +478,6 @@ def get_dataset(
         collection_date=dataset.collection_date,
         md5_checksum=dataset_file.md5_hash,
     )
-from sqlalchemy import text
 
 
 def tag(data_id: int, tag: str, user_id: int, connection: Connection) -> None:
@@ -484,7 +486,7 @@ def tag(data_id: int, tag: str, user_id: int, connection: Connection) -> None:
             """
             INSERT INTO dataset_tag (id, tag)
             VALUES (:data_id, :tag)
-            """
+            """,
         ),
         {"data_id": data_id, "tag": tag},
     )
@@ -496,7 +498,7 @@ def untag(data_id: int, tag: str, user_id: int, connection: Connection) -> None:
             """
             DELETE FROM dataset_tag
             WHERE id = :data_id AND tag = :tag
-            """
+            """,
         ),
         {"data_id": data_id, "tag": tag},
     )
