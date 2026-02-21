@@ -19,7 +19,7 @@ def run_id(expdb_test: Connection) -> int:
         ),
     )
     (rid,) = expdb_test.execute(text("SELECT LAST_INSERT_ID();")).one()
-    return rid
+    return int(rid)
 
 
 @pytest.mark.parametrize(
