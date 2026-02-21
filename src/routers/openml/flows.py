@@ -37,7 +37,8 @@ def tag_flow(
             },
         )
     database.flows.tag(flow_id, tag, user_id=user.user_id, connection=expdb)
-    return {"flow_tag": {"id": str(flow_id), "tag": [*tags, tag]}}
+    tags = database.flows.get_tags(flow_id, expdb)
+    return {"flow_tag": {"id": str(flow_id), "tag": tags}}
 
 
 @router.post(path="/untag")

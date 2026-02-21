@@ -14,7 +14,7 @@ from tests.users import ApiKey
     [None, ApiKey.INVALID],
     ids=["no authentication", "invalid key"],
 )
-def test_flow_tag_rejects_unauthorized(key: ApiKey, py_api: TestClient) -> None:
+def test_flow_tag_rejects_unauthorized(key: ApiKey | None, py_api: TestClient) -> None:
     apikey = "" if key is None else f"?api_key={key}"
     response = py_api.post(
         f"/flows/tag{apikey}",
@@ -73,7 +73,7 @@ def test_flow_tag_fails_if_tag_exists(py_api: TestClient) -> None:
     [None, ApiKey.INVALID],
     ids=["no authentication", "invalid key"],
 )
-def test_flow_untag_rejects_unauthorized(key: ApiKey, py_api: TestClient) -> None:
+def test_flow_untag_rejects_unauthorized(key: ApiKey | None, py_api: TestClient) -> None:
     apikey = "" if key is None else f"?api_key={key}"
     response = py_api.post(
         f"/flows/untag{apikey}",
@@ -85,10 +85,11 @@ def test_flow_untag_rejects_unauthorized(key: ApiKey, py_api: TestClient) -> Non
 
 def test_flow_untag(flow: Flow, expdb_test: Connection, py_api: TestClient) -> None:
     tag = "test"
-    py_api.post(
+    setup = py_api.post(
         f"/flows/tag?api_key={ApiKey.ADMIN}",
         json={"flow_id": flow.id, "tag": tag},
     )
+    assert setup.status_code == HTTPStatus.OK
     response = py_api.post(
         f"/flows/untag?api_key={ApiKey.ADMIN}",
         json={"flow_id": flow.id, "tag": tag},
@@ -111,10 +112,11 @@ def test_flow_untag_fails_if_tag_not_found(py_api: TestClient) -> None:
 
 def test_flow_untag_fails_if_not_owner(flow: Flow, py_api: TestClient) -> None:
     tag = "test"
-    py_api.post(
+    setup = py_api.post(
         f"/flows/tag?api_key={ApiKey.ADMIN}",
         json={"flow_id": flow.id, "tag": tag},
     )
+    assert setup.status_code == HTTPStatus.OK
     response = py_api.post(
         f"/flows/untag?api_key={ApiKey.SOME_USER}",
         json={"flow_id": flow.id, "tag": tag},

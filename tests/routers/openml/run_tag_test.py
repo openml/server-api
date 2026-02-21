@@ -28,7 +28,7 @@ def run_id(expdb_test: Connection) -> int:
     ids=["no authentication", "invalid key"],
 )
 def test_run_tag_rejects_unauthorized(
-    key: ApiKey,
+    key: ApiKey | None,
     run_id: int,
     py_api: TestClient,
 ) -> None:
@@ -56,10 +56,11 @@ def test_run_tag(run_id: int, expdb_test: Connection, py_api: TestClient) -> Non
 
 def test_run_tag_fails_if_tag_exists(run_id: int, py_api: TestClient) -> None:
     tag = "test"
-    py_api.post(
+    setup = py_api.post(
         f"/runs/tag?api_key={ApiKey.ADMIN}",
         json={"run_id": run_id, "tag": tag},
     )
+    assert setup.status_code == HTTPStatus.OK
     response = py_api.post(
         f"/runs/tag?api_key={ApiKey.ADMIN}",
         json={"run_id": run_id, "tag": tag},
@@ -81,7 +82,7 @@ def test_run_tag_fails_if_tag_exists(run_id: int, py_api: TestClient) -> None:
     ids=["no authentication", "invalid key"],
 )
 def test_run_untag_rejects_unauthorized(
-    key: ApiKey,
+    key: ApiKey | None,
     run_id: int,
     py_api: TestClient,
 ) -> None:
@@ -96,10 +97,11 @@ def test_run_untag_rejects_unauthorized(
 
 def test_run_untag(run_id: int, expdb_test: Connection, py_api: TestClient) -> None:
     tag = "test"
-    py_api.post(
+    setup = py_api.post(
         f"/runs/tag?api_key={ApiKey.ADMIN}",
         json={"run_id": run_id, "tag": tag},
     )
+    assert setup.status_code == HTTPStatus.OK
     response = py_api.post(
         f"/runs/untag?api_key={ApiKey.ADMIN}",
         json={"run_id": run_id, "tag": tag},
@@ -122,10 +124,11 @@ def test_run_untag_fails_if_tag_not_found(run_id: int, py_api: TestClient) -> No
 
 def test_run_untag_fails_if_not_owner(run_id: int, py_api: TestClient) -> None:
     tag = "test"
-    py_api.post(
+    setup = py_api.post(
         f"/runs/tag?api_key={ApiKey.ADMIN}",
         json={"run_id": run_id, "tag": tag},
     )
+    assert setup.status_code == HTTPStatus.OK
     response = py_api.post(
         f"/runs/untag?api_key={ApiKey.SOME_USER}",
         json={"run_id": run_id, "tag": tag},

@@ -35,7 +35,8 @@ def tag_run(
             },
         )
     database.runs.tag(run_id, tag, user_id=user.user_id, connection=expdb)
-    return {"run_tag": {"id": str(run_id), "tag": [*tags, tag]}}
+    tags = database.runs.get_tags(run_id, expdb)
+    return {"run_tag": {"id": str(run_id), "tag": tags}}
 
 
 @router.post(path="/untag")

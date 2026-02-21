@@ -174,7 +174,8 @@ def tag_task(
             },
         )
     database.tasks.tag(task_id, tag, user_id=user.user_id, connection=expdb)
-    return {"task_tag": {"id": str(task_id), "tag": [*tags, tag]}}
+    tags = database.tasks.get_tags(task_id, expdb)
+    return {"task_tag": {"id": str(task_id), "tag": tags}}
 
 
 @router.post(path="/untag")
