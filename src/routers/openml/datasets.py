@@ -249,10 +249,16 @@ class ProcessingInformation(NamedTuple):
     error: str | None
 
 
-async def _get_processing_information(dataset_id: int, connection: AsyncConnection) -> ProcessingInformation:
+async def _get_processing_information(
+    dataset_id: int,
+    connection: AsyncConnection,
+) -> ProcessingInformation:
     """Return processing information, if any. Otherwise, all fields `None`."""
     if not (
-        data_processed := await database.datasets.get_latest_processing_update(dataset_id, connection)
+        data_processed := await database.datasets.get_latest_processing_update(
+            dataset_id,
+            connection,
+        )
     ):
         return ProcessingInformation(date=None, warning=None, error=None)
 
@@ -362,7 +368,12 @@ async def update_dataset_status(
     #  - active => deactivated  (add a row)
     #  - deactivated => active  (delete a row)
     if current_status is None or status == DatasetStatus.DEACTIVATED:
-        await database.datasets.update_status(dataset_id, status, user_id=user.user_id, connection=expdb)
+        await database.datasets.update_status(
+            dataset_id,
+            status,
+            user_id=user.user_id,
+            connection=expdb,
+        )
     elif current_status.status == DatasetStatus.DEACTIVATED:
         await database.datasets.remove_deactivated_status(dataset_id, expdb)
     else:
@@ -386,7 +397,10 @@ async def get_dataset(
 ) -> DatasetMetadata:
     dataset = await _get_dataset_raise_otherwise(dataset_id, user, expdb_db)
     if not (
-        dataset_file := await database.datasets.get_file(file_id=dataset.file_id, connection=user_db)
+        dataset_file := await database.datasets.get_file(
+            file_id=dataset.file_id,
+            connection=user_db,
+        )
     ):
         error = _format_error(
             code=DatasetError.NO_DATA_FILE,

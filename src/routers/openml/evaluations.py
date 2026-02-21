@@ -10,7 +10,9 @@ router = APIRouter(prefix="/evaluationmeasure", tags=["evaluationmeasure"])
 
 
 @router.get("/list")
-async def get_evaluation_measures(expdb: Annotated[AsyncConnection, Depends(expdb_connection)]) -> list[str]:
+async def get_evaluation_measures(
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+) -> list[str]:
     functions = await database.evaluations.get_math_functions(
         function_type="EvaluationFunction",
         connection=expdb,

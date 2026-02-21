@@ -1,3 +1,4 @@
+import asyncio
 from http import HTTPStatus
 from typing import Annotated, Literal
 
@@ -19,7 +20,11 @@ async def flow_exists(
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[Literal["flow_id"], int]:
     """Check if a Flow with the name and version exists, if so, return the flow id."""
-    flow = await database.flows.get_by_name(name=name, external_version=external_version, expdb=expdb)
+    flow = await database.flows.get_by_name(
+        name=name,
+        external_version=external_version,
+        expdb=expdb,
+    )
     if flow is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
@@ -28,8 +33,15 @@ async def flow_exists(
     return {"flow_id": flow.id}
 
 
+async def _make_subflow(identifier: str, child_id: int, expdb: AsyncConnection) -> Subflow:
+    return Subflow(identifier=identifier, flow=await get_flow(flow_id=child_id, expdb=expdb))
+
+
 @router.get("/{flow_id}")
-async def get_flow(flow_id: int, expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None) -> Flow:
+async def get_flow(
+    flow_id: int,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
+) -> Flow:
     flow = await database.flows.get(flow_id, expdb)
     if not flow:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Flow not found")
@@ -50,13 +62,14 @@ async def get_flow(flow_id: int, expdb: Annotated[AsyncConnection, Depends(expdb
 
     tags = await database.flows.get_tags(flow_id, expdb)
     subflow_rows = await database.flows.get_subflows(flow_id, expdb)
-    subflows = [
-        Subflow(
-            identifier=subflow.identifier,
-            flow=await get_flow(flow_id=subflow.child_id, expdb=expdb),
-        )
-        for subflow in subflow_rows
-    ]
+    subflows = list(
+        await asyncio.gather(
+            *[
+                _make_subflow(subflow.identifier, subflow.child_id, expdb)
+                for subflow in subflow_rows
+            ],
+        ),
+    )
 
     return Flow(
         id_=flow.id,

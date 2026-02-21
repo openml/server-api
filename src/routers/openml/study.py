@@ -16,7 +16,11 @@ from schemas.study import CreateStudy, Study, StudyStatus, StudyType
 router = APIRouter(prefix="/studies", tags=["studies"])
 
 
-async def _get_study_raise_otherwise(id_or_alias: int | str, user: User | None, expdb: AsyncConnection) -> Row:
+async def _get_study_raise_otherwise(
+    id_or_alias: int | str,
+    user: User | None,
+    expdb: AsyncConnection,
+) -> Row:
     if isinstance(id_or_alias, int) or id_or_alias.isdigit():
         study = await database.studies.get_by_id(int(id_or_alias), expdb)
     else:
@@ -121,7 +125,12 @@ async def create_study(
             await database.studies.attach_task(task_id, study_id, user, expdb)
     if study.main_entity_type == StudyType.RUN:
         for run_id in study.runs:
-            await database.studies.attach_run(run_id=run_id, study_id=study_id, user=user, expdb=expdb)
+            await database.studies.attach_run(
+                run_id=run_id,
+                study_id=study_id,
+                user=user,
+                expdb=expdb,
+            )
     # Make sure that invalid fields raise an error (e.g., "task_ids")
     return {"study_id": study_id}
 

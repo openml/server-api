@@ -96,7 +96,9 @@ async def test_private_dataset_no_access(
     "user", [DATASET_130_OWNER, ADMIN_USER, pytest.param(SOME_USER, marks=pytest.mark.xfail)]
 )
 @pytest.mark.asyncio
-async def test_private_dataset_access(user: User, expdb_test: AsyncConnection, user_test: AsyncConnection) -> None:
+async def test_private_dataset_access(
+    user: User, expdb_test: AsyncConnection, user_test: AsyncConnection
+) -> None:
     dataset = await get_dataset(
         dataset_id=130,
         user=user,

@@ -28,16 +28,18 @@ class UserGroup(IntEnum):
 
 
 async def get_user_id_for(*, api_key: APIKey, connection: AsyncConnection) -> int | None:
-    user = (await connection.execute(
-        text(
-            """
+    user = (
+        await connection.execute(
+            text(
+                """
     SELECT *
     FROM users
     WHERE session_hash = :api_key
     """,
-        ),
-        parameters={"api_key": api_key},
-    )).one_or_none()
+            ),
+            parameters={"api_key": api_key},
+        )
+    ).one_or_none()
     return user.id if user else None
 
 

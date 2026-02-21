@@ -6,19 +6,17 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def get_subflows(for_flow: int, expdb: AsyncConnection) -> Sequence[Row]:
-    return cast(
-        "Sequence[Row]",
-        await expdb.execute(
-            text(
-                """
-            SELECT child as child_id, identifier
-            FROM implementation_component
-            WHERE parent = :flow_id
-            """,
-            ),
-            parameters={"flow_id": for_flow},
+    result = await expdb.execute(
+        text(
+            """
+        SELECT child as child_id, identifier
+        FROM implementation_component
+        WHERE parent = :flow_id
+        """,
         ),
+        parameters={"flow_id": for_flow},
     )
+    return cast("Sequence[Row]", result.all())
 
 
 async def get_tags(flow_id: int, expdb: AsyncConnection) -> list[str]:
@@ -36,19 +34,17 @@ async def get_tags(flow_id: int, expdb: AsyncConnection) -> list[str]:
 
 
 async def get_parameters(flow_id: int, expdb: AsyncConnection) -> Sequence[Row]:
-    return cast(
-        "Sequence[Row]",
-        await expdb.execute(
-            text(
-                """
-            SELECT *, defaultValue as default_value, dataType as data_type
-            FROM input
-            WHERE implementation_id = :flow_id
-            """,
-            ),
-            parameters={"flow_id": flow_id},
+    result = await expdb.execute(
+        text(
+            """
+        SELECT *, defaultValue as default_value, dataType as data_type
+        FROM input
+        WHERE implementation_id = :flow_id
+        """,
         ),
+        parameters={"flow_id": flow_id},
     )
+    return cast("Sequence[Row]", result.all())
 
 
 async def get_by_name(name: str, external_version: str, expdb: AsyncConnection) -> Row | None:

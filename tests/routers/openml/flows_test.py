@@ -56,7 +56,9 @@ async def test_flow_exists_processes_found(
 
 
 @pytest.mark.asyncio
-async def test_flow_exists_handles_flow_not_found(mocker: MockerFixture, expdb_test: AsyncConnection) -> None:
+async def test_flow_exists_handles_flow_not_found(
+    mocker: MockerFixture, expdb_test: AsyncConnection
+) -> None:
     mocker.patch("database.flows.get_by_name", new_callable=AsyncMock, return_value=None)
     with pytest.raises(HTTPException) as error:
         await flow_exists("foo", "bar", expdb_test)

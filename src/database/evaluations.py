@@ -11,16 +11,18 @@ from schemas.datasets.openml import EstimationProcedure
 async def get_math_functions(function_type: str, connection: AsyncConnection) -> Sequence[Row]:
     return cast(
         "Sequence[Row]",
-        (await connection.execute(
-            text(
-                """
+        (
+            await connection.execute(
+                text(
+                    """
             SELECT *
             FROM math_function
             WHERE `functionType` = :function_type
             """,
-            ),
-            parameters={"function_type": function_type},
-        )).all(),
+                ),
+                parameters={"function_type": function_type},
+            )
+        ).all(),
     )
 
 

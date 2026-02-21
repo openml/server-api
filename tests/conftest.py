@@ -30,14 +30,14 @@ async def automatic_rollback(engine: AsyncEngine) -> AsyncIterator[AsyncConnecti
             await transaction.rollback()
 
 
-@pytest_asyncio.fixture
-async def expdb_test() -> AsyncConnection:
+@pytest_asyncio.fixture  # type: ignore[untyped-decorator]
+async def expdb_test() -> AsyncIterator[AsyncConnection]:
     async with automatic_rollback(expdb_database()) as connection:
         yield connection
 
 
-@pytest_asyncio.fixture
-async def user_test() -> AsyncConnection:
+@pytest_asyncio.fixture  # type: ignore[untyped-decorator]
+async def user_test() -> AsyncIterator[AsyncConnection]:
     async with automatic_rollback(user_database()) as connection:
         yield connection
 
@@ -77,7 +77,7 @@ class Flow(NamedTuple):
     external_version: str
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture  # type: ignore[untyped-decorator]
 async def flow(expdb_test: AsyncConnection) -> Flow:
     await expdb_test.execute(
         text(
@@ -91,7 +91,7 @@ async def flow(expdb_test: AsyncConnection) -> Flow:
     return Flow(id=flow_id, name="name", external_version="external_version")
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture  # type: ignore[untyped-decorator]
 async def persisted_flow(flow: Flow, expdb_test: AsyncConnection) -> AsyncIterator[Flow]:
     await expdb_test.commit()
     yield flow
