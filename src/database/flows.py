@@ -1,27 +1,26 @@
 from collections.abc import Sequence
 from typing import cast
 
-from sqlalchemy import Connection, Row, text
+from sqlalchemy import Row, text
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 
-def get_subflows(for_flow: int, expdb: Connection) -> Sequence[Row]:
-    return cast(
-        "Sequence[Row]",
-        expdb.execute(
-            text(
-                """
-            SELECT child as child_id, identifier
-            FROM implementation_component
-            WHERE parent = :flow_id
-            """,
-            ),
-            parameters={"flow_id": for_flow},
+async def get_subflows(for_flow: int, expdb: AsyncConnection) -> Sequence[Row]:
+    result = await expdb.execute(
+        text(
+            """
+        SELECT child as child_id, identifier
+        FROM implementation_component
+        WHERE parent = :flow_id
+        """,
         ),
+        parameters={"flow_id": for_flow},
     )
+    return cast("Sequence[Row]", result.all())
 
 
-def get_tags(flow_id: int, expdb: Connection) -> list[str]:
-    tag_rows = expdb.execute(
+async def get_tags(flow_id: int, expdb: AsyncConnection) -> list[str]:
+    tag_rows = await expdb.execute(
         text(
             """
             SELECT tag
@@ -34,25 +33,23 @@ def get_tags(flow_id: int, expdb: Connection) -> list[str]:
     return [tag.tag for tag in tag_rows]
 
 
-def get_parameters(flow_id: int, expdb: Connection) -> Sequence[Row]:
-    return cast(
-        "Sequence[Row]",
-        expdb.execute(
-            text(
-                """
-            SELECT *, defaultValue as default_value, dataType as data_type
-            FROM input
-            WHERE implementation_id = :flow_id
-            """,
-            ),
-            parameters={"flow_id": flow_id},
+async def get_parameters(flow_id: int, expdb: AsyncConnection) -> Sequence[Row]:
+    result = await expdb.execute(
+        text(
+            """
+        SELECT *, defaultValue as default_value, dataType as data_type
+        FROM input
+        WHERE implementation_id = :flow_id
+        """,
         ),
+        parameters={"flow_id": flow_id},
     )
+    return cast("Sequence[Row]", result.all())
 
 
-def get_by_name(name: str, external_version: str, expdb: Connection) -> Row | None:
+async def get_by_name(name: str, external_version: str, expdb: AsyncConnection) -> Row | None:
     """Gets flow by name and external version."""
-    return expdb.execute(
+    result = await expdb.execute(
         text(
             """
             SELECT *, uploadDate as upload_date
@@ -61,11 +58,12 @@ def get_by_name(name: str, external_version: str, expdb: Connection) -> Row | No
             """,
         ),
         parameters={"name": name, "external_version": external_version},
-    ).one_or_none()
+    )
+    return result.one_or_none()
 
 
-def get(id_: int, expdb: Connection) -> Row | None:
-    return expdb.execute(
+async def get(id_: int, expdb: AsyncConnection) -> Row | None:
+    result = await expdb.execute(
         text(
             """
             SELECT *, uploadDate as upload_date
@@ -74,4 +72,5 @@ def get(id_: int, expdb: Connection) -> Row | None:
             """,
         ),
         parameters={"flow_id": id_},
-    ).one_or_none()
+    )
+    return result.one_or_none()

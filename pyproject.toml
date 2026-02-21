@@ -17,7 +17,7 @@ dependencies = [
     "pydantic",
     "uvicorn",
     "sqlalchemy",
-    "mysqlclient",
+    "aiomysql",
     "python_dotenv",
     "xmltodict",
 ]
@@ -27,6 +27,7 @@ dev = [
     "coverage",
     "pre-commit",
     "pytest",
+    "pytest-asyncio",
     "pytest-mock",
     "httpx",
     "hypothesis",
@@ -77,6 +78,8 @@ plugins = [
 ]
 
 [tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 pythonpath = [
   "src"
 ]
