@@ -8,7 +8,11 @@ from schemas.datasets.openml import Visibility
 class DatasetUploadMetadata(BaseModel):
     """Metadata provided alongside the uploaded Parquet file."""
 
-    name: str = Field(description="Human-readable name of the dataset.", min_length=1, max_length=256)
+    name: str = Field(
+        description="Human-readable name of the dataset.",
+        min_length=1,
+        max_length=256,
+    )
     description: str = Field(description="Description of the dataset.", min_length=1)
     default_target_attribute: str = Field(
         default="",

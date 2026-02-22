@@ -202,6 +202,19 @@ def insert_file(
     return int(file_id)
 
 
+def update_file_reference(
+    *,
+    file_id: int,
+    reference: str,
+    connection: Connection,
+) -> None:
+    """Update the MinIO object key on an existing file row."""
+    connection.execute(
+        text("UPDATE file SET `reference` = :reference WHERE `id` = :file_id"),
+        parameters={"reference": reference, "file_id": file_id},
+    )
+
+
 def insert_dataset(  # noqa: PLR0913
     *,
     name: str,
@@ -286,31 +299,26 @@ def insert_features(
     features: list[dict[str, object]],
     connection: Connection,
 ) -> None:
-    """Bulk-insert feature rows into `data_feature`.
-
-    Each dict in *features* must have: index, name, data_type, is_target,
-    is_row_identifier, is_ignore, number_of_missing_values.
-    """
+    """Bulk-insert feature rows into `data_feature` in a single round-trip."""
     if not features:
         return
-    for feat in features:
-        connection.execute(
-            text(
-                """
-                INSERT INTO data_feature(
-                    `did`, `index`, `name`, `data_type`,
-                    `is_target`, `is_row_identifier`, `is_ignore`,
-                    `NumberOfMissingValues`
-                )
-                VALUES (
-                    :did, :index, :name, :data_type,
-                    :is_target, :is_row_identifier, :is_ignore,
-                    :number_of_missing_values
-                )
-                """,
-            ),
-            parameters={"did": dataset_id, **feat},
-        )
+    connection.execute(
+        text(
+            """
+            INSERT INTO data_feature(
+                `did`, `index`, `name`, `data_type`,
+                `is_target`, `is_row_identifier`, `is_ignore`,
+                `NumberOfMissingValues`
+            )
+            VALUES (
+                :did, :index, :name, :data_type,
+                :is_target, :is_row_identifier, :is_ignore,
+                :number_of_missing_values
+            )
+            """,
+        ),
+        [{"did": dataset_id, **feat} for feat in features],
+    )
 
 
 def insert_qualities(
@@ -319,19 +327,15 @@ def insert_qualities(
     qualities: list[dict[str, object]],
     connection: Connection,
 ) -> None:
-    """Insert quality rows into `data_quality`.
-
-    Each dict must have: quality (str), value (float | None).
-    """
+    """Bulk-insert quality rows into `data_quality` in a single round-trip."""
     if not qualities:
         return
-    for q in qualities:
-        connection.execute(
-            text(
-                """
-                INSERT INTO data_quality(`data`, `quality`, `value`)
-                VALUES (:data, :quality, :value)
-                """,
-            ),
-            parameters={"data": dataset_id, **q},
-        )
+    connection.execute(
+        text(
+            """
+            INSERT INTO data_quality(`data`, `quality`, `value`)
+            VALUES (:data, :quality, :value)
+            """,
+        ),
+        [{"data": dataset_id, **q} for q in qualities],
+    )

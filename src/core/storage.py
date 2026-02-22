@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
 
-from config import _load_configuration, _config_file
+from config import _config_file, _load_configuration
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -21,11 +21,19 @@ MINIO_SECRET_KEY_ENV = "OPENML_MINIO_SECRET_KEY"  # noqa: S105
 
 def _minio_config(file: Path = _config_file) -> dict[str, str]:
     cfg = _load_configuration(file).get("minio", {})
+    access_key = os.environ.get(MINIO_ACCESS_KEY_ENV) or cfg.get("access_key", "")
+    secret_key = os.environ.get(MINIO_SECRET_KEY_ENV) or cfg.get("secret_key", "")
+    if not access_key or not secret_key:
+        msg = (
+            f"MinIO credentials not found. Set {MINIO_ACCESS_KEY_ENV} and "
+            f"{MINIO_SECRET_KEY_ENV} environment variables."
+        )
+        raise RuntimeError(msg)
     return {
         "endpoint_url": cfg.get("endpoint_url", "http://minio:9000"),
         "bucket": cfg.get("bucket", "datasets"),
-        "access_key": os.environ.get(MINIO_ACCESS_KEY_ENV, cfg.get("access_key", "minioadmin")),
-        "secret_key": os.environ.get(MINIO_SECRET_KEY_ENV, cfg.get("secret_key", "minioadmin")),
+        "access_key": access_key,
+        "secret_key": secret_key,
     }
 
 

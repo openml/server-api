@@ -8,6 +8,10 @@ import pytest
 
 from core.parquet import FeatureType, ParquetMeta, map_arrow_type, read_parquet_metadata
 
+_NUM_TEST_ROWS = 3
+_NUM_TEST_COLS = 3
+_EXPECTED_MISSING = 2
+
 
 def _make_parquet_bytes(**columns: pa.Array) -> bytes:
     """Build an in-memory Parquet file from keyword-arg columns."""
@@ -44,9 +48,9 @@ def test_read_parquet_metadata_returns_correct_shape() -> None:
     )
     meta: ParquetMeta = read_parquet_metadata(data)
 
-    assert meta.num_rows == 3
-    assert meta.num_columns == 3
-    assert len(meta.columns) == 3
+    assert meta.num_rows == _NUM_TEST_ROWS
+    assert meta.num_columns == _NUM_TEST_COLS
+    assert len(meta.columns) == _NUM_TEST_COLS
     assert meta.md5_checksum  # non-empty
 
 
@@ -67,7 +71,7 @@ def test_read_parquet_metadata_counts_missing_values() -> None:
         col=pa.array([1, None, 3, None], type=pa.int32()),
     )
     meta = read_parquet_metadata(data)
-    assert meta.columns[0].number_of_missing_values == 2
+    assert meta.columns[0].number_of_missing_values == _EXPECTED_MISSING
 
 
 def test_read_parquet_metadata_zero_missing_values() -> None:

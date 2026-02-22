@@ -89,7 +89,23 @@ def upload_dataset(
             detail={"code": "112", "message": str(exc)},
         ) from exc
 
-    # --- DB: insert file record (MinIO reference filled after we know the did) ---
+    # --- Validate target attribute exists in the Parquet schema ---
+    target_attribute = upload_meta.default_target_attribute
+    if target_attribute is not None:
+        parquet_column_names = {col.name for col in parquet_meta.columns}
+        if target_attribute not in parquet_column_names:
+            raise HTTPException(
+                status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+                detail={
+                    "code": "114",
+                    "message": (
+                        f"Default target attribute '{target_attribute}' "
+                        "does not exist in the uploaded dataset columns."
+                    ),
+                },
+            )
+
+    # --- DB: insert file and dataset rows (reference updated after upload) ---
     file_id = database.datasets.insert_file(
         file_name=filename,
         reference="",
@@ -97,7 +113,6 @@ def upload_dataset(
         connection=expdb_db,
     )
 
-    # --- DB: insert dataset record ---
     dataset_id = database.datasets.insert_dataset(
         name=upload_meta.name,
         description=upload_meta.description,
@@ -107,7 +122,7 @@ def upload_dataset(
         visibility=upload_meta.visibility,
         licence=upload_meta.licence,
         language=upload_meta.language,
-        default_target_attribute=upload_meta.default_target_attribute,
+        default_target_attribute=target_attribute,
         original_data_url=upload_meta.original_data_url,
         paper_url=upload_meta.paper_url,
         collection_date=upload_meta.collection_date,
@@ -116,14 +131,22 @@ def upload_dataset(
         connection=expdb_db,
     )
 
-    # --- Upload actual file to MinIO (now we know dataset_id) ---
+    # --- Upload file to MinIO; roll back DB on failure to avoid orphan rows ---
     try:
-        upload_to_minio(file_bytes, dataset_id)
+        minio_key = upload_to_minio(file_bytes, dataset_id)
     except RuntimeError as exc:
+        expdb_db.rollback()
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail={"code": "113", "message": str(exc)},
         ) from exc
+
+    # Persist the real object location now that we have the key
+    database.datasets.update_file_reference(
+        file_id=file_id,
+        reference=minio_key,
+        connection=expdb_db,
+    )
 
     # --- DB: description, features, qualities, status ---
     database.datasets.insert_description(
@@ -137,7 +160,7 @@ def upload_dataset(
             "index": col.index,
             "name": col.name,
             "data_type": col.data_type,
-            "is_target": col.name == upload_meta.default_target_attribute,
+            "is_target": col.name == target_attribute,
             "is_row_identifier": False,
             "is_ignore": False,
             "number_of_missing_values": col.number_of_missing_values,

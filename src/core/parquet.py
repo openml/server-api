@@ -9,11 +9,23 @@ import pyarrow.parquet as pq
 
 from schemas.datasets.openml import FeatureType
 
+__all__ = [
+    "ColumnMeta",
+    "FeatureType",
+    "ParquetMeta",
+    "map_arrow_type",
+    "read_parquet_metadata",
+]
+
 
 def map_arrow_type(arrow_type: pa.DataType) -> FeatureType:
     """Map a PyArrow DataType to an OpenML FeatureType."""
-    if pa.types.is_floating(arrow_type) or pa.types.is_integer(arrow_type) or pa.types.is_decimal(
-        arrow_type
+    if (
+        pa.types.is_floating(arrow_type)
+        or pa.types.is_integer(arrow_type)
+        or pa.types.is_decimal(
+            arrow_type,
+        )
     ):
         return FeatureType.NUMERIC
     if pa.types.is_boolean(arrow_type) or pa.types.is_dictionary(arrow_type):
@@ -51,7 +63,7 @@ def read_parquet_metadata(file_bytes: bytes) -> ParquetMeta:
 
     schema = pf.schema_arrow
     num_rows = pf.metadata.num_rows
-    md5 = hashlib.md5(file_bytes, usedforsecurity=False).hexdigest()  # noqa: S324
+    md5 = hashlib.md5(file_bytes, usedforsecurity=False).hexdigest()
 
     # Read full table once to count per-column nulls
     table = pf.read()
@@ -66,7 +78,7 @@ def read_parquet_metadata(file_bytes: bytes) -> ParquetMeta:
                 name=col_name,
                 data_type=map_arrow_type(schema.field(col_name).type),
                 number_of_missing_values=null_count,
-            )
+            ),
         )
 
     return ParquetMeta(
