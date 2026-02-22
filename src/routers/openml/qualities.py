@@ -49,7 +49,10 @@ def get_qualities(
     if processing.error:
         raise HTTPException(
             status_code=HTTPStatus.PRECONDITION_FAILED,
-            detail={"code": QualityError.PROCESSED_WITH_ERROR, "message": "Dataset processed with error"},
+            detail={
+                "code": QualityError.PROCESSED_WITH_ERROR,
+                "message": "Dataset processed with error",
+            },
         )
 
     qualities = database.qualities.get_for_dataset(dataset_id, expdb)
@@ -61,6 +64,6 @@ def get_qualities(
 
     return {
         "data_qualities": {
-            "quality": qualities
-        }
+            "quality": qualities,
+        },
     }
