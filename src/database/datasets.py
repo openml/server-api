@@ -143,8 +143,8 @@ def get_feature_ontologies(dataset_id: int, connection: Connection) -> dict[int,
         parameters={"dataset_id": dataset_id},
     )
     ontologies: dict[int, list[str]] = {}
-    for row in rows:
-        ontologies.setdefault(row.index, []).append(row.value)
+    for row in rows.mappings():
+        ontologies.setdefault(row["index"], []).append(row["value"])
     return ontologies
 
 
