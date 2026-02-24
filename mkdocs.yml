@@ -15,7 +15,6 @@ theme:
 nav:
   - OpenML Server: index.md
   - Getting Started: installation.md
-  - Changes: migration.md
 
   - Contributing:
       - contributing/index.md
@@ -23,6 +22,8 @@ nav:
       - Tests: contributing/tests.md
       - Documentation: contributing/documentation.md
       - Project Overview: contributing/project_overview.md
+
+  - Changes: migration.md
 
 markdown_extensions:
   - attr_list
