@@ -131,6 +131,23 @@ def get_features(dataset_id: int, connection: Connection) -> list[Feature]:
     return [Feature(**row, nominal_values=None) for row in rows.mappings()]
 
 
+def get_feature_ontologies(dataset_id: int, connection: Connection) -> dict[int, list[str]]:
+    rows = connection.execute(
+        text(
+            """
+            SELECT `index`, `value`
+            FROM data_feature_description
+            WHERE `did` = :dataset_id AND `description_type` = 'ontology'
+            """,
+        ),
+        parameters={"dataset_id": dataset_id},
+    )
+    ontologies: dict[int, list[str]] = {}
+    for row in rows:
+        ontologies.setdefault(row.index, []).append(row.value)
+    return ontologies
+
+
 def get_feature_values(dataset_id: int, *, feature_index: int, connection: Connection) -> list[str]:
     rows = connection.execute(
         text(

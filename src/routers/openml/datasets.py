@@ -287,6 +287,13 @@ def get_dataset_features(
 ) -> list[Feature]:
     _get_dataset_raise_otherwise(dataset_id, user, expdb)
     features = database.datasets.get_features(dataset_id, expdb)
+
+    # Attach ontologies from data_feature_description
+    ontologies = database.datasets.get_feature_ontologies(dataset_id, expdb)
+    for feature in features:
+        if feature.index in ontologies:
+            feature.ontology = ontologies[feature.index]
+
     for feature in [f for f in features if f.data_type == FeatureType.NOMINAL]:
         feature.nominal_values = database.datasets.get_feature_values(
             dataset_id,

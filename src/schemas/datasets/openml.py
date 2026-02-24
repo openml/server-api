@@ -40,6 +40,7 @@ class Feature(BaseModel):
     index: int
     name: str
     data_type: FeatureType
+    ontology: list[str] | None = None
     is_target: bool
     is_ignore: bool
     is_row_identifier: bool
