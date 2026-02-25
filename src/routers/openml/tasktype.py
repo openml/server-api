@@ -3,7 +3,8 @@ from http import HTTPStatus
 from typing import Annotated, Any, Literal, cast
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import Connection, Row
+from sqlalchemy.engine import Row
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 from database.tasks import get_input_for_task_type, get_task_types
 from database.tasks import get_task_type as db_get_task_type
@@ -12,7 +13,7 @@ from routers.dependencies import expdb_connection
 router = APIRouter(prefix="/tasktype", tags=["tasks"])
 
 
-def _normalize_task_type(task_type: Row) -> dict[str, str | None | list[Any]]:
+def _normalize_task_type(task_type: Row[Any]) -> dict[str, str | None | list[Any]]:
     # Task types may contain multi-line fields which have either \r\n or \n line endings
     ttype: dict[str, str | None | list[Any]] = {
         k: str(v).replace("\r\n", "\n").strip() if v is not None else v
@@ -26,24 +27,25 @@ def _normalize_task_type(task_type: Row) -> dict[str, str | None | list[Any]]:
 
 
 @router.get(path="/list")
-def list_task_types(
-    expdb: Annotated[Connection, Depends(expdb_connection)] = None,
+async def list_task_types(
+    expdb: Annotated[AsyncConnection | None, Depends(expdb_connection)] = None,
 ) -> dict[
     Literal["task_types"],
     dict[Literal["task_type"], list[dict[str, str | None | list[Any]]]],
 ]:
+    assert expdb is not None  # noqa: S101
     task_types: list[dict[str, str | None | list[Any]]] = [
-        _normalize_task_type(ttype) for ttype in get_task_types(expdb)
+        _normalize_task_type(ttype) for ttype in await get_task_types(expdb)
     ]
     return {"task_types": {"task_type": task_types}}
 
 
 @router.get(path="/{task_type_id}")
-def get_task_type(
+async def get_task_type(
     task_type_id: int,
-    expdb: Annotated[Connection, Depends(expdb_connection)],
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[Literal["task_type"], dict[str, str | None | list[str] | list[dict[str, str]]]]:
-    task_type_record = db_get_task_type(task_type_id, expdb)
+    task_type_record = await db_get_task_type(task_type_id, expdb)
     if task_type_record is None:
         raise HTTPException(
             status_code=HTTPStatus.PRECONDITION_FAILED,
@@ -60,7 +62,7 @@ def get_task_type(
             creator.strip(' "') for creator in cast("str", contributors).split(",")
         ]
     task_type["creation_date"] = task_type.pop("creationDate")
-    task_type_inputs = get_input_for_task_type(task_type_id, expdb)
+    task_type_inputs = await get_input_for_task_type(task_type_id, expdb)
     input_types = []
     for task_type_input in task_type_inputs:
         input_ = {}

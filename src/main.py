@@ -1,9 +1,12 @@
 import argparse
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
 
 from config import load_configuration
+from database.setup import close_databases
 from routers.mldcat_ap.dataset import router as mldcat_ap_router
 from routers.openml.datasets import router as datasets_router
 from routers.openml.estimation_procedure import router as estimationprocedure_router
@@ -13,6 +16,13 @@ from routers.openml.qualities import router as qualities_router
 from routers.openml.study import router as study_router
 from routers.openml.tasks import router as task_router
 from routers.openml.tasktype import router as ttype_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
+    """Manage application lifespan - startup and shutdown events."""
+    yield
+    await close_databases()
 
 
 def _parse_args() -> argparse.Namespace:
@@ -43,7 +53,7 @@ def _parse_args() -> argparse.Namespace:
 
 def create_api() -> FastAPI:
     fastapi_kwargs = load_configuration()["fastapi"]
-    app = FastAPI(**fastapi_kwargs)
+    app = FastAPI(**fastapi_kwargs, lifespan=lifespan)
 
     app.include_router(datasets_router)
     app.include_router(qualities_router)

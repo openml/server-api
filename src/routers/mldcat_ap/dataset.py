@@ -7,7 +7,7 @@ Specific queries could be written to fetch e.g., a single feature or quality.
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import Connection
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 import config
 from database.users import User
@@ -37,19 +37,21 @@ _server_url = (
     path="/distribution/{distribution_id}",
     description="Get meta-data for distribution with ID `distribution_id`.",
 )
-def get_mldcat_ap_distribution(
+async def get_mldcat_ap_distribution(
     distribution_id: int,
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    user_db: Annotated[Connection, Depends(userdb_connection)] = None,
-    expdb: Annotated[Connection, Depends(expdb_connection)] = None,
+    user_db: Annotated[AsyncConnection | None, Depends(userdb_connection)] = None,
+    expdb: Annotated[AsyncConnection | None, Depends(expdb_connection)] = None,
 ) -> JsonLDGraph:
-    oml_dataset = get_dataset(
+    assert user_db is not None  # noqa: S101
+    assert expdb is not None  # noqa: S101
+    oml_dataset = await get_dataset(
         dataset_id=distribution_id,
         user=user,
         user_db=user_db,
         expdb_db=expdb,
     )
-    openml_features = get_dataset_features(distribution_id, user, expdb)
+    openml_features = await get_dataset_features(distribution_id, user, expdb)
     features = [
         Feature(
             id_=f"{_server_url}/feature/{distribution_id}/{feature.index}",
@@ -58,7 +60,7 @@ def get_mldcat_ap_distribution(
         )
         for feature in openml_features
     ]
-    oml_qualities = get_qualities(distribution_id, user, expdb)
+    oml_qualities = await get_qualities(distribution_id, user, expdb)
     qualities = [
         Quality(
             id_=f"{_server_url}/quality/{quality.name}/{distribution_id}",
@@ -138,13 +140,14 @@ def get_dataservice(service_id: int) -> JsonLDGraph:
     path="/quality/{quality_name}/{distribution_id}",
     description="Get meta-data for a specific quality and distribution.",
 )
-def get_distribution_quality(
+async def get_distribution_quality(
     quality_name: str,
     distribution_id: int,
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    expdb: Annotated[Connection, Depends(expdb_connection)] = None,
+    expdb: Annotated[AsyncConnection | None, Depends(expdb_connection)] = None,
 ) -> JsonLDGraph:
-    qualities = get_qualities(distribution_id, user, expdb)
+    assert expdb is not None  # noqa: S101
+    qualities = await get_qualities(distribution_id, user, expdb)
     quality = next(q for q in qualities if q.name == quality_name)
     example_quality = Quality(
         id_=f"{_server_url}/quality/{quality_name}/{distribution_id}",
@@ -164,13 +167,14 @@ def get_distribution_quality(
     path="/feature/{distribution_id}/{feature_no}",
     description="Get meta-data for the n-th feature of a distribution.",
 )
-def get_distribution_feature(
+async def get_distribution_feature(
     distribution_id: int,
     feature_no: int,
-    user: Annotated[Connection, Depends(fetch_user)] = None,
-    expdb: Annotated[Connection, Depends(expdb_connection)] = None,
+    user: Annotated[User | None, Depends(fetch_user)] = None,
+    expdb: Annotated[AsyncConnection | None, Depends(expdb_connection)] = None,
 ) -> JsonLDGraph:
-    features = get_dataset_features(
+    assert expdb is not None  # noqa: S101
+    features = await get_dataset_features(
         dataset_id=distribution_id,
         user=user,
         expdb=expdb,
