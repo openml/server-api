@@ -1,6 +1,6 @@
 import re
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import cast
 
 from sqlalchemy import Connection, Row, text
@@ -98,7 +98,7 @@ def create(study: CreateStudy, user: User, expdb: Connection) -> int:
             "main_entity_type": study.main_entity_type,
             "description": study.description,
             "creator": user.user_id,
-            "creation_date": datetime.now(),
+            "creation_date": datetime.now(UTC),
             "benchmark_suite": study.benchmark_suite,
         },
     )

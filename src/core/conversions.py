@@ -3,7 +3,7 @@ from typing import Any
 
 
 def _str_to_num(string: str) -> int | float | str:
-    """Tries to convert the string to integer, otherwise float, otherwise returns the input."""
+    """Try to convert the string to integer, otherwise float, otherwise returns the input."""
     if string.isdigit():
         return int(string)
     try:
@@ -13,8 +13,10 @@ def _str_to_num(string: str) -> int | float | str:
 
 
 def nested_str_to_num(obj: Any) -> Any:
-    """Recursively tries to convert all strings in the object to numbers.
-    For dictionaries, only the values will be converted."""
+    """Recursively try to convert all strings in the object to numbers.
+
+    For dictionaries, only the values will be converted.
+    """
     if isinstance(obj, str):
         return _str_to_num(obj)
     if isinstance(obj, Mapping):
@@ -25,8 +27,10 @@ def nested_str_to_num(obj: Any) -> Any:
 
 
 def nested_num_to_str(obj: Any) -> Any:
-    """Recursively tries to convert all numbers in the object to strings.
-    For dictionaries, only the values will be converted."""
+    """Recursively try to convert all numbers in the object to strings.
+
+    For dictionaries, only the values will be converted.
+    """
     if isinstance(obj, str):
         return obj
     if isinstance(obj, Mapping):

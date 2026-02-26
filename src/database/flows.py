@@ -51,7 +51,7 @@ def get_parameters(flow_id: int, expdb: Connection) -> Sequence[Row]:
 
 
 def get_by_name(name: str, external_version: str, expdb: Connection) -> Row | None:
-    """Gets flow by name and external version."""
+    """Get flow by name and external version."""
     return expdb.execute(
         text(
             """
