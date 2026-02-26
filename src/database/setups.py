@@ -20,7 +20,7 @@ def get_tags_for(id_: int, connection: Connection) -> list[str]:
     rows = connection.execute(
         text(
             """
-            SELECT *
+            SELECT tag
             FROM setup_tag
             WHERE id = :setup_id
             """

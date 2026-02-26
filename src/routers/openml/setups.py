@@ -19,7 +19,8 @@ def create_authentication_failed_error() -> HTTPException:
 
 def create_tag_exists_error(setup_id: int, tag: str) -> HTTPException:
     return HTTPException(
-        status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+        # Changed from INTERNAL_SERVER_ERROR (500) to CONFLICT (409)
+        status_code=HTTPStatus.CONFLICT, 
         detail={
             "code": "473",
             "message": "Entity already tagged by this tag.",
@@ -30,7 +31,7 @@ def create_tag_exists_error(setup_id: int, tag: str) -> HTTPException:
 @router.post("/tag")
 def tag_setup(
     setup_id: Annotated[int, Body()],
-    tag: Annotated[str, SystemString64],
+    tag: Annotated[str, Body(..., embed=False), SystemString64],
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[str, dict[str, Any]]:
