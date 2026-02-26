@@ -4,6 +4,8 @@ import logging
 import uvicorn
 from fastapi import FastAPI
 
+from routers.openml.setups import router as setups_router
+
 from config import load_configuration
 from routers.mldcat_ap.dataset import router as mldcat_ap_router
 from routers.openml.datasets import router as datasets_router
@@ -47,6 +49,7 @@ def create_api() -> FastAPI:
     app = FastAPI(**fastapi_kwargs)
 
     app.include_router(datasets_router)
+    app.include_router(setups_router)
     app.include_router(qualities_router)
     app.include_router(mldcat_ap_router)
     app.include_router(ttype_router)
