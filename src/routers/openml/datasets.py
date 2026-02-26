@@ -1,10 +1,11 @@
+import json
 import re
 from datetime import datetime
 from enum import StrEnum
 from http import HTTPStatus
 from typing import Annotated, Any, Literal, NamedTuple
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, Form, HTTPException, UploadFile
 from sqlalchemy import Connection, text
 from sqlalchemy.engine import Row
 
@@ -18,12 +19,182 @@ from core.formatting import (
     _format_error,
     _format_parquet_url,
 )
+from core.parquet import read_parquet_metadata
+from core.storage import upload_to_minio
 from database.users import User, UserGroup
 from routers.dependencies import Pagination, expdb_connection, fetch_user, userdb_connection
 from routers.types import CasualString128, IntegerRange, SystemString64, integer_range_regex
-from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Feature, FeatureType
+from schemas.datasets.openml import (
+    DatasetFileFormat,
+    DatasetMetadata,
+    DatasetStatus,
+    Feature,
+    FeatureType,
+)
+from schemas.datasets.upload import DatasetUploadMetadata, DatasetUploadResponse
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
+
+
+@router.post(
+    path="/upload",
+    summary="Upload a Parquet dataset",
+    status_code=HTTPStatus.CREATED,
+)
+def upload_dataset(
+    file: Annotated[UploadFile, ...],
+    metadata: Annotated[str, Form(description="JSON-encoded DatasetUploadMetadata")],
+    user: Annotated[User | None, Depends(fetch_user)] = None,
+    expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
+) -> DatasetUploadResponse:
+    """Upload a Parquet file as a new OpenML dataset.
+
+    Send as multipart/form-data with:
+    - **file**: the `.parquet` file
+    - **metadata**: a JSON string with name, description, visibility, etc.
+    """
+    if user is None:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail={
+                "code": "103",
+                "message": "Authentication failed. Please provide a valid API key.",
+            },
+        )
+
+    # --- Validate file type ---
+    filename = file.filename or ""
+    if not filename.lower().endswith(".parquet"):
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail={"code": "110", "message": "Only .parquet files are accepted."},
+        )
+
+    # --- Parse metadata JSON ---
+    try:
+        upload_meta = DatasetUploadMetadata(**json.loads(metadata))
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+            detail={"code": "111", "message": f"Invalid metadata JSON: {exc}"},
+        ) from exc
+
+    # --- Read & validate Parquet ---
+    file_bytes = file.file.read()
+    try:
+        parquet_meta = read_parquet_metadata(file_bytes)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST,
+            detail={"code": "112", "message": str(exc)},
+        ) from exc
+
+    # --- Validate target attribute exists in the Parquet schema ---
+    target_attribute = upload_meta.default_target_attribute
+    if target_attribute is not None:
+        parquet_column_names = {col.name for col in parquet_meta.columns}
+        if target_attribute not in parquet_column_names:
+            raise HTTPException(
+                status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+                detail={
+                    "code": "114",
+                    "message": (
+                        f"Default target attribute '{target_attribute}' "
+                        "does not exist in the uploaded dataset columns."
+                    ),
+                },
+            )
+
+    # --- DB: insert file and dataset rows (reference updated after upload) ---
+    file_id = database.datasets.insert_file(
+        file_name=filename,
+        reference="",
+        md5_hash=parquet_meta.md5_checksum,
+        connection=expdb_db,
+    )
+
+    dataset_id = database.datasets.insert_dataset(
+        name=upload_meta.name,
+        description=upload_meta.description,
+        format_=DatasetFileFormat.PARQUET,
+        file_id=file_id,
+        uploader=user.user_id,
+        visibility=upload_meta.visibility,
+        licence=upload_meta.licence,
+        language=upload_meta.language,
+        default_target_attribute=target_attribute,
+        original_data_url=upload_meta.original_data_url,
+        paper_url=upload_meta.paper_url,
+        collection_date=upload_meta.collection_date,
+        citation=upload_meta.citation,
+        md5_checksum=parquet_meta.md5_checksum,
+        connection=expdb_db,
+    )
+
+    # --- Upload file to MinIO; roll back DB on failure to avoid orphan rows ---
+    try:
+        minio_key = upload_to_minio(file_bytes, dataset_id)
+    except RuntimeError as exc:
+        expdb_db.rollback()
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail={"code": "113", "message": str(exc)},
+        ) from exc
+
+    # Persist the real object location now that we have the key
+    database.datasets.update_file_reference(
+        file_id=file_id,
+        reference=minio_key,
+        connection=expdb_db,
+    )
+
+    # --- DB: description, features, qualities, status ---
+    database.datasets.insert_description(
+        dataset_id=dataset_id,
+        description=upload_meta.description,
+        connection=expdb_db,
+    )
+
+    features = [
+        {
+            "index": col.index,
+            "name": col.name,
+            "data_type": col.data_type,
+            "is_target": col.name == target_attribute,
+            "is_row_identifier": False,
+            "is_ignore": False,
+            "number_of_missing_values": col.number_of_missing_values,
+        }
+        for col in parquet_meta.columns
+    ]
+    database.datasets.insert_features(
+        dataset_id=dataset_id,
+        features=features,
+        connection=expdb_db,
+    )
+
+    qualities = [
+        {"quality": "NumberOfInstances", "value": float(parquet_meta.num_rows)},
+        {"quality": "NumberOfFeatures", "value": float(parquet_meta.num_columns)},
+        {
+            "quality": "NumberOfMissingValues",
+            "value": float(sum(c.number_of_missing_values for c in parquet_meta.columns)),
+        },
+    ]
+    database.datasets.insert_qualities(
+        dataset_id=dataset_id,
+        qualities=qualities,
+        connection=expdb_db,
+    )
+
+    database.datasets.update_status(
+        dataset_id=dataset_id,
+        status="in_preparation",
+        user_id=user.user_id,
+        connection=expdb_db,
+    )
+
+    return DatasetUploadResponse(upload_dataset={"id": dataset_id})
 
 
 @router.post(
