@@ -1,0 +1,907 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://openml.github.io/server-api/contributing/contributing/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../tests/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.3">
+    
+    
+      
+        <title>Development - OpenML Server</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#setting-up-the-development-environment" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="OpenML Server" class="md-header__button md-logo" aria-label="OpenML Server" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            OpenML Server
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Development
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/openml/server-api" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    openml/server-api
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="OpenML Server" class="md-nav__button md-logo" aria-label="OpenML Server" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    OpenML Server
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/openml/server-api" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    openml/server-api
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Intro
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#pre-commit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pre-commit
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Docker">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#starting-containers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Starting containers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#connecting-to-containers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connecting to containers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#unit-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unit tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#yaml-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YAML validation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#connecting-to-another-database" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connecting to another database
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../documentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../project_overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#pre-commit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pre-commit
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#docker" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Docker">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#starting-containers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Starting containers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#connecting-to-containers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connecting to containers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#unit-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unit tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#yaml-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        YAML validation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#connecting-to-another-database" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connecting to another database
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="setting-up-the-development-environment">Setting up the development environment</h1>
+<p>First, follow the <a href="../../installation/#local-installation">installation</a> instructions
+for contributors to install a local fork with optional development dependencies.
+Stop when you reach the section "Setting up a Database Server".</p>
+<h2 id="pre-commit">Pre-commit</h2>
+<p>We use <a href="https://pre-commit.com"><code>pre-commit</code></a> to ensure certain tools and checks are
+ran before each commit. These tools perform code-formatting, linting, and more. This
+makes the code more consistent across the board, which makes it easier to work with
+each other's code and also can catch common errors. After installing it, it will
+automatically run when you try to make a commit. Install it now and verify that all
+checks pass out of the box:</p>
+<p><div class="highlight"><span class="filename">Install pre-commit and verify it works</span><pre><span></span><code>pre-commit<span class="w"> </span>install
+pre-commit<span class="w"> </span>run<span class="w"> </span>--all-files
+</code></pre></div>
+Running the tool the first time may be slow as tools need to be installed,
+and many tools will build a cache so subsequent runs are faster.
+Under normal circumstances, running the pre-commit chain shouldn't take more than a few
+seconds.</p>
+<h2 id="docker">Docker</h2>
+<p>With the projected forked, cloned, and installed, the easiest way to set up all
+required services for development is through <a href="https://docs.docker.com/compose/"><code>docker compose</code></a>.</p>
+<h3 id="starting-containers">Starting containers</h3>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>--profile<span class="w"> </span>all<span class="w"> </span>up<span class="w"> </span>-d
+</code></pre></div>
+<p>This will spin up 5 containers, as defined in the <code>docker-compose.yaml</code> file:</p>
+<ul>
+<li><code>openml-test-database</code>: this is a mysql database prepopulated with test data.
+    It is reachable from the host machine with port <code>3306</code>, by default it is configured
+    to have a root user with password <code>"ok"</code>.</li>
+<li><code>server-api-docs-1</code>: this container serves project documentation at <code>localhost:8000</code>.
+    These pages are built from the documents in the <code>docs/</code> directory of this repository,
+    whenever you edit and save a file there, the page will immediately be updated.</li>
+<li><code>openml-php-rest-api</code>: this container serves the old PHP REST API at <code>localhost:8002</code>.
+    For example, visit <a href="http://localhost:8002/api/v1/json/data/1">http://localhost:8002/api/v1/json/data/1</a>
+    to fetch a JSON description of dataset 1.</li>
+<li><code>openml-elasticsearch</code>: Elasticsearch, required for the PHP REST API to function.</li>
+<li><code>openml-python-rest-api</code>: this container serves the new Python-based REST API at <code>localhost:8001</code>.
+    For example, visit <a href="http://localhost:8001/docs">http://localhost:8001/docs</a> to see
+    the REST API documentation. Changes to the code in <code>src/</code> will be reflected in this
+    container.</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>On arm-based Macs, you need to enable Rosetta emulation for Docker for the Elasticsearch container to work.</p>
+</div>
+<p>We can now run the full test suite, which takes about 4 minutes:</p>
+<p><div class="highlight"><pre><span></span><code>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>openml-python-rest-api<span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests
+</code></pre></div>
+There are three important <a href="https://docs.pytest.org/en/7.1.x/example/markers.html">test markers</a> to be aware of:</p>
+<ul>
+<li><code>php_api</code>: all tests that require the PHP API container. These are tests which</li>
+<li><code>python_api</code>: all tests that require the Python API container. That's almost all of them.</li>
+<li><code>slow</code>: for long-running tests. Currently only one test.</li>
+</ul>
+<p>In many cases during development it's sufficient to either run with <code>not php_api and not slow</code> when initially adding the endpoint and implementing its response, or later <code>php_api and not slow</code> when working on the 'migration' tests that validate against the old PHP API.
+The <code>not slow</code> is only needed if a slow test would be included in your test selection. In many cases, you might prefer to only run the specific tests (or test modules) that you are working on and excluding it through markers may be unnecessary.
+Examples:</p>
+<ul>
+<li><code>docker exec openml-python-rest-api python -m pytest tests -m "not php_api and not slow"</code>, here the test selection is made primarily through markers. This command takes a few seconds.</li>
+<li><code>docker exec openml-python-rest-api python -m pytest tests/routers/openml/dataset_tag_test.py</code>, here the test selection is made through specifying the file with tests. Since this test file naturally includes neither migration tests (in <code>tests/routers/openml/migration</code>) nor the slow test (at <code>tests/routers/openml/datasets_list_datasets_test.py</code>), excluding tests through markers is unnecessary. This command takes a few seconds.</li>
+</ul>
+<p>You don't always need every container, often just having a database and the Python-based
+REST API may be enough. In that case, only specify those services:</p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span>compose<span class="w"> </span>--profile<span class="w"> </span>python<span class="w"> </span>up<span class="w"> </span>-d
+</code></pre></div>
+<p>Refer to the <code>docker compose</code> documentation for more uses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>We are working on making it easy to run tests from your local shell instead of the container (<a href="https://github.com/openml/server-api/pull/232">#232</a>). This will likely be limited to the tests that do not need the PHP API. Our CI pipeline runs all tests.</p>
+</div>
+<h3 id="connecting-to-containers">Connecting to containers</h3>
+<p>To connect to a container, run:</p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>CONTAINER_NAME<span class="w"> </span>/bin/bash
+</code></pre></div>
+<p>where <code>CONTAINER_NAME</code> is the name of the container. If you are unsure of your container
+name, then <code>docker container ls</code> may help you find it. Assuming the default container
+names are used, you may connect to the Python-based REST API container using:</p>
+<div class="highlight"><pre><span></span><code>docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>-it<span class="w"> </span>openml-python-rest-api<span class="w"> </span>/bin/bash
+</code></pre></div>
+<p>This is useful, for example, to run unit tests in the container:</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>-x<span class="w"> </span>-v<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;not php_api&quot;</span>
+</code></pre></div>
+<h2 id="unit-tests">Unit tests</h2>
+<p>Our unit tests are written with the <a href="https://pytest.org"><code>pytest</code></a> framework.
+An invocation could look like this:</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>-v<span class="w"> </span>-x<span class="w"> </span>--lf<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;not php_api&quot;</span>
+</code></pre></div>
+<p>Where <code>-v</code> shows the name of each test run, <code>-x</code> ensures testing stops on first failure,
+<code>--lf</code> will first run the test(s) which failed last, and <code>-m "not php_api"</code> specifies
+which tests (not) to run (in this case, the tests that check against the PHP API).</p>
+<p>The directory structure of our tests follows the structure of the <code>src/</code> directory.
+For files, we follow the convention of <em>appending</em> <code>_test</code>.
+Try to keep tests as small as possible, and only rely on database and/or web connections
+when absolutely necessary.</p>
+<div class="admonition failure">
+<p>Instructions are incomplete. Please have patience while we are adding more documentation.</p>
+</div>
+<h2 id="yaml-validation">YAML validation</h2>
+<p>The project contains various <a href="https://yaml.org"><code>yaml</code></a> files, for example to configure
+<code>mkdocs</code> or to describe Github workflows. For these <code>yaml</code> files we can configure
+automatic schema validation, to ensure that the files are valid without having to run
+the server. This also helps with other IDE features like autocomplete. Setting this
+up is not required, but incredibly useful if you do need to edit these files.
+The following <code>yaml</code> files have schemas:</p>
+<table>
+<thead>
+<tr>
+<th>File(s)</th>
+<th>Schema URL</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>mkdocs.yml</td>
+<td>https://squidfunk.github.io/mkdocs-material/schema.json</td>
+</tr>
+<tr>
+<td>.pre-commit-config.yaml</td>
+<td>https://json.schemastore.org/pre-commit-config.json</td>
+</tr>
+<tr>
+<td>.github/workflows/*.yaml</td>
+<td>https://json.schemastore.org/github-workflow</td>
+</tr>
+</tbody>
+</table>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">PyCharm</label><label for="__tabbed_1_2">VSCode</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<p>In PyCharm, these can be configured from <code>settings</code> &gt; <code>languages &amp; frameworks</code> &gt;
+<code>Schemas and DTDs</code> &gt; <code>JSON Schema Mappings</code>. There, add mappings per file or
+file pattern.</p>
+</div>
+<div class="tabbed-block">
+<p>In VSCode, these can be configured from <code>settings</code> &gt; <code>Extetions</code> &gt;
+<code>JSON</code> &gt; <code>Edit in settings.json</code>. There, add mappings per file or
+file pattern. For example:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">&quot;json.schemas&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">   </span><span class="p">{</span>
+<span class="w">         </span><span class="nt">&quot;fileMatch&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">            </span><span class="s2">&quot;/myfile&quot;</span>
+<span class="w">         </span><span class="p">],</span>
+<span class="w">         </span><span class="nt">&quot;url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;schemaURL&quot;</span>
+<span class="w">   </span><span class="p">}</span>
+
+<span class="p">]</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<h2 id="connecting-to-another-database">Connecting to another database</h2>
+<p>In addition to the database setup described in the <a href="../../installation/#setting-up-a-database-server">installation guide</a>,
+we also host a database on our server which may be connected to that is available
+to <a href="https://openml.org/about">OpenML core contributors</a>. If you are a core contributor
+and need access, please reach out to one of the engineers in Eindhoven.</p>
+<div class="admonition failure">
+<p>Instructions are incomplete. Please have patience while we are adding more documentation.</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
