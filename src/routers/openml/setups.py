@@ -22,7 +22,7 @@ def create_authentication_failed_error() -> HTTPException:
 def create_tag_exists_error(setup_id: int, tag: str) -> HTTPException:
     return HTTPException(
         # Changed from INTERNAL_SERVER_ERROR (500) to CONFLICT (409)
-        status_code=HTTPStatus.CONFLICT, 
+        status_code=HTTPStatus.CONFLICT,
         detail={
             "code": "473",
             "message": "Entity already tagged by this tag.",
