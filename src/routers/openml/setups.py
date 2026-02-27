@@ -6,29 +6,19 @@ from sqlalchemy import Connection
 
 import database.setups
 from database.users import User, UserGroup
-from routers.dependencies import expdb_connection, fetch_user
+from routers.dependencies import expdb_connection, fetch_user_or_raise
 from routers.types import SystemString64
 
 router = APIRouter(prefix="/setup", tags=["setup"])
-
-
-def create_authentication_failed_error() -> HTTPException:
-    return HTTPException(
-        status_code=HTTPStatus.PRECONDITION_FAILED,
-        detail={"code": "103", "message": "Authentication failed"},
-    )
 
 
 @router.post(path="/untag")
 def untag_setup(
     setup_id: Annotated[int, Body()],
     tag: Annotated[str, SystemString64],
-    user: Annotated[User | None, Depends(fetch_user)] = None,
+    user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[str, dict[str, str]]:
-    if user is None:
-        raise create_authentication_failed_error()
-
     if not database.setups.get(setup_id, expdb_db):
         raise HTTPException(
             status_code=HTTPStatus.PRECONDITION_FAILED,

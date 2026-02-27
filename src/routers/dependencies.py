@@ -1,6 +1,7 @@
+from http import HTTPStatus
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import Connection
 
@@ -27,6 +28,17 @@ def fetch_user(
     user_data: Annotated[Connection, Depends(userdb_connection)] = None,
 ) -> User | None:
     return User.fetch(api_key, user_data) if api_key else None
+
+
+def fetch_user_or_raise(
+    user: Annotated[User | None, Depends(fetch_user)] = None,
+) -> User:
+    if user is None:
+        raise HTTPException(
+            status_code=HTTPStatus.PRECONDITION_FAILED,
+            detail={"code": "103", "message": "Authentication failed"},
+        )
+    return user
 
 
 class Pagination(BaseModel):
