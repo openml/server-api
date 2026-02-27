@@ -19,6 +19,15 @@ def generate_splits(
     Returns a flat list of dicts with keys:
         repeat, fold, rowid, type ('TRAIN' or 'TEST')
     """
+    if n_folds <= 0:
+        msg = f"n_folds must be a positive integer, got {n_folds}"
+        raise ValueError(msg)
+    if n_repeats <= 0:
+        msg = f"n_repeats must be a positive integer, got {n_repeats}"
+        raise ValueError(msg)
+    if n_samples <= 0:
+        return []
+
     entries: list[SplitEntry] = []
     rng = random.Random(seed)  # noqa: S311
 
@@ -86,16 +95,19 @@ def build_fold_index(
     splits: list[SplitEntry],
     repeat: int = 0,
 ) -> dict[int, tuple[list[int], list[int]]]:
-    """Build a dict of fold → (train_indices, test_indices) for a given repeat."""
+    """Build a dict of fold -> (train_indices, test_indices) for a given repeat."""
     folds: dict[int, tuple[list[int], list[int]]] = {}
     for entry in splits:
         if entry["repeat"] != repeat:
             continue
         fold = int(entry["fold"])
         rowid = int(entry["rowid"])
+        split_type = str(entry["type"]).upper()
+        if split_type not in {"TRAIN", "TEST"}:
+            continue
         if fold not in folds:
             folds[fold] = ([], [])
-        if entry["type"] == "TRAIN":
+        if split_type == "TRAIN":
             folds[fold][0].append(rowid)
         else:
             folds[fold][1].append(rowid)

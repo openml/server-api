@@ -110,3 +110,12 @@ def store_evaluation(
             "array_data": array_data,
         },
     )
+
+
+def delete(run_id: int, expdb: Connection) -> None:
+    """Delete a run row by primary key (used for rollback on enqueue failure)."""
+    expdb.execute(
+        text("DELETE FROM run WHERE `rid` = :run_id"),
+        parameters={"run_id": run_id},
+    )
+

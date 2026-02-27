@@ -1,17 +1,22 @@
-
 from __future__ import annotations
 
 import io
+import pathlib
+from datetime import datetime
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
 import pytest
-from pytest_mock import MockerFixture
-from starlette.testclient import TestClient
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
+    from starlette.testclient import TestClient
 
 
-# ---------------------------------------------------------------------------
-# Minimal ARFF predictions content used in tests
-# ---------------------------------------------------------------------------
+RUN_ID = 42
+FLOW_ID = 2
+EXPECTED_RUN_ID = 99
+EXPECTED_RUN_ID_2 = 71
 
 MINIMAL_PREDICTIONS_ARFF = b"""@relation predictions
 
@@ -37,11 +42,6 @@ MINIMAL_RUN_XML = b"""<?xml version="1.0" encoding="UTF-8"?>
 INVALID_XML = b"not xml at all <<<"
 
 
-# ---------------------------------------------------------------------------
-# GET /runs/{run_id}
-# ---------------------------------------------------------------------------
-
-
 def test_get_run_not_found(py_api: TestClient) -> None:
     """GET an unknown run_id should return 404."""
     response = py_api.get("/runs/999999999")
@@ -52,12 +52,10 @@ def test_get_run_not_found(py_api: TestClient) -> None:
 
 def test_get_run_returns_structure(mocker: MockerFixture, py_api: TestClient) -> None:
     """GET /runs/{id} returns RunDetail structure when run exists."""
-    from datetime import datetime
-
     mock_run = mocker.MagicMock()
-    mock_run.rid = 42
+    mock_run.rid = RUN_ID
     mock_run.task_id = 1
-    mock_run.flow_id = 2
+    mock_run.flow_id = FLOW_ID
     mock_run.uploader = 16
     mock_run.upload_time = datetime(2024, 1, 15, 10, 30, 0)
     mock_run.setup_string = "weka.J48 -C 0.25"
@@ -71,22 +69,17 @@ def test_get_run_returns_structure(mocker: MockerFixture, py_api: TestClient) ->
         ],
     )
 
-    response = py_api.get("/runs/42")
+    response = py_api.get(f"/runs/{RUN_ID}")
     assert response.status_code == HTTPStatus.OK
     body = response.json()
 
-    assert body["run_id"] == 42
+    assert body["run_id"] == RUN_ID
     assert body["task_id"] == 1
-    assert body["flow_id"] == 2
+    assert body["flow_id"] == FLOW_ID
     assert body["tags"] == ["study_1"]
     assert len(body["evaluations"]) == 1
     assert body["evaluations"][0]["function"] == "predictive_accuracy"
     assert body["evaluations"][0]["value"] == pytest.approx(0.93)
-
-
-# ---------------------------------------------------------------------------
-# POST /runs
-# ---------------------------------------------------------------------------
 
 
 def test_upload_run_requires_auth(py_api: TestClient) -> None:
@@ -104,7 +97,6 @@ def test_upload_run_requires_auth(py_api: TestClient) -> None:
 
 def test_upload_run_invalid_xml(mocker: MockerFixture, py_api: TestClient) -> None:
     """Malformed description XML should return 422."""
-    # Simulate an authenticated user
     mocker.patch("routers.dependencies.fetch_user", return_value=mocker.MagicMock(user_id=1))
 
     response = py_api.post(
@@ -152,13 +144,15 @@ def test_upload_run_unknown_flow(mocker: MockerFixture, py_api: TestClient) -> N
     assert response.json()["detail"]["code"] == "180"
 
 
-def test_upload_run_success(mocker: MockerFixture, tmp_path, py_api: TestClient) -> None:
+def test_upload_run_success(
+    mocker: MockerFixture, tmp_path: pathlib.Path, py_api: TestClient,
+) -> None:
     """A fully valid POST /runs should return 201 with a run_id."""
     fake_user = mocker.MagicMock(user_id=16)
     mocker.patch("routers.dependencies.fetch_user", return_value=fake_user)
     mocker.patch("database.tasks.get", return_value=mocker.MagicMock())
     mocker.patch("database.flows.get", return_value=mocker.MagicMock())
-    mocker.patch("database.runs.create", return_value=99)
+    mocker.patch("database.runs.create", return_value=EXPECTED_RUN_ID)
     mocker.patch("database.processing.enqueue")
     mocker.patch(
         "routers.openml.runs.load_configuration",
@@ -174,21 +168,25 @@ def test_upload_run_success(mocker: MockerFixture, tmp_path, py_api: TestClient)
     )
     assert response.status_code == HTTPStatus.CREATED
     body = response.json()
-    assert body["run_id"] == 99
+    assert body["run_id"] == EXPECTED_RUN_ID
 
     # Verify predictions file was persisted
-    predictions_path = tmp_path / "99" / "predictions.arff"
+    predictions_path = tmp_path / str(EXPECTED_RUN_ID) / "predictions.arff"
     assert predictions_path.exists()
     assert predictions_path.read_bytes() == MINIMAL_PREDICTIONS_ARFF
 
 
-def test_upload_run_enqueues_processing(mocker: MockerFixture, tmp_path, py_api: TestClient) -> None:
+def test_upload_run_enqueues_processing(
+    mocker: MockerFixture,
+    tmp_path: pathlib.Path,
+    py_api: TestClient,
+) -> None:
     """Successful upload must enqueue a processing_run entry."""
     fake_user = mocker.MagicMock(user_id=16)
     mocker.patch("routers.dependencies.fetch_user", return_value=fake_user)
     mocker.patch("database.tasks.get", return_value=mocker.MagicMock())
     mocker.patch("database.flows.get", return_value=mocker.MagicMock())
-    mocker.patch("database.runs.create", return_value=7)
+    mocker.patch("database.runs.create", return_value=EXPECTED_RUN_ID_2)
     enqueue_mock = mocker.patch("database.processing.enqueue")
     mocker.patch(
         "routers.openml.runs.load_configuration",
@@ -204,4 +202,4 @@ def test_upload_run_enqueues_processing(mocker: MockerFixture, tmp_path, py_api:
     )
     enqueue_mock.assert_called_once()
     call_kwargs = enqueue_mock.call_args
-    assert call_kwargs[0][0] == 7  # run_id positional arg
+    assert call_kwargs[0][0] == EXPECTED_RUN_ID_2  # run_id positional arg

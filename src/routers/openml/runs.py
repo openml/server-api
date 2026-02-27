@@ -1,11 +1,11 @@
-
 from __future__ import annotations
 
 import json
 import logging
+import shutil
 from http import HTTPStatus
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated
+from typing import TYPE_CHECKING, Annotated, Any
 
 import xmltodict
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -14,6 +14,7 @@ import database.flows
 import database.processing
 import database.runs
 import database.tasks
+from config import load_configuration
 from database.users import User
 from routers.dependencies import expdb_connection, fetch_user
 from schemas.runs import RunDetail, RunEvaluationResult, RunUploadResponse
@@ -24,36 +25,39 @@ if TYPE_CHECKING:
 router = APIRouter(prefix="/runs", tags=["runs"])
 log = logging.getLogger(__name__)
 
+_DEFAULT_UPLOAD_DIR = "/tmp/openml_runs"  # noqa: S108
+
+_OML_NAMESPACE = "http://openml.org/openml"
 
 
-
-
-def _parse_run_xml(xml_bytes: bytes) -> dict:
+def _parse_run_xml(xml_bytes: bytes) -> dict[str, Any]:
     """Parse the run description XML uploaded by the client.
+
+    Uses xmltodict namespace stripping so that 'oml:task_id' in the source
+    becomes simply 'task_id' in the returned dict, without doing a string
+    replace that could corrupt any value that contains 'oml:'.
 
     Expected root element: <oml:run xmlns:oml="http://openml.org/openml">
     Required children: oml:task_id, oml:implementation_id (flow_id).
     Optional: oml:setup_string, oml:output_data, oml:parameter_setting.
     """
     try:
-        raw = xmltodict.parse(xml_bytes.decode("utf-8"))
+        raw: dict[str, Any] = xmltodict.parse(
+            xml_bytes.decode("utf-8"),
+            process_namespaces=True,
+            namespaces={_OML_NAMESPACE: None},
+        )
     except Exception as exc:
         raise HTTPException(
             status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
             detail={"code": "530", "message": f"Invalid run description XML: {exc}"},
         ) from exc
 
-    # Strip the namespace prefix so keys are consistent
-    run_str = json.dumps(raw).replace("oml:", "")
-    data: dict = json.loads(run_str)
-
-    return data.get("run", {})
-
-
-
+    return raw.get("run", {})
 
 
 def _require_auth(user: User | None) -> User:
+    """Raise 412 if the request is not authenticated."""
     if user is None:
         raise HTTPException(
             status_code=HTTPStatus.PRECONDITION_FAILED,
@@ -63,6 +67,7 @@ def _require_auth(user: User | None) -> User:
 
 
 def _require_task(task_id: int, expdb: Connection) -> None:
+    """Raise 404 with code 201 if task_id does not exist."""
     if not database.tasks.get(task_id, expdb):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
@@ -71,14 +76,12 @@ def _require_task(task_id: int, expdb: Connection) -> None:
 
 
 def _require_flow(flow_id: int, expdb: Connection) -> None:
+    """Raise 404 with code 180 if flow_id does not exist."""
     if not database.flows.get(flow_id, expdb):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail={"code": "180", "message": f"Unknown flow: {flow_id}"},
         )
-
-
-
 
 
 @router.post(
@@ -142,17 +145,21 @@ async def upload_run(
     )
 
     # Persist the predictions file to disk so the worker can read it later
-    from config import load_configuration  # noqa: PLC0415
-
-    upload_dir: str = load_configuration().get("upload_dir", "/tmp/openml_runs")  # noqa: S108
+    upload_dir: str = load_configuration().get("upload_dir", _DEFAULT_UPLOAD_DIR)
     run_dir = Path(upload_dir) / str(run_id)
     run_dir.mkdir(parents=True, exist_ok=True)
     predictions_bytes = await predictions.read()
     predictions_path = run_dir / "predictions.arff"
     predictions_path.write_bytes(predictions_bytes)
 
-    # Enqueue for server-side evaluation
-    database.processing.enqueue(run_id, expdb)
+    # Enqueue for server-side evaluation; on failure, clean up to avoid orphans
+    try:
+        database.processing.enqueue(run_id, expdb)
+    except Exception:
+        log.exception("Failed to enqueue run %d; rolling back artifacts.", run_id)
+        shutil.rmtree(run_dir, ignore_errors=True)
+        database.runs.delete(run_id, expdb)
+        raise
 
     log.info(
         "Run %d uploaded by user %d (task=%d, flow=%d).",
@@ -162,9 +169,6 @@ async def upload_run(
         flow_id,
     )
     return RunUploadResponse(run_id=run_id)
-
-
-
 
 
 @router.get(
@@ -192,8 +196,10 @@ def get_run(
         per_fold: list[float] | None = None
         if row.array_data:
             try:
-                per_fold = [float(v) for v in json.loads(row.array_data)]
-            except (json.JSONDecodeError, ValueError):
+                parsed = json.loads(row.array_data)
+                if isinstance(parsed, list):
+                    per_fold = [float(v) for v in parsed]
+            except (json.JSONDecodeError, ValueError, TypeError):
                 per_fold = None
 
         evaluations.append(

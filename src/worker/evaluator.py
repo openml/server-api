@@ -1,6 +1,7 @@
-
 from __future__ import annotations
 
+import csv
+import io
 import logging
 import urllib.request
 from pathlib import Path
@@ -20,9 +21,12 @@ if TYPE_CHECKING:
 
 log = logging.getLogger(__name__)
 
+# Shared default; also set in routers/openml/runs.py — kept in sync via config key
+_DEFAULT_UPLOAD_DIR = "/tmp/openml_runs"  # noqa: S108
+
 
 def _parse_predictions_arff(content: str) -> dict[str, list[Any]]:
-    """Parse an OpenML predictions ARFF.
+    """Parse an OpenML predictions ARFF using csv.reader to handle quoted values.
 
     Returns a dict with keys: 'row_id', 'prediction', 'confidence' (optional).
     Expected columns: row_id, fold, repeat, prediction [, confidence.*]
@@ -40,9 +44,13 @@ def _parse_predictions_arff(content: str) -> dict[str, list[Any]]:
         if not in_data:
             continue
 
-        parts = [p.strip().strip("'\"") for p in stripped.split(",")]
-        if not parts:
+        # Use csv.reader so quoted commas and quoted values are handled correctly
+        try:
+            (parts,) = csv.reader(io.StringIO(stripped))
+        except (ValueError, StopIteration):
             continue
+        parts = [p.strip().strip("'\"") for p in parts]
+
         try:
             row_id = int(parts[0])
             prediction = parts[3] if len(parts) > 3 else parts[-1]  # noqa: PLR2004
@@ -57,23 +65,20 @@ def _parse_predictions_arff(content: str) -> dict[str, list[Any]]:
     return result
 
 
-def _load_ground_truth(
-    dataset_url: str,
+def _fetch_arff(url: str) -> str:
+    """Download an ARFF from a URL, returning the decoded text content."""
+    with urllib.request.urlopen(url, timeout=30) as resp:  # noqa: S310
+        return resp.read().decode("utf-8", errors="replace")
+
+
+def _parse_dataset_labels(
+    content: str,
     target_attribute: str,
-    test_row_ids: list[int],
-) -> list[str]:
-    """Download the dataset ARFF and extract the target column for given row IDs.
+) -> dict[int, str]:
+    """Parse a dataset ARFF and return a {row_index: label} map for target_attribute.
 
-    Only extracts rows whose 0-based index is in `test_row_ids`.
-    Returns labels as strings in the order of `test_row_ids`.
+    Returns an empty dict (with a warning) when the target column is absent.
     """
-    try:
-        with urllib.request.urlopen(dataset_url, timeout=30) as resp:  # noqa: S310
-            content = resp.read().decode("utf-8", errors="replace")
-    except Exception:
-        log.exception("Failed to download dataset from %s", dataset_url)
-        return []
-
     attr_names: list[str] = []
     data_rows: list[list[str]] = []
     in_data = False
@@ -90,22 +95,25 @@ def _load_ground_truth(
             in_data = True
             continue
         if in_data:
-            data_rows.append([v.strip().strip("'\"") for v in stripped.split(",")])
+            try:
+                (row,) = csv.reader(io.StringIO(stripped))
+                data_rows.append([v.strip().strip("'\"") for v in row])
+            except (ValueError, StopIteration):
+                continue
 
     if target_attribute not in attr_names:
         log.warning("Target attribute '%s' not found in dataset.", target_attribute)
-        return []
+        return {}
 
     target_idx = attr_names.index(target_attribute)
-    pos_to_label = {
+    return {
         i: row[target_idx]
         for i, row in enumerate(data_rows)
-        if i in set(test_row_ids) and target_idx < len(row)
+        if target_idx < len(row)
     }
-    return [pos_to_label.get(rid, "") for rid in test_row_ids]
 
 
-def _evaluate_run(run_id: int, expdb: Connection) -> None:  # noqa: C901, PLR0911, PLR0915
+def _evaluate_run(run_id: int, expdb: Connection) -> None:  # noqa: C901, PLR0911, PLR0912, PLR0915
     """Evaluate a single run, store metrics, mark processing entry done/error."""
     run = database.runs.get(run_id, expdb)
     if run is None:
@@ -140,20 +148,33 @@ def _evaluate_run(run_id: int, expdb: Connection) -> None:  # noqa: C901, PLR091
         return
     dataset_url = str(_format_dataset_url(dataset_row))
 
+    # Fetch dataset once (not per fold) and build a complete label map
+    try:
+        dataset_content = _fetch_arff(dataset_url)
+    except Exception:
+        log.exception("Failed to download dataset from %s", dataset_url)
+        database.processing.mark_error(run_id, "could not fetch dataset", expdb)
+        return
+    label_map = _parse_dataset_labels(dataset_content, target_attr)
+    if not label_map:
+        database.processing.mark_error(run_id, "target attribute not found in dataset", expdb)
+        return
+
     cfg = load_routing_configuration()
     task_id = run.task_id
-    splits_url = f"{cfg.get('server_url', '')}api_splits/get/{task_id}/Task_{task_id}_splits.arff"
+    splits_url = (
+        f"{cfg.get('server_url', '')}api_splits/get/{task_id}/Task_{task_id}_splits.arff"
+    )
     try:
-        with urllib.request.urlopen(splits_url, timeout=30) as resp:  # noqa: S310
-            splits_content = resp.read().decode("utf-8", errors="replace")
+        splits_content = _fetch_arff(splits_url)
     except Exception:
         log.exception("Could not fetch splits for task %d", task_id)
         database.processing.mark_error(run_id, "could not fetch splits", expdb)
         return
 
-    fold_index = build_fold_index(parse_arff_splits(splits_content), repeat=0)
+    splits = parse_arff_splits(splits_content)
 
-    upload_dir: str = load_configuration().get("upload_dir", "/tmp/openml_runs")  # noqa: S108
+    upload_dir: str = load_configuration().get("upload_dir", _DEFAULT_UPLOAD_DIR)
     predictions_path = Path(upload_dir) / str(run_id) / "predictions.arff"
     try:
         with predictions_path.open(encoding="utf-8") as fh:
@@ -170,18 +191,45 @@ def _evaluate_run(run_id: int, expdb: Connection) -> None:  # noqa: C901, PLR091
     conf_map: dict[int, float | None] = dict(
         zip(predictions["row_id"], predictions["confidence"], strict=True),
     )
+
+    # Determine available repeats and iterate all of them
+    all_repeats = sorted({int(e["repeat"]) for e in splits})
+
+    all_true: list[str | int | float] = []
+    all_pred: list[str | int | float] = []
+    all_score: list[float] = []
+    # has_scores starts True; disabled if any fold has a missing score
     has_scores = any(v is not None for v in conf_map.values())
 
-    all_true: list[str] = []
-    all_pred: list[str] = []
-    all_score: list[float] = []
-    for train_ids, test_ids in fold_index.values():  # noqa: B007
-        all_true.extend(_load_ground_truth(dataset_url, target_attr, test_ids))
-        all_pred.extend(pred_map.get(rid, "") for rid in test_ids)
-        if has_scores:
-            for rid in test_ids:
-                raw = conf_map.get(rid)
-                all_score.append(float(raw) if raw is not None else 0.0)
+    for repeat in all_repeats:
+        fold_index = build_fold_index(splits, repeat=repeat)
+        for _train_ids, test_ids in fold_index.values():
+            # Validate ground truth: error out if any row ID is missing
+            missing = [rid for rid in test_ids if rid not in label_map]
+            if missing:
+                database.processing.mark_error(
+                    run_id,
+                    f"ground-truth missing for row_ids {missing[:5]}",
+                    expdb,
+                )
+                return
+
+            y_true_fold = [label_map[rid] for rid in test_ids]
+            y_pred_fold = [pred_map.get(rid, "") for rid in test_ids]
+            all_true.extend(y_true_fold)
+            all_pred.extend(y_pred_fold)
+
+            if has_scores:
+                fold_scores: list[float] = []
+                for rid in test_ids:
+                    raw = conf_map.get(rid)
+                    if raw is None:
+                        # Score missing for this fold — disable AUC for whole run
+                        has_scores = False
+                        fold_scores = []
+                        break
+                    fold_scores.append(float(raw))
+                all_score.extend(fold_scores)
 
     metrics = compute_metrics(
         task_type_id=task_row.ttid,
