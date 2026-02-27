@@ -12,6 +12,7 @@ from routers.openml.evaluations import router as evaluationmeasures_router
 from routers.openml.flows import router as flows_router
 from routers.openml.qualities import router as qualities_router
 from routers.openml.study import router as study_router
+from routers.openml.runs import router as runs_router
 from routers.openml.tasks import router as task_router
 from routers.openml.tasktype import router as ttype_router
 
@@ -55,6 +56,7 @@ def create_api() -> FastAPI:
     app.include_router(task_router)
     app.include_router(flows_router)
     app.include_router(study_router)
+    app.include_router(runs_router)
     return app
 
 
