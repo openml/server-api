@@ -52,15 +52,18 @@ show_missing=true
 line-length = 100
 
 [tool.ruff.lint]
-# The D (doc) and DTZ (datetime zone) lint classes current heavily violated - fix later
+line-length = 100
+# Gradually enable docstring (D) checks: remove global ignore for "D"
+# and keep specific D-codes ignored that are still noisy.
 select = ["ALL"]
 ignore = [
-    "CPY",  # we do not require copyright in every file
-    "D",  # todo: docstring linting
+    "CPY", # we do not require copyright in every file
+    # D (docstrings) — removed to enable most D-rules. We continue to ignore
+    # some specific D-codes that are currently noisy:
     "D203",
     "D204",
     "D213",
-    "DTZ", # To add
+    "DTZ", # to add
     # Linter does not detect when types are used for Pydantic
     "TC001",
     "TC003",
