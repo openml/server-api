@@ -106,11 +106,7 @@ def _parse_dataset_labels(
         return {}
 
     target_idx = attr_names.index(target_attribute)
-    return {
-        i: row[target_idx]
-        for i, row in enumerate(data_rows)
-        if target_idx < len(row)
-    }
+    return {i: row[target_idx] for i, row in enumerate(data_rows) if target_idx < len(row)}
 
 
 def _evaluate_run(run_id: int, expdb: Connection) -> None:  # noqa: C901, PLR0911, PLR0912, PLR0915
@@ -162,9 +158,7 @@ def _evaluate_run(run_id: int, expdb: Connection) -> None:  # noqa: C901, PLR091
 
     cfg = load_routing_configuration()
     task_id = run.task_id
-    splits_url = (
-        f"{cfg.get('server_url', '')}api_splits/get/{task_id}/Task_{task_id}_splits.arff"
-    )
+    splits_url = f"{cfg.get('server_url', '')}api_splits/get/{task_id}/Task_{task_id}_splits.arff"
     try:
         splits_content = _fetch_arff(splits_url)
     except Exception:

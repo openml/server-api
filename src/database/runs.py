@@ -117,4 +117,3 @@ def delete(run_id: int, expdb: Connection) -> None:
         text("DELETE FROM run WHERE `rid` = :run_id"),
         parameters={"run_id": run_id},
     )
-

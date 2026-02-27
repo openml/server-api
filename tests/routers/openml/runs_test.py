@@ -145,7 +145,9 @@ def test_upload_run_unknown_flow(mocker: MockerFixture, py_api: TestClient) -> N
 
 
 def test_upload_run_success(
-    mocker: MockerFixture, tmp_path: pathlib.Path, py_api: TestClient,
+    mocker: MockerFixture,
+    tmp_path: pathlib.Path,
+    py_api: TestClient,
 ) -> None:
     """A fully valid POST /runs should return 201 with a run_id."""
     fake_user = mocker.MagicMock(user_id=16)

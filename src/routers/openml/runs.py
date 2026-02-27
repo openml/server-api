@@ -30,7 +30,6 @@ _DEFAULT_UPLOAD_DIR = "/tmp/openml_runs"  # noqa: S108
 _OML_NAMESPACE = "http://openml.org/openml"
 
 
-
 def _parse_run_xml(xml_bytes: bytes) -> dict[str, Any]:
     """Parse the run description XML uploaded by the client.
 
