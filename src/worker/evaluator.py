@@ -5,7 +5,7 @@ import io
 import logging
 import urllib.request
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import database.processing
 import database.runs
@@ -68,7 +68,7 @@ def _parse_predictions_arff(content: str) -> dict[str, list[Any]]:
 def _fetch_arff(url: str) -> str:
     """Download an ARFF from a URL, returning the decoded text content."""
     with urllib.request.urlopen(url, timeout=30) as resp:  # noqa: S310
-        return resp.read().decode("utf-8", errors="replace")
+        return cast("str", resp.read().decode("utf-8", errors="replace"))
 
 
 def _parse_dataset_labels(

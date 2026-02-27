@@ -5,7 +5,7 @@ import logging
 import shutil
 from http import HTTPStatus
 from pathlib import Path
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any, cast
 
 import xmltodict
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -53,7 +53,7 @@ def _parse_run_xml(xml_bytes: bytes) -> dict[str, Any]:
             detail={"code": "530", "message": f"Invalid run description XML: {exc}"},
         ) from exc
 
-    return raw.get("run", {})
+    return cast("dict[str, Any]", raw.get("run", {}))
 
 
 def _require_auth(user: User | None) -> User:
