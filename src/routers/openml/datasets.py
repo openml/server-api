@@ -19,7 +19,13 @@ from core.formatting import (
     _format_parquet_url,
 )
 from database.users import User, UserGroup
-from routers.dependencies import Pagination, expdb_connection, fetch_user, userdb_connection
+from routers.dependencies import (
+    Pagination,
+    expdb_connection,
+    fetch_user,
+    fetch_user_or_raise,
+    userdb_connection,
+)
 from routers.types import CasualString128, IntegerRange, SystemString64, integer_range_regex
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Feature, FeatureType
 
@@ -32,27 +38,17 @@ router = APIRouter(prefix="/datasets", tags=["datasets"])
 def tag_dataset(
     data_id: Annotated[int, Body()],
     tag: Annotated[str, SystemString64],
-    user: Annotated[User | None, Depends(fetch_user)] = None,
+    user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> dict[str, dict[str, Any]]:
     tags = database.datasets.get_tags_for(data_id, expdb_db)
     if tag.casefold() in [t.casefold() for t in tags]:
         raise create_tag_exists_error(data_id, tag)
 
-    if user is None:
-        raise create_authentication_failed_error()
-
     database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
     return {
         "data_tag": {"id": str(data_id), "tag": [*tags, tag]},
     }
-
-
-def create_authentication_failed_error() -> HTTPException:
-    return HTTPException(
-        status_code=HTTPStatus.PRECONDITION_FAILED,
-        detail={"code": "103", "message": "Authentication failed"},
-    )
 
 
 def create_tag_exists_error(data_id: int, tag: str) -> HTTPException:
