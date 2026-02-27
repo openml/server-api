@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import io
@@ -7,7 +6,6 @@ from http import HTTPStatus
 import pytest
 from pytest_mock import MockerFixture
 from starlette.testclient import TestClient
-
 
 # ---------------------------------------------------------------------------
 # Minimal ARFF predictions content used in tests
@@ -182,7 +180,9 @@ def test_upload_run_success(mocker: MockerFixture, tmp_path, py_api: TestClient)
     assert predictions_path.read_bytes() == MINIMAL_PREDICTIONS_ARFF
 
 
-def test_upload_run_enqueues_processing(mocker: MockerFixture, tmp_path, py_api: TestClient) -> None:
+def test_upload_run_enqueues_processing(
+    mocker: MockerFixture, tmp_path, py_api: TestClient
+) -> None:
     """Successful upload must enqueue a processing_run entry."""
     fake_user = mocker.MagicMock(user_id=16)
     mocker.patch("routers.dependencies.fetch_user", return_value=fake_user)

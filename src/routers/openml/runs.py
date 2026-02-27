@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import json
@@ -25,9 +24,6 @@ router = APIRouter(prefix="/runs", tags=["runs"])
 log = logging.getLogger(__name__)
 
 
-
-
-
 def _parse_run_xml(xml_bytes: bytes) -> dict:
     """Parse the run description XML uploaded by the client.
 
@@ -48,9 +44,6 @@ def _parse_run_xml(xml_bytes: bytes) -> dict:
     data: dict = json.loads(run_str)
 
     return data.get("run", {})
-
-
-
 
 
 def _require_auth(user: User | None) -> User:
@@ -76,9 +69,6 @@ def _require_flow(flow_id: int, expdb: Connection) -> None:
             status_code=HTTPStatus.NOT_FOUND,
             detail={"code": "180", "message": f"Unknown flow: {flow_id}"},
         )
-
-
-
 
 
 @router.post(
@@ -162,9 +152,6 @@ async def upload_run(
         flow_id,
     )
     return RunUploadResponse(run_id=run_id)
-
-
-
 
 
 @router.get(
