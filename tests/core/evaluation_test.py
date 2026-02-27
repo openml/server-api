@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 
 import math
@@ -14,7 +13,6 @@ from core.evaluation import (
     mean_absolute_error,
     rmse,
 )
-
 
 # ---------------------------------------------------------------------------
 # accuracy

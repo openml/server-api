@@ -239,7 +239,10 @@ def _evaluate_run(run_id: int, expdb: Connection) -> None:  # noqa: C901, PLR091
     )
     for measure_name, value in metrics.items():
         database.runs.store_evaluation(
-            run_id=run_id, function=measure_name, value=value, expdb=expdb,
+            run_id=run_id,
+            function=measure_name,
+            value=value,
+            expdb=expdb,
         )
 
     database.processing.mark_done(run_id, expdb)
