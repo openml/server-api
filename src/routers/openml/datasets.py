@@ -292,8 +292,8 @@ def get_dataset_features(
         processing_state = database.datasets.get_latest_processing_update(dataset_id, expdb)
         if processing_state is None:
             msg = (
-                "Dataset not processed yet. The dataset was not processed yet, "
-                "features are not yet available. Please wait for a few minutes."
+                "Dataset not processed yet. Features are not available yet. "
+                "Please wait a few minutes."
             )
             raise DatasetNotProcessedError(msg)
         if processing_state.error:

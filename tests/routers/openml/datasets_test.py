@@ -1,9 +1,9 @@
-﻿from http import HTTPStatus
+from http import HTTPStatus
 
 import pytest
-from fastapi import HTTPException
-from sqlalchemy import Connection, text
+from sqlalchemy import Connection
 from starlette.testclient import TestClient
+
 from core.errors import (
     DatasetNoAccessError,
     DatasetNotFoundError,
