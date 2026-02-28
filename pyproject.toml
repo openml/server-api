@@ -52,7 +52,6 @@ show_missing=true
 line-length = 100
 
 [tool.ruff.lint]
-line-length = 100
 # Gradually enable docstring (D) checks: remove global ignore for "D"
 # and keep specific D-codes ignored that are still noisy.
 select = ["ALL"]
