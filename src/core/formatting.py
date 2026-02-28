@@ -1,3 +1,8 @@
+"""Formatting utilities for the OpenML REST API.
+
+Provides utilities for formatting API responses and handling special string types.
+"""
+
 import html
 
 from sqlalchemy.engine import Row

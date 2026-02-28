@@ -39,6 +39,14 @@ class ProblemDetailError(Exception):
         instance: str | None = None,
         status_code: HTTPStatus | None = None,
     ) -> None:
+        """Initialize a ProblemDetailError.
+        
+        Args:
+            detail: Human-readable error description.
+            code: Optional error code (legacy).
+            instance: Optional URI identifying the specific error instance.
+            status_code: Optional HTTP status code override.
+        """
         self.detail = detail
         self._code_override = code
         self.instance = instance

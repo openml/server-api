@@ -1,3 +1,8 @@
+"""Access control utilities for the OpenML REST API.
+
+Provides functions to check user permissions and dataset access.
+"""
+
 from sqlalchemy.engine import Row
 
 from database.users import User, UserGroup

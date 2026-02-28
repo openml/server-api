@@ -1,3 +1,8 @@
+"""Configuration management for the OpenML REST API.
+
+Handles loading and caching of configuration from TOML files and environment variables.
+"""
+
 import functools
 import logging
 import os
@@ -49,11 +54,13 @@ def _load_configuration(file: Path) -> TomlTable:
 
 
 def load_routing_configuration(file: Path = _config_file) -> TomlTable:
+    """Load routing configuration from the config file."""
     return typing.cast("TomlTable", _load_configuration(file)["routing"])
 
 
 @functools.cache
 def load_database_configuration(file: Path = _config_file) -> TomlTable:
+    """Load and cache database configuration with environment variable overrides."""
     configuration = _load_configuration(file)
     database_configuration = _apply_defaults_to_siblings(
         configuration["databases"],
@@ -78,4 +85,5 @@ def load_database_configuration(file: Path = _config_file) -> TomlTable:
 
 
 def load_configuration(file: Path = _config_file) -> TomlTable:
+    """Load configuration from a TOML file."""
     return tomllib.loads(file.read_text())
