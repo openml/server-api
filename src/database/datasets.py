@@ -113,7 +113,7 @@ def get_latest_processing_update(dataset_id: int, connection: Connection) -> Row
         ),
         parameters={"dataset_id": dataset_id},
     )
-    return row.one_or_none()
+    return row.first()
 
 
 def get_features(dataset_id: int, connection: Connection) -> list[Feature]:
