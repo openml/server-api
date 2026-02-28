@@ -107,7 +107,7 @@ def create_study(
     if study.alias and database.studies.get_by_alias(study.alias, expdb):
         msg = "Study alias already exists."
         raise StudyAliasExistsError(msg)
-    
+
     try:
         study_id = database.studies.create(study, user, expdb)
     except IntegrityError:
@@ -115,7 +115,7 @@ def create_study(
         # between our check and insert
         msg = "Study alias already exists."
         raise StudyAliasExistsError(msg) from None
-    
+
     if study.main_entity_type == StudyType.TASK:
         for task_id in study.tasks:
             database.studies.attach_task(task_id, study_id, user, expdb)
