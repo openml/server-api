@@ -1,3 +1,4 @@
+# ruff: noqa: D101, D102, D400, D415
 """Based on MLDCAT-AP 1.0.0: https://semiceu.github.io/MLDCAT-AP/releases/1.0.0/
 
 This is an application profile, aimed to extend the use of DCAT-AP,
@@ -66,6 +67,7 @@ class AccessRights(StrEnum):
 
 class Agent(JsonLDObject):
     """Any entity carrying out actions with respect to the (Core) entities Catalogue,
+
     Datasets, Data Services and Distributions. If the Agent is an organisation,
     the use of the Organization Ontology is recommended.
     """
@@ -80,6 +82,7 @@ class Agent(JsonLDObject):
 
 class MD5Checksum(JsonLDObject):
     """A value that allows the contents of a file to be authenticated.
+
     This class allows the results of a variety of checksum and cryptographic
     message digest algorithms to be represented.
     """

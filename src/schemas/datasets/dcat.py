@@ -1,4 +1,6 @@
-"""This file is copied over from an external source.
+# ruff: noqa: D101, D400, D415
+"""Copied from an external source.
+
 Original Author: Jos van der Velde
 Source: https://github.com/aiondemand/AIOD-rest-api/blob/develop/src/converters/schema/dcat.py
 License: MIT

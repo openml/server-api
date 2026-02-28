@@ -1,3 +1,4 @@
+# ruff: noqa: D100, D103
 import json
 import re
 from typing import Annotated, cast
@@ -33,8 +34,9 @@ def fill_template(
     task_inputs: dict[str, str | int],
     connection: Connection,
 ) -> dict[str, JSON]:
-    """Fill in the XML template as used for task descriptions and return the result,
-     converted to JSON.
+    """Fill in the XML template used for task descriptions.
+
+    Return the result converted to JSON.
 
     template, str:
         A string represent XML, as detailed below.
