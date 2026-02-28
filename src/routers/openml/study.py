@@ -3,6 +3,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Body, Depends
 from pydantic import BaseModel
 from sqlalchemy import Connection, Row
+from sqlalchemy.exc import IntegrityError
 
 import database.studies
 from core.errors import (
@@ -106,7 +107,15 @@ def create_study(
     if study.alias and database.studies.get_by_alias(study.alias, expdb):
         msg = "Study alias already exists."
         raise StudyAliasExistsError(msg)
-    study_id = database.studies.create(study, user, expdb)
+    
+    try:
+        study_id = database.studies.create(study, user, expdb)
+    except IntegrityError:
+        # Race condition: another request created a study with this alias
+        # between our check and insert
+        msg = "Study alias already exists."
+        raise StudyAliasExistsError(msg) from None
+    
     if study.main_entity_type == StudyType.TASK:
         for task_id in study.tasks:
             database.studies.attach_task(task_id, study_id, user, expdb)
