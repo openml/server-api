@@ -1,4 +1,5 @@
 import dataclasses
+import logging
 from enum import IntEnum
 from typing import Annotated, Self
 
@@ -7,11 +8,17 @@ from sqlalchemy import Connection, text
 
 from config import load_configuration
 
+logger = logging.getLogger(__name__)
+
 # If `allow_test_api_keys` is set, the key may also be one of `normaluser`,
 # `normaluser2`, or `abc` (admin).
 api_key_pattern = r"^[0-9a-fA-F]{32}$"
-if load_configuration().get("development", {}).get("allow_test_api_keys"):
-    api_key_pattern = r"^([0-9a-fA-F]{32}|normaluser|normaluser2|abc)$"
+_config = load_configuration()
+if "development" not in _config:
+    logger.warning("No 'development' configuration section found; test API keys disabled")
+else:
+    if _config["development"].get("allow_test_api_keys"):
+        api_key_pattern = r"^([0-9a-fA-F]{32}|normaluser|normaluser2|abc)$"
 
 APIKey = Annotated[
     str,
