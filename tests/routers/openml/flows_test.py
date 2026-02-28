@@ -2,11 +2,11 @@ from http import HTTPStatus
 
 import deepdiff.diff
 import pytest
-from fastapi import HTTPException
 from pytest_mock import MockerFixture
 from sqlalchemy import Connection
 from starlette.testclient import TestClient
 
+from core.errors import FlowNotFoundError
 from routers.openml.flows import flow_exists
 from tests.conftest import Flow
 
@@ -53,10 +53,10 @@ def test_flow_exists_processes_found(
 
 def test_flow_exists_handles_flow_not_found(mocker: MockerFixture, expdb_test: Connection) -> None:
     mocker.patch("database.flows.get_by_name", return_value=None)
-    with pytest.raises(HTTPException) as error:
+    with pytest.raises(FlowNotFoundError) as error:
         flow_exists("foo", "bar", expdb_test)
     assert error.value.status_code == HTTPStatus.NOT_FOUND
-    assert error.value.detail == "Flow not found."
+    assert error.value.uri == FlowNotFoundError.uri
 
 
 def test_flow_exists(flow: Flow, py_api: TestClient) -> None:
@@ -68,7 +68,10 @@ def test_flow_exists(flow: Flow, py_api: TestClient) -> None:
 def test_flow_exists_not_exists(py_api: TestClient) -> None:
     response = py_api.get("/flows/exists/foo/bar")
     assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json()["detail"] == "Flow not found."
+    assert response.headers["content-type"] == "application/problem+json"
+    error = response.json()
+    assert error["type"] == FlowNotFoundError.uri
+    assert error["detail"] == "Flow not found."
 
 
 def test_get_flow_no_subflow(py_api: TestClient) -> None:

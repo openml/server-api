@@ -1,9 +1,13 @@
+"""Formatting utilities for the OpenML REST API.
+
+Provides utilities for formatting API responses and handling special string types.
+"""
+
 import html
 
 from sqlalchemy.engine import Row
 
 from config import load_routing_configuration
-from core.errors import DatasetError
 from schemas.datasets.openml import DatasetFileFormat
 
 
@@ -14,11 +18,6 @@ def _str_to_bool(string: str) -> bool:
         return False
     msg = f"Could not parse {string=} as bool."
     raise ValueError(msg)
-
-
-def _format_error(*, code: DatasetError, message: str) -> dict[str, str]:
-    """Formatter for JSON bodies of OpenML error codes."""
-    return {"code": str(code), "message": message}
 
 
 def _format_parquet_url(dataset: Row) -> str | None:

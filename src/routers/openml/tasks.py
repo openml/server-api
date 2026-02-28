@@ -1,15 +1,16 @@
+# ruff: noqa: D100, D103
 import json
 import re
-from http import HTTPStatus
 from typing import Annotated, cast
 
 import xmltodict
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy import Connection, RowMapping, text
 
 import config
 import database.datasets
 import database.tasks
+from core.errors import InternalError, TaskNotFoundError
 from routers.dependencies import expdb_connection
 from schemas.datasets.openml import Task
 
@@ -33,8 +34,9 @@ def fill_template(
     task_inputs: dict[str, str | int],
     connection: Connection,
 ) -> dict[str, JSON]:
-    """Fill in the XML template as used for task descriptions and return the result,
-     converted to JSON.
+    """Fill in the XML template used for task descriptions.
+
+    Return the result converted to JSON.
 
     template, str:
         A string represent XML, as detailed below.
@@ -155,12 +157,11 @@ def get_task(
     expdb: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> Task:
     if not (task := database.tasks.get(task_id, expdb)):
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Task not found")
+        msg = "Task not found."
+        raise TaskNotFoundError(msg)
     if not (task_type := database.tasks.get_task_type(task.ttid, expdb)):
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail="Task type not found",
-        )
+        msg = "Task type not found."
+        raise InternalError(msg)
 
     task_inputs = {
         row.input: int(row.value) if row.value.isdigit() else row.value
