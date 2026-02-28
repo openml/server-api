@@ -16,9 +16,8 @@ api_key_pattern = r"^[0-9a-fA-F]{32}$"
 _config = load_configuration()
 if "development" not in _config:
     logger.warning("No 'development' configuration section found; test API keys disabled")
-else:
-    if _config["development"].get("allow_test_api_keys"):
-        api_key_pattern = r"^([0-9a-fA-F]{32}|normaluser|normaluser2|abc)$"
+elif _config["development"].get("allow_test_api_keys"):
+    api_key_pattern = r"^([0-9a-fA-F]{32}|normaluser|normaluser2|abc)$"
 
 APIKey = Annotated[
     str,

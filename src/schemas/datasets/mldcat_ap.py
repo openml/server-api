@@ -1,5 +1,4 @@
-"""
-Based on MLDCAT-AP 1.0.0: https://semiceu.github.io/MLDCAT-AP/releases/1.0.0/
+"""Based on MLDCAT-AP 1.0.0: https://semiceu.github.io/MLDCAT-AP/releases/1.0.0/
 
 This is an application profile, aimed to extend the use of DCAT-AP,
 originally envisaged for the description of a machine learning process,
