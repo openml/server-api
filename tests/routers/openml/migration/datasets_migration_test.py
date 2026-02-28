@@ -36,7 +36,14 @@ def test_dataset_response_is_identical(  # noqa: C901, PLR0912
         # RFC 9457: Python API now returns problem+json format
         assert new.headers["content-type"] == "application/problem+json"
         # Both APIs should return error responses in the same cases
-        assert "error" in original.json()
+        # Check if original response is JSON before asserting error key
+        try:
+            original_json = original.json()
+            assert "error" in original_json
+        except json.decoder.JSONDecodeError:
+            # Legacy PHP API may return non-JSON (e.g., XML) error responses
+            # Just verify both APIs agreed on the error status code
+            pass
         return
 
     try:
