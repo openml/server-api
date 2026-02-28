@@ -11,7 +11,6 @@ import database.datasets
 import database.qualities
 from core.access import _user_has_access
 from core.errors import (
-    AuthenticationFailedError,
     AuthenticationRequiredError,
     DatasetAdminOnlyError,
     DatasetNoAccessError,
@@ -55,7 +54,7 @@ def tag_dataset(
 
     if user is None:
         msg = "Authentication failed."
-        raise AuthenticationFailedError(msg)
+        raise AuthenticationRequiredError(msg)
 
     database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
     return {
