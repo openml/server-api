@@ -66,6 +66,21 @@ def tag(id_: int, tag_: str, *, user_id: int, connection: Connection) -> None:
     )
 
 
+def untag(id_: int, tag_: str, *, connection: Connection) -> None:
+    connection.execute(
+        text(
+            """
+    DELETE FROM dataset_tag
+    WHERE `id` = :dataset_id AND `tag` = :tag
+    """,
+        ),
+        parameters={
+            "dataset_id": id_,
+            "tag": tag_,
+        },
+    )
+
+
 def get_description(
     id_: int,
     connection: Connection,
