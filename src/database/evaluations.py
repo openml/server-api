@@ -1,3 +1,5 @@
+"""Database functions for retrieving evaluation-related data."""
+
 from collections.abc import Sequence
 from typing import cast
 
@@ -8,6 +10,7 @@ from schemas.datasets.openml import EstimationProcedure
 
 
 def get_math_functions(function_type: str, connection: Connection) -> Sequence[Row]:
+    """Get math functions by type."""
     return cast(
         "Sequence[Row]",
         connection.execute(
@@ -24,6 +27,7 @@ def get_math_functions(function_type: str, connection: Connection) -> Sequence[R
 
 
 def get_estimation_procedures(connection: Connection) -> list[EstimationProcedure]:
+    """Get all estimation procedures."""
     rows = connection.execute(
         text(
             """
