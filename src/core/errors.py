@@ -77,7 +77,7 @@ def problem_detail_exception_handler(
         "detail": exc.detail,
     }
     if exc.code is not None:
-        content["code"] = str(exc.code)
+        content["code"] = exc.code
     if exc.instance is not None:
         content["instance"] = exc.instance
 
