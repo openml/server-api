@@ -275,15 +275,15 @@ def test_dataset_status_unauthorized(
     assert response.status_code == HTTPStatus.FORBIDDEN
 
 
-def test_dataset_no_500_with_multiple_processing_entries(
+async def test_dataset_no_500_with_multiple_processing_entries(
     py_api: TestClient,
-    expdb_test: Connection,
+    expdb_test: AsyncConnection,
 ) -> None:
     """Regression test for issue #145: multiple processing entries caused 500."""
-    expdb_test.execute(
+    await expdb_test.execute(
         text("INSERT INTO evaluation_engine(id, name, description) VALUES (99, 'test_engine', '')"),
     )
-    expdb_test.execute(
+    await expdb_test.execute(
         text(
             "INSERT INTO data_processed(did, evaluation_engine_id, user_id, processing_date) "
             "VALUES (1, 99, 2, '2020-01-01 00:00:00')",
