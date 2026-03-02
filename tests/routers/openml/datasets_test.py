@@ -3,6 +3,7 @@ from http import HTTPStatus
 import pytest
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy import text
 from starlette.testclient import TestClient
 
 from database.users import User
@@ -272,3 +273,21 @@ def test_dataset_status_unauthorized(
         json={"dataset_id": dataset_id, "status": status},
     )
     assert response.status_code == HTTPStatus.FORBIDDEN
+
+
+def test_dataset_no_500_with_multiple_processing_entries(
+    py_api: TestClient,
+    expdb_test: Connection,
+) -> None:
+    """Regression test for issue #145: multiple processing entries caused 500."""
+    expdb_test.execute(
+        text("INSERT INTO evaluation_engine(id, name, description) VALUES (99, 'test_engine', '')"),
+    )
+    expdb_test.execute(
+        text(
+            "INSERT INTO data_processed(did, evaluation_engine_id, user_id, processing_date) "
+            "VALUES (1, 99, 2, '2020-01-01 00:00:00')",
+        ),
+    )
+    response = py_api.get("/datasets/1")
+    assert response.status_code == HTTPStatus.OK

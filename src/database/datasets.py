@@ -115,7 +115,7 @@ async def get_latest_processing_update(dataset_id: int, connection: AsyncConnect
         ),
         parameters={"dataset_id": dataset_id},
     )
-    return row.one_or_none()
+    return row.first()
 
 
 async def get_features(dataset_id: int, connection: AsyncConnection) -> list[Feature]:
