@@ -9,12 +9,12 @@ _expdb_engine = None
 
 def _create_engine(database_name: str) -> AsyncEngine:
     database_configuration = load_database_configuration()
-    echo = database_configuration[database_name].pop("echo", False)
+    db_config = dict(database_configuration[database_name])
+    echo = db_config.pop("echo", False)
 
-    # Update driver to use aiomysql for async support
-    database_configuration[database_name]["drivername"] = "mysql+aiomysql"
+    db_config["drivername"] = "mysql+aiomysql"
 
-    db_url = URL.create(**database_configuration[database_name])
+    db_url = URL.create(**db_config)
     return create_async_engine(
         db_url,
         echo=echo,

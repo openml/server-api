@@ -94,7 +94,7 @@ async def fill_template(
     )
 
 
-async def _fill_json_template(
+async def _fill_json_template(  # noqa: C901
     template: JSON,
     task: RowMapping,
     task_inputs: dict[str, str | int],
@@ -140,7 +140,11 @@ async def _fill_json_template(
                 parameters={"id_": int(task_inputs[table])},
             )
             rows = result.mappings()
-            for column, value in next(rows).items():
+            row_data = next(rows, None)
+            if row_data is None:
+                msg = f"No data found for table {table} with id {task_inputs[table]}"
+                raise ValueError(msg)
+            for column, value in row_data.items():
                 fetched_data[f"{table}.{column}"] = value
         if match.string == template:
             return fetched_data[field]
@@ -155,9 +159,8 @@ async def _fill_json_template(
 @router.get("/{task_id}")
 async def get_task(
     task_id: int,
-    expdb: Annotated[AsyncConnection | None, Depends(expdb_connection)] = None,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> Task:
-    assert expdb is not None  # noqa: S101
     if not (task := await database.tasks.get(task_id, expdb)):
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Task not found")
     if not (task_type := await database.tasks.get_task_type(task.ttid, expdb)):

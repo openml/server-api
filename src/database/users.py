@@ -31,7 +31,7 @@ async def get_user_id_for(*, api_key: APIKey, connection: AsyncConnection) -> in
     return user.id if user else None
 
 
-async def get_user_groups_for(*, user_id: int, connection: AsyncConnection) -> list[UserGroup]:
+async def get_user_groups_for(*, user_id: int, connection: AsyncConnection) -> list[int]:
     row = await connection.execute(
         text(
             """
@@ -43,7 +43,7 @@ async def get_user_groups_for(*, user_id: int, connection: AsyncConnection) -> l
         parameters={"user_id": user_id},
     )
     rows = row.all()
-    return [UserGroup(group) for (group,) in rows]
+    return [group for (group,) in rows]
 
 
 @dataclasses.dataclass
@@ -54,12 +54,12 @@ class User:
 
     @classmethod
     async def fetch(cls, api_key: APIKey, user_db: AsyncConnection) -> Self | None:
-        if user_id := await get_user_id_for(api_key=api_key, connection=user_db):
+        if (user_id := await get_user_id_for(api_key=api_key, connection=user_db)) is not None:
             return cls(user_id, _database=user_db)
         return None
 
     async def get_groups(self) -> list[UserGroup]:
         if self._groups is None:
-            groups = await get_user_groups_for(user_id=self.user_id, connection=self._database)
-            self._groups = [UserGroup(group_id) for group_id in groups]
+            group_ids = await get_user_groups_for(user_id=self.user_id, connection=self._database)
+            self._groups = [UserGroup(group_id) for group_id in group_ids]
         return self._groups

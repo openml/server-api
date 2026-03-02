@@ -40,8 +40,8 @@ _server_url = (
 async def get_mldcat_ap_distribution(
     distribution_id: int,
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    user_db: Annotated[AsyncConnection | None, Depends(userdb_connection)] = None,
-    expdb: Annotated[AsyncConnection | None, Depends(expdb_connection)] = None,
+    user_db: Annotated[AsyncConnection, Depends(userdb_connection)] = None,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> JsonLDGraph:
     assert user_db is not None  # noqa: S101
     assert expdb is not None  # noqa: S101
@@ -144,11 +144,16 @@ async def get_distribution_quality(
     quality_name: str,
     distribution_id: int,
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    expdb: Annotated[AsyncConnection | None, Depends(expdb_connection)] = None,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> JsonLDGraph:
     assert expdb is not None  # noqa: S101
     qualities = await get_qualities(distribution_id, user, expdb)
-    quality = next(q for q in qualities if q.name == quality_name)
+    quality = next((q for q in qualities if q.name == quality_name), None)
+    if quality is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Quality '{quality_name}' not found for distribution {distribution_id}.",
+        )
     example_quality = Quality(
         id_=f"{_server_url}/quality/{quality_name}/{distribution_id}",
         quality_type=f"{_server_url}/quality/{quality_name}",
@@ -171,7 +176,7 @@ async def get_distribution_feature(
     distribution_id: int,
     feature_no: int,
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    expdb: Annotated[AsyncConnection | None, Depends(expdb_connection)] = None,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> JsonLDGraph:
     assert expdb is not None  # noqa: S101
     features = await get_dataset_features(

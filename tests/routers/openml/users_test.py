@@ -18,7 +18,7 @@ async def test_fetch_user(api_key: str, user: User, user_test: AsyncConnection) 
     db_user = await fetch_user(api_key, user_data=user_test)
     assert db_user is not None
     assert user.user_id == db_user.user_id
-    assert user._groups == db_user._groups  # noqa: SLF001
+    assert await user.get_groups() == await db_user.get_groups()
 
 
 async def test_fetch_user_invalid_key_returns_none(user_test: AsyncConnection) -> None:

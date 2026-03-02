@@ -35,9 +35,8 @@ async def flow_exists(
 @router.get("/{flow_id}")
 async def get_flow(
     flow_id: int,
-    expdb: Annotated[AsyncConnection | None, Depends(expdb_connection)] = None,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> Flow:
-    assert expdb is not None  # noqa: S101
     flow = await database.flows.get(flow_id, expdb)
     if not flow:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Flow not found")
@@ -58,13 +57,14 @@ async def get_flow(
 
     tags = await database.flows.get_tags(flow_id, expdb)
     subflow_rows = await database.flows.get_subflows(flow_id, expdb)
-    subflows = [
-        Subflow(
-            identifier=subflow.identifier,
-            flow=await get_flow(flow_id=subflow.child_id, expdb=expdb),
+    subflows = []
+    for subflow in subflow_rows:
+        subflows.append(  # noqa: PERF401
+            Subflow(
+                identifier=subflow.identifier,
+                flow=await get_flow(flow_id=subflow.child_id, expdb=expdb),
+            ),
         )
-        for subflow in subflow_rows
-    ]
 
     return Flow(
         id_=flow.id,

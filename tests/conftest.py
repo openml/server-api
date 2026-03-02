@@ -48,11 +48,11 @@ def php_api() -> httpx.Client:
 
 
 @pytest.fixture
-def py_api(expdb_test: AsyncConnection, user_test: AsyncConnection) -> TestClient:
+def py_api(expdb_test: AsyncConnection, user_test: AsyncConnection) -> Iterator[TestClient]:
     app = create_api()
 
-    # We use the lambda definitions because fixtures may not be called directly.
-    # The lambda returns an async generator for FastAPI to handle properly
+    # We use async generator functions because fixtures may not be called directly.
+    # The async generator returns the test connections for FastAPI to handle properly
     async def override_expdb() -> AsyncIterator[AsyncConnection]:
         yield expdb_test
 
@@ -61,7 +61,8 @@ def py_api(expdb_test: AsyncConnection, user_test: AsyncConnection) -> TestClien
 
     app.dependency_overrides[expdb_connection] = override_expdb
     app.dependency_overrides[userdb_connection] = override_userdb
-    return TestClient(app)
+    with TestClient(app) as client:
+        yield client
 
 
 @pytest.fixture

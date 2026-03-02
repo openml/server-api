@@ -54,7 +54,7 @@ async def attach_to_study(
     study_id: Annotated[int, Body()],
     entity_ids: Annotated[list[int], Body()],
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    expdb: Annotated[AsyncConnection | None, Depends(expdb_connection)] = None,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> AttachDetachResponse:
     assert expdb is not None  # noqa: S101
     if user is None:
@@ -96,7 +96,7 @@ async def attach_to_study(
 async def create_study(
     study: CreateStudy,
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    expdb: Annotated[AsyncConnection | None, Depends(expdb_connection)] = None,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> dict[Literal["study_id"], int]:
     assert expdb is not None  # noqa: S101
     if user is None:
@@ -139,7 +139,7 @@ async def create_study(
 async def get_study(
     alias_or_id: int | str,
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    expdb: Annotated[AsyncConnection | None, Depends(expdb_connection)] = None,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> Study:
     assert expdb is not None  # noqa: S101
     study = await _get_study_raise_otherwise(alias_or_id, user, expdb)

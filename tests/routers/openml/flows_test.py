@@ -24,7 +24,10 @@ async def test_flow_exists_calls_db_correctly(
     expdb_test: AsyncConnection,
     mocker: MockerFixture,
 ) -> None:
-    mocked_db = mocker.patch("database.flows.get_by_name")
+    mocked_db = mocker.patch(
+        "database.flows.get_by_name",
+        new_callable=mocker.AsyncMock,
+    )
     await flow_exists(name, external_version, expdb_test)
     mocked_db.assert_called_once_with(
         name=name,
@@ -45,6 +48,7 @@ async def test_flow_exists_processes_found(
     fake_flow = mocker.MagicMock(id=flow_id)
     mocker.patch(
         "database.flows.get_by_name",
+        new_callable=mocker.AsyncMock,
         return_value=fake_flow,
     )
     response = await flow_exists("name", "external_version", expdb_test)
@@ -54,7 +58,11 @@ async def test_flow_exists_processes_found(
 async def test_flow_exists_handles_flow_not_found(
     mocker: MockerFixture, expdb_test: AsyncConnection
 ) -> None:
-    mocker.patch("database.flows.get_by_name", return_value=None)
+    mocker.patch(
+        "database.flows.get_by_name",
+        new_callable=mocker.AsyncMock,
+        return_value=None,
+    )
     with pytest.raises(HTTPException) as error:
         await flow_exists("foo", "bar", expdb_test)
     assert error.value.status_code == HTTPStatus.NOT_FOUND

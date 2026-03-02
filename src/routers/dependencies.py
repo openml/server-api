@@ -11,16 +11,14 @@ from database.users import APIKey, User
 
 async def expdb_connection() -> AsyncGenerator[AsyncConnection, None]:
     engine = expdb_database()
-    async with engine.connect() as connection:
+    async with engine.connect() as connection, connection.begin():
         yield connection
-        await connection.commit()
 
 
 async def userdb_connection() -> AsyncGenerator[AsyncConnection, None]:
     engine = user_database()
-    async with engine.connect() as connection:
+    async with engine.connect() as connection, connection.begin():
         yield connection
-        await connection.commit()
 
 
 async def fetch_user(

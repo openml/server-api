@@ -34,7 +34,7 @@ async def tag_dataset(
     data_id: Annotated[int, Body()],
     tag: Annotated[str, SystemString64],
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    expdb_db: Annotated[AsyncConnection | None, Depends(expdb_connection)] = None,
+    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> dict[str, dict[str, Any]]:
     assert expdb_db is not None  # noqa: S101
     tags = await database.datasets.get_tags_for(data_id, expdb_db)
@@ -102,7 +102,7 @@ async def list_datasets(  # noqa: PLR0913
     number_missing_values: Annotated[str | None, IntegerRange] = None,
     status: Annotated[DatasetStatusFilter, Body()] = DatasetStatusFilter.ACTIVE,
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    expdb_db: Annotated[AsyncConnection | None, Depends(expdb_connection)] = None,
+    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> list[dict[str, Any]]:
     assert expdb_db is not None  # noqa: S101
     current_status = text(
@@ -293,7 +293,7 @@ async def _get_dataset_raise_otherwise(
 async def get_dataset_features(
     dataset_id: int,
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    expdb: Annotated[AsyncConnection | None, Depends(expdb_connection)] = None,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> list[Feature]:
     assert expdb is not None  # noqa: S101
     await _get_dataset_raise_otherwise(dataset_id, user, expdb)
@@ -393,8 +393,8 @@ async def update_dataset_status(
 async def get_dataset(
     dataset_id: int,
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    user_db: Annotated[AsyncConnection | None, Depends(userdb_connection)] = None,
-    expdb_db: Annotated[AsyncConnection | None, Depends(expdb_connection)] = None,
+    user_db: Annotated[AsyncConnection, Depends(userdb_connection)] = None,
+    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> DatasetMetadata:
     assert user_db is not None  # noqa: S101
     assert expdb_db is not None  # noqa: S101

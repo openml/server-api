@@ -174,4 +174,25 @@ async def attach_runs(
     user: User,
     connection: AsyncConnection,
 ) -> None:
-    raise NotImplementedError
+    to_link = [(study_id, run_id, user.user_id) for run_id in run_ids]
+    try:
+        await connection.execute(
+            text(
+                """
+                INSERT INTO run_study (study_id, run_id, uploader)
+                VALUES (:study_id, :run_id, :user_id)
+                """,
+            ),
+            parameters=[{"study_id": s, "run_id": r, "user_id": u} for s, r, u in to_link],
+        )
+    except Exception as e:
+        (msg,) = e.args
+        if match := re.search(r"Duplicate entry '(\d+)-(\d+)' for key 'run_study.PRIMARY'", msg):
+            msg = f"Run {match.group(2)} is already attached to study {match.group(1)}."
+        elif "a foreign key constraint fails" in msg:
+            msg = "One or more of the runs do not exist."
+        elif "Out of range value for column 'run_id'" in msg:
+            msg = "One specified id is not in the valid range of run ids."
+        else:
+            raise
+        raise ValueError(msg) from e

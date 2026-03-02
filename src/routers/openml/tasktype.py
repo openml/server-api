@@ -28,12 +28,11 @@ def _normalize_task_type(task_type: Row[Any]) -> dict[str, str | None | list[Any
 
 @router.get(path="/list")
 async def list_task_types(
-    expdb: Annotated[AsyncConnection | None, Depends(expdb_connection)] = None,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[
     Literal["task_types"],
     dict[Literal["task_type"], list[dict[str, str | None | list[Any]]]],
 ]:
-    assert expdb is not None  # noqa: S101
     task_types: list[dict[str, str | None | list[Any]]] = [
         _normalize_task_type(ttype) for ttype in await get_task_types(expdb)
     ]
