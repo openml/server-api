@@ -13,6 +13,9 @@ There may be undocumented changes, especially in edge cases which may not have o
 As the PHP API was underspecified, the re-implementation is based on a mix of reading old code and probing the API.
 If there is a behavioral change which was not documented but affects you, please [open a bug report](https://github.com/openml/server-api/issues/new?assignees=&labels=bug%2C+triage&projects=&template=bug-report.md&title=).
 
+It is possible this migration guide is out of sync for endpoints not yet deployed to production (currently that includes them all).
+Before an endpoint is deployed to production we will ensure that the documentation is up-to-date to the best of our knowledge.
+
 ## All Endpoints
 The following changes affect all endpoints.
 

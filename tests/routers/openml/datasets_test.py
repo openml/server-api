@@ -9,7 +9,7 @@ from database.users import User
 from routers.openml.datasets import get_dataset
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus
 from tests import constants
-from tests.users import ADMIN_USER, NO_USER, OWNER_USER, SOME_USER, ApiKey
+from tests.users import ADMIN_USER, DATASET_130_OWNER, NO_USER, SOME_USER, ApiKey
 
 
 @pytest.mark.parametrize(
@@ -92,7 +92,7 @@ async def test_private_dataset_no_access(
 
 
 @pytest.mark.parametrize(
-    "user", [OWNER_USER, ADMIN_USER, pytest.param(SOME_USER, marks=pytest.mark.xfail)]
+    "user", [DATASET_130_OWNER, ADMIN_USER, pytest.param(SOME_USER, marks=pytest.mark.xfail)]
 )
 async def test_private_dataset_access(
     user: User, expdb_test: AsyncConnection, user_test: AsyncConnection
@@ -167,7 +167,7 @@ def test_dataset_features_no_access(py_api: TestClient) -> None:
 
 @pytest.mark.parametrize(
     "api_key",
-    [ApiKey.ADMIN, ApiKey.OWNER_USER],
+    [ApiKey.ADMIN, ApiKey.DATASET_130_OWNER],
 )
 def test_dataset_features_access_to_private(api_key: ApiKey, py_api: TestClient) -> None:
     response = py_api.get(f"/datasets/features/130?api_key={api_key}")
