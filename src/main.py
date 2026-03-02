@@ -1,7 +1,7 @@
 import argparse
+import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-import logging
 
 import uvicorn
 from fastapi import FastAPI

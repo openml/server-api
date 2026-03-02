@@ -2,8 +2,8 @@ from http import HTTPStatus
 
 import pytest
 from fastapi import HTTPException
-from sqlalchemy.ext.asyncio import AsyncConnection
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncConnection
 from starlette.testclient import TestClient
 
 from database.users import User
