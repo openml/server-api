@@ -5,7 +5,8 @@ from typing import Annotated, cast
 
 import xmltodict
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import Connection, RowMapping, text
+from sqlalchemy import RowMapping, text
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 import config
 import database.datasets
@@ -27,11 +28,11 @@ def convert_template_xml_to_json(xml_template: str) -> dict[str, JSON]:
     return cast("dict[str, JSON]", json.loads(json_str))
 
 
-def fill_template(
+async def fill_template(
     template: str,
     task: RowMapping,
     task_inputs: dict[str, str | int],
-    connection: Connection,
+    connection: AsyncConnection,
 ) -> dict[str, JSON]:
     """Fill in the XML template as used for task descriptions and return the result,
      converted to JSON.
@@ -83,7 +84,7 @@ def fill_template(
     json_template = convert_template_xml_to_json(template)
     return cast(
         "dict[str, JSON]",
-        _fill_json_template(
+        await _fill_json_template(
             json_template,
             task,
             task_inputs,
@@ -93,21 +94,22 @@ def fill_template(
     )
 
 
-def _fill_json_template(
+async def _fill_json_template(  # noqa: C901
     template: JSON,
     task: RowMapping,
     task_inputs: dict[str, str | int],
     fetched_data: dict[str, str],
-    connection: Connection,
+    connection: AsyncConnection,
 ) -> JSON:
     if isinstance(template, dict):
         return {
-            k: _fill_json_template(v, task, task_inputs, fetched_data, connection)
+            k: await _fill_json_template(v, task, task_inputs, fetched_data, connection)
             for k, v in template.items()
         }
     if isinstance(template, list):
         return [
-            _fill_json_template(v, task, task_inputs, fetched_data, connection) for v in template
+            await _fill_json_template(v, task, task_inputs, fetched_data, connection)
+            for v in template
         ]
     if not isinstance(template, str):
         msg = f"Unexpected type for `template`: {template=}, {type(template)=}"
@@ -125,7 +127,7 @@ def _fill_json_template(
         (field,) = match.groups()
         if field not in fetched_data:
             table, _ = field.split(".")
-            rows = connection.execute(
+            result = await connection.execute(
                 text(
                     f"""
                     SELECT *
@@ -137,7 +139,12 @@ def _fill_json_template(
                 # quotes which is not legal.
                 parameters={"id_": int(task_inputs[table])},
             )
-            for column, value in next(rows.mappings()).items():
+            rows = result.mappings()
+            row_data = next(rows, None)
+            if row_data is None:
+                msg = f"No data found for table {table} with id {task_inputs[table]}"
+                raise ValueError(msg)
+            for column, value in row_data.items():
                 fetched_data[f"{table}.{column}"] = value
         if match.string == template:
             return fetched_data[field]
@@ -150,13 +157,13 @@ def _fill_json_template(
 
 
 @router.get("/{task_id}")
-def get_task(
+async def get_task(
     task_id: int,
-    expdb: Annotated[Connection, Depends(expdb_connection)] = None,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> Task:
-    if not (task := database.tasks.get(task_id, expdb)):
+    if not (task := await database.tasks.get(task_id, expdb)):
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Task not found")
-    if not (task_type := database.tasks.get_task_type(task.ttid, expdb)):
+    if not (task_type := await database.tasks.get_task_type(task.ttid, expdb)):
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
             detail="Task type not found",
@@ -164,12 +171,12 @@ def get_task(
 
     task_inputs = {
         row.input: int(row.value) if row.value.isdigit() else row.value
-        for row in database.tasks.get_input_for_task(task_id, expdb)
+        for row in await database.tasks.get_input_for_task(task_id, expdb)
     }
-    ttios = database.tasks.get_task_type_inout_with_template(task_type.ttid, expdb)
+    ttios = await database.tasks.get_task_type_inout_with_template(task_type.ttid, expdb)
     templates = [(tt_io.name, tt_io.io, tt_io.requirement, tt_io.template_api) for tt_io in ttios]
     inputs = [
-        fill_template(template, task, task_inputs, expdb) | {"name": name}
+        await fill_template(template, task, task_inputs, expdb) | {"name": name}
         for name, io, required, template in templates
         if io == "input"
     ]
@@ -178,10 +185,10 @@ def get_task(
         for name, io, required, template in templates
         if io == "output"
     ]
-    tags = database.tasks.get_tags(task_id, expdb)
+    tags = await database.tasks.get_tags(task_id, expdb)
     name = f"Task {task_id} ({task_type.name})"
     dataset_id = task_inputs.get("source_data")
-    if isinstance(dataset_id, int) and (dataset := database.datasets.get(dataset_id, expdb)):
+    if isinstance(dataset_id, int) and (dataset := await database.datasets.get(dataset_id, expdb)):
         name = f"Task {task_id}: {dataset.name} ({task_type.name})"
 
     return Task(

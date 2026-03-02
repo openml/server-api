@@ -4,7 +4,7 @@ import deepdiff.diff
 import pytest
 from fastapi import HTTPException
 from pytest_mock import MockerFixture
-from sqlalchemy import Connection
+from sqlalchemy.ext.asyncio import AsyncConnection
 from starlette.testclient import TestClient
 
 from routers.openml.flows import flow_exists
@@ -18,14 +18,17 @@ from tests.conftest import Flow
         ("c", "d"),
     ],
 )
-def test_flow_exists_calls_db_correctly(
+async def test_flow_exists_calls_db_correctly(
     name: str,
     external_version: str,
-    expdb_test: Connection,
+    expdb_test: AsyncConnection,
     mocker: MockerFixture,
 ) -> None:
-    mocked_db = mocker.patch("database.flows.get_by_name")
-    flow_exists(name, external_version, expdb_test)
+    mocked_db = mocker.patch(
+        "database.flows.get_by_name",
+        new_callable=mocker.AsyncMock,
+    )
+    await flow_exists(name, external_version, expdb_test)
     mocked_db.assert_called_once_with(
         name=name,
         external_version=external_version,
@@ -37,24 +40,31 @@ def test_flow_exists_calls_db_correctly(
     "flow_id",
     [1, 2],
 )
-def test_flow_exists_processes_found(
+async def test_flow_exists_processes_found(
     flow_id: int,
     mocker: MockerFixture,
-    expdb_test: Connection,
+    expdb_test: AsyncConnection,
 ) -> None:
     fake_flow = mocker.MagicMock(id=flow_id)
     mocker.patch(
         "database.flows.get_by_name",
+        new_callable=mocker.AsyncMock,
         return_value=fake_flow,
     )
-    response = flow_exists("name", "external_version", expdb_test)
+    response = await flow_exists("name", "external_version", expdb_test)
     assert response == {"flow_id": fake_flow.id}
 
 
-def test_flow_exists_handles_flow_not_found(mocker: MockerFixture, expdb_test: Connection) -> None:
-    mocker.patch("database.flows.get_by_name", return_value=None)
+async def test_flow_exists_handles_flow_not_found(
+    mocker: MockerFixture, expdb_test: AsyncConnection
+) -> None:
+    mocker.patch(
+        "database.flows.get_by_name",
+        new_callable=mocker.AsyncMock,
+        return_value=None,
+    )
     with pytest.raises(HTTPException) as error:
-        flow_exists("foo", "bar", expdb_test)
+        await flow_exists("foo", "bar", expdb_test)
     assert error.value.status_code == HTTPStatus.NOT_FOUND
     assert error.value.detail == "Flow not found."
 

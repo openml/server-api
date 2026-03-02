@@ -3,12 +3,13 @@ from http import HTTPStatus
 import deepdiff
 import httpx
 import pytest
-from sqlalchemy import Connection, text
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncConnection
 from starlette.testclient import TestClient
 
 
-def _remove_quality_from_database(quality_name: str, expdb_test: Connection) -> None:
-    expdb_test.execute(
+async def _remove_quality_from_database(quality_name: str, expdb_test: AsyncConnection) -> None:
+    await expdb_test.execute(
         text(
             """
         DELETE FROM data_quality
@@ -17,7 +18,7 @@ def _remove_quality_from_database(quality_name: str, expdb_test: Connection) -> 
         ),
         parameters={"deleted_quality": quality_name},
     )
-    expdb_test.execute(
+    await expdb_test.execute(
         text(
             """
         DELETE FROM quality
@@ -36,7 +37,7 @@ def test_list_qualities_identical(py_api: TestClient, php_api: httpx.Client) -> 
     # To keep the test idempotent, we cannot test if reaction to database changes is identical
 
 
-def test_list_qualities(py_api: TestClient, expdb_test: Connection) -> None:
+async def test_list_qualities(py_api: TestClient, expdb_test: AsyncConnection) -> None:
     response = py_api.get("/datasets/qualities/list")
     assert response.status_code == HTTPStatus.OK
     expected = {
@@ -155,7 +156,7 @@ def test_list_qualities(py_api: TestClient, expdb_test: Connection) -> None:
     assert expected == response.json()
 
     deleted = expected["data_qualities_list"]["quality"].pop()
-    _remove_quality_from_database(quality_name=deleted, expdb_test=expdb_test)
+    await _remove_quality_from_database(quality_name=deleted, expdb_test=expdb_test)
 
     response = py_api.get("/datasets/qualities/list")
     assert response.status_code == HTTPStatus.OK

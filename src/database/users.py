@@ -3,7 +3,8 @@ from enum import IntEnum
 from typing import Annotated, Self
 
 from pydantic import StringConstraints
-from sqlalchemy import Connection, text
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 from config import load_configuration
 
@@ -26,8 +27,8 @@ class UserGroup(IntEnum):
     READ_ONLY = (3,)
 
 
-def get_user_id_for(*, api_key: APIKey, connection: Connection) -> int | None:
-    user = connection.execute(
+async def get_user_id_for(*, api_key: APIKey, connection: AsyncConnection) -> int | None:
+    row = await connection.execute(
         text(
             """
     SELECT *
@@ -36,12 +37,13 @@ def get_user_id_for(*, api_key: APIKey, connection: Connection) -> int | None:
     """,
         ),
         parameters={"api_key": api_key},
-    ).one_or_none()
+    )
+    user = row.one_or_none()
     return user.id if user else None
 
 
-def get_user_groups_for(*, user_id: int, connection: Connection) -> list[UserGroup]:
-    row = connection.execute(
+async def get_user_groups_for(*, user_id: int, connection: AsyncConnection) -> list[int]:
+    row = await connection.execute(
         text(
             """
     SELECT group_id
@@ -51,24 +53,24 @@ def get_user_groups_for(*, user_id: int, connection: Connection) -> list[UserGro
         ),
         parameters={"user_id": user_id},
     )
-    return [UserGroup(group) for (group,) in row]
+    rows = row.all()
+    return [group for (group,) in rows]
 
 
 @dataclasses.dataclass
 class User:
     user_id: int
-    _database: Connection
+    _database: AsyncConnection
     _groups: list[UserGroup] | None = None
 
     @classmethod
-    def fetch(cls, api_key: APIKey, user_db: Connection) -> Self | None:
-        if user_id := get_user_id_for(api_key=api_key, connection=user_db):
+    async def fetch(cls, api_key: APIKey, user_db: AsyncConnection) -> Self | None:
+        if (user_id := await get_user_id_for(api_key=api_key, connection=user_db)) is not None:
             return cls(user_id, _database=user_db)
         return None
 
-    @property
-    def groups(self) -> list[UserGroup]:
+    async def get_groups(self) -> list[UserGroup]:
         if self._groups is None:
-            groups = get_user_groups_for(user_id=self.user_id, connection=self._database)
-            self._groups = [UserGroup(group_id) for group_id in groups]
+            group_ids = await get_user_groups_for(user_id=self.user_id, connection=self._database)
+            self._groups = [UserGroup(group_id) for group_id in group_ids]
         return self._groups

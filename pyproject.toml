@@ -18,6 +18,7 @@ dependencies = [
     "uvicorn",
     "sqlalchemy",
     "mysqlclient",
+    "aiomysql",
     "python_dotenv",
     "xmltodict",
 ]
@@ -28,6 +29,7 @@ dev = [
     "pre-commit",
     "pytest",
     "pytest-mock",
+    "pytest-asyncio",
     "httpx",
     "hypothesis",
     "deepdiff",
@@ -80,6 +82,7 @@ plugins = [
 pythonpath = [
   "src"
 ]
+asyncio_mode = "auto"
 markers = [
     "slow: test or sets of tests which take more than a few seconds to run.",
     # While the `mut`ation marker below is not strictly necessary as every change is
