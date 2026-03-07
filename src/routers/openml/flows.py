@@ -2,6 +2,7 @@ from http import HTTPStatus
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import Connection
 
 import database.flows
@@ -12,14 +13,18 @@ from schemas.flows import Flow, Parameter, Subflow
 router = APIRouter(prefix="/flows", tags=["flows"])
 
 
-@router.get("/exists/{name}/{external_version}")
+class FlowExistsBody(BaseModel):
+    name: str
+    external_version: str
+
+
+@router.post("/exists")
 def flow_exists(
-    name: str,
-    external_version: str,
+    body: FlowExistsBody,
     expdb: Annotated[Connection, Depends(expdb_connection)],
 ) -> dict[Literal["flow_id"], int]:
     """Check if a Flow with the name and version exists, if so, return the flow id."""
-    flow = database.flows.get_by_name(name=name, external_version=external_version, expdb=expdb)
+    flow = database.flows.get_by_name(name=body.name, external_version=body.external_version, expdb=expdb)
     if flow is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,

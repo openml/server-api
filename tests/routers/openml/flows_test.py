@@ -7,7 +7,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy import Connection
 from starlette.testclient import TestClient
 
-from routers.openml.flows import flow_exists
+from routers.openml.flows import FlowExistsBody, flow_exists
 from tests.conftest import Flow
 
 
@@ -25,7 +25,7 @@ def test_flow_exists_calls_db_correctly(
     mocker: MockerFixture,
 ) -> None:
     mocked_db = mocker.patch("database.flows.get_by_name")
-    flow_exists(name, external_version, expdb_test)
+    flow_exists(FlowExistsBody(name=name, external_version=external_version), expdb_test)
     mocked_db.assert_called_once_with(
         name=name,
         external_version=external_version,
@@ -47,26 +47,26 @@ def test_flow_exists_processes_found(
         "database.flows.get_by_name",
         return_value=fake_flow,
     )
-    response = flow_exists("name", "external_version", expdb_test)
+    response = flow_exists(FlowExistsBody(name="name", external_version="external_version"), expdb_test)
     assert response == {"flow_id": fake_flow.id}
 
 
 def test_flow_exists_handles_flow_not_found(mocker: MockerFixture, expdb_test: Connection) -> None:
     mocker.patch("database.flows.get_by_name", return_value=None)
     with pytest.raises(HTTPException) as error:
-        flow_exists("foo", "bar", expdb_test)
+        flow_exists(FlowExistsBody(name="foo", external_version="bar"), expdb_test)
     assert error.value.status_code == HTTPStatus.NOT_FOUND
     assert error.value.detail == "Flow not found."
 
 
 def test_flow_exists(flow: Flow, py_api: TestClient) -> None:
-    response = py_api.get(f"/flows/exists/{flow.name}/{flow.external_version}")
+    response = py_api.post("/flows/exists", json={"name": flow.name, "external_version": flow.external_version})
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"flow_id": flow.id}
 
 
 def test_flow_exists_not_exists(py_api: TestClient) -> None:
-    response = py_api.get("/flows/exists/foo/bar")
+    response = py_api.post("/flows/exists", json={"name": "foo", "external_version": "bar"})
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json()["detail"] == "Flow not found."
 
