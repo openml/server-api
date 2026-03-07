@@ -43,19 +43,34 @@ def delete_account(
 
     from sqlalchemy import text  # noqa: PLC0415
 
-    existing = user_db.execute(
-        text("SELECT 1 FROM users WHERE id = :id LIMIT 1"),
+    original = user_db.execute(
+        text("SELECT session_hash FROM users WHERE id = :id FOR UPDATE"),
         parameters={"id": user_id},
-    ).scalar()
+    ).fetchone()
 
-    if existing is None:
+    if original is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail={"code": str(int(UserError.NOT_FOUND)), "message": "User not found"},
         )
+    
+    # Invalidate session immediately to prevent concurrent resource creation
+    # This serves as a 'deletion_pending' lock as suggested in code review
+    original_session_hash = original[0]
+    user_db.execute(
+        text("UPDATE users SET session_hash = 'DELETION_PENDING' WHERE id = :id"),
+        parameters={"id": user_id},
+    )
+    user_db.commit()
 
     resource_count = get_user_resource_count(user_id=user_id, expdb=expdb)
     if resource_count > 0:
+        # Restore session hash if deletion is blocked
+        user_db.execute(
+            text("UPDATE users SET session_hash = :hash WHERE id = :id"),
+            parameters={"hash": original_session_hash, "id": user_id},
+        )
+        user_db.commit()
         raise HTTPException(
             status_code=HTTPStatus.CONFLICT,
             detail={
@@ -68,4 +83,5 @@ def delete_account(
         )
 
     delete_user(user_id=user_id, connection=user_db)
+    user_db.commit()
     return {"user_id": user_id, "deleted": True}

@@ -76,6 +76,20 @@ def test_flow_exists_not_exists(py_api: TestClient) -> None:
     assert response.json()["detail"] == "Flow not found."
 
 
+def test_flow_exists_get_alias(flow: Flow, py_api: TestClient) -> None:
+    """Test the deprecated GET wrapper for backward compatibility."""
+    response = py_api.get(f"/flows/exists/{flow.name}/{flow.external_version}")
+    assert response.status_code == HTTPStatus.OK
+    assert response.json() == {"flow_id": flow.id}
+
+
+def test_flow_exists_get_alias_not_exists(py_api: TestClient) -> None:
+    """Test the deprecated GET wrapper returns 404 for non-existent flows."""
+    response = py_api.get("/flows/exists/foo/bar")
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.json()["detail"] == "Flow not found."
+
+
 def test_get_flow_no_subflow(py_api: TestClient) -> None:
     response = py_api.get("/flows/1")
     assert response.status_code == HTTPStatus.OK

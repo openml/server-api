@@ -99,3 +99,45 @@ def test_delete_user_has_resources(py_api: TestClient, user_test: Connection) ->
         parameters={"id": target_id},
     ).scalar()
     assert user_count == 1
+
+
+@pytest.mark.mut
+@pytest.mark.parametrize(
+    ("table_name", "column_name", "insert_sql"),
+    [
+        ("dataset", "uploader", "INSERT INTO dataset (uploader, name, format) VALUES (:id, 'x', 'ARFF')"),
+        ("implementation", "uploader", "INSERT INTO implementation (uploader, fullname, name, version, external_version, uploadDate) VALUES (:id, 'x', 'x', 1, '1', '2024-01-01')"),
+        ("run", "uploader", "INSERT INTO run (uploader, task_id, setup) VALUES (:id, 1, 1)"),
+        ("study", "creator", "INSERT INTO study (creator, name, main_entity_type) VALUES (:id, 'x', 'run')"),
+        ("task_study", "uploader", "INSERT INTO task_study (uploader, study_id, task_id) VALUES (:id, 14, 1)"),
+        ("run_study", "uploader", "INSERT INTO run_study (uploader, study_id, run_id) VALUES (:id, 14, 1)"),
+        ("dataset_tag", "uploader", "INSERT INTO dataset_tag (uploader, id, tag) VALUES (:id, 1, 'x')"),
+    ],
+)
+def test_delete_user_has_resources_parametrized(
+    py_api: TestClient,
+    user_test: Connection,
+    expdb_test: Connection,
+    table_name: str,
+    column_name: str,
+    insert_sql: str,
+) -> None:
+    """Verify that possessing any tracked resource blocks deletion."""
+    user_test.execute(
+        text(
+            "INSERT INTO users (session_hash, email, first_name, last_name, password)"
+            " VALUES ('eeeeffffccccddddaaaabbbbccccdddd', 'res@test.com', 'Del', 'User', 'x')",
+        ),
+    )
+    (new_id,) = user_test.execute(text("SELECT LAST_INSERT_ID()")).one()
+
+    # Disable constraints temporarily to inject simple orphaned rows for testing 409
+    expdb_test.execute(text("SET FOREIGN_KEY_CHECKS=0"))
+    expdb_test.execute(text(insert_sql), parameters={"id": new_id})
+    expdb_test.execute(text("SET FOREIGN_KEY_CHECKS=1"))
+    expdb_test.commit()
+
+    response = py_api.delete(f"/users/{new_id}?api_key=eeeeffffccccddddaaaabbbbccccdddd")
+    
+    assert response.status_code == HTTPStatus.CONFLICT
+    assert response.json()["detail"]["code"] == "122"
