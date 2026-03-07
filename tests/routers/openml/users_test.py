@@ -10,7 +10,6 @@ from tests.users import ApiKey
 @pytest.mark.mut
 def test_delete_user_self(py_api: TestClient, user_test: Connection) -> None:
     """A user without resources can delete their own account."""
-    # Insert a fresh disposable user
     user_test.execute(
         text(
             "INSERT INTO users (session_hash, email, first_name, last_name, password)"
@@ -19,7 +18,6 @@ def test_delete_user_self(py_api: TestClient, user_test: Connection) -> None:
     )
     (new_id,) = user_test.execute(text("SELECT LAST_INSERT_ID()")).one()
 
-    # Add a users_groups entry to verify it gets deleted
     user_test.execute(
         text("INSERT INTO users_groups (user_id, group_id) VALUES (:id, 2)"),
         parameters={"id": new_id},
@@ -29,7 +27,6 @@ def test_delete_user_self(py_api: TestClient, user_test: Connection) -> None:
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"user_id": new_id, "deleted": True}
 
-    # Verify DB side-effects: user and groups should be gone
     user_count = user_test.execute(
         text("SELECT COUNT(*) FROM users WHERE id = :id"),
         parameters={"id": new_id},
@@ -53,7 +50,6 @@ def test_delete_user_as_admin(py_api: TestClient, user_test: Connection) -> None
     )
     (new_id,) = user_test.execute(text("SELECT LAST_INSERT_ID()")).one()
 
-    # Add a users_groups entry
     user_test.execute(
         text("INSERT INTO users_groups (user_id, group_id) VALUES (:id, 2)"),
         parameters={"id": new_id},
@@ -63,7 +59,6 @@ def test_delete_user_as_admin(py_api: TestClient, user_test: Connection) -> None
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"user_id": new_id, "deleted": True}
 
-    # Verify DB side-effects
     user_count = user_test.execute(
         text("SELECT COUNT(*) FROM users WHERE id = :id"),
         parameters={"id": new_id},
@@ -79,7 +74,6 @@ def test_delete_user_no_auth(py_api: TestClient) -> None:
 
 def test_delete_user_not_owner(py_api: TestClient) -> None:
     """A non-owner non-admin user cannot delete someone else's account → 403."""
-    # SOME_USER (user_id=2) tries to delete OWNER_USER (user_id=3229)
     response = py_api.delete(f"/users/3229?api_key={ApiKey.SOME_USER}")
     assert response.status_code == HTTPStatus.FORBIDDEN
 
@@ -93,7 +87,6 @@ def test_delete_user_not_found(py_api: TestClient) -> None:
 
 def test_delete_user_has_resources(py_api: TestClient, user_test: Connection) -> None:
     """A user with resources (datasets, flows, runs) gets a 409 Conflict."""
-    # User 16 owns dataset 130 per tests/users.py definition
     target_id = 16
     response = py_api.delete(f"/users/{target_id}?api_key={ApiKey.DATASET_130_OWNER}")
 
@@ -101,7 +94,6 @@ def test_delete_user_has_resources(py_api: TestClient, user_test: Connection) ->
     assert response.json()["detail"]["code"] == "122"
     assert "resource(s)" in response.json()["detail"]["message"]
 
-    # Verify user record was NOT deleted
     user_count = user_test.execute(
         text("SELECT COUNT(*) FROM users WHERE id = :id"),
         parameters={"id": target_id},
