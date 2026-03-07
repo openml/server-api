@@ -42,16 +42,12 @@ def delete_account(
             detail={"code": str(int(UserError.NO_ACCESS)), "message": "No access granted"},
         )
 
-    # Verify the target user exists
-    from database.users import get_user_id_for  # noqa: PLC0415
-
-    # Check user exists by querying for them directly
-    from sqlalchemy import text
+    from sqlalchemy import text  # noqa: PLC0415
 
     existing = user_db.execute(
-        text("SELECT id FROM users WHERE id = :user_id"),
-        parameters={"user_id": user_id},
-    ).one_or_none()
+        text("SELECT 1 FROM users WHERE id = :id LIMIT 1"),
+        parameters={"id": user_id},
+    ).scalar()
 
     if existing is None:
         raise HTTPException(
