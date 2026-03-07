@@ -17,7 +17,7 @@ router = APIRouter(prefix="/users", tags=["users"])
     description=(
         "Deletes the account of the specified user. "
         "Only the account owner or an admin may perform this action. "
-        "Deletion is blocked if the user has uploaded any datasets, flows, or runs."
+        "Deletion is blocked if the user has uploaded any owned resources."
     ),
 )
 def delete_account(
@@ -41,6 +41,8 @@ def delete_account(
             detail={"code": str(int(UserError.NO_ACCESS)), "message": "No access granted"},
         )
 
+    import uuid
+
     from sqlalchemy import text  # noqa: PLC0415
 
     original = user_db.execute(
@@ -55,33 +57,38 @@ def delete_account(
         )
 
     # Invalidate session immediately to prevent concurrent resource creation
-    # This serves as a 'deletion_pending' lock as suggested in code review
     original_session_hash = original[0]
+    temp_lock_hash = uuid.uuid4().hex
     user_db.execute(
-        text("UPDATE users SET session_hash = 'DELETION_PENDING' WHERE id = :id"),
-        parameters={"id": user_id},
+        text("UPDATE users SET session_hash = :lock_hash WHERE id = :id"),
+        parameters={"lock_hash": temp_lock_hash, "id": user_id},
     )
     user_db.commit()
 
-    resource_count = get_user_resource_count(user_id=user_id, expdb=expdb)
-    if resource_count > 0:
-        # Restore session hash if deletion is blocked
-        user_db.execute(
-            text("UPDATE users SET session_hash = :hash WHERE id = :id"),
-            parameters={"hash": original_session_hash, "id": user_id},
-        )
-        user_db.commit()
-        raise HTTPException(
-            status_code=HTTPStatus.CONFLICT,
-            detail={
-                "code": str(int(UserError.HAS_RESOURCES)),
-                "message": (
-                    f"User has {resource_count} resource(s). "
-                    "Remove or transfer resources before deleting the account."
-                ),
-            },
-        )
+    deletion_successful = False
+    try:
+        resource_count = get_user_resource_count(user_id=user_id, expdb=expdb)
+        if resource_count > 0:
+            raise HTTPException(
+                status_code=HTTPStatus.CONFLICT,
+                detail={
+                    "code": str(int(UserError.HAS_RESOURCES)),
+                    "message": (
+                        f"User has {resource_count} resource(s). "
+                        "Remove or transfer resources before deleting the account."
+                    ),
+                },
+            )
 
-    delete_user(user_id=user_id, connection=user_db)
-    user_db.commit()
-    return {"user_id": user_id, "deleted": True}
+        delete_user(user_id=user_id, connection=user_db)
+        user_db.commit()
+        deletion_successful = True
+        return {"user_id": user_id, "deleted": True}
+    finally:
+        if not deletion_successful:
+            # Restore session hash if deletion did not complete successfully
+            user_db.execute(
+                text("UPDATE users SET session_hash = :hash WHERE id = :id"),
+                parameters={"hash": original_session_hash, "id": user_id},
+            )
+            user_db.commit()
