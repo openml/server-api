@@ -18,9 +18,8 @@ def test_flow_exists_not(
     py_api: TestClient,
     php_api: TestClient,
 ) -> None:
-    path = "exists/foo/bar"
-    py_response = py_api.get(f"/flows/{path}")
-    php_response = php_api.get(f"/flow/{path}")
+    py_response = py_api.post("/flows/exists", json={"name": "foo", "external_version": "bar"})
+    php_response = php_api.get("/flow/exists/foo/bar")
 
     assert py_response.status_code == HTTPStatus.NOT_FOUND
     assert php_response.status_code == HTTPStatus.OK
@@ -36,9 +35,13 @@ def test_flow_exists(
     py_api: TestClient,
     php_api: TestClient,
 ) -> None:
-    path = f"exists/{persisted_flow.name}/{persisted_flow.external_version}"
-    py_response = py_api.get(f"/flows/{path}")
-    php_response = php_api.get(f"/flow/{path}")
+    py_response = py_api.post(
+        "/flows/exists",
+        json={"name": persisted_flow.name, "external_version": persisted_flow.external_version},
+    )
+    php_response = php_api.get(
+        f"/flow/exists/{persisted_flow.name}/{persisted_flow.external_version}"
+    )
 
     assert py_response.status_code == php_response.status_code, php_response.content
 

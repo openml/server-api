@@ -7,25 +7,38 @@ from sqlalchemy import Connection
 import database.flows
 from core.conversions import _str_to_num
 from routers.dependencies import expdb_connection
-from schemas.flows import Flow, Parameter, Subflow
+from schemas.flows import Flow, FlowExistsBody, Parameter, Subflow
 
 router = APIRouter(prefix="/flows", tags=["flows"])
 
 
-@router.get("/exists/{name}/{external_version}")
+@router.post("/exists")
 def flow_exists(
-    name: str,
-    external_version: str,
+    body: FlowExistsBody,
     expdb: Annotated[Connection, Depends(expdb_connection)],
 ) -> dict[Literal["flow_id"], int]:
     """Check if a Flow with the name and version exists, if so, return the flow id."""
-    flow = database.flows.get_by_name(name=name, external_version=external_version, expdb=expdb)
+    flow = database.flows.get_by_name(
+        name=body.name,
+        external_version=body.external_version,
+        expdb=expdb,
+    )
     if flow is None:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail="Flow not found.",
         )
     return {"flow_id": flow.id}
+
+
+@router.get("/exists/{name}/{external_version}", deprecated=True)
+def flow_exists_get(
+    name: str,
+    external_version: str,
+    expdb: Annotated[Connection, Depends(expdb_connection)],
+) -> dict[Literal["flow_id"], int]:
+    """Deprecated: use POST /flows/exists instead."""
+    return flow_exists(FlowExistsBody(name=name, external_version=external_version), expdb)
 
 
 @router.get("/{flow_id}")
