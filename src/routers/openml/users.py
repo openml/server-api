@@ -53,7 +53,7 @@ def delete_account(
             status_code=HTTPStatus.NOT_FOUND,
             detail={"code": str(int(UserError.NOT_FOUND)), "message": "User not found"},
         )
-    
+
     # Invalidate session immediately to prevent concurrent resource creation
     # This serves as a 'deletion_pending' lock as suggested in code review
     original_session_hash = original[0]

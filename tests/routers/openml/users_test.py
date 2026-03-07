@@ -105,13 +105,37 @@ def test_delete_user_has_resources(py_api: TestClient, user_test: Connection) ->
 @pytest.mark.parametrize(
     ("table_name", "column_name", "insert_sql"),
     [
-        ("dataset", "uploader", "INSERT INTO dataset (uploader, name, format) VALUES (:id, 'x', 'ARFF')"),
-        ("implementation", "uploader", "INSERT INTO implementation (uploader, fullname, name, version, external_version, uploadDate) VALUES (:id, 'x', 'x', 1, '1', '2024-01-01')"),
+        (
+            "dataset",
+            "uploader",
+            "INSERT INTO dataset (uploader, name, format) VALUES (:id, 'x', 'ARFF')",
+        ),
+        (
+            "implementation",
+            "uploader",
+            "INSERT INTO implementation (uploader, fullname, name, version, external_version, uploadDate) VALUES (:id, 'x', 'x', 1, '1', '2024-01-01')",
+        ),
         ("run", "uploader", "INSERT INTO run (uploader, task_id, setup) VALUES (:id, 1, 1)"),
-        ("study", "creator", "INSERT INTO study (creator, name, main_entity_type) VALUES (:id, 'x', 'run')"),
-        ("task_study", "uploader", "INSERT INTO task_study (uploader, study_id, task_id) VALUES (:id, 14, 1)"),
-        ("run_study", "uploader", "INSERT INTO run_study (uploader, study_id, run_id) VALUES (:id, 14, 1)"),
-        ("dataset_tag", "uploader", "INSERT INTO dataset_tag (uploader, id, tag) VALUES (:id, 1, 'x')"),
+        (
+            "study",
+            "creator",
+            "INSERT INTO study (creator, name, main_entity_type) VALUES (:id, 'x', 'run')",
+        ),
+        (
+            "task_study",
+            "uploader",
+            "INSERT INTO task_study (uploader, study_id, task_id) VALUES (:id, 14, 1)",
+        ),
+        (
+            "run_study",
+            "uploader",
+            "INSERT INTO run_study (uploader, study_id, run_id) VALUES (:id, 14, 1)",
+        ),
+        (
+            "dataset_tag",
+            "uploader",
+            "INSERT INTO dataset_tag (uploader, id, tag) VALUES (:id, 1, 'x')",
+        ),
     ],
 )
 def test_delete_user_has_resources_parametrized(
@@ -138,6 +162,6 @@ def test_delete_user_has_resources_parametrized(
     expdb_test.commit()
 
     response = py_api.delete(f"/users/{new_id}?api_key=eeeeffffccccddddaaaabbbbccccdddd")
-    
+
     assert response.status_code == HTTPStatus.CONFLICT
     assert response.json()["detail"]["code"] == "122"
