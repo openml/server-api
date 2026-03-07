@@ -1,0 +1,76 @@
+from http import HTTPStatus
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import Connection
+
+from core.errors import UserError
+from database.users import UserGroup, delete_user, get_user_resource_count
+from routers.dependencies import expdb_connection, fetch_user, userdb_connection
+from database.users import User
+
+router = APIRouter(prefix="/users", tags=["users"])
+
+
+@router.delete(
+    "/{user_id}",
+    summary="Delete a user account",
+    description=(
+        "Deletes the account of the specified user. "
+        "Only the account owner or an admin may perform this action. "
+        "Deletion is blocked if the user has uploaded any datasets, flows, or runs."
+    ),
+)
+def delete_account(
+    user_id: int,
+    caller: Annotated[User | None, Depends(fetch_user)] = None,
+    user_db: Annotated[Connection, Depends(userdb_connection)] = None,
+    expdb: Annotated[Connection, Depends(expdb_connection)] = None,
+) -> dict:
+    if caller is None:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail={"code": str(int(UserError.NO_ACCESS)), "message": "Authentication required"},
+        )
+
+    is_admin = UserGroup.ADMIN in caller.groups
+    is_self = caller.user_id == user_id
+
+    if not is_admin and not is_self:
+        raise HTTPException(
+            status_code=HTTPStatus.FORBIDDEN,
+            detail={"code": str(int(UserError.NO_ACCESS)), "message": "No access granted"},
+        )
+
+    # Verify the target user exists
+    from database.users import get_user_id_for  # noqa: PLC0415
+
+    # Check user exists by querying for them directly
+    from sqlalchemy import text
+
+    existing = user_db.execute(
+        text("SELECT id FROM users WHERE id = :user_id"),
+        parameters={"user_id": user_id},
+    ).one_or_none()
+
+    if existing is None:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail={"code": str(int(UserError.NOT_FOUND)), "message": "User not found"},
+        )
+
+    resource_count = get_user_resource_count(user_id=user_id, expdb=expdb)
+    if resource_count > 0:
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT,
+            detail={
+                "code": str(int(UserError.HAS_RESOURCES)),
+                "message": (
+                    f"User has {resource_count} resource(s). "
+                    "Remove or transfer resources before deleting the account."
+                ),
+            },
+        )
+
+    delete_user(user_id=user_id, connection=user_db)
+    return {"user_id": user_id, "deleted": True}
