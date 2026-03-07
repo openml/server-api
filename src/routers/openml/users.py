@@ -1,5 +1,5 @@
 from http import HTTPStatus
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import Connection
@@ -25,7 +25,7 @@ def delete_account(
     caller: Annotated[User | None, Depends(fetch_user)] = None,
     user_db: Annotated[Connection, Depends(userdb_connection)] = None,
     expdb: Annotated[Connection, Depends(expdb_connection)] = None,
-) -> dict:
+) -> dict[str, Any]:
     if caller is None:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED,
