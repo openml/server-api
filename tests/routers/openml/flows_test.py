@@ -47,7 +47,9 @@ def test_flow_exists_processes_found(
         "database.flows.get_by_name",
         return_value=fake_flow,
     )
-    response = flow_exists(FlowExistsBody(name="name", external_version="external_version"), expdb_test)
+    response = flow_exists(
+        FlowExistsBody(name="name", external_version="external_version"), expdb_test
+    )
     assert response == {"flow_id": fake_flow.id}
 
 
@@ -60,7 +62,9 @@ def test_flow_exists_handles_flow_not_found(mocker: MockerFixture, expdb_test: C
 
 
 def test_flow_exists(flow: Flow, py_api: TestClient) -> None:
-    response = py_api.post("/flows/exists", json={"name": flow.name, "external_version": flow.external_version})
+    response = py_api.post(
+        "/flows/exists", json={"name": flow.name, "external_version": flow.external_version}
+    )
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"flow_id": flow.id}
 

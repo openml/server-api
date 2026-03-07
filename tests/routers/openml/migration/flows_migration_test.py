@@ -39,7 +39,9 @@ def test_flow_exists(
         "/flows/exists",
         json={"name": persisted_flow.name, "external_version": persisted_flow.external_version},
     )
-    php_response = php_api.get(f"/flow/exists/{persisted_flow.name}/{persisted_flow.external_version}")
+    php_response = php_api.get(
+        f"/flow/exists/{persisted_flow.name}/{persisted_flow.external_version}"
+    )
 
     assert py_response.status_code == php_response.status_code, php_response.content
 
