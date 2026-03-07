@@ -34,10 +34,14 @@ jobs:
           fi
           docker compose $profiles up --detach --wait --remove-orphans || exit $(docker compose ps -q | xargs docker inspect -f '{{.State.ExitCode}}' | grep -v '^0' | wc -l)
 
-      - name: Run tests
+      - name: Run internal tests
         run: |
           marker="${{ matrix.php_api == true && 'php_api' || 'not php_api' }} and ${{ matrix.mutations == true && 'mut' || 'not mut' }}"
-          docker exec openml-python-rest-api coverage run -m pytest -n auto -v -m "$marker"
+          docker exec openml-python-rest-api coverage run -m pytest tests/database tests/config_test.py -n auto -v -m "$marker"
+      - name: Run API tests
+        run: |
+          marker="${{ matrix.php_api == true && 'php_api' || 'not php_api' }} and ${{ matrix.mutations == true && 'mut' || 'not mut' }}"
+          docker exec openml-python-rest-api coverage run -a -m pytest tests/routers -n auto -v -m "$marker"
       - name: Produce coverage report
         run: docker exec openml-python-rest-api coverage xml
       - name: Upload results to Codecov
