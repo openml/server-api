@@ -96,7 +96,7 @@ def test_delete_user_has_resources(py_api: TestClient, user_test: Connection) ->
     # User 16 owns dataset 130 per tests/users.py definition
     target_id = 16
     response = py_api.delete(f"/users/{target_id}?api_key={ApiKey.DATASET_130_OWNER}")
-    
+
     assert response.status_code == HTTPStatus.CONFLICT
     assert response.json()["detail"]["code"] == "122"
     assert "resource(s)" in response.json()["detail"]["message"]
@@ -107,4 +107,3 @@ def test_delete_user_has_resources(py_api: TestClient, user_test: Connection) ->
         parameters={"id": target_id},
     ).scalar()
     assert user_count == 1
-

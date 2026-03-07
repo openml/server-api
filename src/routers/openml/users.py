@@ -5,9 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import Connection
 
 from core.errors import UserError
-from database.users import UserGroup, delete_user, get_user_resource_count
+from database.users import User, UserGroup, delete_user, get_user_resource_count
 from routers.dependencies import expdb_connection, fetch_user, userdb_connection
-from database.users import User
 
 router = APIRouter(prefix="/users", tags=["users"])
 
