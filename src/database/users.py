@@ -72,3 +72,84 @@ class User:
             groups = get_user_groups_for(user_id=self.user_id, connection=self._database)
             self._groups = [UserGroup(group_id) for group_id in groups]
         return self._groups
+
+
+def get_user_resource_count(*, user_id: int, expdb: Connection) -> int:
+    """Return the total number of datasets, flows, and runs owned by the user."""
+    dataset_count = (
+        expdb.execute(
+            text("SELECT COUNT(*) FROM dataset WHERE uploader = :user_id"),
+            parameters={"user_id": user_id},
+        ).scalar()
+        or 0
+    )
+    flow_count = (
+        expdb.execute(
+            text("SELECT COUNT(*) FROM implementation WHERE uploader = :user_id"),
+            parameters={"user_id": user_id},
+        ).scalar()
+        or 0
+    )
+    run_count = (
+        expdb.execute(
+            text("SELECT COUNT(*) FROM run WHERE uploader = :user_id"),
+            parameters={"user_id": user_id},
+        ).scalar()
+        or 0
+    )
+
+    study_count = (
+        expdb.execute(
+            text("SELECT COUNT(*) FROM study WHERE creator = :user_id"),
+            parameters={"user_id": user_id},
+        ).scalar()
+        or 0
+    )
+    task_study_count = (
+        expdb.execute(
+            text("SELECT COUNT(*) FROM task_study WHERE uploader = :user_id"),
+            parameters={"user_id": user_id},
+        ).scalar()
+        or 0
+    )
+    run_study_count = (
+        expdb.execute(
+            text("SELECT COUNT(*) FROM run_study WHERE uploader = :user_id"),
+            parameters={"user_id": user_id},
+        ).scalar()
+        or 0
+    )
+    dataset_tag_count = (
+        expdb.execute(
+            text("SELECT COUNT(*) FROM dataset_tag WHERE uploader = :user_id"),
+            parameters={"user_id": user_id},
+        ).scalar()
+        or 0
+    )
+
+    return int(
+        dataset_count
+        + flow_count
+        + run_count
+        + study_count
+        + task_study_count
+        + run_study_count
+        + dataset_tag_count,
+    )
+
+
+def delete_user(*, user_id: int, connection: Connection) -> None:
+    """Remove the user and their group memberships from the user database."""
+    with connection.begin_nested() as transaction:
+        try:
+            connection.execute(
+                text("DELETE FROM users_groups WHERE user_id = :user_id"),
+                parameters={"user_id": user_id},
+            )
+            connection.execute(
+                text("DELETE FROM users WHERE id = :user_id"),
+                parameters={"user_id": user_id},
+            )
+        except Exception:
+            transaction.rollback()
+            raise
