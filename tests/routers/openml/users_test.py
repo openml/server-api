@@ -143,8 +143,8 @@ def test_delete_user_has_resources_parametrized(  # noqa: PLR0913
     py_api: TestClient,
     user_test: Connection,
     expdb_test: Connection,
-    table_name: str,
-    column_name: str,
+    table_name: str,  # noqa: ARG001
+    column_name: str,  # noqa: ARG001
     insert_sql: str,
 ) -> None:
     """Verify that possessing any tracked resource blocks deletion."""
