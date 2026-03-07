@@ -113,7 +113,8 @@ def test_delete_user_has_resources(py_api: TestClient, user_test: Connection) ->
         (
             "implementation",
             "uploader",
-            "INSERT INTO implementation (uploader, fullname, name, version, external_version, uploadDate) VALUES (:id, 'x', 'x', 1, '1', '2024-01-01')",
+            "INSERT INTO implementation (uploader, fullname, name, version, "
+            "external_version, uploadDate) VALUES (:id, 'x', 'x', 1, '1', '2024-01-01')",
         ),
         ("run", "uploader", "INSERT INTO run (uploader, task_id, setup) VALUES (:id, 1, 1)"),
         (
@@ -138,7 +139,7 @@ def test_delete_user_has_resources(py_api: TestClient, user_test: Connection) ->
         ),
     ],
 )
-def test_delete_user_has_resources_parametrized(
+def test_delete_user_has_resources_parametrized(  # noqa: PLR0913
     py_api: TestClient,
     user_test: Connection,
     expdb_test: Connection,
