@@ -7,7 +7,8 @@ from pytest_mock import MockerFixture
 from sqlalchemy import Connection
 from starlette.testclient import TestClient
 
-from routers.openml.flows import FlowExistsBody, flow_exists
+from routers.openml.flows import flow_exists
+from schemas.flows import FlowExistsBody
 from tests.conftest import Flow
 
 

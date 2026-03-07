@@ -2,20 +2,14 @@ from http import HTTPStatus
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
 from sqlalchemy import Connection
 
 import database.flows
 from core.conversions import _str_to_num
 from routers.dependencies import expdb_connection
-from schemas.flows import Flow, Parameter, Subflow
+from schemas.flows import Flow, FlowExistsBody, Parameter, Subflow
 
 router = APIRouter(prefix="/flows", tags=["flows"])
-
-
-class FlowExistsBody(BaseModel):
-    name: str
-    external_version: str
 
 
 @router.post("/exists")
@@ -35,6 +29,16 @@ def flow_exists(
             detail="Flow not found.",
         )
     return {"flow_id": flow.id}
+
+
+@router.get("/exists/{name}/{external_version}", deprecated=True)
+def flow_exists_get(
+    name: str,
+    external_version: str,
+    expdb: Annotated[Connection, Depends(expdb_connection)],
+) -> dict[Literal["flow_id"], int]:
+    """Deprecated: use POST /flows/exists instead."""
+    return flow_exists(FlowExistsBody(name=name, external_version=external_version), expdb)
 
 
 @router.get("/{flow_id}")
