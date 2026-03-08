@@ -48,7 +48,7 @@ def get_run_trace(
                     iteration=str(row.iteration),
                     setup_string=row.setup_string,
                     evaluation=row.evaluation,
-                    selected="true" if row.selected else "false",
+                    selected=row.selected,
                 )
                 for row in trace_rows
             ],
