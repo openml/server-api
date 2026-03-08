@@ -4,7 +4,7 @@ import deepdiff.diff
 import pytest
 from fastapi import HTTPException
 from pytest_mock import MockerFixture
-from sqlalchemy import Connection
+from sqlalchemy import Connection, text
 from starlette.testclient import TestClient
 
 from routers.openml.flows import flow_exists
@@ -74,6 +74,29 @@ def test_flow_exists_not_exists(py_api: TestClient) -> None:
     response = py_api.post("/flows/exists", json={"name": "foo", "external_version": "bar"})
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json()["detail"] == "Flow not found."
+
+
+def test_flow_exists_get_deprecated(flow: Flow, py_api: TestClient) -> None:
+    response = py_api.get(f"/flows/exists/{flow.name}/{flow.external_version}")
+    assert response.status_code == HTTPStatus.OK
+    assert response.json() == {"flow_id": flow.id}
+
+
+def test_flow_exists_uri_unsafe(expdb_test: Connection, py_api: TestClient) -> None:
+    expdb_test.execute(
+        text(
+            """
+            INSERT INTO implementation(fullname,name,version,external_version,uploadDate)
+            VALUES ('weka/ZeroR','weka/ZeroR',2,'1.0/beta','2024-02-02 02:23:23');
+            """,
+        ),
+    )
+    (flow_id,) = expdb_test.execute(text("""SELECT LAST_INSERT_ID();""")).one()
+    response = py_api.post(
+        "/flows/exists", json={"name": "weka/ZeroR", "external_version": "1.0/beta"}
+    )
+    assert response.status_code == HTTPStatus.OK
+    assert response.json() == {"flow_id": flow_id}
 
 
 def test_get_flow_no_subflow(py_api: TestClient) -> None:
