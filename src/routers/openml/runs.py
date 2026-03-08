@@ -14,7 +14,7 @@ router = APIRouter(prefix="/runs", tags=["runs"])
 @router.get("/trace/{run_id}")
 def get_run_trace(
     run_id: int,
-    expdb: Annotated[Connection, Depends(expdb_connection)] = None,
+    expdb: Annotated[Connection, Depends(expdb_connection)],
 ) -> RunTraceResponse:
     # 571: run does not exist at all
     if not database.runs.get_run(run_id, expdb):

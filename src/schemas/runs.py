@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel
 
 
@@ -7,7 +9,7 @@ class TraceIteration(BaseModel):
     iteration: str
     setup_string: str
     evaluation: str
-    selected: str
+    selected: Literal["true", "false"]
 
 
 class RunTrace(BaseModel):
