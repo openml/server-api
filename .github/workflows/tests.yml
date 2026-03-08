@@ -40,6 +40,7 @@ jobs:
         run: |
           docker exec openml-python-rest-api coverage run -m pytest tests/database tests/config_test.py -n auto -v -m "$TEST_MARKER"
       - name: Run API tests
+        if: always()
         run: |
           docker exec openml-python-rest-api coverage run -a -m pytest tests/routers -n auto -v -m "$TEST_MARKER"
       - name: Produce coverage report
