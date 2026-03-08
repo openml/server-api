@@ -16,6 +16,11 @@ def get_run_trace(
     run_id: int,
     expdb: Annotated[Connection, Depends(expdb_connection)],
 ) -> RunTraceResponse:
+    """Get the optimization trace for a run.
+
+    Returns all hyperparameter configurations tried during tuning, their
+    evaluations, and whether each was selected. Mirrors PHP API behavior.
+    """
     # 571: run does not exist at all
     if not database.runs.get_run(run_id, expdb):
         raise HTTPException(
@@ -43,7 +48,7 @@ def get_run_trace(
                     iteration=str(row.iteration),
                     setup_string=row.setup_string,
                     evaluation=row.evaluation,
-                    selected=row.selected,
+                    selected="true" if row.selected else "false",
                 )
                 for row in trace_rows
             ],
