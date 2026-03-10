@@ -1,4 +1,5 @@
 import json
+import re
 from http import HTTPStatus
 
 import httpx
@@ -7,11 +8,6 @@ from starlette.testclient import TestClient
 
 import tests.constants
 from core.conversions import nested_remove_single_element_list
-from core.errors import (
-    DatasetNoAccessError,
-    DatasetNotFoundError,
-    TagAlreadyExistsError,
-)
 from tests.users import ApiKey
 
 
@@ -115,8 +111,9 @@ def test_error_unknown_dataset(
     # RFC 9457: Python API now returns problem+json format
     assert response.headers["content-type"] == "application/problem+json"
     error = response.json()
-    assert error["type"] == DatasetNotFoundError.uri
     assert error["code"] == "111"
+    # instead of 'Unknown dataset'
+    assert error["detail"].startswith("No dataset")
 
 
 @pytest.mark.parametrize(
@@ -134,8 +131,8 @@ def test_private_dataset_no_user_no_access(
     assert response.status_code == HTTPStatus.FORBIDDEN
     assert response.headers["content-type"] == "application/problem+json"
     error = response.json()
-    assert error["type"] == DatasetNoAccessError.uri
     assert error["code"] == "112"
+    assert error["detail"].startswith("No access granted")
 
 
 @pytest.mark.parametrize(
@@ -204,18 +201,18 @@ def test_dataset_tag_response_is_identical(
     # RFC 9457: Tag conflict now returns 409 instead of 500
     if original.status_code == HTTPStatus.INTERNAL_SERVER_ERROR and already_tagged:
         assert new.status_code == HTTPStatus.CONFLICT
-        assert new.headers["content-type"] == "application/problem+json"
-        error = new.json()
-        assert error["type"] == TagAlreadyExistsError.uri
-        assert error["code"] == "473"
+        assert original.json()["error"]["code"] == new.json()["code"]
+        assert original.json()["error"]["message"] == "Entity already tagged by this tag."
+        assert re.match(
+            pattern=r"Dataset \d+ already tagged with " + f"'{tag}'.",
+            string=new.json()["detail"],
+        )
         return
 
     assert original.status_code == new.status_code, original.json()
     if new.status_code != HTTPStatus.OK:
-        # RFC 9457: Python API now returns problem+json format
-        assert new.headers["content-type"] == "application/problem+json"
-        # Both APIs should error in the same cases
-        assert "error" in original.json()
+        assert original.json()["error"]["code"] == new.json()["code"]
+        assert original.json()["error"]["message"] == new.json()["detail"]
         return
 
     original = original.json()

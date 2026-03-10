@@ -50,7 +50,7 @@ def tag_dataset(
 ) -> dict[str, dict[str, Any]]:
     tags = database.datasets.get_tags_for(data_id, expdb_db)
     if tag.casefold() in [t.casefold() for t in tags]:
-        msg = f"Dataset {data_id} already tagged by with {tag!r}."
+        msg = f"Dataset {data_id} already tagged with {tag!r}."
         raise TagAlreadyExistsError(msg)
 
     if user is None:
