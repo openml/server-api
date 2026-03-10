@@ -63,7 +63,12 @@ def test_delete_user_as_admin(py_api: TestClient, user_test: Connection) -> None
         text("SELECT COUNT(*) FROM users WHERE id = :id"),
         parameters={"id": new_id},
     ).scalar()
+    group_count = user_test.execute(
+        text("SELECT COUNT(*) FROM users_groups WHERE user_id = :id"),
+        parameters={"id": new_id},
+    ).scalar()
     assert user_count == 0
+    assert group_count == 0
 
 
 def test_delete_user_no_auth(py_api: TestClient) -> None:
@@ -98,53 +103,43 @@ def test_delete_user_has_resources(py_api: TestClient, user_test: Connection) ->
         text("SELECT COUNT(*) FROM users WHERE id = :id"),
         parameters={"id": target_id},
     ).scalar()
+    session_hash = user_test.execute(
+        text("SELECT session_hash FROM users WHERE id = :id"),
+        parameters={"id": target_id},
+    ).scalar()
     assert user_count == 1
+    assert session_hash == ApiKey.DATASET_130_OWNER
 
 
 @pytest.mark.mut
 @pytest.mark.parametrize(
-    ("table_name", "column_name", "insert_sql"),
+    "insert_sql",
     [
+        "INSERT INTO dataset (uploader, name, format) VALUES (:id, 'x', 'ARFF')",
         (
-            "dataset",
-            "uploader",
-            "INSERT INTO dataset (uploader, name, format) VALUES (:id, 'x', 'ARFF')",
-        ),
-        (
-            "implementation",
-            "uploader",
             "INSERT INTO implementation (uploader, fullname, name, version, "
-            "external_version, uploadDate) VALUES (:id, 'x', 'x', 1, '1', '2024-01-01')",
+            "external_version, uploadDate) VALUES (:id, 'x', 'x', 1, '1', '2024-01-01')"
         ),
-        ("run", "uploader", "INSERT INTO run (uploader, task_id, setup) VALUES (:id, 1, 1)"),
-        (
-            "study",
-            "creator",
-            "INSERT INTO study (creator, name, main_entity_type) VALUES (:id, 'x', 'run')",
-        ),
-        (
-            "task_study",
-            "uploader",
-            "INSERT INTO task_study (uploader, study_id, task_id) VALUES (:id, 14, 1)",
-        ),
-        (
-            "run_study",
-            "uploader",
-            "INSERT INTO run_study (uploader, study_id, run_id) VALUES (:id, 14, 1)",
-        ),
-        (
-            "dataset_tag",
-            "uploader",
-            "INSERT INTO dataset_tag (uploader, id, tag) VALUES (:id, 1, 'x')",
-        ),
+        "INSERT INTO run (uploader, task_id, setup) VALUES (:id, 1, 1)",
+        "INSERT INTO study (creator, name, main_entity_type) VALUES (:id, 'x', 'run')",
+        "INSERT INTO task_study (uploader, study_id, task_id) VALUES (:id, 14, 1)",
+        "INSERT INTO run_study (uploader, study_id, run_id) VALUES (:id, 14, 1)",
+        "INSERT INTO dataset_tag (uploader, id, tag) VALUES (:id, 1, 'x')",
+    ],
+    ids=[
+        "dataset",
+        "implementation",
+        "run",
+        "study",
+        "task_study",
+        "run_study",
+        "dataset_tag",
     ],
 )
-def test_delete_user_has_resources_parametrized(  # noqa: PLR0913
+def test_delete_user_has_resources_parametrized(
     py_api: TestClient,
     user_test: Connection,
     expdb_test: Connection,
-    table_name: str,  # noqa: ARG001
-    column_name: str,  # noqa: ARG001
     insert_sql: str,
 ) -> None:
     """Verify that possessing any tracked resource blocks deletion."""
@@ -156,13 +151,22 @@ def test_delete_user_has_resources_parametrized(  # noqa: PLR0913
     )
     (new_id,) = user_test.execute(text("SELECT LAST_INSERT_ID()")).one()
 
-    # Disable constraints temporarily to inject simple orphaned rows for testing 409
-    expdb_test.execute(text("SET FOREIGN_KEY_CHECKS=0"))
-    expdb_test.execute(text(insert_sql), parameters={"id": new_id})
-    expdb_test.execute(text("SET FOREIGN_KEY_CHECKS=1"))
-    expdb_test.commit()
+    # Keep inserts inside rollback-scoped transaction used by the test harness.
+    with expdb_test.begin_nested():
+        expdb_test.execute(text("SET FOREIGN_KEY_CHECKS=0"))
+        try:
+            expdb_test.execute(text(insert_sql), parameters={"id": new_id})
+        finally:
+            expdb_test.execute(text("SET FOREIGN_KEY_CHECKS=1"))
 
     response = py_api.delete(f"/users/{new_id}?api_key=eeeeffffccccddddaaaabbbbccccdddd")
 
     assert response.status_code == HTTPStatus.CONFLICT
     assert response.json()["detail"]["code"] == "122"
+    assert "resource(s)" in response.json()["detail"]["message"]
+
+    user_count = user_test.execute(
+        text("SELECT COUNT(*) FROM users WHERE id = :id"),
+        parameters={"id": new_id},
+    ).scalar()
+    assert user_count == 1

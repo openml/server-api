@@ -1,8 +1,9 @@
+import uuid
 from http import HTTPStatus
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import Connection
+from sqlalchemy import Connection, text
 
 from core.errors import UserError
 from database.users import User, UserGroup, delete_user, get_user_resource_count
@@ -41,10 +42,6 @@ def delete_account(
             detail={"code": str(int(UserError.NO_ACCESS)), "message": "No access granted"},
         )
 
-    import uuid
-
-    from sqlalchemy import text  # noqa: PLC0415
-
     original = user_db.execute(
         text("SELECT session_hash FROM users WHERE id = :id FOR UPDATE"),
         parameters={"id": user_id},
@@ -56,14 +53,13 @@ def delete_account(
             detail={"code": str(int(UserError.NOT_FOUND)), "message": "User not found"},
         )
 
-    # Invalidate session immediately to prevent concurrent resource creation
+    # Invalidate session while delete flow is in-progress.
     original_session_hash = original[0]
     temp_lock_hash = uuid.uuid4().hex
     user_db.execute(
         text("UPDATE users SET session_hash = :lock_hash WHERE id = :id"),
         parameters={"lock_hash": temp_lock_hash, "id": user_id},
     )
-    user_db.commit()
 
     deletion_successful = False
     try:
@@ -86,9 +82,16 @@ def delete_account(
         return {"user_id": user_id, "deleted": True}
     finally:
         if not deletion_successful:
-            # Restore session hash if deletion did not complete successfully
+            # Restore only if we still hold our lock value.
             user_db.execute(
-                text("UPDATE users SET session_hash = :hash WHERE id = :id"),
-                parameters={"hash": original_session_hash, "id": user_id},
+                text(
+                    "UPDATE users SET session_hash = :hash "
+                    "WHERE id = :id AND session_hash = :lock_hash",
+                ),
+                parameters={
+                    "hash": original_session_hash,
+                    "id": user_id,
+                    "lock_hash": temp_lock_hash,
+                },
             )
             user_db.commit()
