@@ -1,4 +1,5 @@
 import argparse
+import logging
 
 import uvicorn
 from fastapi import FastAPI
@@ -61,6 +62,7 @@ def create_api() -> FastAPI:
 
 
 def main() -> None:
+    logging.basicConfig(level=logging.INFO)
     args = _parse_args()
     uvicorn.run(
         app="main:create_api",

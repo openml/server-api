@@ -51,7 +51,7 @@ services:
 
   php-api:
     profiles: ["php", "all"]
-    image: "openml/php-rest-api:v1.2.2"
+    image: "openml/php-rest-api:v1.2.4"
     container_name: "openml-php-rest-api"
     env_file: docker/php/.env
     ports:
@@ -77,6 +77,9 @@ services:
     ports:
       - "8001:8000"
     volumes:
-      - .:/python-api
+      - .:/app
+      - ./src/config.toml:/config/config.toml
+    environment:
+      OPENML_REST_API_CONFIG_DIRECTORY: "/config"
     depends_on:
       - database
