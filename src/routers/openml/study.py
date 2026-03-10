@@ -25,13 +25,15 @@ router = APIRouter(prefix="/studies", tags=["studies"])
 
 
 def _get_study_raise_otherwise(id_or_alias: int | str, user: User | None, expdb: Connection) -> Row:
-    if isinstance(id_or_alias, int) or id_or_alias.isdigit():
+    search_by_id = isinstance(id_or_alias, int) or id_or_alias.isdigit()
+    if search_by_id:
         study = database.studies.get_by_id(int(id_or_alias), expdb)
     else:
-        study = database.studies.get_by_alias(id_or_alias, expdb)
+        study = database.studies.get_by_alias(str(id_or_alias), expdb)
 
     if study is None:
-        msg = "Study not found."
+        search_type = "id" if search_by_id else "alias"
+        msg = f"Study with {search_type} {id_or_alias} not found."
         raise StudyNotFoundError(msg)
     if study.visibility == Visibility.PRIVATE:
         if user is None:
@@ -64,10 +66,10 @@ def attach_to_study(
     study = _get_study_raise_otherwise(study_id, user, expdb)
     # PHP lets *anyone* edit *any* study. We're not going to do that.
     if study.creator != user.user_id and UserGroup.ADMIN not in user.groups:
-        msg = "Study can only be edited by its creator."
+        msg = f"Study {study_id} can only be edited by its creator."
         raise StudyNotEditableError(msg)
     if study.status != StudyStatus.IN_PREPARATION:
-        msg = "Study can only be edited while in preparation."
+        msg = f"Study {study_id} can only be edited while in preparation."
         raise StudyNotEditableError(msg)
 
     # We let the database handle the constraints on whether
@@ -104,7 +106,7 @@ def create_study(
         msg = "Cannot create a task study with runs."
         raise StudyInvalidTypeError(msg)
     if study.alias and database.studies.get_by_alias(study.alias, expdb):
-        msg = "Study alias already exists."
+        msg = f"Study alias {study.alias} already exists."
         raise StudyAliasExistsError(msg)
     study_id = database.studies.create(study, user, expdb)
     if study.main_entity_type == StudyType.TASK:

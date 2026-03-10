@@ -155,10 +155,10 @@ def get_task(
     expdb: Annotated[Connection, Depends(expdb_connection)] = None,
 ) -> Task:
     if not (task := database.tasks.get(task_id, expdb)):
-        msg = "Task not found."
+        msg = f"Task {task_id} not found."
         raise TaskNotFoundError(msg)
     if not (task_type := database.tasks.get_task_type(task.ttid, expdb)):
-        msg = "Task type not found."
+        msg = f"Task {task_id} has task type {task.ttid}, but task type {task.ttid} is not found."
         raise InternalError(msg)
 
     task_inputs = {

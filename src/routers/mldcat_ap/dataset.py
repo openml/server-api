@@ -122,7 +122,7 @@ def get_mldcat_ap_distribution(
 )
 def get_dataservice(service_id: int) -> JsonLDGraph:
     if service_id != 1:
-        msg = "Service not found."
+        msg = f"Service with id {service_id} not found."
         raise ServiceNotFoundError(msg)
     return JsonLDGraph(
         context="https://semiceu.github.io/MLDCAT-AP/releases/1.0.0/context.jsonld",

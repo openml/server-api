@@ -45,7 +45,7 @@ def get_task_type(
 ) -> dict[Literal["task_type"], dict[str, str | None | list[str] | list[dict[str, str]]]]:
     task_type_record = db_get_task_type(task_type_id, expdb)
     if task_type_record is None:
-        msg = "Unknown task type."
+        msg = f"Task type {task_type_id} not found."
         raise TaskTypeNotFoundError(msg)
 
     task_type = _normalize_task_type(task_type_record)

@@ -36,7 +36,7 @@ def get_qualities(
     dataset = database.datasets.get(dataset_id, expdb)
     if not dataset or not _user_has_access(dataset, user):
         # Backwards compatibility: PHP API returns 412 with code 113
-        msg = "Unknown dataset."
+        msg = f"Dataset with id {dataset_id} not found."
         no_data_file = 113
         raise DatasetNotFoundError(
             msg,
