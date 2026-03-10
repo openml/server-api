@@ -76,6 +76,22 @@ def test_flow_exists_not_exists(py_api: TestClient) -> None:
     assert response.json()["detail"] == "Flow not found."
 
 
+@pytest.mark.parametrize(
+    ("name", "external_version"),
+    [
+        ("", "v1"),
+        ("some-flow", ""),
+    ],
+)
+def test_flow_exists_rejects_empty_fields(
+    py_api: TestClient,
+    name: str,
+    external_version: str,
+) -> None:
+    response = py_api.post("/flows/exists", json={"name": name, "external_version": external_version})
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+
+
 def test_get_flow_no_subflow(py_api: TestClient) -> None:
     response = py_api.get("/flows/1")
     assert response.status_code == HTTPStatus.OK

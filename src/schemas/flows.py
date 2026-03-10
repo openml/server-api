@@ -7,8 +7,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class FlowExistsBody(BaseModel):
-    name: str
-    external_version: str
+    name: str = Field(min_length=1, max_length=1024)
+    external_version: str = Field(min_length=1, max_length=128)
 
 
 class Parameter(BaseModel):
