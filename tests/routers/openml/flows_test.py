@@ -88,7 +88,9 @@ def test_flow_exists_rejects_empty_fields(
     name: str,
     external_version: str,
 ) -> None:
-    response = py_api.post("/flows/exists", json={"name": name, "external_version": external_version})
+    response = py_api.post(
+        "/flows/exists", json={"name": name, "external_version": external_version}
+    )
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
