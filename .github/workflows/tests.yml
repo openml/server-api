@@ -44,8 +44,10 @@ jobs:
         run: |
           docker exec openml-python-rest-api coverage run -a -m pytest tests/routers -n auto -v -m "$TEST_MARKER"
       - name: Produce coverage report
+        if: always()
         run: docker exec openml-python-rest-api coverage xml
       - name: Upload results to Codecov
+        if: always()
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
