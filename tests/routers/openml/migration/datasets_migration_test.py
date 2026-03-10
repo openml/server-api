@@ -36,7 +36,9 @@ def test_dataset_response_is_identical(  # noqa: C901, PLR0912
         # RFC 9457: Python API now returns problem+json format
         assert new.headers["content-type"] == "application/problem+json"
         # Both APIs should return error responses in the same cases
-        assert "error" in original.json()
+        assert original.json()["error"]["code"] == new.json()["code"]
+        old_error_message = original.json()["error"]["message"]
+        assert new.json()["detail"].startswith(old_error_message)
         return
 
     try:
