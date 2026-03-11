@@ -306,9 +306,8 @@ def test_get_quality_identical_error(
     py_api: TestClient,
     php_api: httpx.Client,
 ) -> None:
-    if data_id in [55, 56, 59]:
-        pytest.skip("Detailed error for code 364 (failed processing) not yet supported.")
     if data_id in [116]:
+        # skipping 116 is not valid case for 362
         pytest.skip("Detailed error for code 362 (no qualities) not yet supported.")
     php_response = php_api.get(f"/data/qualities/{data_id}")
     python_response = py_api.get(f"/datasets/qualities/{data_id}")
