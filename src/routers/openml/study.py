@@ -25,7 +25,11 @@ from schemas.study import CreateStudy, Study, StudyStatus, StudyType
 router = APIRouter(prefix="/studies", tags=["studies"])
 
 
-def _get_study_raise_otherwise(id_or_alias: int | str, user: User | None, expdb: Connection) -> Row:
+async def _get_study_raise_otherwise(
+    id_or_alias: int | str,
+    user: User | None,
+    expdb: AsyncConnection,
+) -> Row:
     search_by_id = isinstance(id_or_alias, int) or id_or_alias.isdigit()
     if search_by_id:
         study = await database.studies.get_by_id(int(id_or_alias), expdb)

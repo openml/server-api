@@ -55,7 +55,9 @@ async def test_flow_exists_processes_found(
     assert response == {"flow_id": fake_flow.id}
 
 
-def test_flow_exists_handles_flow_not_found(mocker: MockerFixture, expdb_test: Connection) -> None:
+async def test_flow_exists_handles_flow_not_found(
+    mocker: MockerFixture, expdb_test: AsyncConnection
+) -> None:
     mocker.patch("database.flows.get_by_name", return_value=None)
     with pytest.raises(FlowNotFoundError) as error:
         await flow_exists("foo", "bar", expdb_test)
