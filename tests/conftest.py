@@ -1,4 +1,3 @@
-import contextlib
 import json
 from collections.abc import Iterator
 from pathlib import Path
@@ -8,51 +7,38 @@ import _pytest.mark
 import httpx
 import pytest
 from _pytest.config import Config
+from _pytest.config.argparsing import Parser
 from _pytest.nodes import Item
-from fastapi.testclient import TestClient
-from sqlalchemy import Connection, Engine, text
+from dotenv import load_dotenv
+from sqlalchemy import Connection, text
 
-from database.setup import expdb_database, user_database
-from main import create_api
-from routers.dependencies import expdb_connection, userdb_connection
+load_dotenv()
+
 
 PHP_API_URL = "http://openml-php-rest-api:80/api/v1/json"
 
 
-@contextlib.contextmanager
-def automatic_rollback(engine: Engine) -> Iterator[Connection]:
-    with engine.connect() as connection:
-        transaction = connection.begin()
-        yield connection
-        if transaction.is_active:
-            transaction.rollback()
+def pytest_addoption(parser: Parser) -> None:
+    parser.addoption(
+        "--use-testcontainer",  # CLI flag
+        action="store_true",  # True if provided, False if omitted
+        help="Use testcontainers for database tests",
+    )
 
 
-@pytest.fixture
-def expdb_test() -> Connection:
-    with automatic_rollback(expdb_database()) as connection:
-        yield connection
+def pytest_configure(config: Config) -> None:
+    use_test_container = config.getoption("--use-testcontainer")
 
-
-@pytest.fixture
-def user_test() -> Connection:
-    with automatic_rollback(user_database()) as connection:
-        yield connection
+    if use_test_container:
+        config.pluginmanager.import_plugin("tests.fixtures_testcontainer")
+    else:
+        config.pluginmanager.import_plugin("tests.fixtures_local")
 
 
 @pytest.fixture
 def php_api() -> httpx.Client:
     with httpx.Client(base_url=PHP_API_URL) as client:
         yield client
-
-
-@pytest.fixture
-def py_api(expdb_test: Connection, user_test: Connection) -> TestClient:
-    app = create_api()
-    # We use the lambda definitions because fixtures may not be called directly.
-    app.dependency_overrides[expdb_connection] = lambda: expdb_test
-    app.dependency_overrides[userdb_connection] = lambda: user_test
-    return TestClient(app)
 
 
 @pytest.fixture
@@ -109,7 +95,7 @@ def persisted_flow(flow: Flow, expdb_test: Connection) -> Iterator[Flow]:
     expdb_test.commit()
 
 
-def pytest_collection_modifyitems(config: Config, items: list[Item]) -> None:  # noqa: ARG001
+def pytest_collection_modifyitems(items: list[Item]) -> None:
     for test_item in items:
         for fixture in test_item.fixturenames:  # type: ignore[attr-defined]
             test_item.own_markers.append(_pytest.mark.Mark(fixture, (), {}))
