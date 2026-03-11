@@ -270,7 +270,7 @@ def test_list_data_identical(
     if offset is not None:
         new_style["pagination"]["offset"] = offset
 
-    response = py_api.post(
+    new = py_api.post(
         f"/datasets/list{api_key_query}",
         json=new_style,
     )
@@ -290,20 +290,22 @@ def test_list_data_identical(
     # Note: RFC 9457 changed some status codes (PRECONDITION_FAILED -> NOT_FOUND for no results)
     # and the error response format, so we can't compare error responses directly.
     php_is_error = original.status_code == HTTPStatus.PRECONDITION_FAILED
-    py_is_error = response.status_code == HTTPStatus.NOT_FOUND
+    py_is_error = new.status_code == HTTPStatus.NOT_FOUND
 
     if php_is_error or py_is_error:
         # Both should be errors in the same cases
         assert php_is_error == py_is_error, (
-            f"PHP status={original.status_code}, Python status={response.status_code}"
+            f"PHP status={original.status_code}, Python status={new.status_code}"
         )
         # Verify Python API returns RFC 9457 format
-        assert response.headers["content-type"] == "application/problem+json"
-        error = response.json()
+        assert new.headers["content-type"] == "application/problem+json"
+        error = new.json()
         assert error["type"] == NoResultsError.uri
         assert error["code"] == "372"
+        assert original.json()["error"]["message"] == "No results"
+        assert error["detail"] == "No datasets match the search criteria."
         return None
-    new_json = response.json()
+    new_json = new.json()
     # Qualities in new response are typed
     for dataset in new_json:
         for quality in dataset["quality"]:
