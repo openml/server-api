@@ -1,4 +1,3 @@
-from http import HTTPStatus
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -6,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 
 import database.flows
 from core.conversions import _str_to_num
+from core.errors import FlowNotFoundError
 from routers.dependencies import expdb_connection
 from schemas.flows import Flow, Parameter, Subflow
 
@@ -25,10 +25,8 @@ async def flow_exists(
         expdb=expdb,
     )
     if flow is None:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Flow not found.",
-        )
+        msg = f"Flow with name {name} and external version {external_version} not found."
+        raise FlowNotFoundError(msg)
     return {"flow_id": flow.id}
 
 
@@ -39,7 +37,8 @@ async def get_flow(
 ) -> Flow:
     flow = await database.flows.get(flow_id, expdb)
     if not flow:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Flow not found")
+        msg = f"Flow with id {flow_id} not found."
+        raise FlowNotFoundError(msg)
 
     parameter_rows = await database.flows.get_parameters(flow_id, expdb)
     parameters = [

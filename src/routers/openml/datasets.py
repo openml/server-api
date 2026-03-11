@@ -1,7 +1,6 @@
 import re
 from datetime import datetime
 from enum import StrEnum
-from http import HTTPStatus
 from typing import Annotated, Any, Literal, NamedTuple
 
 from fastapi import APIRouter, Body, Depends, HTTPException
@@ -12,11 +11,25 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 import database.datasets
 import database.qualities
 from core.access import _user_has_access
-from core.errors import DatasetError
+from core.errors import (
+    AuthenticationFailedError,
+    AuthenticationRequiredError,
+    DatasetAdminOnlyError,
+    DatasetNoAccessError,
+    DatasetNoDataFileError,
+    DatasetNoFeaturesError,
+    DatasetNotFoundError,
+    DatasetNotOwnedError,
+    DatasetNotProcessedError,
+    DatasetProcessingError,
+    DatasetStatusTransitionError,
+    InternalError,
+    NoResultsError,
+    TagAlreadyExistsError,
+)
 from core.formatting import (
     _csv_as_list,
     _format_dataset_url,
-    _format_error,
     _format_parquet_url,
 )
 from database.users import User, UserGroup
@@ -39,33 +52,17 @@ async def tag_dataset(
     assert expdb_db is not None  # noqa: S101
     tags = await database.datasets.get_tags_for(data_id, expdb_db)
     if tag.casefold() in [t.casefold() for t in tags]:
-        raise create_tag_exists_error(data_id, tag)
+        msg = f"Dataset {data_id} already tagged with {tag!r}."
+        raise TagAlreadyExistsError(msg)
 
     if user is None:
-        raise create_authentication_failed_error()
+        msg = "Authentication failed."
+        raise AuthenticationFailedError(msg)
 
     await database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
     return {
         "data_tag": {"id": str(data_id), "tag": [*tags, tag]},
     }
-
-
-def create_authentication_failed_error() -> HTTPException:
-    return HTTPException(
-        status_code=HTTPStatus.PRECONDITION_FAILED,
-        detail={"code": "103", "message": "Authentication failed"},
-    )
-
-
-def create_tag_exists_error(data_id: int, tag: str) -> HTTPException:
-    return HTTPException(
-        status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-        detail={
-            "code": "473",
-            "message": "Entity already tagged by this tag.",
-            "additional_information": f"id={data_id}; tag={tag}",
-        },
-    )
 
 
 class DatasetStatusFilter(StrEnum):
@@ -207,10 +204,8 @@ async def list_datasets(  # noqa: PLR0913
         row.did: dict(zip(columns, row, strict=True)) for row in rows
     }
     if not datasets:
-        raise HTTPException(
-            status_code=HTTPStatus.PRECONDITION_FAILED,
-            detail={"code": "372", "message": "No results"},
-        ) from None
+        msg = "No datasets match the search criteria."
+        raise NoResultsError(msg)
 
     for dataset in datasets.values():
         # The old API does not actually provide the checksum but just an empty field
@@ -276,15 +271,15 @@ async def _get_dataset_raise_otherwise(
 ) -> Row[Any]:
     """Fetches the dataset from the database if it exists and the user has permissions.
 
-    Raises HTTPException if the dataset does not exist or the user can not access it.
+    Raises ProblemDetailError if the dataset does not exist or the user can not access it.
     """
     if not (dataset := await database.datasets.get(dataset_id, expdb)):
-        error = _format_error(code=DatasetError.NOT_FOUND, message="Unknown dataset")
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail=error)
+        msg = f"No dataset with id {dataset_id} found."
+        raise DatasetNotFoundError(msg)
 
     if not await _user_has_access(dataset=dataset, user=user):
-        error = _format_error(code=DatasetError.NO_ACCESS, message="No access granted")
-        raise HTTPException(status_code=HTTPStatus.FORBIDDEN, detail=error)
+        msg = f"No access granted to dataset {dataset_id}."
+        raise DatasetNoAccessError(msg)
 
     return dataset
 
@@ -308,21 +303,19 @@ async def get_dataset_features(
     if not features:
         processing_state = await database.datasets.get_latest_processing_update(dataset_id, expdb)
         if processing_state is None:
-            code, msg = (
-                273,
-                "Dataset not processed yet. The dataset was not processed yet, features are not yet available. Please wait for a few minutes.",  # noqa: E501
+            msg = (
+                f"Dataset {dataset_id} not processed yet, so features are not yet available. "
+                "Please wait for a few minutes."
             )
-        elif processing_state.error:
-            code, msg = 274, "No features found. Additionally, dataset processed with error"
-        else:
-            code, msg = (
-                272,
-                "No features found. The dataset did not contain any features, or we could not extract them.",  # noqa: E501
-            )
-        raise HTTPException(
-            status_code=HTTPStatus.PRECONDITION_FAILED,
-            detail={"code": code, "message": msg},
+            raise DatasetNotProcessedError(msg)
+        if processing_state.error:
+            msg = f"No features found. Additionally, dataset {dataset_id} processed with error."
+            raise DatasetProcessingError(msg)
+        msg = (
+            "No features found. "
+            "Dataset {dataset_id} did not contain any features, or we could not extract them."
         )
+        raise DatasetNoFeaturesError(msg)
     return features
 
 
@@ -336,31 +329,24 @@ async def update_dataset_status(
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[str, str | int]:
     if user is None:
-        raise HTTPException(
-            status_code=HTTPStatus.UNAUTHORIZED,
-            detail="Updating dataset status required authorization",
-        )
+        msg = "Updating dataset status requires authentication."
+        raise AuthenticationRequiredError(msg)
 
     dataset = await _get_dataset_raise_otherwise(dataset_id, user, expdb)
 
     can_deactivate = dataset.uploader == user.user_id or UserGroup.ADMIN in await user.get_groups()
     if status == DatasetStatus.DEACTIVATED and not can_deactivate:
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail={"code": 693, "message": "Dataset is not owned by you"},
-        )
+        msg = f"Dataset {dataset_id} is not owned by you."
+        raise DatasetNotOwnedError(msg)
+        
     if status == DatasetStatus.ACTIVE and UserGroup.ADMIN not in await user.get_groups():
-        raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN,
-            detail={"code": 696, "message": "Only administrators can activate datasets."},
-        )
+        msg = "Only administrators can activate datasets."
+        raise DatasetAdminOnlyError(msg)
 
     current_status = await database.datasets.get_status(dataset_id, expdb)
     if current_status and current_status.status == status:
-        raise HTTPException(
-            status_code=HTTPStatus.PRECONDITION_FAILED,
-            detail={"code": 694, "message": "Illegal status transition."},
-        )
+        msg = f"Illegal status transition, requested status {status} matches current status."
+        raise DatasetStatusTransitionError(msg)
 
     # If current status is unknown, it is effectively "in preparation",
     # So the following transitions are allowed (first 3 transitions are first clause)
@@ -378,10 +364,8 @@ async def update_dataset_status(
     elif current_status.status == DatasetStatus.DEACTIVATED:
         await database.datasets.remove_deactivated_status(dataset_id, expdb)
     else:
-        raise HTTPException(
-            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
-            detail={"message": f"Unknown status transition: {current_status} -> {status}"},
-        )
+        msg = f"Unknown status transition: {current_status} -> {status}"
+        raise InternalError(msg)
 
     return {"dataset_id": dataset_id, "status": status}
 
@@ -405,11 +389,8 @@ async def get_dataset(
             connection=user_db,
         )
     ):
-        error = _format_error(
-            code=DatasetError.NO_DATA_FILE,
-            message="No data file found",
-        )
-        raise HTTPException(status_code=HTTPStatus.PRECONDITION_FAILED, detail=error)
+        msg = f"No data file found for dataset {dataset_id}."
+        raise DatasetNoDataFileError(msg)
 
     tags = await database.datasets.get_tags_for(dataset_id, expdb_db)
     description = await database.datasets.get_description(dataset_id, expdb_db)

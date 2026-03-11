@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 import database.datasets
 import database.qualities
 from core.access import _user_has_access
-from core.errors import DatasetError
+from core.errors import DatasetNotFoundError
 from database.users import User
 from routers.dependencies import expdb_connection, fetch_user
 from schemas.datasets.openml import Quality
@@ -35,10 +35,14 @@ async def get_qualities(
 ) -> list[Quality]:
     dataset = await database.datasets.get(dataset_id, expdb)
     if not dataset or not await _user_has_access(dataset, user):
-        raise HTTPException(
+        # Backwards compatibility: PHP API returns 412 with code 113
+        msg = f"Dataset with id {dataset_id} not found."
+        no_data_file = 113
+        raise DatasetNotFoundError(
+            msg,
+            code=no_data_file,
             status_code=HTTPStatus.PRECONDITION_FAILED,
-            detail={"code": DatasetError.NO_DATA_FILE, "message": "Unknown dataset"},
-        ) from None
+        )
     return await database.qualities.get_for_dataset(dataset_id, expdb)
     # The PHP API provided (sometime) helpful error messages
     # if not qualities:
