@@ -1,7 +1,7 @@
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import Connection
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 import database.flows
 from core.conversions import _str_to_num
@@ -13,13 +13,17 @@ router = APIRouter(prefix="/flows", tags=["flows"])
 
 
 @router.get("/exists/{name}/{external_version}")
-def flow_exists(
+async def flow_exists(
     name: str,
     external_version: str,
-    expdb: Annotated[Connection, Depends(expdb_connection)],
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[Literal["flow_id"], int]:
     """Check if a Flow with the name and version exists, if so, return the flow id."""
-    flow = database.flows.get_by_name(name=name, external_version=external_version, expdb=expdb)
+    flow = await database.flows.get_by_name(
+        name=name,
+        external_version=external_version,
+        expdb=expdb,
+    )
     if flow is None:
         msg = f"Flow with name {name} and external version {external_version} not found."
         raise FlowNotFoundError(msg)
@@ -27,13 +31,16 @@ def flow_exists(
 
 
 @router.get("/{flow_id}")
-def get_flow(flow_id: int, expdb: Annotated[Connection, Depends(expdb_connection)] = None) -> Flow:
-    flow = database.flows.get(flow_id, expdb)
+async def get_flow(
+    flow_id: int,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+) -> Flow:
+    flow = await database.flows.get(flow_id, expdb)
     if not flow:
         msg = f"Flow with id {flow_id} not found."
         raise FlowNotFoundError(msg)
 
-    parameter_rows = database.flows.get_parameters(flow_id, expdb)
+    parameter_rows = await database.flows.get_parameters(flow_id, expdb)
     parameters = [
         Parameter(
             name=parameter.name,
@@ -47,15 +54,16 @@ def get_flow(flow_id: int, expdb: Annotated[Connection, Depends(expdb_connection
         for parameter in parameter_rows
     ]
 
-    tags = database.flows.get_tags(flow_id, expdb)
-    subflow_rows = database.flows.get_subflows(flow_id, expdb)
-    subflows = [
-        Subflow(
-            identifier=subflow.identifier,
-            flow=get_flow(flow_id=subflow.child_id, expdb=expdb),
+    tags = await database.flows.get_tags(flow_id, expdb)
+    subflow_rows = await database.flows.get_subflows(flow_id, expdb)
+    subflows = []
+    for subflow in subflow_rows:
+        subflows.append(  # noqa: PERF401
+            Subflow(
+                identifier=subflow.identifier,
+                flow=await get_flow(flow_id=subflow.child_id, expdb=expdb),
+            ),
         )
-        for subflow in subflow_rows
-    ]
 
     return Flow(
         id_=flow.id,

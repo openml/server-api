@@ -1,3 +1,4 @@
+import asyncio
 import re
 from http import HTTPStatus
 from typing import Any
@@ -5,7 +6,6 @@ from typing import Any
 import deepdiff
 import httpx
 import pytest
-from starlette.testclient import TestClient
 
 from core.conversions import (
     nested_remove_single_element_list,
@@ -15,13 +15,15 @@ from tests.conftest import Flow
 
 
 @pytest.mark.mut
-def test_flow_exists_not(
-    py_api: TestClient,
-    php_api: TestClient,
+async def test_flow_exists_not(
+    py_api: httpx.AsyncClient,
+    php_api: httpx.AsyncClient,
 ) -> None:
     path = "exists/foo/bar"
-    py_response = py_api.get(f"/flows/{path}")
-    php_response = php_api.get(f"/flow/{path}")
+    py_response, php_response = await asyncio.gather(
+        py_api.get(f"/flows/{path}"),
+        php_api.get(f"/flow/{path}"),
+    )
 
     assert py_response.status_code == HTTPStatus.NOT_FOUND
     assert php_response.status_code == HTTPStatus.OK
@@ -36,14 +38,16 @@ def test_flow_exists_not(
 
 
 @pytest.mark.mut
-def test_flow_exists(
+async def test_flow_exists(
     persisted_flow: Flow,
-    py_api: TestClient,
-    php_api: TestClient,
+    py_api: httpx.AsyncClient,
+    php_api: httpx.AsyncClient,
 ) -> None:
     path = f"exists/{persisted_flow.name}/{persisted_flow.external_version}"
-    py_response = py_api.get(f"/flows/{path}")
-    php_response = php_api.get(f"/flow/{path}")
+    py_response, php_response = await asyncio.gather(
+        py_api.get(f"/flows/{path}"),
+        php_api.get(f"/flow/{path}"),
+    )
 
     assert py_response.status_code == php_response.status_code, php_response.content
 
@@ -56,8 +60,13 @@ def test_flow_exists(
     "flow_id",
     range(1, 16),
 )
-def test_get_flow_equal(flow_id: int, py_api: TestClient, php_api: httpx.Client) -> None:
-    response = py_api.get(f"/flows/{flow_id}")
+async def test_get_flow_equal(
+    flow_id: int, py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
+) -> None:
+    response, php_response = await asyncio.gather(
+        py_api.get(f"/flows/{flow_id}"),
+        php_api.get(f"/flow/{flow_id}"),
+    )
     assert response.status_code == HTTPStatus.OK
 
     new = response.json()
@@ -81,7 +90,7 @@ def test_get_flow_equal(flow_id: int, py_api: TestClient, php_api: httpx.Client)
     new = convert_flow_naming_and_defaults(new)
     new = nested_remove_single_element_list(new)
 
-    expected = php_api.get(f"/flow/{flow_id}").json()["flow"]
+    expected = php_response.json()["flow"]
     # The reason we don't transform "new" to str is that it becomes harder to ignore numeric type
     # differences (e.g., '1.0' vs '1')
     expected = nested_str_to_num(expected)

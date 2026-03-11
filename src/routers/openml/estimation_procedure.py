@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from sqlalchemy import Connection
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 import database.evaluations
 from routers.dependencies import expdb_connection
@@ -11,8 +11,8 @@ router = APIRouter(prefix="/estimationprocedure", tags=["estimationprocedure"])
 
 
 @router.get("/list", response_model_exclude_none=True)
-def get_estimation_procedures(
-    expdb: Annotated[Connection, Depends(expdb_connection)],
+async def get_estimation_procedures(
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> list[EstimationProcedure]:
-    # `list` required for exclusion of none: https://github.com/fastapi/fastapi/discussions/15089
-    return list(database.evaluations.get_estimation_procedures(expdb))
+    procedures = await database.evaluations.get_estimation_procedures(expdb)
+    return list(procedures)

@@ -1,11 +1,11 @@
 from http import HTTPStatus
 
 import deepdiff
-from starlette.testclient import TestClient
+import httpx
 
 
-def test_get_task(py_api: TestClient) -> None:
-    response = py_api.get("/tasks/59")
+async def test_get_task(py_api: httpx.AsyncClient) -> None:
+    response = await py_api.get("/tasks/59")
     assert response.status_code == HTTPStatus.OK
     expected = {
         "id": 59,

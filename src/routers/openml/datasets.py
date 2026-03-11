@@ -4,8 +4,9 @@ from enum import StrEnum
 from typing import Annotated, Any, Literal, NamedTuple
 
 from fastapi import APIRouter, Body, Depends
-from sqlalchemy import Connection, text
+from sqlalchemy import text
 from sqlalchemy.engine import Row
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 import database.datasets
 import database.qualities
@@ -42,13 +43,14 @@ router = APIRouter(prefix="/datasets", tags=["datasets"])
 @router.post(
     path="/tag",
 )
-def tag_dataset(
+async def tag_dataset(
     data_id: Annotated[int, Body()],
     tag: Annotated[str, SystemString64],
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
+    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> dict[str, dict[str, Any]]:
-    tags = database.datasets.get_tags_for(data_id, expdb_db)
+    assert expdb_db is not None  # noqa: S101
+    tags = await database.datasets.get_tags_for(data_id, expdb_db)
     if tag.casefold() in [t.casefold() for t in tags]:
         msg = f"Dataset {data_id} already tagged with {tag!r}."
         raise TagAlreadyExistsError(msg)
@@ -57,7 +59,7 @@ def tag_dataset(
         msg = "Authentication failed."
         raise AuthenticationFailedError(msg)
 
-    database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
+    await database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
     return {
         "data_tag": {"id": str(data_id), "tag": [*tags, tag]},
     }
@@ -72,7 +74,7 @@ class DatasetStatusFilter(StrEnum):
 
 @router.post(path="/list", description="Provided for convenience, same as `GET` endpoint.")
 @router.get(path="/list")
-def list_datasets(  # noqa: PLR0913
+async def list_datasets(  # noqa: PLR0913
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     data_name: Annotated[str | None, CasualString128] = None,
     tag: Annotated[str | None, SystemString64] = None,
@@ -97,8 +99,9 @@ def list_datasets(  # noqa: PLR0913
     number_missing_values: Annotated[str | None, IntegerRange] = None,
     status: Annotated[DatasetStatusFilter, Body()] = DatasetStatusFilter.ACTIVE,
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
+    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> list[dict[str, Any]]:
+    assert expdb_db is not None  # noqa: S101
     current_status = text(
         """
         SELECT ds1.`did`, ds1.`status`
@@ -123,7 +126,7 @@ def list_datasets(  # noqa: PLR0913
     where_status = ",".join(f"'{status}'" for status in statuses)
     if user is None:
         visible_to_user = "`visibility`='public'"
-    elif UserGroup.ADMIN in user.groups:
+    elif UserGroup.ADMIN in await user.get_groups():
         visible_to_user = "TRUE"
     else:
         visible_to_user = f"(`visibility`='public' OR `uploader`={user.user_id})"
@@ -187,7 +190,7 @@ def list_datasets(  # noqa: PLR0913
         # subquery also has no user input. So I think this should be safe.
     )
     columns = ["did", "name", "version", "format", "file_id", "status"]
-    rows = expdb_db.execute(
+    result = await expdb_db.execute(
         matching_filter,
         parameters={
             "tag": tag,
@@ -196,6 +199,7 @@ def list_datasets(  # noqa: PLR0913
             "uploader": uploader,
         },
     )
+    rows = result.all()
     datasets: dict[int, dict[str, Any]] = {
         row.did: dict(zip(columns, row, strict=True)) for row in rows
     }
@@ -225,7 +229,7 @@ def list_datasets(  # noqa: PLR0913
         "NumberOfNumericFeatures",
         "NumberOfSymbolicFeatures",
     ]
-    qualities_by_dataset = database.qualities.get_for_datasets(
+    qualities_by_dataset = await database.qualities.get_for_datasets(
         dataset_ids=datasets.keys(),
         quality_names=qualities_to_show,
         connection=expdb_db,
@@ -241,10 +245,16 @@ class ProcessingInformation(NamedTuple):
     error: str | None
 
 
-def _get_processing_information(dataset_id: int, connection: Connection) -> ProcessingInformation:
+async def _get_processing_information(
+    dataset_id: int,
+    connection: AsyncConnection,
+) -> ProcessingInformation:
     """Return processing information, if any. Otherwise, all fields `None`."""
     if not (
-        data_processed := database.datasets.get_latest_processing_update(dataset_id, connection)
+        data_processed := await database.datasets.get_latest_processing_update(
+            dataset_id,
+            connection,
+        )
     ):
         return ProcessingInformation(date=None, warning=None, error=None)
 
@@ -254,20 +264,20 @@ def _get_processing_information(dataset_id: int, connection: Connection) -> Proc
     return ProcessingInformation(date=date_processed, warning=warning, error=error)
 
 
-def _get_dataset_raise_otherwise(
+async def _get_dataset_raise_otherwise(
     dataset_id: int,
     user: User | None,
-    expdb: Connection,
-) -> Row:
+    expdb: AsyncConnection,
+) -> Row[Any]:
     """Fetch the dataset from the database if it exists and the user has permissions.
 
     Raises ProblemDetailError if the dataset does not exist or the user can not access it.
     """
-    if not (dataset := database.datasets.get(dataset_id, expdb)):
+    if not (dataset := await database.datasets.get(dataset_id, expdb)):
         msg = f"No dataset with id {dataset_id} found."
         raise DatasetNotFoundError(msg)
 
-    if not _user_has_access(dataset=dataset, user=user):
+    if not await _user_has_access(dataset=dataset, user=user):
         msg = f"No access granted to dataset {dataset_id}."
         raise DatasetNoAccessError(msg)
 
@@ -275,22 +285,23 @@ def _get_dataset_raise_otherwise(
 
 
 @router.get("/features/{dataset_id}", response_model_exclude_none=True)
-def get_dataset_features(
+async def get_dataset_features(
     dataset_id: int,
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    expdb: Annotated[Connection, Depends(expdb_connection)] = None,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> list[Feature]:
-    _get_dataset_raise_otherwise(dataset_id, user, expdb)
-    features = database.datasets.get_features(dataset_id, expdb)
+    assert expdb is not None  # noqa: S101
+    await _get_dataset_raise_otherwise(dataset_id, user, expdb)
+    features = await database.datasets.get_features(dataset_id, expdb)
     for feature in [f for f in features if f.data_type == FeatureType.NOMINAL]:
-        feature.nominal_values = database.datasets.get_feature_values(
+        feature.nominal_values = await database.datasets.get_feature_values(
             dataset_id,
             feature_index=feature.index,
             connection=expdb,
         )
 
     if not features:
-        processing_state = database.datasets.get_latest_processing_update(dataset_id, expdb)
+        processing_state = await database.datasets.get_latest_processing_update(dataset_id, expdb)
         if processing_state is None:
             msg = (
                 f"Dataset {dataset_id} not processed yet, so features are not yet available. "
@@ -311,27 +322,28 @@ def get_dataset_features(
 @router.post(
     path="/status/update",
 )
-def update_dataset_status(
+async def update_dataset_status(
     dataset_id: Annotated[int, Body()],
     status: Annotated[Literal[DatasetStatus.ACTIVE, DatasetStatus.DEACTIVATED], Body()],
     user: Annotated[User | None, Depends(fetch_user)],
-    expdb: Annotated[Connection, Depends(expdb_connection)],
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[str, str | int]:
     if user is None:
         msg = "Updating dataset status requires authentication."
         raise AuthenticationRequiredError(msg)
 
-    dataset = _get_dataset_raise_otherwise(dataset_id, user, expdb)
+    dataset = await _get_dataset_raise_otherwise(dataset_id, user, expdb)
 
-    can_deactivate = dataset.uploader == user.user_id or UserGroup.ADMIN in user.groups
+    can_deactivate = dataset.uploader == user.user_id or UserGroup.ADMIN in await user.get_groups()
     if status == DatasetStatus.DEACTIVATED and not can_deactivate:
         msg = f"Dataset {dataset_id} is not owned by you."
         raise DatasetNotOwnedError(msg)
-    if status == DatasetStatus.ACTIVE and UserGroup.ADMIN not in user.groups:
+
+    if status == DatasetStatus.ACTIVE and UserGroup.ADMIN not in await user.get_groups():
         msg = "Only administrators can activate datasets."
         raise DatasetAdminOnlyError(msg)
 
-    current_status = database.datasets.get_status(dataset_id, expdb)
+    current_status = await database.datasets.get_status(dataset_id, expdb)
     if current_status and current_status.status == status:
         msg = f"Illegal status transition, requested status {status} matches current status."
         raise DatasetStatusTransitionError(msg)
@@ -343,9 +355,14 @@ def update_dataset_status(
     #  - active => deactivated  (add a row)
     #  - deactivated => active  (delete a row)
     if current_status is None or status == DatasetStatus.DEACTIVATED:
-        database.datasets.update_status(dataset_id, status, user_id=user.user_id, connection=expdb)
+        await database.datasets.update_status(
+            dataset_id,
+            status,
+            user_id=user.user_id,
+            connection=expdb,
+        )
     elif current_status.status == DatasetStatus.DEACTIVATED:
-        database.datasets.remove_deactivated_status(dataset_id, expdb)
+        await database.datasets.remove_deactivated_status(dataset_id, expdb)
     else:
         msg = f"Unknown status transition: {current_status} -> {status}"
         raise InternalError(msg)
@@ -357,23 +374,28 @@ def update_dataset_status(
     path="/{dataset_id}",
     description="Get meta-data for dataset with ID `dataset_id`.",
 )
-def get_dataset(
+async def get_dataset(
     dataset_id: int,
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    user_db: Annotated[Connection, Depends(userdb_connection)] = None,
-    expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
+    user_db: Annotated[AsyncConnection, Depends(userdb_connection)] = None,
+    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> DatasetMetadata:
-    dataset = _get_dataset_raise_otherwise(dataset_id, user, expdb_db)
+    assert user_db is not None  # noqa: S101
+    assert expdb_db is not None  # noqa: S101
+    dataset = await _get_dataset_raise_otherwise(dataset_id, user, expdb_db)
     if not (
-        dataset_file := database.datasets.get_file(file_id=dataset.file_id, connection=user_db)
+        dataset_file := await database.datasets.get_file(
+            file_id=dataset.file_id,
+            connection=user_db,
+        )
     ):
         msg = f"No data file found for dataset {dataset_id}."
         raise DatasetNoDataFileError(msg)
 
-    tags = database.datasets.get_tags_for(dataset_id, expdb_db)
-    description = database.datasets.get_description(dataset_id, expdb_db)
-    processing_result = _get_processing_information(dataset_id, expdb_db)
-    status = database.datasets.get_status(dataset_id, expdb_db)
+    tags = await database.datasets.get_tags_for(dataset_id, expdb_db)
+    description = await database.datasets.get_description(dataset_id, expdb_db)
+    processing_result = await _get_processing_information(dataset_id, expdb_db)
+    status = await database.datasets.get_status(dataset_id, expdb_db)
 
     status_ = DatasetStatus(status.status) if status else DatasetStatus.IN_PREPARATION
 

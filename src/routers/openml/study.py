@@ -2,7 +2,8 @@ from typing import Annotated, Literal
 
 from fastapi import APIRouter, Body, Depends
 from pydantic import BaseModel
-from sqlalchemy import Connection, Row
+from sqlalchemy.engine import Row
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 import database.studies
 from core.errors import (
@@ -24,12 +25,16 @@ from schemas.study import CreateStudy, Study, StudyStatus, StudyType
 router = APIRouter(prefix="/studies", tags=["studies"])
 
 
-def _get_study_raise_otherwise(id_or_alias: int | str, user: User | None, expdb: Connection) -> Row:
+async def _get_study_raise_otherwise(
+    id_or_alias: int | str,
+    user: User | None,
+    expdb: AsyncConnection,
+) -> Row:
     search_by_id = isinstance(id_or_alias, int) or id_or_alias.isdigit()
     if search_by_id:
-        study = database.studies.get_by_id(int(id_or_alias), expdb)
+        study = await database.studies.get_by_id(int(id_or_alias), expdb)
     else:
-        study = database.studies.get_by_alias(str(id_or_alias), expdb)
+        study = await database.studies.get_by_alias(str(id_or_alias), expdb)
 
     if study is None:
         search_type = "id" if search_by_id else "alias"
@@ -39,7 +44,7 @@ def _get_study_raise_otherwise(id_or_alias: int | str, user: User | None, expdb:
         if user is None:
             msg = "Must authenticate for private study."
             raise AuthenticationRequiredError(msg)
-        if study.creator != user.user_id and UserGroup.ADMIN not in user.groups:
+        if study.creator != user.user_id and UserGroup.ADMIN not in await user.get_groups():
             msg = "Study is private."
             raise StudyPrivateError(msg)
     if _str_to_bool(study.legacy):
@@ -54,18 +59,19 @@ class AttachDetachResponse(BaseModel):
 
 
 @router.post("/attach")
-def attach_to_study(
+async def attach_to_study(
     study_id: Annotated[int, Body()],
     entity_ids: Annotated[list[int], Body()],
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    expdb: Annotated[Connection, Depends(expdb_connection)] = None,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> AttachDetachResponse:
+    assert expdb is not None  # noqa: S101
     if user is None:
         msg = "Authentication required."
         raise AuthenticationRequiredError(msg)
-    study = _get_study_raise_otherwise(study_id, user, expdb)
+    study = await _get_study_raise_otherwise(study_id, user, expdb)
     # PHP lets *anyone* edit *any* study. We're not going to do that.
-    if study.creator != user.user_id and UserGroup.ADMIN not in user.groups:
+    if study.creator != user.user_id and UserGroup.ADMIN not in await user.get_groups():
         msg = f"Study {study_id} can only be edited by its creator."
         raise StudyNotEditableError(msg)
     if study.status != StudyStatus.IN_PREPARATION:
@@ -81,9 +87,9 @@ def attach_to_study(
     }
     try:
         if study.type_ == StudyType.TASK:
-            database.studies.attach_tasks(task_ids=entity_ids, **attach_kwargs)
+            await database.studies.attach_tasks(task_ids=entity_ids, **attach_kwargs)
         else:
-            database.studies.attach_runs(run_ids=entity_ids, **attach_kwargs)
+            await database.studies.attach_runs(run_ids=entity_ids, **attach_kwargs)
     except ValueError as e:
         msg = str(e)
         raise StudyConflictError(msg) from e
@@ -91,11 +97,12 @@ def attach_to_study(
 
 
 @router.post("/")
-def create_study(
+async def create_study(
     study: CreateStudy,
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    expdb: Annotated[Connection, Depends(expdb_connection)] = None,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> dict[Literal["study_id"], int]:
+    assert expdb is not None  # noqa: S101
     if user is None:
         msg = "Creating a study requires authentication."
         raise AuthenticationRequiredError(msg)
@@ -105,28 +112,34 @@ def create_study(
     if study.main_entity_type == StudyType.TASK and study.runs:
         msg = "Cannot create a task study with runs."
         raise StudyInvalidTypeError(msg)
-    if study.alias and database.studies.get_by_alias(study.alias, expdb):
+    if study.alias and await database.studies.get_by_alias(study.alias, expdb):
         msg = f"Study alias {study.alias} already exists."
         raise StudyAliasExistsError(msg)
-    study_id = database.studies.create(study, user, expdb)
+    study_id = await database.studies.create(study, user, expdb)
     if study.main_entity_type == StudyType.TASK:
         for task_id in study.tasks:
-            database.studies.attach_task(task_id, study_id, user, expdb)
+            await database.studies.attach_task(task_id, study_id, user, expdb)
     if study.main_entity_type == StudyType.RUN:
         for run_id in study.runs:
-            database.studies.attach_run(run_id=run_id, study_id=study_id, user=user, expdb=expdb)
+            await database.studies.attach_run(
+                run_id=run_id,
+                study_id=study_id,
+                user=user,
+                expdb=expdb,
+            )
     # Make sure that invalid fields raise an error (e.g., "task_ids")
     return {"study_id": study_id}
 
 
 @router.get("/{alias_or_id}")
-def get_study(
+async def get_study(
     alias_or_id: int | str,
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    expdb: Annotated[Connection, Depends(expdb_connection)] = None,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> Study:
-    study = _get_study_raise_otherwise(alias_or_id, user, expdb)
-    study_data = database.studies.get_study_data(study, expdb)
+    assert expdb is not None  # noqa: S101
+    study = await _get_study_raise_otherwise(alias_or_id, user, expdb)
+    study_data = await database.studies.get_study_data(study, expdb)
     return Study(
         _legacy=_str_to_bool(study.legacy),
         id_=study.id,

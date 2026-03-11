@@ -1,32 +1,31 @@
+from collections.abc import AsyncGenerator
 from typing import Annotated
 
 from fastapi import Depends
 from pydantic import BaseModel
-from sqlalchemy import Connection
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 from database.setup import expdb_database, user_database
 from database.users import APIKey, User
 
 
-def expdb_connection() -> Connection:
+async def expdb_connection() -> AsyncGenerator[AsyncConnection, None]:
     engine = expdb_database()
-    with engine.connect() as connection:
+    async with engine.connect() as connection, connection.begin():
         yield connection
-        connection.commit()
 
 
-def userdb_connection() -> Connection:
+async def userdb_connection() -> AsyncGenerator[AsyncConnection, None]:
     engine = user_database()
-    with engine.connect() as connection:
+    async with engine.connect() as connection, connection.begin():
         yield connection
-        connection.commit()
 
 
-def fetch_user(
+async def fetch_user(
     api_key: APIKey | None = None,
-    user_data: Annotated[Connection, Depends(userdb_connection)] = None,
+    user_data: Annotated[AsyncConnection | None, Depends(userdb_connection)] = None,
 ) -> User | None:
-    return User.fetch(api_key, user_data) if api_key else None
+    return await User.fetch(api_key, user_data) if api_key and user_data else None
 
 
 class Pagination(BaseModel):
