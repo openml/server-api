@@ -43,4 +43,4 @@ def test_get_task_type_unknown(py_api: TestClient) -> None:
     error = response.json()
     assert error["type"] == TaskTypeNotFoundError.uri
     assert error["code"] == "241"
-    assert "Unknown task type" in error["detail"]
+    assert error["detail"] == "Task type 1000 not found."
