@@ -1,7 +1,8 @@
+import re
 from http import HTTPStatus
 
 import pytest
-from sqlalchemy import Connection
+from sqlalchemy import Connection, text
 from starlette.testclient import TestClient
 
 from core.errors import (
@@ -37,7 +38,7 @@ def test_error_unknown_dataset(
     assert error["type"] == DatasetNotFoundError.uri
     assert error["title"] == "Dataset Not Found"
     assert error["status"] == HTTPStatus.NOT_FOUND
-    assert error["detail"] == "Unknown dataset."
+    assert re.match(r"No dataset with id -?\d+ found.", error["detail"])
     assert error["code"] == "111"
 
 
@@ -187,13 +188,15 @@ def test_dataset_features_access_to_private(api_key: ApiKey, py_api: TestClient)
 def test_dataset_features_with_processing_error(py_api: TestClient) -> None:
     # When a dataset is processed to extract its feature metadata, errors may occur.
     # In that case, no feature information will ever be available.
-    response = py_api.get("/datasets/features/55")
+    dataset_id = 55
+    response = py_api.get(f"/datasets/features/{dataset_id}")
     assert response.status_code == HTTPStatus.PRECONDITION_FAILED
     assert response.headers["content-type"] == "application/problem+json"
     error = response.json()
     assert error["type"] == DatasetProcessingError.uri
     assert error["code"] == "274"
     assert "No features found" in error["detail"]
+    assert str(dataset_id) in error["detail"]
 
 
 def test_dataset_features_dataset_does_not_exist(py_api: TestClient) -> None:
