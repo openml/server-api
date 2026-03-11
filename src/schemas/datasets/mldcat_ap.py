@@ -19,7 +19,7 @@ from schemas.datasets.openml import DatasetStatus, Visibility
 
 
 class JsonLDQualifiedLiteral(BaseModel):
-    """Base class for all JSON-LD objects."""
+    """JSON value annotated with a type."""
 
     type_: str = Field(serialization_alias="@type")
     value: str = Field(serialization_alias="@value")
@@ -67,10 +67,9 @@ class AccessRights(StrEnum):
 
 
 class Agent(JsonLDObject):
-    """Any entity carrying out actions with respect to the (Core) entities.
+    """Entity action on (Core) entities: Catalogue, Datasets, Data Services and Distributions.
 
-    Catalogue, Datasets, Data Services and Distributions. If the Agent is an
-    organisation, the use of the Organization Ontology is recommended.
+    If the Agent is an organisation, the use of the Organization Ontology is recommended.
     """
 
     type_: Literal["Agent"] = Field(default="Agent", serialization_alias="@type")
