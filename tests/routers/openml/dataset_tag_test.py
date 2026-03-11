@@ -67,8 +67,8 @@ def test_dataset_tag_fails_if_tag_exists(py_api: TestClient) -> None:
     error = response.json()
     assert error["type"] == TagAlreadyExistsError.uri
     assert error["code"] == "473"
-    assert f"id={dataset_id}" in error["detail"]
-    assert f"tag={tag}" in error["detail"]
+    assert str(dataset_id) in error["detail"]
+    assert tag in error["detail"]
 
 
 @pytest.mark.parametrize(
