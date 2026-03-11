@@ -308,7 +308,7 @@ def test_get_quality_identical_error(
 ) -> None:
     if data_id in [55, 56, 59]:
         pytest.skip("Detailed error for code 364 (failed processing) not yet supported.")
-    if data_id in [116]:
+    if data_id in [116]:  # noqa: FURB171
         pytest.skip("Detailed error for code 362 (no qualities) not yet supported.")
     php_response = php_api.get(f"/data/qualities/{data_id}")
     python_response = py_api.get(f"/datasets/qualities/{data_id}")
