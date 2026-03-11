@@ -1,11 +1,11 @@
 from collections.abc import AsyncGenerator
-from http import HTTPStatus
 from typing import Annotated
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncConnection
 
+from core.errors import AuthenticationFailedError
 from database.setup import expdb_database, user_database
 from database.users import APIKey, User
 
@@ -33,10 +33,8 @@ def fetch_user_or_raise(
     user: Annotated[User | None, Depends(fetch_user)] = None,
 ) -> User:
     if user is None:
-        raise HTTPException(
-            status_code=HTTPStatus.PRECONDITION_FAILED,
-            detail={"code": "103", "message": "Authentication failed"},
-        )
+        msg = "Authentication failed"
+        raise AuthenticationFailedError(msg)
     return user
 
 

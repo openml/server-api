@@ -1,9 +1,13 @@
-from sqlalchemy import Connection, text
+"""All database operations that directly operate on setups."""
+
+from sqlalchemy import text
 from sqlalchemy.engine import Row
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 
-def get(setup_id: int, connection: Connection) -> Row | None:
-    row = connection.execute(
+async def get(setup_id: int, connection: AsyncConnection) -> Row | None:
+    """Get the setup with id `setup_id` from the database."""
+    row = await connection.execute(
         text(
             """
             SELECT *
@@ -16,8 +20,9 @@ def get(setup_id: int, connection: Connection) -> Row | None:
     return row.first()
 
 
-def get_tags(setup_id: int, connection: Connection) -> list[Row]:
-    rows = connection.execute(
+async def get_tags(setup_id: int, connection: AsyncConnection) -> list[Row]:
+    """Get all tags for setup with `setup_id` from the database."""
+    rows = await connection.execute(
         text(
             """
             SELECT *
@@ -30,8 +35,9 @@ def get_tags(setup_id: int, connection: Connection) -> list[Row]:
     return list(rows.all())
 
 
-def untag(setup_id: int, tag: str, connection: Connection) -> None:
-    connection.execute(
+async def untag(setup_id: int, tag: str, connection: AsyncConnection) -> None:
+    """Remove tag `tag` from setup with id `setup_id`."""
+    await connection.execute(
         text(
             """
             DELETE FROM setup_tag
