@@ -60,6 +60,9 @@ def delete_account(
         text("UPDATE users SET session_hash = :lock_hash WHERE id = :id"),
         parameters={"lock_hash": temp_lock_hash, "id": user_id},
     )
+    # Persist lock hash before cross-database checks so other connections
+    # cannot keep authenticating with the old session hash.
+    user_db.commit()
 
     deletion_successful = False
     try:
