@@ -12,7 +12,6 @@ import database.datasets
 import database.qualities
 from core.access import _user_has_access
 from core.errors import (
-    AuthenticationFailedError,
     AuthenticationRequiredError,
     DatasetAdminOnlyError,
     DatasetNoAccessError,

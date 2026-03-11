@@ -1,5 +1,5 @@
-from http import HTTPStatus
 from collections.abc import AsyncGenerator
+from http import HTTPStatus
 from typing import Annotated
 
 from fastapi import Depends, HTTPException
