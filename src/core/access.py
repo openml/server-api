@@ -11,10 +11,11 @@ async def _user_has_access(
     user: User | None = None,
 ) -> bool:
     """Determine if `user` has the right to view `dataset`."""
-    is_public = dataset.visibility == Visibility.PUBLIC
-    if is_public:
+    if dataset.visibility == Visibility.PUBLIC:
         return True
     if user is None:
         return False
+    if user.user_id == dataset.uploader:
+        return True
     user_groups = await user.get_groups()
-    return user.user_id == dataset.uploader or UserGroup.ADMIN in user_groups
+    return UserGroup.ADMIN in user_groups
