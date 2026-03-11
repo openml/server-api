@@ -48,10 +48,49 @@ def tag_dataset(
     }
 
 
+@router.post(
+    path="/untag",
+)
+def untag_dataset(
+    data_id: Annotated[int, Body()],
+    tag: Annotated[str, SystemString64],
+    user: Annotated[User | None, Depends(fetch_user)] = None,
+    expdb_db: Annotated[Connection, Depends(expdb_connection)] = None,
+) -> dict[str, dict[str, Any]]:
+    if user is None:
+        raise create_authentication_failed_error()
+
+    tag_record = database.datasets.get_tag_for(data_id, tag, expdb_db)
+    if tag_record is None:
+        raise create_tag_not_found_error()
+
+    if tag_record.uploader != user.user_id and UserGroup.ADMIN not in user.groups:
+        raise create_tag_not_owned_error()
+
+    database.datasets.untag(data_id, tag, connection=expdb_db)
+    return {
+        "data_untag": {"id": str(data_id)},
+    }
+
+
 def create_authentication_failed_error() -> HTTPException:
     return HTTPException(
         status_code=HTTPStatus.PRECONDITION_FAILED,
         detail={"code": "103", "message": "Authentication failed"},
+    )
+
+
+def create_tag_not_found_error() -> HTTPException:
+    return HTTPException(
+        status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+        detail={"code": "475", "message": "Tag not found."},
+    )
+
+
+def create_tag_not_owned_error() -> HTTPException:
+    return HTTPException(
+        status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+        detail={"code": "476", "message": "Tag is not owned by you"},
     )
 
 
