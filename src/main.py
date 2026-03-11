@@ -5,6 +5,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from config import load_configuration
+from core.errors import ProblemDetailError, problem_detail_exception_handler
 from routers.mldcat_ap.dataset import router as mldcat_ap_router
 from routers.openml.datasets import router as datasets_router
 from routers.openml.estimation_procedure import router as estimationprocedure_router
@@ -45,6 +46,8 @@ def _parse_args() -> argparse.Namespace:
 def create_api() -> FastAPI:
     fastapi_kwargs = load_configuration()["fastapi"]
     app = FastAPI(**fastapi_kwargs)
+
+    app.add_exception_handler(ProblemDetailError, problem_detail_exception_handler)  # type: ignore[arg-type]
 
     app.include_router(datasets_router)
     app.include_router(qualities_router)
