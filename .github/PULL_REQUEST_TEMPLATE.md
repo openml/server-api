@@ -13,7 +13,7 @@ Required for code changes:
 - [ ] Tests pass locally
 - [ ] I have commented my code in hard-to-understand areas, and provided or updated docstrings as needed
 - [ ] I have added tests that cover the changes, or
-- [ ] All changes already under covered under existing tests
+- [ ] All changes are already covered under existing tests
 
 If applicable:
 - [ ] I have made corresponding changes to the documentation pages (`/docs`)
