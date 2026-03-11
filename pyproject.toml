@@ -14,6 +14,7 @@ classifiers = [
 ]
 dependencies = [
     "fastapi",
+    "cryptography",
     "pydantic",
     "uvicorn",
     "sqlalchemy",
