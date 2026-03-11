@@ -1,4 +1,4 @@
-"""Router for MLDCAT-AP endpoints: https://semiceu.github.io/MLDCAT-AP/releases/1.0.0/#examples
+"""Router for MLDCAT-AP endpoints: https://semiceu.github.io/MLDCAT-AP/releases/1.0.0/#examples.
 
 Incredibly inefficient, but it's just a proof of concept.
 Specific queries could be written to fetch e.g., a single feature or quality.

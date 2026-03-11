@@ -34,8 +34,9 @@ async def fill_template(
     task_inputs: dict[str, str | int],
     connection: AsyncConnection,
 ) -> dict[str, JSON]:
-    """Fill in the XML template as used for task descriptions and return the result,
-     converted to JSON.
+    """Fill in the XML template as used for task descriptions and return the result.
+
+    The result is converted to JSON.
 
     template, str:
         A string represent XML, as detailed below.

@@ -55,7 +55,7 @@ async def get_parameters(flow_id: int, expdb: AsyncConnection) -> Sequence[Row]:
 
 
 async def get_by_name(name: str, external_version: str, expdb: AsyncConnection) -> Row | None:
-    """Gets flow by name and external version."""
+    """Get flow by name and external version."""
     row = await expdb.execute(
         text(
             """

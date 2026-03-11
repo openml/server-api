@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from http import HTTPStatus
 
 import httpx
@@ -495,11 +495,8 @@ async def test_create_task_study(py_api: httpx.AsyncClient) -> None:
     }
     new_study = study.json()
 
-    creation_date = datetime.strptime(
-        new_study.pop("creation_date"),
-        "%Y-%m-%dT%H:%M:%S",
-    )
-    assert creation_date.date() == datetime.now().date()
+    creation_date = datetime.fromisoformat(new_study.pop("creation_date"))
+    assert creation_date.date() == datetime.now(UTC).date()
     assert new_study == expected
 
 

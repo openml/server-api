@@ -269,7 +269,7 @@ async def _get_dataset_raise_otherwise(
     user: User | None,
     expdb: AsyncConnection,
 ) -> Row[Any]:
-    """Fetches the dataset from the database if it exists and the user has permissions.
+    """Fetch the dataset from the database if it exists and the user has permissions.
 
     Raises ProblemDetailError if the dataset does not exist or the user can not access it.
     """
