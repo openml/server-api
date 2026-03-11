@@ -79,3 +79,7 @@ def load_database_configuration(file: Path = _config_file) -> TomlTable:
 
 def load_configuration(file: Path = _config_file) -> TomlTable:
     return tomllib.loads(file.read_text())
+
+
+def load_minio_configuration(file: Path = _config_file) -> TomlTable:
+    return typing.cast("TomlTable", _load_configuration(file).get("minio", {}))

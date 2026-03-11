@@ -22,3 +22,9 @@ database="openml"
 [routing]
 minio_url="http://minio:9000/"
 server_url="http://php-api:80/"
+
+[minio]
+endpoint_url="http://minio:9000"
+bucket="datasets"
+# Credentials must be provided via environment variables:
+# OPENML_MINIO_ACCESS_KEY and OPENML_MINIO_SECRET_KEY

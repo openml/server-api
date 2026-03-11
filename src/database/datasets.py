@@ -178,3 +178,164 @@ def remove_deactivated_status(dataset_id: int, connection: Connection) -> None:
         ),
         parameters={"data": dataset_id},
     )
+
+
+def insert_file(
+    *,
+    file_name: str,
+    reference: str,
+    md5_hash: str,
+    connection: Connection,
+) -> int:
+    """Insert a row into the `file` table and return the new file id."""
+    connection.execute(
+        text(
+            """
+            INSERT INTO file(`name`, `reference`, `md5_hash`)
+            VALUES (:name, :reference, :md5_hash)
+            """,
+        ),
+        parameters={"name": file_name, "reference": reference, "md5_hash": md5_hash},
+    )
+    result = connection.execute(text("SELECT LAST_INSERT_ID()"))
+    (file_id,) = result.one()
+    return int(file_id)
+
+
+def update_file_reference(
+    *,
+    file_id: int,
+    reference: str,
+    connection: Connection,
+) -> None:
+    """Update the MinIO object key on an existing file row."""
+    connection.execute(
+        text("UPDATE file SET `reference` = :reference WHERE `id` = :file_id"),
+        parameters={"reference": reference, "file_id": file_id},
+    )
+
+
+def insert_dataset(  # noqa: PLR0913
+    *,
+    name: str,
+    description: str,
+    format_: str,
+    file_id: int,
+    uploader: int,
+    visibility: str,
+    licence: str,
+    language: str,
+    default_target_attribute: str,
+    original_data_url: str,
+    paper_url: str,
+    collection_date: str,
+    citation: str,
+    md5_checksum: str,
+    connection: Connection,
+) -> int:
+    """Insert a row into the `dataset` table and return the new dataset id."""
+    connection.execute(
+        text(
+            """
+            INSERT INTO dataset(
+                `name`, `description`, `format`, `file_id`, `uploader`,
+                `visibility`, `licence`, `language`,
+                `default_target_attribute`, `original_data_url`, `paper_url`,
+                `collection_date`, `citation`, `md5_checksum`,
+                `version`, `upload_date`
+            )
+            VALUES (
+                :name, :description, :format, :file_id, :uploader,
+                :visibility, :licence, :language,
+                :default_target_attribute, :original_data_url, :paper_url,
+                :collection_date, :citation, :md5_checksum,
+                1, NOW()
+            )
+            """,
+        ),
+        parameters={
+            "name": name,
+            "description": description,
+            "format": format_,
+            "file_id": file_id,
+            "uploader": uploader,
+            "visibility": visibility,
+            "licence": licence,
+            "language": language,
+            "default_target_attribute": default_target_attribute,
+            "original_data_url": original_data_url,
+            "paper_url": paper_url,
+            "collection_date": collection_date,
+            "citation": citation,
+            "md5_checksum": md5_checksum,
+        },
+    )
+    result = connection.execute(text("SELECT LAST_INSERT_ID()"))
+    (dataset_id,) = result.one()
+    return int(dataset_id)
+
+
+def insert_description(
+    *,
+    dataset_id: int,
+    description: str,
+    connection: Connection,
+) -> None:
+    """Insert the initial description into the `dataset_description` table."""
+    connection.execute(
+        text(
+            """
+            INSERT INTO dataset_description(`did`, `description`, `version`)
+            VALUES (:did, :description, 1)
+            """,
+        ),
+        parameters={"did": dataset_id, "description": description},
+    )
+
+
+def insert_features(
+    *,
+    dataset_id: int,
+    features: list[dict[str, object]],
+    connection: Connection,
+) -> None:
+    """Bulk-insert feature rows into `data_feature` in a single round-trip."""
+    if not features:
+        return
+    connection.execute(
+        text(
+            """
+            INSERT INTO data_feature(
+                `did`, `index`, `name`, `data_type`,
+                `is_target`, `is_row_identifier`, `is_ignore`,
+                `NumberOfMissingValues`
+            )
+            VALUES (
+                :did, :index, :name, :data_type,
+                :is_target, :is_row_identifier, :is_ignore,
+                :number_of_missing_values
+            )
+            """,
+        ),
+        [{"did": dataset_id, **feat} for feat in features],
+    )
+
+
+def insert_qualities(
+    *,
+    dataset_id: int,
+    qualities: list[dict[str, object]],
+    connection: Connection,
+) -> None:
+    """Bulk-insert quality rows into `data_quality` in a single round-trip."""
+    if not qualities:
+        return
+    connection.execute(
+        text(
+            """
+            INSERT INTO data_quality(`data`, `quality`, `value`)
+            VALUES (:data, :quality, :value)
+            """,
+        ),
+        [{"data": dataset_id, **q} for q in qualities],
+    )
