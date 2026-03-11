@@ -12,8 +12,8 @@ Always:
 Required for code changes:
 - [ ] Tests pass locally
 - [ ] I have commented my code in hard-to-understand areas, and provided or updated docstrings as needed
-- [ ] I have added tests that cover the changes, or
-- [ ] All changes are already covered under existing tests
+- [ ] Changes are already covered under existing tests
+- [ ] I have added tests that cover the changes (only required if not already under coverage)
 
 If applicable:
 - [ ] I have made corresponding changes to the documentation pages (`/docs`)
