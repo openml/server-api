@@ -12,8 +12,6 @@ def _create_engine(database_name: str) -> AsyncEngine:
     db_config = dict(database_configuration[database_name])
     echo = db_config.pop("echo", False)
 
-    db_config["drivername"] = "mysql+aiomysql"
-
     db_url = URL.create(**db_config)
     return create_async_engine(
         db_url,
