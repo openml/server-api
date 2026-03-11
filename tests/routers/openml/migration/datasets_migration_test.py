@@ -1,4 +1,5 @@
 import json
+import re
 from http import HTTPStatus
 
 import httpx
@@ -28,7 +29,12 @@ def test_dataset_response_is_identical(  # noqa: C901, PLR0912
         assert original.status_code == new.status_code
 
     if new.status_code != HTTPStatus.OK:
-        assert original.json()["error"] == new.json()["detail"]
+        # RFC 9457: Python API now returns problem+json format
+        assert new.headers["content-type"] == "application/problem+json"
+        # Both APIs should return error responses in the same cases
+        assert original.json()["error"]["code"] == new.json()["code"]
+        old_error_message = original.json()["error"]["message"]
+        assert new.json()["detail"].startswith(old_error_message)
         return
 
     try:
@@ -102,7 +108,12 @@ def test_error_unknown_dataset(
 
     # The new API has "404 Not Found" instead of "412 PRECONDITION_FAILED"
     assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json()["detail"] == {"code": "111", "message": "Unknown dataset"}
+    # RFC 9457: Python API now returns problem+json format
+    assert response.headers["content-type"] == "application/problem+json"
+    error = response.json()
+    assert error["code"] == "111"
+    # instead of 'Unknown dataset'
+    assert error["detail"].startswith("No dataset")
 
 
 @pytest.mark.parametrize(
@@ -118,7 +129,10 @@ def test_private_dataset_no_user_no_access(
 
     # New response is 403: Forbidden instead of 412: PRECONDITION FAILED
     assert response.status_code == HTTPStatus.FORBIDDEN
-    assert response.json()["detail"] == {"code": "112", "message": "No access granted"}
+    assert response.headers["content-type"] == "application/problem+json"
+    error = response.json()
+    assert error["code"] == "112"
+    assert error["detail"].startswith("No access granted")
 
 
 @pytest.mark.parametrize(
@@ -184,9 +198,21 @@ def test_dataset_tag_response_is_identical(
         json={"data_id": dataset_id, "tag": tag},
     )
 
+    # RFC 9457: Tag conflict now returns 409 instead of 500
+    if original.status_code == HTTPStatus.INTERNAL_SERVER_ERROR and already_tagged:
+        assert new.status_code == HTTPStatus.CONFLICT
+        assert original.json()["error"]["code"] == new.json()["code"]
+        assert original.json()["error"]["message"] == "Entity already tagged by this tag."
+        assert re.match(
+            pattern=r"Dataset \d+ already tagged with " + f"'{tag}'.",
+            string=new.json()["detail"],
+        )
+        return
+
     assert original.status_code == new.status_code, original.json()
     if new.status_code != HTTPStatus.OK:
-        assert original.json()["error"] == new.json()["detail"]
+        assert original.json()["error"]["code"] == new.json()["code"]
+        assert original.json()["error"]["message"] == new.json()["detail"]
         return
 
     original = original.json()
@@ -204,17 +230,21 @@ def test_datasets_feature_is_identical(
     py_api: TestClient,
     php_api: httpx.Client,
 ) -> None:
-    response = py_api.get(f"/datasets/features/{data_id}")
+    new = py_api.get(f"/datasets/features/{data_id}")
     original = php_api.get(f"/data/features/{data_id}")
-    assert response.status_code == original.status_code
+    assert new.status_code == original.status_code
 
-    if response.status_code != HTTPStatus.OK:
-        error = response.json()["detail"]
-        error["code"] = str(error["code"])
-        assert error == original.json()["error"]
+    if new.status_code != HTTPStatus.OK:
+        error = original.json()["error"]
+        assert error["code"] == new.json()["code"]
+        if error["message"] == "No features found. Additionally, dataset processed with error":
+            pattern = r"No features found. Additionally, dataset \d+ processed with error\."
+            assert re.match(pattern, new.json()["detail"])
+        else:
+            assert error["message"] == new.json()["detail"]
         return
 
-    python_body = response.json()
+    python_body = new.json()
     for feature in python_body:
         for key, value in list(feature.items()):
             if key == "nominal_values":

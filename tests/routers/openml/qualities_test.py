@@ -6,6 +6,8 @@ import pytest
 from sqlalchemy import Connection, text
 from starlette.testclient import TestClient
 
+from core.errors import DatasetNotFoundError
+
 
 def _remove_quality_from_database(quality_name: str, expdb_test: Connection) -> None:
     expdb_test.execute(
@@ -308,11 +310,15 @@ def test_get_quality_identical_error(
 ) -> None:
     if data_id in [55, 56, 59]:
         pytest.skip("Detailed error for code 364 (failed processing) not yet supported.")
-    if data_id in [116]:
+    if data_id in [116]:  # noqa: FURB171
         pytest.skip("Detailed error for code 362 (no qualities) not yet supported.")
     php_response = php_api.get(f"/data/qualities/{data_id}")
     python_response = py_api.get(f"/datasets/qualities/{data_id}")
     assert python_response.status_code == php_response.status_code
-    # The "dataset unknown" error currently has a separate code in PHP depending on
-    # where it occurs (e.g., get dataset->113 get quality->361)
-    assert python_response.json()["detail"]["message"] == php_response.json()["error"]["message"]
+    # RFC 9457: Python API now returns problem+json format
+    assert python_response.headers["content-type"] == "application/problem+json"
+    error = python_response.json()
+    assert error["type"] == DatasetNotFoundError.uri
+    # Verify the error message matches the PHP API semantically
+    assert php_response.json()["error"]["message"] == "Unknown dataset"
+    assert error["detail"] == f"Dataset with id {data_id} not found."

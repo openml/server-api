@@ -8,6 +8,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 from starlette.testclient import TestClient
 
+from core.errors import NoResultsError
 from tests import constants
 from tests.users import ApiKey
 
@@ -15,8 +16,11 @@ from tests.users import ApiKey
 def _assert_empty_result(
     response: httpx.Response,
 ) -> None:
-    assert response.status_code == HTTPStatus.PRECONDITION_FAILED
-    assert response.json()["detail"] == {"code": "372", "message": "No results"}
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.headers["content-type"] == "application/problem+json"
+    error = response.json()
+    assert error["type"] == NoResultsError.uri
+    assert error["code"] == "372"
 
 
 def test_list(py_api: TestClient) -> None:
@@ -262,11 +266,11 @@ def test_list_data_identical(
 
     # Pagination parameters are nested in the new query style
     # The old style has no `limit` by default, so we mimic this with a high default
-    new_style = kwargs | {"pagination": {"limit": limit if limit else 1_000_000}}
+    new_style = kwargs | {"pagination": {"limit": limit or 1_000_000}}
     if offset is not None:
         new_style["pagination"]["offset"] = offset
 
-    response = py_api.post(
+    new = py_api.post(
         f"/datasets/list{api_key_query}",
         json=new_style,
     )
@@ -283,11 +287,25 @@ def test_list_data_identical(
     uri += api_key_query
     original = php_api.get(uri)
 
-    assert original.status_code == response.status_code, response.json()
-    if original.status_code == HTTPStatus.PRECONDITION_FAILED:
-        assert original.json()["error"] == response.json()["detail"]
+    # Note: RFC 9457 changed some status codes (PRECONDITION_FAILED -> NOT_FOUND for no results)
+    # and the error response format, so we can't compare error responses directly.
+    php_is_error = original.status_code == HTTPStatus.PRECONDITION_FAILED
+    py_is_error = new.status_code == HTTPStatus.NOT_FOUND
+
+    if php_is_error or py_is_error:
+        # Both should be errors in the same cases
+        assert php_is_error == py_is_error, (
+            f"PHP status={original.status_code}, Python status={new.status_code}"
+        )
+        # Verify Python API returns RFC 9457 format
+        assert new.headers["content-type"] == "application/problem+json"
+        error = new.json()
+        assert error["type"] == NoResultsError.uri
+        assert error["code"] == "372"
+        assert original.json()["error"]["message"] == "No results"
+        assert error["detail"] == "No datasets match the search criteria."
         return None
-    new_json = response.json()
+    new_json = new.json()
     # Qualities in new response are typed
     for dataset in new_json:
         for quality in dataset["quality"]:

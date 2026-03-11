@@ -1,3 +1,4 @@
+import re
 from http import HTTPStatus
 from typing import Any
 
@@ -25,9 +26,13 @@ def test_flow_exists_not(
     assert py_response.status_code == HTTPStatus.NOT_FOUND
     assert php_response.status_code == HTTPStatus.OK
 
-    expect_php = {"flow_exists": {"exists": "false", "id": str(-1)}}
-    assert php_response.json() == expect_php
-    assert py_response.json() == {"detail": "Flow not found."}
+    assert php_response.json() == {"flow_exists": {"exists": "false", "id": str(-1)}}
+    # RFC 9457: Python API now returns problem+json format
+    error = py_response.json()
+    assert re.match(
+        pattern=r"Flow with name \S+ and external version \S+ not found.",
+        string=error["detail"],
+    )
 
 
 @pytest.mark.mut
