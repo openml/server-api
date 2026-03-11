@@ -230,22 +230,21 @@ def test_datasets_feature_is_identical(
     py_api: TestClient,
     php_api: httpx.Client,
 ) -> None:
-    response = py_api.get(f"/datasets/features/{data_id}")
+    new = py_api.get(f"/datasets/features/{data_id}")
     original = php_api.get(f"/data/features/{data_id}")
-    assert response.status_code == original.status_code
+    assert new.status_code == original.status_code
 
-    if response.status_code != HTTPStatus.OK:
-        # RFC 9457: Python API now returns problem+json format
-        assert response.headers["content-type"] == "application/problem+json"
-        error = response.json()
-        # Verify Python API returns properly typed RFC 9457 response
-        assert "type" in error
-        assert "status" in error
-        # Both APIs should error in the same cases
-        assert "error" in original.json()
+    if new.status_code != HTTPStatus.OK:
+        error = original.json()["error"]
+        assert error["code"] == new.json()["code"]
+        if error["message"] == "No features found. Additionally, dataset processed with error":
+            pattern = r"No features found. Additionally, dataset \d+ processed with error\."
+            assert re.match(pattern, new.json()["detail"])
+        else:
+            assert error["message"] == new.json()["detail"]
         return
 
-    python_body = response.json()
+    python_body = new.json()
     for feature in python_body:
         for key, value in list(feature.items()):
             if key == "nominal_values":
