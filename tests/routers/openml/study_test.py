@@ -4,15 +4,14 @@ from http import HTTPStatus
 import httpx
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
-from starlette.testclient import TestClient
 
 from core.errors import StudyConflictError
 from schemas.study import StudyType
 from tests.users import ApiKey
 
 
-def test_get_task_study_by_id(py_api: TestClient) -> None:
-    response = py_api.get("/studies/1")
+async def test_get_task_study_by_id(py_api: httpx.AsyncClient) -> None:
+    response = await py_api.get("/studies/1")
     assert response.status_code == HTTPStatus.OK
     expected = {
         "id": 1,
@@ -235,8 +234,8 @@ def test_get_task_study_by_id(py_api: TestClient) -> None:
     assert response.json() == expected
 
 
-def test_get_task_study_by_alias(py_api: TestClient) -> None:
-    response = py_api.get("/studies/OpenML100")
+async def test_get_task_study_by_alias(py_api: httpx.AsyncClient) -> None:
+    response = await py_api.get("/studies/OpenML100")
     assert response.status_code == HTTPStatus.OK
     expected = {
         "id": 1,
@@ -459,8 +458,8 @@ def test_get_task_study_by_alias(py_api: TestClient) -> None:
     assert response.json() == expected
 
 
-def test_create_task_study(py_api: TestClient) -> None:
-    response = py_api.post(
+async def test_create_task_study(py_api: httpx.AsyncClient) -> None:
+    response = await py_api.post(
         f"/studies?api_key={ApiKey.SOME_USER}",
         json={
             "name": "Test Study",
@@ -477,7 +476,7 @@ def test_create_task_study(py_api: TestClient) -> None:
     study_id = new["study_id"]
     assert isinstance(study_id, int)
 
-    study = py_api.get(f"/studies/{study_id}")
+    study = await py_api.get(f"/studies/{study_id}")
     assert study.status_code == HTTPStatus.OK
     expected = {
         "id": study_id,
@@ -508,32 +507,32 @@ async def _attach_tasks_to_study(
     study_id: int,
     task_ids: list[int],
     api_key: str,
-    py_api: TestClient,
+    py_api: httpx.AsyncClient,
     expdb_test: AsyncConnection,
 ) -> httpx.Response:
     # Adding requires the study to be in preparation,
     # but the current snapshot has no in-preparation studies.
     await expdb_test.execute(text("UPDATE study SET status = 'in_preparation' WHERE id = 1"))
-    return py_api.post(
+    return await py_api.post(
         f"/studies/attach?api_key={api_key}",
         json={"study_id": study_id, "entity_ids": task_ids},
     )
 
 
-async def test_attach_task_to_study(py_api: TestClient, expdb_test: AsyncConnection) -> None:
+async def test_attach_task_to_study(py_api: httpx.AsyncClient, expdb_test: AsyncConnection) -> None:
     response = await _attach_tasks_to_study(
         study_id=1,
         task_ids=[2, 3, 4],
-        api_key="AD000000000000000000000000000000",
+        api_key=ApiKey.ADMIN,
         py_api=py_api,
         expdb_test=expdb_test,
     )
     assert response.status_code == HTTPStatus.OK, response.content
-    assert response.json() == {"study_id": 7, "main_entity_type": StudyType.TASK}
+    assert response.json() == {"study_id": 1, "main_entity_type": StudyType.TASK}
 
 
 async def test_attach_task_to_study_needs_owner(
-    py_api: TestClient, expdb_test: AsyncConnection
+    py_api: httpx.AsyncClient, expdb_test: AsyncConnection
 ) -> None:
     await expdb_test.execute(text("UPDATE study SET status = 'in_preparation' WHERE id = 1"))
     response = await _attach_tasks_to_study(
@@ -547,7 +546,7 @@ async def test_attach_task_to_study_needs_owner(
 
 
 async def test_attach_task_to_study_already_linked_raises(
-    py_api: TestClient,
+    py_api: httpx.AsyncClient,
     expdb_test: AsyncConnection,
 ) -> None:
     await expdb_test.execute(text("UPDATE study SET status = 'in_preparation' WHERE id = 1"))
@@ -566,7 +565,7 @@ async def test_attach_task_to_study_already_linked_raises(
 
 
 async def test_attach_task_to_study_but_task_not_exist_raises(
-    py_api: TestClient,
+    py_api: httpx.AsyncClient,
     expdb_test: AsyncConnection,
 ) -> None:
     await expdb_test.execute(text("UPDATE study SET status = 'in_preparation' WHERE id = 1"))

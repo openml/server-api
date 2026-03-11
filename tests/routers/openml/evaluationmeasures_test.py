@@ -1,10 +1,10 @@
 from http import HTTPStatus
 
-from starlette.testclient import TestClient
+import httpx
 
 
-def test_evaluationmeasure_list(py_api: TestClient) -> None:
-    response = py_api.get("/evaluationmeasure/list")
+async def test_evaluationmeasure_list(py_api: httpx.AsyncClient) -> None:
+    response = await py_api.get("/evaluationmeasure/list")
     assert response.status_code == HTTPStatus.OK
     assert response.json() == [
         "area_under_roc_curve",
@@ -81,8 +81,8 @@ def test_evaluationmeasure_list(py_api: TestClient) -> None:
     ]
 
 
-def test_estimation_procedure_list(py_api: TestClient) -> None:
-    response = py_api.get("/estimationprocedure/list")
+async def test_estimation_procedure_list(py_api: httpx.AsyncClient) -> None:
+    response = await py_api.get("/estimationprocedure/list")
     assert response.status_code == HTTPStatus.OK
     assert response.json() == [
         {

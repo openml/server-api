@@ -6,7 +6,6 @@ import hypothesis
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
-from starlette.testclient import TestClient
 
 from core.errors import NoResultsError
 from tests import constants
@@ -23,8 +22,8 @@ def _assert_empty_result(
     assert error["code"] == "372"
 
 
-def test_list(py_api: TestClient) -> None:
-    response = py_api.get("/datasets/list/")
+async def test_list(py_api: httpx.AsyncClient) -> None:
+    response = await py_api.get("/datasets/list/")
     assert response.status_code == HTTPStatus.OK
     assert len(response.json()) >= 1
 
@@ -38,8 +37,8 @@ def test_list(py_api: TestClient) -> None:
         ("all", constants.NUMBER_OF_DATASETS - constants.NUMBER_OF_PRIVATE_DATASETS),
     ],
 )
-def test_list_filter_active(status: str, amount: int, py_api: TestClient) -> None:
-    response = py_api.post(
+async def test_list_filter_active(status: str, amount: int, py_api: httpx.AsyncClient) -> None:
+    response = await py_api.post(
         "/datasets/list",
         json={"status": status, "pagination": {"limit": constants.NUMBER_OF_DATASETS}},
     )
@@ -56,9 +55,11 @@ def test_list_filter_active(status: str, amount: int, py_api: TestClient) -> Non
         (None, constants.NUMBER_OF_DATASETS - constants.NUMBER_OF_PRIVATE_DATASETS),
     ],
 )
-def test_list_accounts_privacy(api_key: ApiKey | None, amount: int, py_api: TestClient) -> None:
+async def test_list_accounts_privacy(
+    api_key: ApiKey | None, amount: int, py_api: httpx.AsyncClient
+) -> None:
     key = f"?api_key={api_key}" if api_key else ""
-    response = py_api.post(
+    response = await py_api.post(
         f"/datasets/list{key}",
         json={"status": "all", "pagination": {"limit": 1000}},
     )
@@ -70,9 +71,9 @@ def test_list_accounts_privacy(api_key: ApiKey | None, amount: int, py_api: Test
     ("name", "count"),
     [("abalone", 1), ("iris", 2)],
 )
-def test_list_data_name_present(name: str, count: int, py_api: TestClient) -> None:
+async def test_list_data_name_present(name: str, count: int, py_api: httpx.AsyncClient) -> None:
     # The second iris dataset is private, so we need to authenticate.
-    response = py_api.post(
+    response = await py_api.post(
         f"/datasets/list?api_key={ApiKey.ADMIN}",
         json={"status": "all", "data_name": name},
     )
@@ -86,8 +87,8 @@ def test_list_data_name_present(name: str, count: int, py_api: TestClient) -> No
     "name",
     ["ir", "long_name_without_overlap"],
 )
-def test_list_data_name_absent(name: str, py_api: TestClient) -> None:
-    response = py_api.post(
+async def test_list_data_name_absent(name: str, py_api: httpx.AsyncClient) -> None:
+    response = await py_api.post(
         f"/datasets/list?api_key={ApiKey.ADMIN}",
         json={"status": "all", "data_name": name},
     )
@@ -96,7 +97,9 @@ def test_list_data_name_absent(name: str, py_api: TestClient) -> None:
 
 @pytest.mark.parametrize("limit", [None, 5, 10, 200])
 @pytest.mark.parametrize("offset", [None, 0, 5, 129, 140, 200])
-def test_list_pagination(limit: int | None, offset: int | None, py_api: TestClient) -> None:
+async def test_list_pagination(
+    limit: int | None, offset: int | None, py_api: httpx.AsyncClient
+) -> None:
     # dataset ids are contiguous until 131, then there are 161, 162, and 163.
     extra_datasets = [161, 162, 163]
     all_ids = [
@@ -112,7 +115,7 @@ def test_list_pagination(limit: int | None, offset: int | None, py_api: TestClie
     offset_body = {} if offset is None else {"offset": offset}
     limit_body = {} if limit is None else {"limit": limit}
     filters = {"status": "all", "pagination": offset_body | limit_body}
-    response = py_api.post("/datasets/list", json=filters)
+    response = await py_api.post("/datasets/list", json=filters)
 
     if offset in [140, 200]:
         _assert_empty_result(response)
@@ -127,8 +130,8 @@ def test_list_pagination(limit: int | None, offset: int | None, py_api: TestClie
     ("version", "count"),
     [(1, 100), (2, 7), (5, 1)],
 )
-def test_list_data_version(version: int, count: int, py_api: TestClient) -> None:
-    response = py_api.post(
+async def test_list_data_version(version: int, count: int, py_api: httpx.AsyncClient) -> None:
+    response = await py_api.post(
         f"/datasets/list?api_key={ApiKey.ADMIN}",
         json={"status": "all", "data_version": version},
     )
@@ -138,9 +141,9 @@ def test_list_data_version(version: int, count: int, py_api: TestClient) -> None
     assert {dataset["version"] for dataset in datasets} == {version}
 
 
-def test_list_data_version_no_result(py_api: TestClient) -> None:
+async def test_list_data_version_no_result(py_api: httpx.AsyncClient) -> None:
     version_with_no_datasets = 42
-    response = py_api.post(
+    response = await py_api.post(
         f"/datasets/list?api_key={ApiKey.ADMIN}",
         json={"status": "all", "data_version": version_with_no_datasets},
     )
@@ -155,8 +158,8 @@ def test_list_data_version_no_result(py_api: TestClient) -> None:
     ("user_id", "count"),
     [(1, 59), (2, 34), (16, 1)],
 )
-def test_list_uploader(user_id: int, count: int, key: str, py_api: TestClient) -> None:
-    response = py_api.post(
+async def test_list_uploader(user_id: int, count: int, key: str, py_api: httpx.AsyncClient) -> None:
+    response = await py_api.post(
         f"/datasets/list?api_key={key}",
         json={"status": "all", "uploader": user_id},
     )
@@ -174,8 +177,8 @@ def test_list_uploader(user_id: int, count: int, key: str, py_api: TestClient) -
     "data_id",
     [[1], [1, 2, 3], [1, 2, 3, 3000], [1, 2, 3, 130]],
 )
-def test_list_data_id(data_id: list[int], py_api: TestClient) -> None:
-    response = py_api.post(
+async def test_list_data_id(data_id: list[int], py_api: httpx.AsyncClient) -> None:
+    response = await py_api.post(
         "/datasets/list",
         json={"status": "all", "data_id": data_id},
     )
@@ -189,8 +192,8 @@ def test_list_data_id(data_id: list[int], py_api: TestClient) -> None:
     ("tag", "count"),
     [("study_14", 100), ("study_15", 1)],
 )
-def test_list_data_tag(tag: str, count: int, py_api: TestClient) -> None:
-    response = py_api.post(
+async def test_list_data_tag(tag: str, count: int, py_api: httpx.AsyncClient) -> None:
+    response = await py_api.post(
         "/datasets/list",
         # study_14 has 100 datasets, we overwrite the default `limit` because otherwise
         # we don't know if the results are limited by filtering on the tag.
@@ -200,8 +203,8 @@ def test_list_data_tag(tag: str, count: int, py_api: TestClient) -> None:
     assert len(response.json()) == count
 
 
-def test_list_data_tag_empty(py_api: TestClient) -> None:
-    response = py_api.post(
+async def test_list_data_tag_empty(py_api: httpx.AsyncClient) -> None:
+    response = await py_api.post(
         "/datasets/list",
         json={"status": "all", "tag": "not-a-tag"},
     )
@@ -221,8 +224,10 @@ def test_list_data_tag_empty(py_api: TestClient) -> None:
         ("number_missing_values", "2..100000", 23),
     ],
 )
-def test_list_data_quality(quality: str, range_: str, count: int, py_api: TestClient) -> None:
-    response = py_api.post(
+async def test_list_data_quality(
+    quality: str, range_: str, count: int, py_api: httpx.AsyncClient
+) -> None:
+    response = await py_api.post(
         "/datasets/list",
         json={"status": "all", quality: range_},
     )
@@ -251,8 +256,8 @@ def test_list_data_quality(quality: str, range_: str, count: int, py_api: TestCl
     # We don't test ADMIN user, as we fixed a bug which treated them as a regular user
     api_key=st.sampled_from([None, ApiKey.SOME_USER, ApiKey.OWNER_USER]),
 )
-def test_list_data_identical(
-    py_api: TestClient,
+async def test_list_data_identical(
+    py_api: httpx.AsyncClient,
     php_api: httpx.Client,
     **kwargs: dict[str, Any],
 ) -> Any:  # noqa: ANN401
@@ -270,7 +275,7 @@ def test_list_data_identical(
     if offset is not None:
         new_style["pagination"]["offset"] = offset
 
-    new = py_api.post(
+    new = await py_api.post(
         f"/datasets/list{api_key_query}",
         json=new_style,
     )

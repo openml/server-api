@@ -9,7 +9,6 @@ import httpx
 import pytest
 from _pytest.config import Config
 from _pytest.nodes import Item
-from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
@@ -48,7 +47,9 @@ def php_api() -> httpx.Client:
 
 
 @pytest.fixture
-def py_api(expdb_test: AsyncConnection, user_test: AsyncConnection) -> Iterator[TestClient]:
+async def py_api(
+    expdb_test: AsyncConnection, user_test: AsyncConnection
+) -> AsyncIterator[httpx.AsyncClient]:
     app = create_api()
 
     # We use async generator functions because fixtures may not be called directly.
@@ -61,7 +62,11 @@ def py_api(expdb_test: AsyncConnection, user_test: AsyncConnection) -> Iterator[
 
     app.dependency_overrides[expdb_connection] = override_expdb
     app.dependency_overrides[userdb_connection] = override_userdb
-    with TestClient(app) as client:
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://test",
+        follow_redirects=True,
+    ) as client:
         yield client
 
 

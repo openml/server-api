@@ -5,7 +5,6 @@ from typing import Any
 import deepdiff
 import httpx
 import pytest
-from starlette.testclient import TestClient
 
 from core.conversions import (
     nested_remove_single_element_list,
@@ -15,12 +14,12 @@ from tests.conftest import Flow
 
 
 @pytest.mark.mut
-def test_flow_exists_not(
-    py_api: TestClient,
-    php_api: TestClient,
+async def test_flow_exists_not(
+    py_api: httpx.AsyncClient,
+    php_api: httpx.Client,
 ) -> None:
     path = "exists/foo/bar"
-    py_response = py_api.get(f"/flows/{path}")
+    py_response = await py_api.get(f"/flows/{path}")
     php_response = php_api.get(f"/flow/{path}")
 
     assert py_response.status_code == HTTPStatus.NOT_FOUND
@@ -36,13 +35,13 @@ def test_flow_exists_not(
 
 
 @pytest.mark.mut
-def test_flow_exists(
+async def test_flow_exists(
     persisted_flow: Flow,
-    py_api: TestClient,
-    php_api: TestClient,
+    py_api: httpx.AsyncClient,
+    php_api: httpx.Client,
 ) -> None:
     path = f"exists/{persisted_flow.name}/{persisted_flow.external_version}"
-    py_response = py_api.get(f"/flows/{path}")
+    py_response = await py_api.get(f"/flows/{path}")
     php_response = php_api.get(f"/flow/{path}")
 
     assert py_response.status_code == php_response.status_code, php_response.content
@@ -56,8 +55,10 @@ def test_flow_exists(
     "flow_id",
     range(1, 16),
 )
-def test_get_flow_equal(flow_id: int, py_api: TestClient, php_api: httpx.Client) -> None:
-    response = py_api.get(f"/flows/{flow_id}")
+async def test_get_flow_equal(
+    flow_id: int, py_api: httpx.AsyncClient, php_api: httpx.Client
+) -> None:
+    response = await py_api.get(f"/flows/{flow_id}")
     assert response.status_code == HTTPStatus.OK
 
     new = response.json()

@@ -83,6 +83,8 @@ pythonpath = [
   "src"
 ]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
 markers = [
     "slow: test or sets of tests which take more than a few seconds to run.",
     # While the `mut`ation marker below is not strictly necessary as every change is

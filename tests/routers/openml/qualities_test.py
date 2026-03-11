@@ -5,7 +5,6 @@ import httpx
 import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
-from starlette.testclient import TestClient
 
 from core.errors import DatasetNotFoundError
 
@@ -31,16 +30,16 @@ async def _remove_quality_from_database(quality_name: str, expdb_test: AsyncConn
     )
 
 
-def test_list_qualities_identical(py_api: TestClient, php_api: httpx.Client) -> None:
+async def test_list_qualities_identical(py_api: httpx.AsyncClient, php_api: httpx.Client) -> None:
     original = php_api.get("/data/qualities/list")
-    new = py_api.get("/datasets/qualities/list")
+    new = await py_api.get("/datasets/qualities/list")
     assert original.status_code == new.status_code
     assert original.json() == new.json()
     # To keep the test idempotent, we cannot test if reaction to database changes is identical
 
 
-async def test_list_qualities(py_api: TestClient, expdb_test: AsyncConnection) -> None:
-    response = py_api.get("/datasets/qualities/list")
+async def test_list_qualities(py_api: httpx.AsyncClient, expdb_test: AsyncConnection) -> None:
+    response = await py_api.get("/datasets/qualities/list")
     assert response.status_code == HTTPStatus.OK
     expected = {
         "data_qualities_list": {
@@ -160,13 +159,13 @@ async def test_list_qualities(py_api: TestClient, expdb_test: AsyncConnection) -
     deleted = expected["data_qualities_list"]["quality"].pop()
     await _remove_quality_from_database(quality_name=deleted, expdb_test=expdb_test)
 
-    response = py_api.get("/datasets/qualities/list")
+    response = await py_api.get("/datasets/qualities/list")
     assert response.status_code == HTTPStatus.OK
     assert expected == response.json()
 
 
-def test_get_quality(py_api: TestClient) -> None:
-    response = py_api.get("/datasets/qualities/1")
+async def test_get_quality(py_api: httpx.AsyncClient) -> None:
+    response = await py_api.get("/datasets/qualities/1")
     assert response.status_code == HTTPStatus.OK
     expected = [
         {"name": "AutoCorrelation", "value": 0.6064659977703456},
@@ -285,9 +284,11 @@ def test_get_quality(py_api: TestClient) -> None:
     "data_id",
     list(set(range(1, 132)) - {55, 56, 59, 116, 130}),
 )
-def test_get_quality_identical(data_id: int, py_api: TestClient, php_api: httpx.Client) -> None:
+async def test_get_quality_identical(
+    data_id: int, py_api: httpx.AsyncClient, php_api: httpx.Client
+) -> None:
     php_response = php_api.get(f"/data/qualities/{data_id}")
-    python_response = py_api.get(f"/datasets/qualities/{data_id}")
+    python_response = await py_api.get(f"/datasets/qualities/{data_id}")
     assert python_response.status_code == php_response.status_code
 
     expected = [
@@ -304,9 +305,9 @@ def test_get_quality_identical(data_id: int, py_api: TestClient, php_api: httpx.
     "data_id",
     [55, 56, 59, 116, 130, 132],
 )
-def test_get_quality_identical_error(
+async def test_get_quality_identical_error(
     data_id: int,
-    py_api: TestClient,
+    py_api: httpx.AsyncClient,
     php_api: httpx.Client,
 ) -> None:
     if data_id in [55, 56, 59]:
@@ -314,7 +315,7 @@ def test_get_quality_identical_error(
     if data_id in [116]:  # noqa: FURB171
         pytest.skip("Detailed error for code 362 (no qualities) not yet supported.")
     php_response = php_api.get(f"/data/qualities/{data_id}")
-    python_response = py_api.get(f"/datasets/qualities/{data_id}")
+    python_response = await py_api.get(f"/datasets/qualities/{data_id}")
     assert python_response.status_code == php_response.status_code
     # RFC 9457: Python API now returns problem+json format
     assert python_response.headers["content-type"] == "application/problem+json"

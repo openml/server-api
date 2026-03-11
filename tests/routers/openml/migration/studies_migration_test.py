@@ -1,12 +1,11 @@
 import deepdiff
 import httpx
-from starlette.testclient import TestClient
 
 from core.conversions import nested_num_to_str, nested_remove_nones
 
 
-def test_get_study_equal(py_api: TestClient, php_api: httpx.Client) -> None:
-    new = py_api.get("/studies/1")
+async def test_get_study_equal(py_api: httpx.AsyncClient, php_api: httpx.Client) -> None:
+    new = await py_api.get("/studies/1")
     old = php_api.get("/study/1")
     assert new.status_code == old.status_code
 

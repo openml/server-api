@@ -1,10 +1,10 @@
 from http import HTTPStatus
 
 import deepdiff.diff
+import httpx
 import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.ext.asyncio import AsyncConnection
-from starlette.testclient import TestClient
 
 from core.errors import FlowNotFoundError
 from routers.openml.flows import flow_exists
@@ -65,15 +65,15 @@ async def test_flow_exists_handles_flow_not_found(
     assert error.value.uri == FlowNotFoundError.uri
 
 
-def test_flow_exists(flow: Flow, py_api: TestClient) -> None:
-    response = py_api.get(f"/flows/exists/{flow.name}/{flow.external_version}")
+async def test_flow_exists(flow: Flow, py_api: httpx.AsyncClient) -> None:
+    response = await py_api.get(f"/flows/exists/{flow.name}/{flow.external_version}")
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"flow_id": flow.id}
 
 
-def test_flow_exists_not_exists(py_api: TestClient) -> None:
+async def test_flow_exists_not_exists(py_api: httpx.AsyncClient) -> None:
     name, version = "foo", "bar"
-    response = py_api.get(f"/flows/exists/{name}/{version}")
+    response = await py_api.get(f"/flows/exists/{name}/{version}")
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.headers["content-type"] == "application/problem+json"
     error = response.json()
@@ -82,8 +82,8 @@ def test_flow_exists_not_exists(py_api: TestClient) -> None:
     assert version in error["detail"]
 
 
-def test_get_flow_no_subflow(py_api: TestClient) -> None:
-    response = py_api.get("/flows/1")
+async def test_get_flow_no_subflow(py_api: httpx.AsyncClient) -> None:
+    response = await py_api.get("/flows/1")
     assert response.status_code == HTTPStatus.OK
     expected = {
         "id": 1,
@@ -129,8 +129,8 @@ def test_get_flow_no_subflow(py_api: TestClient) -> None:
     assert not difference
 
 
-def test_get_flow_with_subflow(py_api: TestClient) -> None:
-    response = py_api.get("/flows/3")
+async def test_get_flow_with_subflow(py_api: httpx.AsyncClient) -> None:
+    response = await py_api.get("/flows/3")
     assert response.status_code == HTTPStatus.OK
     expected = {
         "id": 3,

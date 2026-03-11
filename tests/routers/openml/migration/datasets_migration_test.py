@@ -4,7 +4,6 @@ from http import HTTPStatus
 
 import httpx
 import pytest
-from starlette.testclient import TestClient
 
 import tests.constants
 from core.conversions import nested_remove_single_element_list
@@ -15,13 +14,13 @@ from tests.users import ApiKey
     "dataset_id",
     range(1, 132),
 )
-def test_dataset_response_is_identical(  # noqa: C901, PLR0912
+async def test_dataset_response_is_identical(  # noqa: C901, PLR0912
     dataset_id: int,
-    py_api: TestClient,
+    py_api: httpx.AsyncClient,
     php_api: httpx.Client,
 ) -> None:
     original = php_api.get(f"/data/{dataset_id}")
-    new = py_api.get(f"/datasets/{dataset_id}")
+    new = await py_api.get(f"/datasets/{dataset_id}")
 
     if new.status_code == HTTPStatus.FORBIDDEN:
         assert original.status_code == HTTPStatus.PRECONDITION_FAILED
@@ -100,11 +99,11 @@ def test_dataset_response_is_identical(  # noqa: C901, PLR0912
     "dataset_id",
     [-1, 138, 100_000],
 )
-def test_error_unknown_dataset(
+async def test_error_unknown_dataset(
     dataset_id: int,
-    py_api: TestClient,
+    py_api: httpx.AsyncClient,
 ) -> None:
-    response = py_api.get(f"/datasets/{dataset_id}")
+    response = await py_api.get(f"/datasets/{dataset_id}")
 
     # The new API has "404 Not Found" instead of "412 PRECONDITION_FAILED"
     assert response.status_code == HTTPStatus.NOT_FOUND
@@ -120,12 +119,12 @@ def test_error_unknown_dataset(
     "api_key",
     [None, ApiKey.INVALID],
 )
-def test_private_dataset_no_user_no_access(
-    py_api: TestClient,
+async def test_private_dataset_no_user_no_access(
+    py_api: httpx.AsyncClient,
     api_key: str | None,
 ) -> None:
     query = f"?api_key={api_key}" if api_key else ""
-    response = py_api.get(f"/datasets/130{query}")
+    response = await py_api.get(f"/datasets/130{query}")
 
     # New response is 403: Forbidden instead of 412: PRECONDITION FAILED
     assert response.status_code == HTTPStatus.FORBIDDEN
@@ -139,13 +138,13 @@ def test_private_dataset_no_user_no_access(
     "api_key",
     [ApiKey.DATASET_130_OWNER, ApiKey.ADMIN],
 )
-def test_private_dataset_owner_access(
-    py_api: TestClient,
-    php_api: TestClient,
+async def test_private_dataset_owner_access(
+    py_api: httpx.AsyncClient,
+    php_api: httpx.Client,
     api_key: str,
 ) -> None:
     [private_dataset] = tests.constants.PRIVATE_DATASET_ID
-    new_response = py_api.get(f"/datasets/{private_dataset}?api_key={api_key}")
+    new_response = await py_api.get(f"/datasets/{private_dataset}?api_key={api_key}")
     old_response = php_api.get(f"/data/{private_dataset}?api_key={api_key}")
     assert old_response.status_code == HTTPStatus.OK
     assert old_response.status_code == new_response.status_code
@@ -166,11 +165,11 @@ def test_private_dataset_owner_access(
     ["study_14", "totally_new_tag_for_migration_testing"],
     ids=["typically existing tag", "new tag"],
 )
-def test_dataset_tag_response_is_identical(
+async def test_dataset_tag_response_is_identical(
     dataset_id: int,
     tag: str,
     api_key: str,
-    py_api: TestClient,
+    py_api: httpx.AsyncClient,
     php_api: httpx.Client,
 ) -> None:
     original = php_api.post(
@@ -193,7 +192,7 @@ def test_dataset_tag_response_is_identical(
         and original.json()["error"]["message"] == "An Elastic Search Exception occured."
     ):
         pytest.skip("Encountered Elastic Search error.")
-    new = py_api.post(
+    new = await py_api.post(
         f"/datasets/tag?api_key={api_key}",
         json={"data_id": dataset_id, "tag": tag},
     )
@@ -225,12 +224,12 @@ def test_dataset_tag_response_is_identical(
     "data_id",
     list(range(1, 130)),
 )
-def test_datasets_feature_is_identical(
+async def test_datasets_feature_is_identical(
     data_id: int,
-    py_api: TestClient,
+    py_api: httpx.AsyncClient,
     php_api: httpx.Client,
 ) -> None:
-    new = py_api.get(f"/datasets/features/{data_id}")
+    new = await py_api.get(f"/datasets/features/{data_id}")
     original = php_api.get(f"/data/features/{data_id}")
     assert new.status_code == original.status_code
 
