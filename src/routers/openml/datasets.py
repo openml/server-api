@@ -3,7 +3,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal, NamedTuple
 
-from fastapi import APIRouter, Body, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends
 from sqlalchemy import text
 from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncConnection
@@ -338,7 +338,7 @@ async def update_dataset_status(
     if status == DatasetStatus.DEACTIVATED and not can_deactivate:
         msg = f"Dataset {dataset_id} is not owned by you."
         raise DatasetNotOwnedError(msg)
-        
+
     if status == DatasetStatus.ACTIVE and UserGroup.ADMIN not in await user.get_groups():
         msg = "Only administrators can activate datasets."
         raise DatasetAdminOnlyError(msg)

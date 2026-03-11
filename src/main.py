@@ -7,8 +7,8 @@ import uvicorn
 from fastapi import FastAPI
 
 from config import load_configuration
-from database.setup import close_databases
 from core.errors import ProblemDetailError, problem_detail_exception_handler
+from database.setup import close_databases
 from routers.mldcat_ap.dataset import router as mldcat_ap_router
 from routers.openml.datasets import router as datasets_router
 from routers.openml.estimation_procedure import router as estimationprocedure_router

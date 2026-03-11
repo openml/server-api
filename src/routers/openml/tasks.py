@@ -3,7 +3,7 @@ import re
 from typing import Annotated, cast
 
 import xmltodict
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy import RowMapping, text
 from sqlalchemy.ext.asyncio import AsyncConnection
 

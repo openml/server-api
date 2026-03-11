@@ -1,5 +1,4 @@
-from http import HTTPStatus
-from typing import Annotated, Any, Literal
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Body, Depends
 from pydantic import BaseModel
