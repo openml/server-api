@@ -1,9 +1,17 @@
+"""Utilities for converting between string and numeric representations.
+
+Provides functions for recursive conversion of nested data structures.
+"""
+
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
 
 def _str_to_num(string: str) -> int | float | str:
-    """Tries to convert the string to integer, otherwise float, otherwise returns the input."""
+    """Convert string to integer, float, or leave unchanged.
+
+    Attempts conversion in order: integer, float, then returns original string.
+    """
     if string.isdigit():
         return int(string)
     try:
@@ -13,8 +21,10 @@ def _str_to_num(string: str) -> int | float | str:
 
 
 def nested_str_to_num(obj: Any) -> Any:
-    """Recursively tries to convert all strings in the object to numbers.
-    For dictionaries, only the values will be converted."""
+    """Recursively convert all strings in object to numbers.
+
+    For dictionaries, only the values will be converted.
+    """
     if isinstance(obj, str):
         return _str_to_num(obj)
     if isinstance(obj, Mapping):
@@ -25,8 +35,10 @@ def nested_str_to_num(obj: Any) -> Any:
 
 
 def nested_num_to_str(obj: Any) -> Any:
-    """Recursively tries to convert all numbers in the object to strings.
-    For dictionaries, only the values will be converted."""
+    """Recursively convert all numbers in object to strings.
+
+    For dictionaries, only the values will be converted.
+    """
     if isinstance(obj, str):
         return obj
     if isinstance(obj, Mapping):
@@ -39,6 +51,7 @@ def nested_num_to_str(obj: Any) -> Any:
 
 
 def nested_remove_nones(obj: Any) -> Any:
+    """Recursively remove None values from nested data structures."""
     if isinstance(obj, str):
         return obj
     if isinstance(obj, Mapping):
@@ -53,6 +66,7 @@ def nested_remove_nones(obj: Any) -> Any:
 
 
 def nested_remove_single_element_list(obj: Any) -> Any:
+    """Recursively unwrap single-element lists in nested data structures."""
     if isinstance(obj, str):
         return obj
     if isinstance(obj, Mapping):

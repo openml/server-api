@@ -1,4 +1,4 @@
-"""Translation from https://github.com/openml/OpenML/blob/c19c9b99568c0fabb001e639ff6724b9a754bbc9/openml_OS/models/api/v1/Api_data.php#L707"""
+"""Translation from https://github.com/openml/OpenML/blob/c19c9b99568c0fabb001e639ff6724b9a754bbc9/openml_OS/models/api/v1/Api_data.php#L707."""
 
 import datetime
 
@@ -9,6 +9,7 @@ from schemas.datasets.openml import Feature
 
 
 def get(id_: int, connection: Connection) -> Row | None:
+    """Get a dataset by ID."""
     row = connection.execute(
         text(
             """
@@ -23,6 +24,7 @@ def get(id_: int, connection: Connection) -> Row | None:
 
 
 def get_file(*, file_id: int, connection: Connection) -> Row | None:
+    """Get a file by ID."""
     row = connection.execute(
         text(
             """
@@ -37,6 +39,7 @@ def get_file(*, file_id: int, connection: Connection) -> Row | None:
 
 
 def get_tags_for(id_: int, connection: Connection) -> list[str]:
+    """Get all tags for a dataset."""
     rows = connection.execute(
         text(
             """
@@ -51,6 +54,7 @@ def get_tags_for(id_: int, connection: Connection) -> list[str]:
 
 
 def tag(id_: int, tag_: str, *, user_id: int, connection: Connection) -> None:
+    """Add a tag to a dataset."""
     connection.execute(
         text(
             """
@@ -102,6 +106,7 @@ def get_status(id_: int, connection: Connection) -> Row | None:
 
 
 def get_latest_processing_update(dataset_id: int, connection: Connection) -> Row | None:
+    """Get the latest processing update for a dataset."""
     row = connection.execute(
         text(
             """
@@ -117,6 +122,7 @@ def get_latest_processing_update(dataset_id: int, connection: Connection) -> Row
 
 
 def get_features(dataset_id: int, connection: Connection) -> list[Feature]:
+    """Get all features for a dataset."""
     rows = connection.execute(
         text(
             """
@@ -132,6 +138,7 @@ def get_features(dataset_id: int, connection: Connection) -> list[Feature]:
 
 
 def get_feature_values(dataset_id: int, *, feature_index: int, connection: Connection) -> list[str]:
+    """Get all values for a specific feature in a dataset."""
     rows = connection.execute(
         text(
             """
@@ -152,6 +159,7 @@ def update_status(
     user_id: int,
     connection: Connection,
 ) -> None:
+    """Update the status of a dataset."""
     connection.execute(
         text(
             """
@@ -169,6 +177,7 @@ def update_status(
 
 
 def remove_deactivated_status(dataset_id: int, connection: Connection) -> None:
+    """Remove deactivated status from a dataset."""
     connection.execute(
         text(
             """

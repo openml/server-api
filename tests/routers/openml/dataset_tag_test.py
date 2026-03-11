@@ -4,6 +4,7 @@ import pytest
 from sqlalchemy import Connection
 from starlette.testclient import TestClient
 
+from core.errors import AuthenticationFailedError, TagAlreadyExistsError
 from database.datasets import get_tags_for
 from tests import constants
 from tests.users import ApiKey
@@ -20,8 +21,11 @@ def test_dataset_tag_rejects_unauthorized(key: ApiKey, py_api: TestClient) -> No
         f"/datasets/tag{apikey}",
         json={"data_id": next(iter(constants.PRIVATE_DATASET_ID)), "tag": "test"},
     )
-    assert response.status_code == HTTPStatus.PRECONDITION_FAILED
-    assert response.json()["detail"] == {"code": "103", "message": "Authentication failed"}
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response.headers["content-type"] == "application/problem+json"
+    error = response.json()
+    assert error["type"] == AuthenticationFailedError.uri
+    assert error["code"] == "103"
 
 
 @pytest.mark.parametrize(
@@ -58,15 +62,13 @@ def test_dataset_tag_fails_if_tag_exists(py_api: TestClient) -> None:
         f"/datasets/tag?api_key={ApiKey.ADMIN}",
         json={"data_id": dataset_id, "tag": tag},
     )
-    assert response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-    expected = {
-        "detail": {
-            "code": "473",
-            "message": "Entity already tagged by this tag.",
-            "additional_information": f"id={dataset_id}; tag={tag}",
-        },
-    }
-    assert expected == response.json()
+    assert response.status_code == HTTPStatus.CONFLICT
+    assert response.headers["content-type"] == "application/problem+json"
+    error = response.json()
+    assert error["type"] == TagAlreadyExistsError.uri
+    assert error["code"] == "473"
+    assert f"id={dataset_id}" in error["detail"]
+    assert f"tag={tag}" in error["detail"]
 
 
 @pytest.mark.parametrize(

@@ -5,6 +5,8 @@ import httpx
 import pytest
 from starlette.testclient import TestClient
 
+from core.errors import TaskTypeNotFoundError
+
 
 def test_list_task_type(py_api: TestClient, php_api: httpx.Client) -> None:
     response = py_api.get("/tasktype/list")
@@ -36,5 +38,10 @@ def test_get_task_type(ttype_id: int, py_api: TestClient, php_api: httpx.Client)
 
 def test_get_task_type_unknown(py_api: TestClient) -> None:
     response = py_api.get("/tasktype/1000")
-    assert response.status_code == HTTPStatus.PRECONDITION_FAILED
-    assert response.json() == {"detail": {"code": "241", "message": "Unknown task type."}}
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.headers["content-type"] == "application/problem+json"
+    error = response.json()
+    assert error["type"] == TaskTypeNotFoundError.uri
+    assert error["code"] == "241"
+    assert error["status"] == HTTPStatus.NOT_FOUND
+    assert "Unknown task type" in error["detail"]
