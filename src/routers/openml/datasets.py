@@ -293,6 +293,9 @@ def get_dataset_features(
             feature_index=feature.index,
             connection=expdb,
         )
+    ontologies = database.datasets.get_feature_ontologies(dataset_id, expdb)
+    for feature in features:
+        feature.ontology = ontologies.get(feature.index)
 
     if not features:
         processing_state = database.datasets.get_latest_processing_update(dataset_id, expdb)

@@ -158,6 +158,24 @@ def test_dataset_features(py_api: TestClient) -> None:
     ]
 
 
+def test_dataset_features_with_ontology(py_api: TestClient) -> None:
+    # Dataset 11 has ontology data for features 1, 2, and 3
+    response = py_api.get("/datasets/features/11")
+    assert response.status_code == HTTPStatus.OK
+    features = {f["index"]: f for f in response.json()}
+    assert features[1]["ontology"] == ["https://en.wikipedia.org/wiki/Service_(motor_vehicle)"]
+    assert features[2]["ontology"] == [
+        "https://en.wikipedia.org/wiki/Car_door",
+        "https://en.wikipedia.org/wiki/Door",
+    ]
+    assert features[3]["ontology"] == [
+        "https://en.wikipedia.org/wiki/Passenger_vehicles_in_the_United_States"
+    ]
+    # Features without ontology should not include the field
+    assert "ontology" not in features[0]
+    assert "ontology" not in features[4]
+
+
 def test_dataset_features_no_access(py_api: TestClient) -> None:
     response = py_api.get("/datasets/features/130")
     assert response.status_code == HTTPStatus.FORBIDDEN
