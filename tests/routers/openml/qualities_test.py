@@ -320,4 +320,5 @@ def test_get_quality_identical_error(
     error = python_response.json()
     assert error["type"] == DatasetNotFoundError.uri
     # Verify the error message matches the PHP API semantically
-    assert "Unknown dataset" in error["detail"]
+    assert php_response.json()["error"]["message"] == "Unknown dataset"
+    assert error["detail"] == f"Dataset with id {data_id} not found."

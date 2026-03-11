@@ -66,12 +66,14 @@ def test_flow_exists(flow: Flow, py_api: TestClient) -> None:
 
 
 def test_flow_exists_not_exists(py_api: TestClient) -> None:
-    response = py_api.get("/flows/exists/foo/bar")
+    name, version = "foo", "bar"
+    response = py_api.get(f"/flows/exists/{name}/{version}")
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.headers["content-type"] == "application/problem+json"
     error = response.json()
     assert error["type"] == FlowNotFoundError.uri
-    assert error["detail"] == "Flow not found."
+    assert name in error["detail"]
+    assert version in error["detail"]
 
 
 def test_get_flow_no_subflow(py_api: TestClient) -> None:
