@@ -65,7 +65,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101", "COM812", "D"]
+"tests/**" = ["S101", "COM812", "D"]
 "src/config.py" = ["D100", "D101", "D102", "D103"]
 "src/core/access.py" = ["D100", "D101", "D102", "D103"]
 "src/core/conversions.py" = ["ANN401", "D100", "D101", "D102", "D103"]
