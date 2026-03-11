@@ -39,6 +39,7 @@ class ProblemDetailError(Exception):
         instance: str | None = None,
         status_code: HTTPStatus | None = None,
     ) -> None:
+        """Initialize an error that can be formatted to a RFC 9457 compliant response."""
         self.detail = detail
         self._code_override = code
         self.instance = instance
