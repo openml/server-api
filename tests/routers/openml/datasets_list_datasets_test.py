@@ -1,3 +1,4 @@
+import asyncio
 from http import HTTPStatus
 from typing import Any
 
@@ -258,7 +259,7 @@ async def test_list_data_quality(
 )
 async def test_list_data_identical(
     py_api: httpx.AsyncClient,
-    php_api: httpx.Client,
+    php_api: httpx.AsyncClient,
     **kwargs: dict[str, Any],
 ) -> Any:  # noqa: ANN401
     limit, offset = kwargs["limit"], kwargs["offset"]
@@ -275,11 +276,6 @@ async def test_list_data_identical(
     if offset is not None:
         new_style["pagination"]["offset"] = offset
 
-    new = await py_api.post(
-        f"/datasets/list{api_key_query}",
-        json=new_style,
-    )
-
     # old style `/data/filter` encodes all filters as a path
     query = [
         [filter_, value if not isinstance(value, list) else ",".join(str(v) for v in value)]
@@ -290,7 +286,11 @@ async def test_list_data_identical(
     if query:
         uri += f"/{'/'.join([str(v) for q in query for v in q])}"
     uri += api_key_query
-    original = php_api.get(uri)
+
+    new, original = await asyncio.gather(
+        py_api.post(f"/datasets/list{api_key_query}", json=new_style),
+        php_api.get(uri),
+    )
 
     # Note: RFC 9457 changed some status codes (PRECONDITION_FAILED -> NOT_FOUND for no results)
     # and the error response format, so we can't compare error responses directly.

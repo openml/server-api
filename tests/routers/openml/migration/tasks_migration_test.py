@@ -1,3 +1,4 @@
+import asyncio
 from http import HTTPStatus
 
 import deepdiff
@@ -16,11 +17,13 @@ from core.conversions import (
     range(1, 1306),
 )
 async def test_get_task_equal(
-    task_id: int, py_api: httpx.AsyncClient, php_api: httpx.Client
+    task_id: int, py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
 ) -> None:
-    response = await py_api.get(f"/tasks/{task_id}")
+    response, php_response = await asyncio.gather(
+        py_api.get(f"/tasks/{task_id}"),
+        php_api.get(f"/task/{task_id}"),
+    )
     assert response.status_code == HTTPStatus.OK
-    php_response = php_api.get(f"/task/{task_id}")
     assert php_response.status_code == HTTPStatus.OK
 
     new_json = response.json()

@@ -1,3 +1,4 @@
+import asyncio
 from http import HTTPStatus
 
 import deepdiff.diff
@@ -7,9 +8,11 @@ import pytest
 from core.errors import TaskTypeNotFoundError
 
 
-async def test_list_task_type(py_api: httpx.AsyncClient, php_api: httpx.Client) -> None:
-    response = await py_api.get("/tasktype/list")
-    original = php_api.get("/tasktype/list")
+async def test_list_task_type(py_api: httpx.AsyncClient, php_api: httpx.AsyncClient) -> None:
+    response, original = await asyncio.gather(
+        py_api.get("/tasktype/list"),
+        php_api.get("/tasktype/list"),
+    )
     assert response.status_code == original.status_code
     assert response.json() == original.json()
 
@@ -19,10 +22,12 @@ async def test_list_task_type(py_api: httpx.AsyncClient, php_api: httpx.Client) 
     list(range(1, 12)),
 )
 async def test_get_task_type(
-    ttype_id: int, py_api: httpx.AsyncClient, php_api: httpx.Client
+    ttype_id: int, py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
 ) -> None:
-    response = await py_api.get(f"/tasktype/{ttype_id}")
-    original = php_api.get(f"/tasktype/{ttype_id}")
+    response, original = await asyncio.gather(
+        py_api.get(f"/tasktype/{ttype_id}"),
+        php_api.get(f"/tasktype/{ttype_id}"),
+    )
     assert response.status_code == original.status_code
 
     py_json = response.json()

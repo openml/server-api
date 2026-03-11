@@ -1,18 +1,27 @@
+import asyncio
 from typing import Any
 
 import httpx
 
 
-async def test_evaluationmeasure_list(py_api: httpx.AsyncClient, php_api: httpx.Client) -> None:
-    new = await py_api.get("/evaluationmeasure/list")
-    original = php_api.get("/evaluationmeasure/list")
+async def test_evaluationmeasure_list(
+    py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
+) -> None:
+    new, original = await asyncio.gather(
+        py_api.get("/evaluationmeasure/list"),
+        php_api.get("/evaluationmeasure/list"),
+    )
     assert new.status_code == original.status_code
     assert new.json() == original.json()["evaluation_measures"]["measures"]["measure"]
 
 
-async def test_estimation_procedure_list(py_api: httpx.AsyncClient, php_api: httpx.Client) -> None:
-    new = await py_api.get("/estimationprocedure/list")
-    original = php_api.get("/estimationprocedure/list")
+async def test_estimation_procedure_list(
+    py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
+) -> None:
+    new, original = await asyncio.gather(
+        py_api.get("/estimationprocedure/list"),
+        php_api.get("/estimationprocedure/list"),
+    )
     assert new.status_code == original.status_code
     expected = original.json()["estimationprocedures"]["estimationprocedure"]
 

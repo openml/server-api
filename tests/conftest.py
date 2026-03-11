@@ -41,8 +41,8 @@ async def user_test() -> AsyncIterator[AsyncConnection]:
 
 
 @pytest.fixture
-def php_api() -> httpx.Client:
-    with httpx.Client(base_url=PHP_API_URL) as client:
+async def php_api() -> AsyncIterator[httpx.AsyncClient]:
+    async with httpx.AsyncClient(base_url=PHP_API_URL) as client:
         yield client
 
 

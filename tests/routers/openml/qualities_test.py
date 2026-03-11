@@ -1,3 +1,4 @@
+import asyncio
 from http import HTTPStatus
 
 import deepdiff
@@ -30,9 +31,13 @@ async def _remove_quality_from_database(quality_name: str, expdb_test: AsyncConn
     )
 
 
-async def test_list_qualities_identical(py_api: httpx.AsyncClient, php_api: httpx.Client) -> None:
-    original = php_api.get("/data/qualities/list")
-    new = await py_api.get("/datasets/qualities/list")
+async def test_list_qualities_identical(
+    py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
+) -> None:
+    new, original = await asyncio.gather(
+        py_api.get("/datasets/qualities/list"),
+        php_api.get("/data/qualities/list"),
+    )
     assert original.status_code == new.status_code
     assert original.json() == new.json()
     # To keep the test idempotent, we cannot test if reaction to database changes is identical
@@ -285,10 +290,12 @@ async def test_get_quality(py_api: httpx.AsyncClient) -> None:
     list(set(range(1, 132)) - {55, 56, 59, 116, 130}),
 )
 async def test_get_quality_identical(
-    data_id: int, py_api: httpx.AsyncClient, php_api: httpx.Client
+    data_id: int, py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
 ) -> None:
-    php_response = php_api.get(f"/data/qualities/{data_id}")
-    python_response = await py_api.get(f"/datasets/qualities/{data_id}")
+    python_response, php_response = await asyncio.gather(
+        py_api.get(f"/datasets/qualities/{data_id}"),
+        php_api.get(f"/data/qualities/{data_id}"),
+    )
     assert python_response.status_code == php_response.status_code
 
     expected = [
@@ -308,14 +315,16 @@ async def test_get_quality_identical(
 async def test_get_quality_identical_error(
     data_id: int,
     py_api: httpx.AsyncClient,
-    php_api: httpx.Client,
+    php_api: httpx.AsyncClient,
 ) -> None:
     if data_id in [55, 56, 59]:
         pytest.skip("Detailed error for code 364 (failed processing) not yet supported.")
     if data_id in [116]:  # noqa: FURB171
         pytest.skip("Detailed error for code 362 (no qualities) not yet supported.")
-    php_response = php_api.get(f"/data/qualities/{data_id}")
-    python_response = await py_api.get(f"/datasets/qualities/{data_id}")
+    python_response, php_response = await asyncio.gather(
+        py_api.get(f"/datasets/qualities/{data_id}"),
+        php_api.get(f"/data/qualities/{data_id}"),
+    )
     assert python_response.status_code == php_response.status_code
     # RFC 9457: Python API now returns problem+json format
     assert python_response.headers["content-type"] == "application/problem+json"

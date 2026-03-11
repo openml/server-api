@@ -1,3 +1,4 @@
+import asyncio
 import json
 import re
 from http import HTTPStatus
@@ -17,10 +18,12 @@ from tests.users import ApiKey
 async def test_dataset_response_is_identical(  # noqa: C901, PLR0912
     dataset_id: int,
     py_api: httpx.AsyncClient,
-    php_api: httpx.Client,
+    php_api: httpx.AsyncClient,
 ) -> None:
-    original = php_api.get(f"/data/{dataset_id}")
-    new = await py_api.get(f"/datasets/{dataset_id}")
+    new, original = await asyncio.gather(
+        py_api.get(f"/datasets/{dataset_id}"),
+        php_api.get(f"/data/{dataset_id}"),
+    )
 
     if new.status_code == HTTPStatus.FORBIDDEN:
         assert original.status_code == HTTPStatus.PRECONDITION_FAILED
@@ -140,12 +143,14 @@ async def test_private_dataset_no_user_no_access(
 )
 async def test_private_dataset_owner_access(
     py_api: httpx.AsyncClient,
-    php_api: httpx.Client,
+    php_api: httpx.AsyncClient,
     api_key: str,
 ) -> None:
     [private_dataset] = tests.constants.PRIVATE_DATASET_ID
-    new_response = await py_api.get(f"/datasets/{private_dataset}?api_key={api_key}")
-    old_response = php_api.get(f"/data/{private_dataset}?api_key={api_key}")
+    new_response, old_response = await asyncio.gather(
+        py_api.get(f"/datasets/{private_dataset}?api_key={api_key}"),
+        php_api.get(f"/data/{private_dataset}?api_key={api_key}"),
+    )
     assert old_response.status_code == HTTPStatus.OK
     assert old_response.status_code == new_response.status_code
     assert new_response.json()["id"] == private_dataset
@@ -170,9 +175,10 @@ async def test_dataset_tag_response_is_identical(
     tag: str,
     api_key: str,
     py_api: httpx.AsyncClient,
-    php_api: httpx.Client,
+    php_api: httpx.AsyncClient,
 ) -> None:
-    original = php_api.post(
+    # PHP request must happen first to check state, can't parallelize
+    original = await php_api.post(
         "/data/tag",
         data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
     )
@@ -183,7 +189,7 @@ async def test_dataset_tag_response_is_identical(
     if not already_tagged:
         # undo the tag, because we don't want to persist this change to the database
         # Sometimes a change is already committed to the database even if an error occurs.
-        php_api.post(
+        await php_api.post(
             "/data/untag",
             data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
         )
@@ -227,10 +233,12 @@ async def test_dataset_tag_response_is_identical(
 async def test_datasets_feature_is_identical(
     data_id: int,
     py_api: httpx.AsyncClient,
-    php_api: httpx.Client,
+    php_api: httpx.AsyncClient,
 ) -> None:
-    new = await py_api.get(f"/datasets/features/{data_id}")
-    original = php_api.get(f"/data/features/{data_id}")
+    new, original = await asyncio.gather(
+        py_api.get(f"/datasets/features/{data_id}"),
+        php_api.get(f"/data/features/{data_id}"),
+    )
     assert new.status_code == original.status_code
 
     if new.status_code != HTTPStatus.OK:
