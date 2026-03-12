@@ -1,3 +1,4 @@
+import re
 from collections.abc import AsyncGenerator
 from http import HTTPStatus
 
@@ -39,8 +40,11 @@ async def test_setup_untag_unknown_setup(py_api: httpx.AsyncClient) -> None:
         f"/setup/untag?api_key={ApiKey.SOME_USER}",
         json={"setup_id": 999999, "tag": "test_tag"},
     )
-    assert response.status_code == HTTPStatus.PRECONDITION_FAILED
-    assert response.json()["detail"] == {"code": "472", "message": "Entity not found."}
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert re.match(
+        r"Setup \d+ not found.",
+        response.json()["detail"],
+    )
 
 
 async def test_setup_untag_tag_not_found(py_api: httpx.AsyncClient) -> None:
@@ -48,8 +52,11 @@ async def test_setup_untag_tag_not_found(py_api: httpx.AsyncClient) -> None:
         f"/setup/untag?api_key={ApiKey.SOME_USER}",
         json={"setup_id": 1, "tag": "non_existent_tag_12345"},
     )
-    assert response.status_code == HTTPStatus.PRECONDITION_FAILED
-    assert response.json()["detail"] == {"code": "475", "message": "Tag not found."}
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert re.match(
+        r"Setup \d+ does not have tag '\S+'.",
+        response.json()["detail"],
+    )
 
 
 @pytest.mark.mut
@@ -59,8 +66,11 @@ async def test_setup_untag_not_owned_by_you(py_api: httpx.AsyncClient) -> None:
         f"/setup/untag?api_key={ApiKey.OWNER_USER}",
         json={"setup_id": 1, "tag": "test_unit_tag_123"},
     )
-    assert response.status_code == HTTPStatus.PRECONDITION_FAILED
-    assert response.json()["detail"] == {"code": "476", "message": "Tag is not owned by you"}
+    assert response.status_code == HTTPStatus.FORBIDDEN
+    assert re.match(
+        r"You may not remove tag '\S+' of setup \d+ because it was not created by you.",
+        response.json()["detail"],
+    )
 
 
 @pytest.mark.mut
@@ -86,7 +96,7 @@ async def test_setup_untag_success(
     )
 
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"setup_untag": {"id": "1"}}
+    assert response.json() == {"setup_untag": {"id": "1", "tag": []}}
 
     rows = await expdb_test.execute(
         text("SELECT * FROM setup_tag WHERE id = 1 AND tag = 'test_success_tag'")
