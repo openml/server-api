@@ -20,7 +20,7 @@ async def untag_setup(
     tag: Annotated[str, SystemString64],
     user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
-) -> dict[str, dict[str, str]]:
+) -> dict[str, dict[str, str | list[str]]]:
     """Remove tag `tag` from setup with id `setup_id`."""
     if not await database.setups.get(setup_id, expdb_db):
         msg = f"Setup {setup_id} not found."
@@ -40,5 +40,5 @@ async def untag_setup(
         raise TagNotOwnedError(msg)
 
     await database.setups.untag(setup_id, matched_tag_row.tag, expdb_db)
-
-    return {"setup_untag": {"id": str(setup_id)}}
+    remaining_tags = [t.tag.casefold() for t in setup_tags if t != matched_tag_row]
+    return {"setup_untag": {"id": str(setup_id), "tag": remaining_tags}}
