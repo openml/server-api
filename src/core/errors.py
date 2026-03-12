@@ -219,6 +219,24 @@ class TagAlreadyExistsError(ProblemDetailError):
     _default_code = 473
 
 
+class TagNotFoundError(ProblemDetailError):
+    """Raised when trying to remove or retrieve a tag that does not exist."""
+
+    uri = "https://openml.org/problems/tag-not-found"
+    title = "Tag Not Found"
+    _default_status_code = HTTPStatus.NOT_FOUND
+    _default_code = 475
+
+
+class TagNotOwnedError(ProblemDetailError):
+    """Raised when trying to remove a tag that was created by someone else."""
+
+    uri = "https://openml.org/problems/tag-not-owned"
+    title = "Tag Not Owned"
+    _default_status_code = HTTPStatus.FORBIDDEN
+    _default_code = 476
+
+
 # =============================================================================
 # Search/List Errors
 # =============================================================================
@@ -327,6 +345,20 @@ class FlowNotFoundError(ProblemDetailError):
     uri = "https://openml.org/problems/flow-not-found"
     title = "Flow Not Found"
     _default_status_code = HTTPStatus.NOT_FOUND
+
+
+# =============================================================================
+# Setup Errors
+# =============================================================================
+
+
+class SetupNotFoundError(ProblemDetailError):
+    """Raised when a setup cannot be found."""
+
+    uri = "https://openml.org/problems/setup-not-found"
+    title = "Setup Not Found"
+    _default_status_code = HTTPStatus.NOT_FOUND
+    _default_code = 472
 
 
 # =============================================================================

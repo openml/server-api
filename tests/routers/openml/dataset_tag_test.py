@@ -83,7 +83,7 @@ async def test_dataset_tag_invalid_tag_is_rejected(
     py_api: httpx.AsyncClient,
 ) -> None:
     new = await py_api.post(
-        f"/datasets/tag?api_key{ApiKey.ADMIN}",
+        f"/datasets/tag?api_key={ApiKey.ADMIN}",
         json={"data_id": 1, "tag": tag},
     )
 
