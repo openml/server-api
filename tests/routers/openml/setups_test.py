@@ -1,5 +1,4 @@
 import re
-from collections.abc import AsyncGenerator
 from http import HTTPStatus
 
 import httpx
@@ -8,24 +7,6 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from tests.users import ApiKey
-
-
-@pytest.fixture
-async def mock_setup_tag(expdb_test: AsyncConnection) -> AsyncGenerator[None]:
-    await expdb_test.execute(
-        text("DELETE FROM setup_tag WHERE id = 1 AND tag = 'test_unit_tag_123'"),
-    )
-    await expdb_test.execute(
-        text("INSERT INTO setup_tag (id, tag, uploader) VALUES (1, 'test_unit_tag_123', 2)")
-    )
-    await expdb_test.commit()
-
-    yield
-
-    await expdb_test.execute(
-        text("DELETE FROM setup_tag WHERE id = 1 AND tag = 'test_unit_tag_123'"),
-    )
-    await expdb_test.commit()
 
 
 async def test_setup_untag_missing_auth(py_api: httpx.AsyncClient) -> None:
@@ -60,8 +41,12 @@ async def test_setup_untag_tag_not_found(py_api: httpx.AsyncClient) -> None:
 
 
 @pytest.mark.mut
-@pytest.mark.usefixtures("mock_setup_tag")
-async def test_setup_untag_not_owned_by_you(py_api: httpx.AsyncClient) -> None:
+async def test_setup_untag_not_owned_by_you(
+    py_api: httpx.AsyncClient, expdb_test: AsyncConnection
+) -> None:
+    await expdb_test.execute(
+        text("INSERT INTO setup_tag (id, tag, uploader) VALUES (1, 'test_unit_tag_123', 2);")
+    )
     response = await py_api.post(
         f"/setup/untag?api_key={ApiKey.OWNER_USER}",
         json={"setup_id": 1, "tag": "test_unit_tag_123"},
@@ -83,12 +68,8 @@ async def test_setup_untag_success(
     api_key: str, py_api: httpx.AsyncClient, expdb_test: AsyncConnection
 ) -> None:
     await expdb_test.execute(
-        text("DELETE FROM setup_tag WHERE id = 1 AND tag = 'test_success_tag'")
-    )
-    await expdb_test.execute(
         text("INSERT INTO setup_tag (id, tag, uploader) VALUES (1, 'test_success_tag', 2)")
     )
-    await expdb_test.commit()
 
     response = await py_api.post(
         f"/setup/untag?api_key={api_key}",
