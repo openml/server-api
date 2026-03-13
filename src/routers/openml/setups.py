@@ -39,7 +39,7 @@ async def tag_setup(
         raise TagAlreadyExistsError(msg)
 
     await database.setups.tag(setup_id, tag, user.user_id, expdb_db)
-    all_tags = [t.tag.casefold() for t in setup_tags] + [tag.casefold()]
+    all_tags = [t.tag for t in setup_tags] + [tag]
     return {"setup_tag": {"id": str(setup_id), "tag": all_tags}}
 
 
@@ -69,5 +69,7 @@ async def untag_setup(
         raise TagNotOwnedError(msg)
 
     await database.setups.untag(setup_id, matched_tag_row.tag, expdb_db)
-    remaining_tags = [t.tag.casefold() for t in setup_tags if t != matched_tag_row]
+    remaining_tags = [
+        t.tag for t in setup_tags if t.tag.casefold() != matched_tag_row.tag.casefold()
+    ]
     return {"setup_untag": {"id": str(setup_id), "tag": remaining_tags}}
