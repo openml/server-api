@@ -46,3 +46,16 @@ async def untag(setup_id: int, tag: str, connection: AsyncConnection) -> None:
         ),
         parameters={"setup_id": setup_id, "tag": tag},
     )
+
+
+async def tag(setup_id: int, tag: str, user_id: int, connection: AsyncConnection) -> None:
+    """Add tag `tag` to setup with id `setup_id`."""
+    await connection.execute(
+        text(
+            """
+            INSERT INTO setup_tag (id, tag, uploader)
+            VALUES (:setup_id, :tag, :user_id)
+            """,
+        ),
+        parameters={"setup_id": setup_id, "tag": tag, "user_id": user_id},
+    )
