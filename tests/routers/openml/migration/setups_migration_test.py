@@ -216,21 +216,18 @@ async def test_setup_tag_response_is_identical_when_tag_doesnt_exist(
             json={"setup_id": setup_id, "tag": tag},
         )
 
-    if new.status_code == HTTPStatus.OK:
-        assert original.status_code == new.status_code
-        original_tag = original.json()["setup_tag"]
-        new_tag = new.json()["setup_tag"]
-        assert original_tag["id"] == new_tag["id"]
-        if tags := original_tag.get("tag"):
-            if isinstance(tags, str):
-                assert tags == new_tag["tag"][0]
-            else:
-                assert set(tags) == set(new_tag["tag"])
+    assert new.status_code == HTTPStatus.OK
+    assert original.status_code == new.status_code
+    original_tag = original.json()["setup_tag"]
+    new_tag = new.json()["setup_tag"]
+    assert original_tag["id"] == new_tag["id"]
+    if tags := original_tag.get("tag"):
+        if isinstance(tags, str):
+            assert tags == new_tag["tag"][0]
         else:
-            assert new_tag["tag"] == []
-        return
-
-    pytest.fail("Test failed unexpectedly")
+            assert set(tags) == set(new_tag["tag"])
+    else:
+        assert new_tag["tag"] == []
 
 
 async def test_setup_tag_response_is_identical_setup_doesnt_exist(
