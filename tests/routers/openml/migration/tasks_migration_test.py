@@ -1,9 +1,9 @@
+import asyncio
 from http import HTTPStatus
 
 import deepdiff
 import httpx
 import pytest
-from starlette.testclient import TestClient
 
 from core.conversions import (
     nested_num_to_str,
@@ -16,10 +16,14 @@ from core.conversions import (
     "task_id",
     range(1, 1306),
 )
-def test_get_task_equal(task_id: int, py_api: TestClient, php_api: httpx.Client) -> None:
-    response = py_api.get(f"/tasks/{task_id}")
+async def test_get_task_equal(
+    task_id: int, py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
+) -> None:
+    response, php_response = await asyncio.gather(
+        py_api.get(f"/tasks/{task_id}"),
+        php_api.get(f"/task/{task_id}"),
+    )
     assert response.status_code == HTTPStatus.OK
-    php_response = php_api.get(f"/task/{task_id}")
     assert php_response.status_code == HTTPStatus.OK
 
     new_json = response.json()
