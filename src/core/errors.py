@@ -385,3 +385,26 @@ class InternalError(ProblemDetailError):
     uri = "https://openml.org/problems/internal-error"
     title = "Internal Server Error"
     _default_status_code = HTTPStatus.INTERNAL_SERVER_ERROR
+
+
+# =============================================================================
+# Run Errors
+# =============================================================================
+
+
+class RunNotFoundError(ProblemDetailError):
+    """Raised when a run cannot be found."""
+
+    uri = "https://openml.org/problems/run-not-found"
+    title = "Run Not Found"
+    _default_status_code = HTTPStatus.PRECONDITION_FAILED
+    _default_code = 571
+
+
+class RunTraceNotFoundError(ProblemDetailError):
+    """Raised when trace data for a run cannot be found."""
+
+    uri = "https://openml.org/problems/run-trace-not-found"
+    title = "Run Trace Not Found"
+    _default_status_code = HTTPStatus.PRECONDITION_FAILED
+    _default_code = 572
