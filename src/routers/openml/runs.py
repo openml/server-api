@@ -37,7 +37,7 @@ async def get_run_trace(
                 iteration=row.iteration,
                 setup_string=row.setup_string,
                 evaluation=row.evaluation,
-                selected=row.selected == "true",
+                selected=row.selected,
             )
             for row in trace_rows
         ],

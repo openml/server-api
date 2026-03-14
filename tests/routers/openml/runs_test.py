@@ -5,6 +5,8 @@ from http import HTTPStatus
 import httpx
 import pytest
 
+from core.errors import RunNotFoundError, RunTraceNotFoundError
+
 
 @pytest.mark.parametrize("run_id", [34])
 async def test_get_run_trace_success(run_id: int, py_api: httpx.AsyncClient) -> None:
@@ -16,12 +18,11 @@ async def test_get_run_trace_success(run_id: int, py_api: httpx.AsyncClient) -> 
     assert isinstance(body["trace"], list)
     assert len(body["trace"]) > 0
     first = body["trace"][0]
-    assert "repeat" in first
-    assert "fold" in first
-    assert "iteration" in first
-    assert "setup_string" in first
-    assert "evaluation" in first
-    assert "selected" in first
+    assert isinstance(first["repeat"], int)
+    assert isinstance(first["fold"], int)
+    assert isinstance(first["iteration"], int)
+    assert first["selected"] in ("true", "false")
+    assert first["evaluation"] is None or isinstance(first["evaluation"], float)
 
 
 @pytest.mark.parametrize("run_id", [24])
@@ -30,7 +31,10 @@ async def test_get_run_trace_no_trace(run_id: int, py_api: httpx.AsyncClient) ->
     response = await py_api.get(f"/runs/trace/{run_id}")
     assert response.status_code == HTTPStatus.PRECONDITION_FAILED
     body = response.json()
-    assert body["code"] == "572"
+    assert body["code"] == "572"  # RunTraceNotFoundError code
+    assert body["type"] == RunTraceNotFoundError.uri
+    assert body["title"] == RunTraceNotFoundError.title
+    assert body["status"] == HTTPStatus.PRECONDITION_FAILED
 
 
 @pytest.mark.parametrize("run_id", [999999])
@@ -39,4 +43,7 @@ async def test_get_run_trace_run_not_found(run_id: int, py_api: httpx.AsyncClien
     response = await py_api.get(f"/runs/trace/{run_id}")
     assert response.status_code == HTTPStatus.PRECONDITION_FAILED
     body = response.json()
-    assert body["code"] == "571"
+    assert body["code"] == "571"  # RunNotFoundError code
+    assert body["type"] == RunNotFoundError.uri
+    assert body["title"] == RunNotFoundError.title
+    assert body["status"] == HTTPStatus.PRECONDITION_FAILED

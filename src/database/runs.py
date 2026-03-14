@@ -8,11 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def get(id_: int, expdb: AsyncConnection) -> Row | None:
-    """Get a run by ID from the run table."""
+    """Check if a run exists by ID."""
     row = await expdb.execute(
         text(
             """
-            SELECT `rid`
+            SELECT 1
             FROM `run`
             WHERE `rid` = :run_id
             """,

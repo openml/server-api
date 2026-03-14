@@ -1,6 +1,6 @@
 """Pydantic schemas for run-related endpoints."""
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class TraceIteration(BaseModel):
@@ -11,11 +11,11 @@ class TraceIteration(BaseModel):
     iteration: int
     setup_string: str | None
     evaluation: float | None
-    selected: bool
+    selected: str
 
 
 class RunTrace(BaseModel):
     """Trace data for a run."""
 
-    run_id: int = Field(serialization_alias="run_id")
+    run_id: int
     trace: list[TraceIteration]
