@@ -59,6 +59,7 @@ async def get_task_type(
             creator.strip(' "') for creator in cast("str", contributors).split(",")
         ]
     task_type["creation_date"] = task_type.pop("creationDate")
+
     task_type_inputs = await get_input_for_task_type(task_type_id, expdb)
     input_types = []
     for task_type_input in task_type_inputs:
@@ -66,10 +67,25 @@ async def get_task_type(
         if task_type_input.requirement == "required":
             input_["requirement"] = task_type_input.requirement
         input_["name"] = task_type_input.name
-        # api_constraints is for one input only in the test database (TODO: patch db)
-        if isinstance(task_type_input.api_constraints, str):
-            constraint = json.loads(task_type_input.api_constraints)
-            input_["data_type"] = constraint["data_type"]
+
+        # Accept either legacy JSON string or already parsed dict
+        constraint = None
+        ac = task_type_input.api_constraints
+        if isinstance(ac, str):
+            try:
+                constraint = json.loads(ac)
+            except json.JSONDecodeError:
+                # Keep response stable for malformed legacy values
+                constraint = None
+        elif isinstance(ac, dict):
+            constraint = ac
+
+        if isinstance(constraint, dict):
+            data_type = constraint.get("data_type")
+            if data_type is not None:
+                input_["data_type"] = data_type
+
         input_types.append(input_)
+
     task_type["input"] = input_types
     return {"task_type": task_type}
