@@ -1,4 +1,6 @@
 import json
+import logging
+from collections.abc import Mapping
 from typing import Annotated, Any, Literal, cast
 
 from fastapi import APIRouter, Depends
@@ -11,6 +13,7 @@ from database.tasks import get_task_type as db_get_task_type
 from routers.dependencies import expdb_connection
 
 router = APIRouter(prefix="/tasktype", tags=["tasks"])
+logger = logging.getLogger(__name__)
 
 
 def _normalize_task_type(task_type: Row[Any]) -> dict[str, str | None | list[Any]]:
@@ -24,6 +27,36 @@ def _normalize_task_type(task_type: Row[Any]) -> dict[str, str | None | list[Any
     if ttype["description"] == "":
         ttype["description"] = []
     return ttype
+
+
+def _extract_data_type_from_api_constraints(
+    api_constraints: Mapping[str, Any] | str | None,
+    input_name: str,
+) -> str | None:
+    """Extract string data_type from api_constraints safely."""
+    constraint: Mapping[str, Any] | None = None
+
+    if isinstance(api_constraints, str):
+        try:
+            loaded = json.loads(api_constraints)
+        except json.JSONDecodeError:
+            logger.warning(
+                "Failed to decode legacy api_constraints JSON for task_type_input '%s'; value=%r",
+                input_name,
+                api_constraints,
+                exc_info=True,
+            )
+            return None
+        if isinstance(loaded, Mapping):
+            constraint = loaded
+    elif isinstance(api_constraints, Mapping):
+        constraint = api_constraints
+
+    if not constraint:
+        return None
+
+    data_type = constraint.get("data_type")
+    return data_type if isinstance(data_type, str) else None
 
 
 @router.get(path="/list")
@@ -68,22 +101,12 @@ async def get_task_type(
             input_["requirement"] = task_type_input.requirement
         input_["name"] = task_type_input.name
 
-        # Accept either legacy JSON string or already parsed dict
-        constraint = None
-        ac = task_type_input.api_constraints
-        if isinstance(ac, str):
-            try:
-                constraint = json.loads(ac)
-            except json.JSONDecodeError:
-                # Keep response stable for malformed legacy values
-                constraint = None
-        elif isinstance(ac, dict):
-            constraint = ac
-
-        if isinstance(constraint, dict):
-            data_type = constraint.get("data_type")
-            if data_type is not None:
-                input_["data_type"] = data_type
+        data_type = _extract_data_type_from_api_constraints(
+            task_type_input.api_constraints,
+            task_type_input.name,
+        )
+        if data_type is not None:
+            input_["data_type"] = data_type
 
         input_types.append(input_)
 
