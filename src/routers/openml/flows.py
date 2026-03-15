@@ -1,11 +1,11 @@
-from http import HTTPStatus
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import Connection
+from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 import database.flows
 from core.conversions import _str_to_num
+from core.errors import FlowNotFoundError
 from routers.dependencies import expdb_connection
 from schemas.flows import Flow, FlowExistsBody, Parameter, Subflow
 
@@ -13,41 +13,45 @@ router = APIRouter(prefix="/flows", tags=["flows"])
 
 
 @router.post("/exists")
-def flow_exists(
+async def flow_exists(
     body: FlowExistsBody,
-    expdb: Annotated[Connection, Depends(expdb_connection)],
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[Literal["flow_id"], int]:
     """Check if a Flow with the name and version exists, if so, return the flow id."""
-    flow = database.flows.get_by_name(
+    flow = await database.flows.get_by_name(
         name=body.name,
         external_version=body.external_version,
         expdb=expdb,
     )
     if flow is None:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail="Flow not found.",
+        msg = (
+            f"Flow with name {body.name} and external version {body.external_version} not found."
         )
+        raise FlowNotFoundError(msg)
     return {"flow_id": flow.id}
 
 
 @router.get("/exists/{name}/{external_version}", deprecated=True)
-def flow_exists_get(
+async def flow_exists_get(
     name: str,
     external_version: str,
-    expdb: Annotated[Connection, Depends(expdb_connection)],
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[Literal["flow_id"], int]:
     """Deprecated: use POST /flows/exists instead."""
-    return flow_exists(FlowExistsBody(name=name, external_version=external_version), expdb)
+    return await flow_exists(FlowExistsBody(name=name, external_version=external_version), expdb)
 
 
 @router.get("/{flow_id}")
-def get_flow(flow_id: int, expdb: Annotated[Connection, Depends(expdb_connection)] = None) -> Flow:
-    flow = database.flows.get(flow_id, expdb)
+async def get_flow(
+    flow_id: int,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+) -> Flow:
+    flow = await database.flows.get(flow_id, expdb)
     if not flow:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Flow not found")
+        msg = f"Flow with id {flow_id} not found."
+        raise FlowNotFoundError(msg)
 
-    parameter_rows = database.flows.get_parameters(flow_id, expdb)
+    parameter_rows = await database.flows.get_parameters(flow_id, expdb)
     parameters = [
         Parameter(
             name=parameter.name,
@@ -61,15 +65,16 @@ def get_flow(flow_id: int, expdb: Annotated[Connection, Depends(expdb_connection
         for parameter in parameter_rows
     ]
 
-    tags = database.flows.get_tags(flow_id, expdb)
-    subflow_rows = database.flows.get_subflows(flow_id, expdb)
-    subflows = [
-        Subflow(
-            identifier=subflow.identifier,
-            flow=get_flow(flow_id=subflow.child_id, expdb=expdb),
+    tags = await database.flows.get_tags(flow_id, expdb)
+    subflow_rows = await database.flows.get_subflows(flow_id, expdb)
+    subflows = []
+    for subflow in subflow_rows:
+        subflows.append(  # noqa: PERF401
+            Subflow(
+                identifier=subflow.identifier,
+                flow=await get_flow(flow_id=subflow.child_id, expdb=expdb),
+            ),
         )
-        for subflow in subflow_rows
-    ]
 
     return Flow(
         id_=flow.id,

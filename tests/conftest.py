@@ -1,6 +1,6 @@
 import contextlib
 import json
-from collections.abc import Iterator
+from collections.abc import AsyncIterator, Iterator
 from pathlib import Path
 from typing import Any, NamedTuple
 
@@ -9,8 +9,8 @@ import httpx
 import pytest
 from _pytest.config import Config
 from _pytest.nodes import Item
-from fastapi.testclient import TestClient
-from sqlalchemy import Connection, Engine, text
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
 from database.setup import expdb_database, user_database
 from main import create_api
@@ -19,40 +19,55 @@ from routers.dependencies import expdb_connection, userdb_connection
 PHP_API_URL = "http://openml-php-rest-api:80/api/v1/json"
 
 
-@contextlib.contextmanager
-def automatic_rollback(engine: Engine) -> Iterator[Connection]:
-    with engine.connect() as connection:
-        transaction = connection.begin()
+@contextlib.asynccontextmanager
+async def automatic_rollback(engine: AsyncEngine) -> AsyncIterator[AsyncConnection]:
+    async with engine.connect() as connection:
+        transaction = await connection.begin()
         yield connection
         if transaction.is_active:
-            transaction.rollback()
+            await transaction.rollback()
 
 
 @pytest.fixture
-def expdb_test() -> Connection:
-    with automatic_rollback(expdb_database()) as connection:
+async def expdb_test() -> AsyncIterator[AsyncConnection]:
+    async with automatic_rollback(expdb_database()) as connection:
         yield connection
 
 
 @pytest.fixture
-def user_test() -> Connection:
-    with automatic_rollback(user_database()) as connection:
+async def user_test() -> AsyncIterator[AsyncConnection]:
+    async with automatic_rollback(user_database()) as connection:
         yield connection
 
 
 @pytest.fixture
-def php_api() -> httpx.Client:
-    with httpx.Client(base_url=PHP_API_URL) as client:
+async def php_api() -> AsyncIterator[httpx.AsyncClient]:
+    async with httpx.AsyncClient(base_url=PHP_API_URL) as client:
         yield client
 
 
 @pytest.fixture
-def py_api(expdb_test: Connection, user_test: Connection) -> TestClient:
+async def py_api(
+    expdb_test: AsyncConnection, user_test: AsyncConnection
+) -> AsyncIterator[httpx.AsyncClient]:
     app = create_api()
-    # We use the lambda definitions because fixtures may not be called directly.
-    app.dependency_overrides[expdb_connection] = lambda: expdb_test
-    app.dependency_overrides[userdb_connection] = lambda: user_test
-    return TestClient(app)
+
+    # We use async generator functions because fixtures may not be called directly.
+    # The async generator returns the test connections for FastAPI to handle properly
+    async def override_expdb() -> AsyncIterator[AsyncConnection]:
+        yield expdb_test
+
+    async def override_userdb() -> AsyncIterator[AsyncConnection]:
+        yield user_test
+
+    app.dependency_overrides[expdb_connection] = override_expdb
+    app.dependency_overrides[userdb_connection] = override_userdb
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=app),
+        base_url="http://test",
+        follow_redirects=True,
+    ) as client:
+        yield client
 
 
 @pytest.fixture
@@ -76,8 +91,8 @@ class Flow(NamedTuple):
 
 
 @pytest.fixture
-def flow(expdb_test: Connection) -> Flow:
-    expdb_test.execute(
+async def flow(expdb_test: AsyncConnection) -> Flow:
+    await expdb_test.execute(
         text(
             """
             INSERT INTO implementation(fullname,name,version,external_version,uploadDate)
@@ -85,19 +100,20 @@ def flow(expdb_test: Connection) -> Flow:
             """,
         ),
     )
-    (flow_id,) = expdb_test.execute(text("""SELECT LAST_INSERT_ID();""")).one()
+    result = await expdb_test.execute(text("""SELECT LAST_INSERT_ID();"""))
+    (flow_id,) = result.one()
     return Flow(id=flow_id, name="name", external_version="external_version")
 
 
 @pytest.fixture
-def persisted_flow(flow: Flow, expdb_test: Connection) -> Iterator[Flow]:
-    expdb_test.commit()
+async def persisted_flow(flow: Flow, expdb_test: AsyncConnection) -> AsyncIterator[Flow]:
+    await expdb_test.commit()
     yield flow
     # We want to ensure the commit below does not accidentally persist new
     # data to the database.
-    expdb_test.rollback()
+    await expdb_test.rollback()
 
-    expdb_test.execute(
+    await expdb_test.execute(
         text(
             """
             DELETE FROM implementation
@@ -106,7 +122,7 @@ def persisted_flow(flow: Flow, expdb_test: Connection) -> Iterator[Flow]:
         ),
         parameters={"flow_id": flow.id},
     )
-    expdb_test.commit()
+    await expdb_test.commit()
 
 
 def pytest_collection_modifyitems(config: Config, items: list[Item]) -> None:  # noqa: ARG001
