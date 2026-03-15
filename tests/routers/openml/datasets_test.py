@@ -1,10 +1,16 @@
+import re
 from http import HTTPStatus
 
+import httpx
 import pytest
-from fastapi import HTTPException
-from sqlalchemy import Connection, text
-from starlette.testclient import TestClient
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncConnection
 
+from core.errors import (
+    DatasetNoAccessError,
+    DatasetNotFoundError,
+    DatasetProcessingError,
+)
 from database.users import User
 from routers.openml.datasets import get_dataset
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus
@@ -20,19 +26,25 @@ from tests.users import ADMIN_USER, DATASET_130_OWNER, NO_USER, SOME_USER, ApiKe
         (100_000, HTTPStatus.NOT_FOUND),
     ],
 )
-def test_error_unknown_dataset(
+async def test_error_unknown_dataset(
     dataset_id: int,
     response_code: int,
-    py_api: TestClient,
+    py_api: httpx.AsyncClient,
 ) -> None:
-    response = py_api.get(f"/datasets/{dataset_id}")
+    response = await py_api.get(f"/datasets/{dataset_id}")
 
     assert response.status_code == response_code
-    assert response.json()["detail"] == {"code": "111", "message": "Unknown dataset"}
+    assert response.headers["content-type"] == "application/problem+json"
+    error = response.json()
+    assert error["type"] == DatasetNotFoundError.uri
+    assert error["title"] == "Dataset Not Found"
+    assert error["status"] == HTTPStatus.NOT_FOUND
+    assert re.match(r"No dataset with id -?\d+ found.", error["detail"])
+    assert error["code"] == "111"
 
 
-def test_get_dataset(py_api: TestClient) -> None:
-    response = py_api.get("/datasets/1")
+async def test_get_dataset(py_api: httpx.AsyncClient) -> None:
+    response = await py_api.get("/datasets/1")
     assert response.status_code == HTTPStatus.OK
     description = response.json()
     assert description.pop("description").startswith("**Author**:")
@@ -76,26 +88,31 @@ def test_get_dataset(py_api: TestClient) -> None:
         SOME_USER,
     ],
 )
-def test_private_dataset_no_access(
+async def test_private_dataset_no_access(
     user: User | None,
-    expdb_test: Connection,
+    expdb_test: AsyncConnection,
+    user_test: AsyncConnection,
 ) -> None:
-    with pytest.raises(HTTPException) as e:
-        get_dataset(
+    with pytest.raises(DatasetNoAccessError) as e:
+        await get_dataset(
             dataset_id=130,
             user=user,
-            user_db=None,
+            user_db=user_test,
             expdb_db=expdb_test,
         )
     assert e.value.status_code == HTTPStatus.FORBIDDEN
-    assert e.value.detail == {"code": "112", "message": "No access granted"}  # type: ignore[comparison-overlap]
+    assert e.value.uri == DatasetNoAccessError.uri
+    no_access = 112
+    assert e.value.code == no_access
 
 
 @pytest.mark.parametrize(
     "user", [DATASET_130_OWNER, ADMIN_USER, pytest.param(SOME_USER, marks=pytest.mark.xfail)]
 )
-def test_private_dataset_access(user: User, expdb_test: Connection, user_test: Connection) -> None:
-    dataset = get_dataset(
+async def test_private_dataset_access(
+    user: User, expdb_test: AsyncConnection, user_test: AsyncConnection
+) -> None:
+    dataset = await get_dataset(
         dataset_id=130,
         user=user,
         user_db=user_test,
@@ -104,9 +121,9 @@ def test_private_dataset_access(user: User, expdb_test: Connection, user_test: C
     assert isinstance(dataset, DatasetMetadata)
 
 
-def test_dataset_features(py_api: TestClient) -> None:
+async def test_dataset_features(py_api: httpx.AsyncClient) -> None:
     # Dataset 4 has both nominal and numerical features, so provides reasonable coverage
-    response = py_api.get("/datasets/features/4")
+    response = await py_api.get("/datasets/features/4")
     assert response.status_code == HTTPStatus.OK
     assert response.json() == [
         {
@@ -158,8 +175,8 @@ def test_dataset_features(py_api: TestClient) -> None:
     ]
 
 
-def test_dataset_features_no_access(py_api: TestClient) -> None:
-    response = py_api.get("/datasets/features/130")
+async def test_dataset_features_no_access(py_api: httpx.AsyncClient) -> None:
+    response = await py_api.get("/datasets/features/130")
     assert response.status_code == HTTPStatus.FORBIDDEN
 
 
@@ -167,34 +184,39 @@ def test_dataset_features_no_access(py_api: TestClient) -> None:
     "api_key",
     [ApiKey.ADMIN, ApiKey.DATASET_130_OWNER],
 )
-def test_dataset_features_access_to_private(api_key: ApiKey, py_api: TestClient) -> None:
-    response = py_api.get(f"/datasets/features/130?api_key={api_key}")
+async def test_dataset_features_access_to_private(
+    api_key: ApiKey, py_api: httpx.AsyncClient
+) -> None:
+    response = await py_api.get(f"/datasets/features/130?api_key={api_key}")
     assert response.status_code == HTTPStatus.OK
 
 
-def test_dataset_features_with_processing_error(py_api: TestClient) -> None:
+async def test_dataset_features_with_processing_error(py_api: httpx.AsyncClient) -> None:
     # When a dataset is processed to extract its feature metadata, errors may occur.
     # In that case, no feature information will ever be available.
-    response = py_api.get("/datasets/features/55")
+    dataset_id = 55
+    response = await py_api.get(f"/datasets/features/{dataset_id}")
     assert response.status_code == HTTPStatus.PRECONDITION_FAILED
-    assert response.json()["detail"] == {
-        "code": 274,
-        "message": "No features found. Additionally, dataset processed with error",
-    }
+    assert response.headers["content-type"] == "application/problem+json"
+    error = response.json()
+    assert error["type"] == DatasetProcessingError.uri
+    assert error["code"] == "274"
+    assert "No features found" in error["detail"]
+    assert str(dataset_id) in error["detail"]
 
 
-def test_dataset_features_dataset_does_not_exist(py_api: TestClient) -> None:
-    resource = py_api.get("/datasets/features/1000")
+async def test_dataset_features_dataset_does_not_exist(py_api: httpx.AsyncClient) -> None:
+    resource = await py_api.get("/datasets/features/1000")
     assert resource.status_code == HTTPStatus.NOT_FOUND
 
 
-def _assert_status_update_is_successful(
+async def _assert_status_update_is_successful(
     apikey: ApiKey,
     dataset_id: int,
     status: str,
-    py_api: TestClient,
+    py_api: httpx.AsyncClient,
 ) -> None:
-    response = py_api.post(
+    response = await py_api.post(
         f"/datasets/status/update?api_key={apikey}",
         json={"dataset_id": dataset_id, "status": status},
     )
@@ -210,8 +232,10 @@ def _assert_status_update_is_successful(
     "dataset_id",
     [3, 4],
 )
-def test_dataset_status_update_active_to_deactivated(dataset_id: int, py_api: TestClient) -> None:
-    _assert_status_update_is_successful(
+async def test_dataset_status_update_active_to_deactivated(
+    dataset_id: int, py_api: httpx.AsyncClient
+) -> None:
+    await _assert_status_update_is_successful(
         apikey=ApiKey.ADMIN,
         dataset_id=dataset_id,
         status=DatasetStatus.DEACTIVATED,
@@ -220,8 +244,8 @@ def test_dataset_status_update_active_to_deactivated(dataset_id: int, py_api: Te
 
 
 @pytest.mark.mut
-def test_dataset_status_update_in_preparation_to_active(py_api: TestClient) -> None:
-    _assert_status_update_is_successful(
+async def test_dataset_status_update_in_preparation_to_active(py_api: httpx.AsyncClient) -> None:
+    await _assert_status_update_is_successful(
         apikey=ApiKey.ADMIN,
         dataset_id=next(iter(constants.IN_PREPARATION_ID)),
         status=DatasetStatus.ACTIVE,
@@ -230,8 +254,10 @@ def test_dataset_status_update_in_preparation_to_active(py_api: TestClient) -> N
 
 
 @pytest.mark.mut
-def test_dataset_status_update_in_preparation_to_deactivated(py_api: TestClient) -> None:
-    _assert_status_update_is_successful(
+async def test_dataset_status_update_in_preparation_to_deactivated(
+    py_api: httpx.AsyncClient,
+) -> None:
+    await _assert_status_update_is_successful(
         apikey=ApiKey.ADMIN,
         dataset_id=next(iter(constants.IN_PREPARATION_ID)),
         status=DatasetStatus.DEACTIVATED,
@@ -240,8 +266,8 @@ def test_dataset_status_update_in_preparation_to_deactivated(py_api: TestClient)
 
 
 @pytest.mark.mut
-def test_dataset_status_update_deactivated_to_active(py_api: TestClient) -> None:
-    _assert_status_update_is_successful(
+async def test_dataset_status_update_deactivated_to_active(py_api: httpx.AsyncClient) -> None:
+    await _assert_status_update_is_successful(
         apikey=ApiKey.ADMIN,
         dataset_id=next(iter(constants.DEACTIVATED_DATASETS)),
         status=DatasetStatus.ACTIVE,
@@ -259,32 +285,32 @@ def test_dataset_status_update_deactivated_to_active(py_api: TestClient) -> None
         (131, ApiKey.SOME_USER, DatasetStatus.ACTIVE),
     ],
 )
-def test_dataset_status_unauthorized(
+async def test_dataset_status_unauthorized(
     dataset_id: int,
     api_key: ApiKey,
     status: str,
-    py_api: TestClient,
+    py_api: httpx.AsyncClient,
 ) -> None:
-    response = py_api.post(
+    response = await py_api.post(
         f"/datasets/status/update?api_key={api_key}",
         json={"dataset_id": dataset_id, "status": status},
     )
     assert response.status_code == HTTPStatus.FORBIDDEN
 
 
-def test_dataset_no_500_with_multiple_processing_entries(
-    py_api: TestClient,
-    expdb_test: Connection,
+async def test_dataset_no_500_with_multiple_processing_entries(
+    py_api: httpx.AsyncClient,
+    expdb_test: AsyncConnection,
 ) -> None:
     """Regression test for issue #145: multiple processing entries caused 500."""
-    expdb_test.execute(
+    await expdb_test.execute(
         text("INSERT INTO evaluation_engine(id, name, description) VALUES (99, 'test_engine', '')"),
     )
-    expdb_test.execute(
+    await expdb_test.execute(
         text(
             "INSERT INTO data_processed(did, evaluation_engine_id, user_id, processing_date) "
             "VALUES (1, 99, 2, '2020-01-01 00:00:00')",
         ),
     )
-    response = py_api.get("/datasets/1")
+    response = await py_api.get("/datasets/1")
     assert response.status_code == HTTPStatus.OK
