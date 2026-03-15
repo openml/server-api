@@ -35,7 +35,7 @@ async def flow_exists_get(
     external_version: str,
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[Literal["flow_id"], int]:
-    """Deprecated: use POST /flows/exists instead."""
+    """Use POST /flows/exists instead."""
     return await flow_exists(FlowExistsBody(name=name, external_version=external_version), expdb)
 
 
