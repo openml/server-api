@@ -14,6 +14,9 @@ permissions:
 jobs:
   tests:
     name: "${{ matrix.php_api == true && 'Migration' || 'Python-only' }} ${{ matrix.mutations == true && 'with mutations' || 'read-only' }}"
+    env:
+      INTERNAL_TEST_MARKER: "${{ matrix.mutations == true && 'mut' || 'not mut' }}"
+      API_TEST_MARKER: "${{ matrix.php_api == true && 'php_api' || 'not php_api' }} and ${{ matrix.mutations == true && 'mut' || 'not mut' }}"
     strategy:
       matrix:
         php_api: [true, false]
@@ -34,13 +37,18 @@ jobs:
           fi
           docker compose $profiles up --detach --wait --remove-orphans || exit $(docker compose ps -q | xargs docker inspect -f '{{.State.ExitCode}}' | grep -v '^0' | wc -l)
 
-      - name: Run tests
+      - name: Run internal tests
         run: |
-          marker="${{ matrix.php_api == true && 'php_api' || 'not php_api' }} and ${{ matrix.mutations == true && 'mut' || 'not mut' }}"
-          docker exec openml-python-rest-api coverage run -m pytest -n auto -v -m "$marker"
+          docker exec openml-python-rest-api coverage run -m pytest tests/database tests/config_test.py -n auto -v -m "$INTERNAL_TEST_MARKER"
+      - name: Run API tests
+        if: always()
+        run: |
+          docker exec openml-python-rest-api coverage run -a -m pytest tests/routers -n auto -v -m "$API_TEST_MARKER"
       - name: Produce coverage report
+        if: always()
         run: docker exec openml-python-rest-api coverage xml
       - name: Upload results to Codecov
+        if: always()
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
