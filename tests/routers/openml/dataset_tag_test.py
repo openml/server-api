@@ -96,9 +96,7 @@ async def test_dataset_tag_invalid_tag_is_rejected(
     [None, ApiKey.INVALID],
     ids=["no authentication", "invalid key"],
 )
-async def test_dataset_untag_rejects_unauthorized(
-    key: ApiKey, py_api: httpx.AsyncClient
-) -> None:
+async def test_dataset_untag_rejects_unauthorized(key: ApiKey, py_api: httpx.AsyncClient) -> None:
     apikey = "" if key is None else f"?api_key={key}"
     response = await py_api.post(
         f"/datasets/untag{apikey}",

@@ -100,6 +100,7 @@ async def untag_dataset(
         "data_untag": {"id": str(data_id)},
     }
 
+
 class DatasetStatusFilter(StrEnum):
     ACTIVE = DatasetStatus.ACTIVE
     DEACTIVATED = DatasetStatus.DEACTIVATED
