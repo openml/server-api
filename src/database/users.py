@@ -78,69 +78,48 @@ class User:
 async def get_user_resource_count(*, user_id: int, expdb: AsyncConnection) -> int:
     """Return the total number of datasets, flows, and runs owned by the user."""
     dataset_count = (
-        (
-            await expdb.execute(
-                text("SELECT COUNT(*) FROM dataset WHERE uploader = :user_id"),
-                parameters={"user_id": user_id},
-            )
-        ).scalar()
-        or 0
-    )
+        await expdb.execute(
+            text("SELECT COUNT(*) FROM dataset WHERE uploader = :user_id"),
+            parameters={"user_id": user_id},
+        )
+    ).scalar() or 0
     flow_count = (
-        (
-            await expdb.execute(
-                text("SELECT COUNT(*) FROM implementation WHERE uploader = :user_id"),
-                parameters={"user_id": user_id},
-            )
-        ).scalar()
-        or 0
-    )
+        await expdb.execute(
+            text("SELECT COUNT(*) FROM implementation WHERE uploader = :user_id"),
+            parameters={"user_id": user_id},
+        )
+    ).scalar() or 0
     run_count = (
-        (
-            await expdb.execute(
-                text("SELECT COUNT(*) FROM run WHERE uploader = :user_id"),
-                parameters={"user_id": user_id},
-            )
-        ).scalar()
-        or 0
-    )
+        await expdb.execute(
+            text("SELECT COUNT(*) FROM run WHERE uploader = :user_id"),
+            parameters={"user_id": user_id},
+        )
+    ).scalar() or 0
 
     study_count = (
-        (
-            await expdb.execute(
-                text("SELECT COUNT(*) FROM study WHERE creator = :user_id"),
-                parameters={"user_id": user_id},
-            )
-        ).scalar()
-        or 0
-    )
+        await expdb.execute(
+            text("SELECT COUNT(*) FROM study WHERE creator = :user_id"),
+            parameters={"user_id": user_id},
+        )
+    ).scalar() or 0
     task_study_count = (
-        (
-            await expdb.execute(
-                text("SELECT COUNT(*) FROM task_study WHERE uploader = :user_id"),
-                parameters={"user_id": user_id},
-            )
-        ).scalar()
-        or 0
-    )
+        await expdb.execute(
+            text("SELECT COUNT(*) FROM task_study WHERE uploader = :user_id"),
+            parameters={"user_id": user_id},
+        )
+    ).scalar() or 0
     run_study_count = (
-        (
-            await expdb.execute(
-                text("SELECT COUNT(*) FROM run_study WHERE uploader = :user_id"),
-                parameters={"user_id": user_id},
-            )
-        ).scalar()
-        or 0
-    )
+        await expdb.execute(
+            text("SELECT COUNT(*) FROM run_study WHERE uploader = :user_id"),
+            parameters={"user_id": user_id},
+        )
+    ).scalar() or 0
     dataset_tag_count = (
-        (
-            await expdb.execute(
-                text("SELECT COUNT(*) FROM dataset_tag WHERE uploader = :user_id"),
-                parameters={"user_id": user_id},
-            )
-        ).scalar()
-        or 0
-    )
+        await expdb.execute(
+            text("SELECT COUNT(*) FROM dataset_tag WHERE uploader = :user_id"),
+            parameters={"user_id": user_id},
+        )
+    ).scalar() or 0
 
     return int(
         dataset_count
