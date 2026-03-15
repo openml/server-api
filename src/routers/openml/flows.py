@@ -7,27 +7,38 @@ import database.flows
 from core.conversions import _str_to_num
 from core.errors import FlowNotFoundError
 from routers.dependencies import expdb_connection
-from schemas.flows import Flow, Parameter, Subflow
+from schemas.flows import Flow, FlowExistsBody, Parameter, Subflow
 
 router = APIRouter(prefix="/flows", tags=["flows"])
 
 
-@router.get("/exists/{name}/{external_version}")
+@router.post("/exists")
 async def flow_exists(
-    name: str,
-    external_version: str,
+    body: FlowExistsBody,
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[Literal["flow_id"], int]:
     """Check if a Flow with the name and version exists, if so, return the flow id."""
     flow = await database.flows.get_by_name(
-        name=name,
-        external_version=external_version,
+        name=body.name,
+        external_version=body.external_version,
         expdb=expdb,
     )
     if flow is None:
-        msg = f"Flow with name {name} and external version {external_version} not found."
+        msg = (
+            f"Flow with name {body.name} and external version {body.external_version} not found."
+        )
         raise FlowNotFoundError(msg)
     return {"flow_id": flow.id}
+
+
+@router.get("/exists/{name}/{external_version}", deprecated=True)
+async def flow_exists_get(
+    name: str,
+    external_version: str,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+) -> dict[Literal["flow_id"], int]:
+    """Use POST /flows/exists instead."""
+    return await flow_exists(FlowExistsBody(name=name, external_version=external_version), expdb)
 
 
 @router.get("/{flow_id}")
