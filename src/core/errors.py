@@ -4,6 +4,7 @@ This module provides RFC 9457 compliant error handling for the OpenML REST API.
 See: https://www.rfc-editor.org/rfc/rfc9457.html
 """
 
+from enum import IntEnum
 from http import HTTPStatus
 
 from fastapi import Request
@@ -87,6 +88,17 @@ def problem_detail_exception_handler(
         content=content,
         media_type="application/problem+json",
     )
+
+
+# =============================================================================
+# User Error Codes
+# =============================================================================
+
+
+class UserError(IntEnum):
+    NOT_FOUND = 120
+    NO_ACCESS = 121
+    HAS_RESOURCES = 122
 
 
 # =============================================================================
