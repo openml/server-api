@@ -24,9 +24,7 @@ async def flow_exists(
         expdb=expdb,
     )
     if flow is None:
-        msg = (
-            f"Flow with name {body.name} and external version {body.external_version} not found."
-        )
+        msg = f"Flow with name {body.name} and external version {body.external_version} not found."
         raise FlowNotFoundError(msg)
     return {"flow_id": flow.id}
 
