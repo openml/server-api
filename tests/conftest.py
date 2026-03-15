@@ -42,12 +42,13 @@ async def temporary_records(
     if persist:
         await connection.commit()
 
-    yield
-
-    for query, parameters in delete_queries:
-        await connection.execute(text(query), parameters=parameters)
-    if persist:
-        await connection.commit()
+    try:
+        yield
+    finally:
+        for query, parameters in delete_queries:
+            await connection.execute(text(query), parameters=parameters)
+        if persist:
+            await connection.commit()
 
 
 @pytest.fixture
