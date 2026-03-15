@@ -10,7 +10,7 @@ from core.errors import RunNotFoundError, RunTraceNotFoundError
 from routers.dependencies import expdb_connection
 from schemas.runs import RunTrace, TraceIteration
 
-router = APIRouter(prefix="/runs", tags=["runs"])
+router = APIRouter(prefix="/run", tags=["run"])
 
 
 @router.get("/trace/{run_id}")
