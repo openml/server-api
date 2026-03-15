@@ -1,6 +1,6 @@
 import contextlib
 import json
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator, Iterable, Iterator
 from pathlib import Path
 from typing import Any, NamedTuple
 
@@ -26,6 +26,28 @@ async def automatic_rollback(engine: AsyncEngine) -> AsyncIterator[AsyncConnecti
         yield connection
         if transaction.is_active:
             await transaction.rollback()
+
+
+@contextlib.asynccontextmanager
+async def temporary_records(
+    connection: AsyncConnection,
+    insert_queries: Iterable[tuple[str, dict[str, Any] | None]],
+    delete_queries: Iterable[tuple[str, dict[str, Any] | None]],
+    *,
+    persist: bool = False,
+) -> AsyncIterator[None]:
+    """Execute insert queries on enter and their corresponding delete queries on exit."""
+    for query, parameters in insert_queries:
+        await connection.execute(text(query), parameters=parameters)
+    if persist:
+        await connection.commit()
+
+    yield
+
+    for query, parameters in delete_queries:
+        await connection.execute(text(query), parameters=parameters)
+    if persist:
+        await connection.commit()
 
 
 @pytest.fixture
