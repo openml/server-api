@@ -21,7 +21,7 @@ async def test_flow_exists_not(
 ) -> None:
     path = "exists/foo/bar"
     py_response, php_response = await asyncio.gather(
-        py_api.get(f"/flows/{path}"),
+        py_api.post("/flows/exists", json={"name": "foo", "external_version": "bar"}),
         php_api.get(f"/flow/{path}"),
     )
 
@@ -45,7 +45,13 @@ async def test_flow_exists(
 ) -> None:
     path = f"exists/{persisted_flow.name}/{persisted_flow.external_version}"
     py_response, php_response = await asyncio.gather(
-        py_api.get(f"/flows/{path}"),
+        py_api.post(
+            "/flows/exists",
+            json={
+                "name": persisted_flow.name,
+                "external_version": persisted_flow.external_version,
+            },
+        ),
         php_api.get(f"/flow/{path}"),
     )
 
