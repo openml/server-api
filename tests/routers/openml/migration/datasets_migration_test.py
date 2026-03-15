@@ -227,6 +227,61 @@ async def test_dataset_tag_response_is_identical(
 
 
 @pytest.mark.parametrize(
+    "dataset_id",
+    [1, 2, 3, 101, 131],
+)
+@pytest.mark.parametrize(
+    "api_key",
+    [ApiKey.ADMIN, ApiKey.SOME_USER, ApiKey.OWNER_USER],
+    ids=["Administrator", "regular user", "possible owner"],
+)
+@pytest.mark.parametrize(
+    "tag",
+    ["study_14", "study_15"],
+)
+async def test_dataset_untag_response_is_identical(
+    dataset_id: int,
+    tag: str,
+    api_key: str,
+    py_api: httpx.AsyncClient,
+    php_api: httpx.AsyncClient,
+) -> None:
+    original = await php_api.post(
+        "/data/untag",
+        data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
+    )
+    if original.status_code == HTTPStatus.OK:
+        await php_api.post(
+            "/data/tag",
+            data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
+        )
+
+    new = await py_api.post(
+        f"/datasets/untag?api_key={api_key}",
+        json={"data_id": dataset_id, "tag": tag},
+    )
+
+    if new.status_code == HTTPStatus.OK:
+        assert original.status_code == new.status_code, original.json()
+        assert original.json() == new.json()
+        return
+
+    code, message = original.json()["error"].values()
+    if message == "Tag is not owned by you":
+        assert original.status_code == HTTPStatus.PRECONDITION_FAILED
+        assert new.status_code == HTTPStatus.FORBIDDEN
+        assert code == new.json()["code"]
+        assert "not created by you" in new.json()["detail"]
+        return
+
+    assert original.status_code == HTTPStatus.PRECONDITION_FAILED
+    assert new.status_code == HTTPStatus.NOT_FOUND
+    assert code == new.json()["code"]
+    assert message == "Tag not found."
+    assert "does not have tag" in new.json()["detail"]
+
+
+@pytest.mark.parametrize(
     "data_id",
     list(range(1, 130)),
 )
