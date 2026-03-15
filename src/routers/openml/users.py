@@ -1,3 +1,5 @@
+"""User account endpoints for the OpenML API."""
+
 import uuid
 from http import HTTPStatus
 from typing import Annotated, Any
@@ -28,6 +30,7 @@ async def delete_account(
     user_db: Annotated[AsyncConnection, Depends(userdb_connection)] = None,
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> dict[str, Any]:
+    """Delete a user account if authorized and no owned resources exist."""
     if caller is None:
         raise HTTPException(
             status_code=HTTPStatus.UNAUTHORIZED,
