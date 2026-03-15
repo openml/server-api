@@ -1,9 +1,10 @@
+import asyncio
 import json
+import re
 from http import HTTPStatus
 
 import httpx
 import pytest
-from starlette.testclient import TestClient
 
 import tests.constants
 from core.conversions import nested_remove_single_element_list
@@ -14,13 +15,15 @@ from tests.users import ApiKey
     "dataset_id",
     range(1, 132),
 )
-def test_dataset_response_is_identical(  # noqa: C901, PLR0912
+async def test_dataset_response_is_identical(  # noqa: C901, PLR0912
     dataset_id: int,
-    py_api: TestClient,
-    php_api: httpx.Client,
+    py_api: httpx.AsyncClient,
+    php_api: httpx.AsyncClient,
 ) -> None:
-    original = php_api.get(f"/data/{dataset_id}")
-    new = py_api.get(f"/datasets/{dataset_id}")
+    new, original = await asyncio.gather(
+        py_api.get(f"/datasets/{dataset_id}"),
+        php_api.get(f"/data/{dataset_id}"),
+    )
 
     if new.status_code == HTTPStatus.FORBIDDEN:
         assert original.status_code == HTTPStatus.PRECONDITION_FAILED
@@ -28,7 +31,12 @@ def test_dataset_response_is_identical(  # noqa: C901, PLR0912
         assert original.status_code == new.status_code
 
     if new.status_code != HTTPStatus.OK:
-        assert original.json()["error"] == new.json()["detail"]
+        # RFC 9457: Python API now returns problem+json format
+        assert new.headers["content-type"] == "application/problem+json"
+        # Both APIs should return error responses in the same cases
+        assert original.json()["error"]["code"] == new.json()["code"]
+        old_error_message = original.json()["error"]["message"]
+        assert new.json()["detail"].startswith(old_error_message)
         return
 
     try:
@@ -94,45 +102,55 @@ def test_dataset_response_is_identical(  # noqa: C901, PLR0912
     "dataset_id",
     [-1, 138, 100_000],
 )
-def test_error_unknown_dataset(
+async def test_error_unknown_dataset(
     dataset_id: int,
-    py_api: TestClient,
+    py_api: httpx.AsyncClient,
 ) -> None:
-    response = py_api.get(f"/datasets/{dataset_id}")
+    response = await py_api.get(f"/datasets/{dataset_id}")
 
     # The new API has "404 Not Found" instead of "412 PRECONDITION_FAILED"
     assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json()["detail"] == {"code": "111", "message": "Unknown dataset"}
+    # RFC 9457: Python API now returns problem+json format
+    assert response.headers["content-type"] == "application/problem+json"
+    error = response.json()
+    assert error["code"] == "111"
+    # instead of 'Unknown dataset'
+    assert error["detail"].startswith("No dataset")
 
 
 @pytest.mark.parametrize(
     "api_key",
     [None, ApiKey.INVALID],
 )
-def test_private_dataset_no_user_no_access(
-    py_api: TestClient,
+async def test_private_dataset_no_user_no_access(
+    py_api: httpx.AsyncClient,
     api_key: str | None,
 ) -> None:
     query = f"?api_key={api_key}" if api_key else ""
-    response = py_api.get(f"/datasets/130{query}")
+    response = await py_api.get(f"/datasets/130{query}")
 
     # New response is 403: Forbidden instead of 412: PRECONDITION FAILED
     assert response.status_code == HTTPStatus.FORBIDDEN
-    assert response.json()["detail"] == {"code": "112", "message": "No access granted"}
+    assert response.headers["content-type"] == "application/problem+json"
+    error = response.json()
+    assert error["code"] == "112"
+    assert error["detail"].startswith("No access granted")
 
 
 @pytest.mark.parametrize(
     "api_key",
     [ApiKey.DATASET_130_OWNER, ApiKey.ADMIN],
 )
-def test_private_dataset_owner_access(
-    py_api: TestClient,
-    php_api: TestClient,
+async def test_private_dataset_owner_access(
+    py_api: httpx.AsyncClient,
+    php_api: httpx.AsyncClient,
     api_key: str,
 ) -> None:
     [private_dataset] = tests.constants.PRIVATE_DATASET_ID
-    new_response = py_api.get(f"/datasets/{private_dataset}?api_key={api_key}")
-    old_response = php_api.get(f"/data/{private_dataset}?api_key={api_key}")
+    new_response, old_response = await asyncio.gather(
+        py_api.get(f"/datasets/{private_dataset}?api_key={api_key}"),
+        php_api.get(f"/data/{private_dataset}?api_key={api_key}"),
+    )
     assert old_response.status_code == HTTPStatus.OK
     assert old_response.status_code == new_response.status_code
     assert new_response.json()["id"] == private_dataset
@@ -152,14 +170,15 @@ def test_private_dataset_owner_access(
     ["study_14", "totally_new_tag_for_migration_testing"],
     ids=["typically existing tag", "new tag"],
 )
-def test_dataset_tag_response_is_identical(
+async def test_dataset_tag_response_is_identical(
     dataset_id: int,
     tag: str,
     api_key: str,
-    py_api: TestClient,
-    php_api: httpx.Client,
+    py_api: httpx.AsyncClient,
+    php_api: httpx.AsyncClient,
 ) -> None:
-    original = php_api.post(
+    # PHP request must happen first to check state, can't parallelize
+    original = await php_api.post(
         "/data/tag",
         data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
     )
@@ -170,7 +189,7 @@ def test_dataset_tag_response_is_identical(
     if not already_tagged:
         # undo the tag, because we don't want to persist this change to the database
         # Sometimes a change is already committed to the database even if an error occurs.
-        php_api.post(
+        await php_api.post(
             "/data/untag",
             data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
         )
@@ -179,14 +198,26 @@ def test_dataset_tag_response_is_identical(
         and original.json()["error"]["message"] == "An Elastic Search Exception occured."
     ):
         pytest.skip("Encountered Elastic Search error.")
-    new = py_api.post(
+    new = await py_api.post(
         f"/datasets/tag?api_key={api_key}",
         json={"data_id": dataset_id, "tag": tag},
     )
 
+    # RFC 9457: Tag conflict now returns 409 instead of 500
+    if original.status_code == HTTPStatus.INTERNAL_SERVER_ERROR and already_tagged:
+        assert new.status_code == HTTPStatus.CONFLICT
+        assert original.json()["error"]["code"] == new.json()["code"]
+        assert original.json()["error"]["message"] == "Entity already tagged by this tag."
+        assert re.match(
+            pattern=r"Dataset \d+ already tagged with " + f"'{tag}'.",
+            string=new.json()["detail"],
+        )
+        return
+
     assert original.status_code == new.status_code, original.json()
     if new.status_code != HTTPStatus.OK:
-        assert original.json()["error"] == new.json()["detail"]
+        assert original.json()["error"]["code"] == new.json()["code"]
+        assert original.json()["error"]["message"] == new.json()["detail"]
         return
 
     original = original.json()
@@ -208,56 +239,74 @@ def test_dataset_tag_response_is_identical(
     "tag",
     ["study_14", "study_15"],
 )
-def test_dataset_untag_response_is_identical(
+async def test_dataset_untag_response_is_identical(
     dataset_id: int,
     tag: str,
     api_key: str,
-    py_api: TestClient,
-    php_api: httpx.Client,
+    py_api: httpx.AsyncClient,
+    php_api: httpx.AsyncClient,
 ) -> None:
-    original = php_api.post(
+    original = await php_api.post(
         "/data/untag",
         data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
     )
     if original.status_code == HTTPStatus.OK:
-        php_api.post(
+        await php_api.post(
             "/data/tag",
             data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
         )
 
-    new = py_api.post(
+    new = await py_api.post(
         f"/datasets/untag?api_key={api_key}",
         json={"data_id": dataset_id, "tag": tag},
     )
 
-    assert original.status_code == new.status_code, original.json()
-    if new.status_code != HTTPStatus.OK:
-        assert original.json()["error"] == new.json()["detail"]
+    if new.status_code == HTTPStatus.OK:
+        assert original.status_code == new.status_code, original.json()
+        assert original.json() == new.json()
         return
 
-    assert original.json() == new.json()
+    code, message = original.json()["error"].values()
+    if message == "Tag is not owned by you":
+        assert original.status_code == HTTPStatus.PRECONDITION_FAILED
+        assert new.status_code == HTTPStatus.FORBIDDEN
+        assert code == new.json()["code"]
+        assert "not created by you" in new.json()["detail"]
+        return
+
+    assert original.status_code == HTTPStatus.PRECONDITION_FAILED
+    assert new.status_code == HTTPStatus.NOT_FOUND
+    assert code == new.json()["code"]
+    assert message == "Tag not found."
+    assert "does not have tag" in new.json()["detail"]
 
 
 @pytest.mark.parametrize(
     "data_id",
     list(range(1, 130)),
 )
-def test_datasets_feature_is_identical(
+async def test_datasets_feature_is_identical(
     data_id: int,
-    py_api: TestClient,
-    php_api: httpx.Client,
+    py_api: httpx.AsyncClient,
+    php_api: httpx.AsyncClient,
 ) -> None:
-    response = py_api.get(f"/datasets/features/{data_id}")
-    original = php_api.get(f"/data/features/{data_id}")
-    assert response.status_code == original.status_code
+    new, original = await asyncio.gather(
+        py_api.get(f"/datasets/features/{data_id}"),
+        php_api.get(f"/data/features/{data_id}"),
+    )
+    assert new.status_code == original.status_code
 
-    if response.status_code != HTTPStatus.OK:
-        error = response.json()["detail"]
-        error["code"] = str(error["code"])
-        assert error == original.json()["error"]
+    if new.status_code != HTTPStatus.OK:
+        error = original.json()["error"]
+        assert error["code"] == new.json()["code"]
+        if error["message"] == "No features found. Additionally, dataset processed with error":
+            pattern = r"No features found. Additionally, dataset \d+ processed with error\."
+            assert re.match(pattern, new.json()["detail"])
+        else:
+            assert error["message"] == new.json()["detail"]
         return
 
-    python_body = response.json()
+    python_body = new.json()
     for feature in python_body:
         for key, value in list(feature.items()):
             if key == "nominal_values":
