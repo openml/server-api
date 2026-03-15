@@ -1,3 +1,5 @@
+"""Dataset schemas for the OpenML server API."""
+
 from enum import StrEnum
 
 
