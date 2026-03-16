@@ -46,7 +46,6 @@ class Feature(BaseModel):
     is_row_identifier: bool
     number_of_missing_values: int
     nominal_values: list[str] | None
-    ontology: list[str] | None = None
 
 
 class EstimationProcedure(BaseModel):
