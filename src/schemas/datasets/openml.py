@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
@@ -40,6 +40,7 @@ class Feature(BaseModel):
     index: int
     name: str
     data_type: FeatureType
+    ontology: list[str] | None = None
     is_target: bool
     is_ignore: bool
     is_row_identifier: bool
@@ -92,10 +93,10 @@ class DatasetMetadata(BaseModel):
         },
     )
     upload_date: datetime = Field(
-        json_schema_extra={"example": str(datetime(2014, 4, 6, 23, 12, 20))},
+        json_schema_extra={"example": str(datetime(2014, 4, 6, 23, 12, 20, tzinfo=UTC))},
     )
     processing_date: datetime | None = Field(
-        json_schema_extra={"example": str(datetime(2019, 7, 9, 15, 22, 3))},
+        json_schema_extra={"example": str(datetime(2019, 7, 9, 15, 22, 3, tzinfo=UTC))},
     )
     processing_error: str | None = Field(
         json_schema_extra={"example": "Please provide description XML."},
