@@ -259,6 +259,8 @@ async def test_datasets_feature_is_identical(
                 values = feature.pop(key)
                 # The old API returns a str if there is only a single element
                 feature["nominal_value"] = values if len(values) > 1 else values[0]
+            elif key == "ontology":
+                del feature[key]  # Added back in with follow up PR #262
             else:
                 # The old API formats bool as string in lower-case
                 feature[key] = str(value) if not isinstance(value, bool) else str(value).lower()
