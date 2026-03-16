@@ -1,6 +1,7 @@
 """Translation from https://github.com/openml/OpenML/blob/c19c9b99568c0fabb001e639ff6724b9a754bbc9/openml_OS/models/api/v1/Api_data.php#L707."""
 
 import datetime
+from collections import defaultdict
 
 from sqlalchemy import text
 from sqlalchemy.engine import Row
@@ -148,9 +149,9 @@ async def get_feature_ontologies(
         ),
         parameters={"dataset_id": dataset_id},
     )
-    ontologies: dict[int, list[str]] = {}
+    ontologies: dict[int, list[str]] = defaultdict(list)
     for row in rows.mappings():
-        ontologies.setdefault(row["index"], []).append(row["value"])
+        ontologies[row["index"]].append(row["value"])
     return ontologies
 
 
