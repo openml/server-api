@@ -192,6 +192,7 @@ async def test_dataset_features_with_ontology(py_api: httpx.AsyncClient) -> None
     assert "ontology" not in features[0]
     assert "ontology" not in features[4]
 
+
 async def test_dataset_features_no_access(py_api: httpx.AsyncClient) -> None:
     response = await py_api.get("/datasets/features/130")
     assert response.status_code == HTTPStatus.FORBIDDEN
