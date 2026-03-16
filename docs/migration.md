@@ -107,6 +107,30 @@ For example, after tagging dataset 21 with the tag `"foo"`:
 }
 ```
 
+### `POST /datasets/untag`
+The endpoint now enforces tag ownership when untagging:
+
+ - The original tag uploader can untag their own tag.
+   Ownership is determined by matching the authenticated user ID against the
+   `uploader` field of the `dataset_tag` record.
+ - Administrators can untag any tag.
+ - Other authenticated users receive an error.
+
+When a non-owner/non-admin attempts to untag, the endpoint returns:
+```diff title="HTTP + JSON error for non-owner/non-admin"
+- HTTP 500 Internal Server Error
+- {"detail":{"code":"476","message":"Tag is not owned by you"}}
+```
+
+On success, the response matches legacy behavior and returns only the dataset id:
+```json
+{
+  "data_untag": {
+    "id": "21"
+  }
+}
+```
+
 ## Studies
 
 ### `GET /{id_or_alias}`
