@@ -1,6 +1,7 @@
 """Translation from https://github.com/openml/OpenML/blob/c19c9b99568c0fabb001e639ff6724b9a754bbc9/openml_OS/models/api/v1/Api_data.php#L707."""
 
 import datetime
+from collections import defaultdict
 
 from sqlalchemy import text
 from sqlalchemy.engine import Row
@@ -132,6 +133,26 @@ async def get_features(dataset_id: int, connection: AsyncConnection) -> list[Fea
     )
     rows = row.mappings().all()
     return [Feature(**row, nominal_values=None) for row in rows]
+
+
+async def get_feature_ontologies(
+    dataset_id: int,
+    connection: AsyncConnection,
+) -> dict[int, list[str]]:
+    rows = await connection.execute(
+        text(
+            """
+            SELECT `index`, `value`
+            FROM data_feature_description
+            WHERE `did` = :dataset_id AND `description_type` = 'ontology'
+            """,
+        ),
+        parameters={"dataset_id": dataset_id},
+    )
+    ontologies: dict[int, list[str]] = defaultdict(list)
+    for row in rows.mappings():
+        ontologies[row["index"]].append(row["value"])
+    return ontologies
 
 
 async def get_feature_values(
