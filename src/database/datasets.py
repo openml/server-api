@@ -134,8 +134,11 @@ async def get_features(dataset_id: int, connection: AsyncConnection) -> list[Fea
     return [Feature(**row, nominal_values=None) for row in rows]
 
 
-def get_feature_ontologies(dataset_id: int, connection: Connection) -> dict[int, list[str]]:
-    rows = connection.execute(
+async def get_feature_ontologies(
+    dataset_id: int,
+    connection: AsyncConnection,
+) -> dict[int, list[str]]:
+    rows = await connection.execute(
         text(
             """
             SELECT `index`, `value`

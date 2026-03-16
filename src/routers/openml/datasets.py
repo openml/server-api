@@ -294,7 +294,7 @@ async def get_dataset_features(
     assert expdb is not None  # noqa: S101
     await _get_dataset_raise_otherwise(dataset_id, user, expdb)
     features = await database.datasets.get_features(dataset_id, expdb)
-    ontologies = database.datasets.get_feature_ontologies(dataset_id, expdb)
+    ontologies = await database.datasets.get_feature_ontologies(dataset_id, expdb)
     for feature in features:
         feature.ontology = ontologies.get(feature.index)
 
