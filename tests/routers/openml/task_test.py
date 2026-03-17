@@ -86,7 +86,7 @@ async def test_list_tasks_no_results(py_api: httpx.AsyncClient) -> None:
     assert response.headers["content-type"] == "application/problem+json"
     error = response.json()
     assert error["status"] == HTTPStatus.NOT_FOUND
-    assert "372" in error["code"]
+    assert error["code"] == "372"
 
 
 async def test_list_tasks_get(py_api: httpx.AsyncClient) -> None:
@@ -94,6 +94,12 @@ async def test_list_tasks_get(py_api: httpx.AsyncClient) -> None:
     response = await py_api.get("/tasks/list")
     assert response.status_code == HTTPStatus.OK
     assert isinstance(response.json(), list)
+
+
+async def test_list_tasks_invalid_range_format(py_api: httpx.AsyncClient) -> None:
+    """Invalid number_instances range returns 422 validation error."""
+    response = await py_api.post("/tasks/list", json={"number_instances": "1...2"})
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 
 
 async def test_get_task(py_api: httpx.AsyncClient) -> None:
