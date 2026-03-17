@@ -14,7 +14,8 @@ from tests.users import ApiKey
     ids=["no authentication", "invalid key"],
 )
 async def test_task_tag_rejects_unauthorized(
-    key: ApiKey | None, py_api: httpx.AsyncClient,
+    key: ApiKey | None,
+    py_api: httpx.AsyncClient,
 ) -> None:
     apikey = "" if key is None else f"?api_key={key}"
     response = await py_api.post(
@@ -30,7 +31,9 @@ async def test_task_tag_rejects_unauthorized(
     ids=["administrator", "non-owner", "owner"],
 )
 async def test_task_tag(
-    key: ApiKey, expdb_test: AsyncConnection, py_api: httpx.AsyncClient,
+    key: ApiKey,
+    expdb_test: AsyncConnection,
+    py_api: httpx.AsyncClient,
 ) -> None:
     task_id, tag = 59, "test"
     response = await py_api.post(
@@ -64,7 +67,8 @@ async def test_task_tag_fails_if_tag_exists(py_api: httpx.AsyncClient) -> None:
     ids=["no authentication", "invalid key"],
 )
 async def test_task_untag_rejects_unauthorized(
-    key: ApiKey | None, py_api: httpx.AsyncClient,
+    key: ApiKey | None,
+    py_api: httpx.AsyncClient,
 ) -> None:
     apikey = "" if key is None else f"?api_key={key}"
     response = await py_api.post(
@@ -75,7 +79,8 @@ async def test_task_untag_rejects_unauthorized(
 
 
 async def test_task_untag(
-    expdb_test: AsyncConnection, py_api: httpx.AsyncClient,
+    expdb_test: AsyncConnection,
+    py_api: httpx.AsyncClient,
 ) -> None:
     task_id, tag = 59, "test"
     setup = await py_api.post(
@@ -103,7 +108,8 @@ async def test_task_untag_fails_if_tag_not_found(py_api: httpx.AsyncClient) -> N
 
 
 async def test_task_untag_non_admin_own_tag(
-    expdb_test: AsyncConnection, py_api: httpx.AsyncClient,
+    expdb_test: AsyncConnection,
+    py_api: httpx.AsyncClient,
 ) -> None:
     task_id, tag = 59, "user_tag"
     setup = await py_api.post(

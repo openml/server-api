@@ -113,7 +113,12 @@ async def get_tags(id_: int, expdb: AsyncConnection) -> list[str]:
 
 async def tag(id_: int, tag_: str, *, user_id: int, expdb: AsyncConnection) -> None:
     await insert_tag(
-        table=_TABLE, id_column=_ID_COLUMN, id_=id_, tag_=tag_, user_id=user_id, expdb=expdb,
+        table=_TABLE,
+        id_column=_ID_COLUMN,
+        id_=id_,
+        tag_=tag_,
+        user_id=user_id,
+        expdb=expdb,
     )
 
 

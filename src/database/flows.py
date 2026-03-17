@@ -50,7 +50,12 @@ async def get_parameters(flow_id: int, expdb: AsyncConnection) -> Sequence[Row]:
 
 async def tag(id_: int, tag_: str, *, user_id: int, expdb: AsyncConnection) -> None:
     await insert_tag(
-        table=_TABLE, id_column=_ID_COLUMN, id_=id_, tag_=tag_, user_id=user_id, expdb=expdb,
+        table=_TABLE,
+        id_column=_ID_COLUMN,
+        id_=id_,
+        tag_=tag_,
+        user_id=user_id,
+        expdb=expdb,
     )
 
 

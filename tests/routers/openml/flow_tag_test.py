@@ -15,7 +15,8 @@ from tests.users import ApiKey
     ids=["no authentication", "invalid key"],
 )
 async def test_flow_tag_rejects_unauthorized(
-    key: ApiKey | None, py_api: httpx.AsyncClient,
+    key: ApiKey | None,
+    py_api: httpx.AsyncClient,
 ) -> None:
     apikey = "" if key is None else f"?api_key={key}"
     response = await py_api.post(
@@ -26,7 +27,9 @@ async def test_flow_tag_rejects_unauthorized(
 
 
 async def test_flow_tag(
-    flow: Flow, expdb_test: AsyncConnection, py_api: httpx.AsyncClient,
+    flow: Flow,
+    expdb_test: AsyncConnection,
+    py_api: httpx.AsyncClient,
 ) -> None:
     tag = "test"
     response = await py_api.post(
@@ -69,7 +72,8 @@ async def test_flow_tag_fails_if_tag_exists(py_api: httpx.AsyncClient) -> None:
     ids=["no authentication", "invalid key"],
 )
 async def test_flow_untag_rejects_unauthorized(
-    key: ApiKey | None, py_api: httpx.AsyncClient,
+    key: ApiKey | None,
+    py_api: httpx.AsyncClient,
 ) -> None:
     apikey = "" if key is None else f"?api_key={key}"
     response = await py_api.post(
@@ -80,7 +84,9 @@ async def test_flow_untag_rejects_unauthorized(
 
 
 async def test_flow_untag(
-    flow: Flow, expdb_test: AsyncConnection, py_api: httpx.AsyncClient,
+    flow: Flow,
+    expdb_test: AsyncConnection,
+    py_api: httpx.AsyncClient,
 ) -> None:
     tag = "test"
     setup = await py_api.post(
@@ -108,7 +114,9 @@ async def test_flow_untag_fails_if_tag_not_found(py_api: httpx.AsyncClient) -> N
 
 
 async def test_flow_untag_non_admin_own_tag(
-    flow: Flow, expdb_test: AsyncConnection, py_api: httpx.AsyncClient,
+    flow: Flow,
+    expdb_test: AsyncConnection,
+    py_api: httpx.AsyncClient,
 ) -> None:
     tag = "user_tag"
     setup = await py_api.post(
@@ -127,7 +135,8 @@ async def test_flow_untag_non_admin_own_tag(
 
 
 async def test_flow_untag_fails_if_not_owner(
-    flow: Flow, py_api: httpx.AsyncClient,
+    flow: Flow,
+    py_api: httpx.AsyncClient,
 ) -> None:
     tag = "test"
     setup = await py_api.post(

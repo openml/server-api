@@ -43,7 +43,9 @@ async def test_run_tag_rejects_unauthorized(
 
 
 async def test_run_tag(
-    run_id: int, expdb_test: AsyncConnection, py_api: httpx.AsyncClient,
+    run_id: int,
+    expdb_test: AsyncConnection,
+    py_api: httpx.AsyncClient,
 ) -> None:
     tag = "test"
     response = await py_api.post(
@@ -58,7 +60,8 @@ async def test_run_tag(
 
 
 async def test_run_tag_fails_if_tag_exists(
-    run_id: int, py_api: httpx.AsyncClient,
+    run_id: int,
+    py_api: httpx.AsyncClient,
 ) -> None:
     tag = "test"
     setup = await py_api.post(
@@ -92,7 +95,9 @@ async def test_run_untag_rejects_unauthorized(
 
 
 async def test_run_untag(
-    run_id: int, expdb_test: AsyncConnection, py_api: httpx.AsyncClient,
+    run_id: int,
+    expdb_test: AsyncConnection,
+    py_api: httpx.AsyncClient,
 ) -> None:
     tag = "test"
     setup = await py_api.post(
@@ -112,7 +117,8 @@ async def test_run_untag(
 
 
 async def test_run_untag_fails_if_tag_not_found(
-    run_id: int, py_api: httpx.AsyncClient,
+    run_id: int,
+    py_api: httpx.AsyncClient,
 ) -> None:
     response = await py_api.post(
         f"/runs/untag?api_key={ApiKey.ADMIN}",
@@ -122,7 +128,9 @@ async def test_run_untag_fails_if_tag_not_found(
 
 
 async def test_run_untag_non_admin_own_tag(
-    run_id: int, expdb_test: AsyncConnection, py_api: httpx.AsyncClient,
+    run_id: int,
+    expdb_test: AsyncConnection,
+    py_api: httpx.AsyncClient,
 ) -> None:
     tag = "user_tag"
     setup = await py_api.post(
@@ -141,7 +149,8 @@ async def test_run_untag_non_admin_own_tag(
 
 
 async def test_run_untag_fails_if_not_owner(
-    run_id: int, py_api: httpx.AsyncClient,
+    run_id: int,
+    py_api: httpx.AsyncClient,
 ) -> None:
     tag = "test"
     setup = await py_api.post(
