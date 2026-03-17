@@ -1,9 +1,9 @@
 import json
 import re
-from typing import Annotated, cast
+from typing import Annotated, Any, cast
 
 import xmltodict
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Body, Depends
 from sqlalchemy import RowMapping, text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
@@ -11,7 +11,10 @@ import config
 import database.datasets
 import database.tasks
 from core.errors import InternalError, TaskNotFoundError
-from routers.dependencies import expdb_connection
+from core.tagging import tag_entity, untag_entity
+from database.users import User
+from routers.dependencies import expdb_connection, fetch_user_or_raise
+from routers.types import SystemString64
 from schemas.datasets.openml import Task
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -155,6 +158,43 @@ async def _fill_json_template(  # noqa: C901
     template = template.replace("[TASK:id]", str(task.task_id))
     server_url = config.load_routing_configuration()["server_url"]
     return template.replace("[CONSTANT:base_url]", server_url)
+
+
+@router.post(path="/tag")
+async def tag_task(
+    task_id: Annotated[int, Body()],
+    tag: Annotated[str, SystemString64],
+    user: Annotated[User, Depends(fetch_user_or_raise)],
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+) -> dict[str, dict[str, Any]]:
+    return await tag_entity(
+        task_id,
+        tag,
+        user,
+        expdb,
+        get_tags_fn=database.tasks.get_tags,
+        tag_fn=database.tasks.tag,
+        response_key="task_tag",
+    )
+
+
+@router.post(path="/untag")
+async def untag_task(
+    task_id: Annotated[int, Body()],
+    tag: Annotated[str, SystemString64],
+    user: Annotated[User, Depends(fetch_user_or_raise)],
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+) -> dict[str, dict[str, Any]]:
+    return await untag_entity(
+        task_id,
+        tag,
+        user,
+        expdb,
+        get_tag_fn=database.tasks.get_tag,
+        delete_tag_fn=database.tasks.delete_tag,
+        get_tags_fn=database.tasks.get_tags,
+        response_key="task_tag",
+    )
 
 
 @router.get("/{task_id}")
