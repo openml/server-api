@@ -11,6 +11,7 @@ async def test_list_tasks_default(py_api: httpx.AsyncClient) -> None:
     tasks = response.json()
     assert isinstance(tasks, list)
     assert len(tasks) > 0
+    assert all(task["status"] == "active" for task in tasks)
     # verify shape of first task
     task = tasks[0]
     assert "task_id" in task
@@ -30,6 +31,7 @@ async def test_list_tasks_filter_type(py_api: httpx.AsyncClient) -> None:
     response = await py_api.post("/tasks/list", json={"task_type_id": 1})
     assert response.status_code == HTTPStatus.OK
     tasks = response.json()
+    assert len(tasks) > 0
     assert all(t["task_type_id"] == 1 for t in tasks)
 
 
@@ -64,12 +66,17 @@ async def test_list_tasks_pagination_offset(py_api: httpx.AsyncClient) -> None:
 
 async def test_list_tasks_number_instances_range(py_api: httpx.AsyncClient) -> None:
     """number_instances range filter returns tasks whose dataset matches."""
+    min_instances, max_instances = 100, 1000
     response = await py_api.post(
         "/tasks/list",
-        json={"number_instances": "100..1000"},
+        json={"number_instances": f"{min_instances}..{max_instances}"},
     )
     assert response.status_code == HTTPStatus.OK
-    assert len(response.json()) > 0
+    tasks = response.json()
+    assert len(tasks) > 0
+    for task in tasks:
+        qualities = {q["name"]: q["value"] for q in task["quality"]}
+        assert min_instances <= float(qualities["NumberOfInstances"]) <= max_instances
 
 
 async def test_list_tasks_no_results(py_api: httpx.AsyncClient) -> None:

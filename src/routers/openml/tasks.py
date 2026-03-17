@@ -303,6 +303,7 @@ async def list_tasks(  # noqa: PLR0913
             {where_number_classes}
             {where_number_missing_values}
         GROUP BY t.`task_id`, t.`ttid`, tt.`name`, d.`did`, d.`name`, d.`format`, ds.`status`
+        ORDER BY t.`task_id`
         LIMIT {pagination.limit} OFFSET {pagination.offset}
         """,  # noqa: S608
     )
@@ -359,10 +360,11 @@ async def list_tasks(  # noqa: PLR0913
     )
     # build a reverse map: dataset_id -> task_id
     # needed because quality rows come back keyed by did, but our tasks dict is keyed by task_id
-    did_to_task_id = {t["did"]: tid for tid, t in tasks.items()}
+    did_to_task_ids: dict[int, list[int]] = {}
+    for tid, t in tasks.items():
+        did_to_task_ids.setdefault(t["did"], []).append(tid)
     for row in qualities_result.all():
-        tid = did_to_task_id.get(row.data)
-        if tid is not None:
+        for tid in did_to_task_ids.get(row.data, []):
             tasks[tid].setdefault("quality", []).append(
                 {"name": row.quality, "value": str(row.value)},
             )
