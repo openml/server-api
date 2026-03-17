@@ -39,6 +39,7 @@ async def get_parameters(setup_id: int, connection: AsyncConnection) -> list[Row
             JOIN input t_input ON t_setting.input_id = t_input.id
             JOIN implementation t_impl ON t_input.implementation_id = t_impl.id
             WHERE t_setting.setup = :setup_id
+            ORDER BY t_impl.id, t_input.id
             """,
         ),
         parameters={"setup_id": setup_id},

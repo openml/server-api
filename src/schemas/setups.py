@@ -14,7 +14,7 @@ class SetupParameter(BaseModel):
     name: str
     data_type: str | None = None
     default_value: str | None = None
-    value: str
+    value: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

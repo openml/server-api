@@ -36,7 +36,7 @@ async def get_setup(
     params_model = SetupParameters(
         setup_id=str(setup_id),
         flow_id=str(setup.implementation_id),
-        parameter=[dict(param) for param in setup_parameters] if setup_parameters else None,
+        parameter=setup_parameters or None,
     )
 
     return SetupResponse(setup_parameters=params_model)
