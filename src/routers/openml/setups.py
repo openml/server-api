@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body, Depends, Path
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 import database.setups
@@ -15,8 +15,31 @@ from core.errors import (
 from database.users import User, UserGroup
 from routers.dependencies import expdb_connection, fetch_user_or_raise
 from routers.types import SystemString64
+from schemas.setups import SetupParameters, SetupResponse
 
 router = APIRouter(prefix="/setup", tags=["setup"])
+
+
+@router.get(path="/{setup_id}", response_model_exclude_none=True)
+async def get_setup(
+    setup_id: Annotated[int, Path()],
+    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
+) -> SetupResponse:
+    """Get setup by id."""
+    setup = await database.setups.get(setup_id, expdb_db)
+    if not setup:
+        msg = f"Setup {setup_id} not found."
+        raise SetupNotFoundError(msg, code=281)
+
+    setup_parameters = await database.setups.get_parameters(setup_id, expdb_db)
+
+    params_model = SetupParameters(
+        setup_id=str(setup_id),
+        flow_id=str(setup.implementation_id),
+        parameter=[dict(param) for param in setup_parameters] if setup_parameters else None,
+    )
+
+    return SetupResponse(setup_parameters=params_model)
 
 
 @router.post(path="/tag")
