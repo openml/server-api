@@ -69,6 +69,35 @@ async def tag(id_: int, tag_: str, *, user_id: int, connection: AsyncConnection)
     )
 
 
+async def get_tags(id_: int, connection: AsyncConnection) -> list[Row]:
+    row = await connection.execute(
+        text(
+            """
+    SELECT *
+    FROM dataset_tag
+    WHERE id = :dataset_id
+    """,
+        ),
+        parameters={"dataset_id": id_},
+    )
+    return list(row.all())
+
+
+async def untag(id_: int, tag_: str, *, connection: AsyncConnection) -> None:
+    await connection.execute(
+        text(
+            """
+    DELETE FROM dataset_tag
+    WHERE `id` = :dataset_id AND `tag` = :tag
+    """,
+        ),
+        parameters={
+            "dataset_id": id_,
+            "tag": tag_,
+        },
+    )
+
+
 async def get_description(
     id_: int,
     connection: AsyncConnection,

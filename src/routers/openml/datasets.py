@@ -25,6 +25,8 @@ from core.errors import (
     InternalError,
     NoResultsError,
     TagAlreadyExistsError,
+    TagNotFoundError,
+    TagNotOwnedError,
 )
 from core.formatting import (
     _csv_as_list,
@@ -63,6 +65,39 @@ async def tag_dataset(
     await database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
     return {
         "data_tag": {"id": str(data_id), "tag": [*tags, tag]},
+    }
+
+
+@router.post(
+    path="/untag",
+)
+async def untag_dataset(
+    data_id: Annotated[int, Body()],
+    tag: Annotated[str, SystemString64],
+    user: Annotated[User, Depends(fetch_user_or_raise)],
+    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
+) -> dict[str, dict[str, Any]]:
+    assert expdb_db is not None  # noqa: S101
+    if not await database.datasets.get(data_id, expdb_db):
+        msg = f"No dataset with id {data_id} found."
+        raise DatasetNotFoundError(msg)
+
+    dataset_tags = await database.datasets.get_tags(data_id, expdb_db)
+    matched_tag_row = next((t for t in dataset_tags if t.tag.casefold() == tag.casefold()), None)
+    if matched_tag_row is None:
+        msg = f"Dataset {data_id} does not have tag {tag!r}."
+        raise TagNotFoundError(msg)
+
+    if matched_tag_row.uploader != user.user_id and UserGroup.ADMIN not in await user.get_groups():
+        msg = (
+            f"You may not remove tag {tag!r} of dataset {data_id} "
+            "because it was not created by you."
+        )
+        raise TagNotOwnedError(msg)
+
+    await database.datasets.untag(data_id, matched_tag_row.tag, connection=expdb_db)
+    return {
+        "data_untag": {"id": str(data_id)},
     }
 
 
