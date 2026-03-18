@@ -133,7 +133,7 @@ async def list_datasets(  # noqa: PLR0913
     )
 
     clauses = []
-    parameters: dict[str, Any] = {}
+    parameters: dict[str, Any] = {"offset": pagination.offset, "limit": pagination.limit}
     if status != DatasetStatusFilter.ALL:
         clauses.append("AND IFNULL(cs.`status`, 'in_preparation') = :status")
         parameters["status"] = status
@@ -187,7 +187,7 @@ async def list_datasets(  # noqa: PLR0913
         WHERE 1=1 {number_instances_filter} {number_features_filter}
         {number_classes_filter} {number_missing_values_filter}
         {" ".join(clauses)}
-        LIMIT {pagination.limit} OFFSET {pagination.offset}
+        LIMIT :limit OFFSET :offset
         """,  # noqa: S608
         # I am not sure how to do this correctly without an error from Bandit here.
         # However, the `status` input is already checked by FastAPI to be from a set
