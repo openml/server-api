@@ -115,16 +115,10 @@ async def list_datasets(  # noqa: PLR0913
         """,
     )
 
-    if status == DatasetStatusFilter.ALL:
-        statuses = [
-            DatasetStatusFilter.ACTIVE,
-            DatasetStatusFilter.DEACTIVATED,
-            DatasetStatusFilter.IN_PREPARATION,
-        ]
-    else:
-        statuses = [status]
+    clauses = []
+    if status != DatasetStatusFilter.ALL:
+        clauses.append(f"AND IFNULL(cs.`status`, 'in_preparation') = '{status}' ")
 
-    where_status = ",".join(f"'{status}'" for status in statuses)
     if user is None:
         visible_to_user = "`visibility`='public'"
     elif UserGroup.ADMIN in await user.get_groups():
@@ -182,7 +176,7 @@ async def list_datasets(  # noqa: PLR0913
         WHERE {visible_to_user} {where_name} {where_version} {where_uploader}
         {where_data_id} {matching_tag} {number_instances_filter} {number_features_filter}
         {number_classes_filter} {number_missing_values_filter}
-        AND IFNULL(cs.`status`, 'in_preparation') IN ({where_status})
+        {"".join(clauses)}
         LIMIT {pagination.limit} OFFSET {pagination.offset}
         """,  # noqa: S608
         # I am not sure how to do this correctly without an error from Bandit here.
