@@ -19,7 +19,7 @@ async def get_run_trace(
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> RunTrace:
     """Get trace data for a run by run ID."""
-    if not await database.runs.get(run_id, expdb):
+    if not await database.runs.exist(run_id, expdb):
         msg = f"Run {run_id} not found."
         raise RunNotFoundError(msg)
 

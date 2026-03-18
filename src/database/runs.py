@@ -7,7 +7,7 @@ from sqlalchemy import Row, text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 
-async def get(id_: int, expdb: AsyncConnection) -> Row | None:
+async def exist(id_: int, expdb: AsyncConnection) -> bool:
     """Check if a run exists by ID."""
     row = await expdb.execute(
         text(
@@ -19,7 +19,7 @@ async def get(id_: int, expdb: AsyncConnection) -> Row | None:
         ),
         parameters={"run_id": id_},
     )
-    return row.one_or_none()
+    return bool(row.one_or_none())
 
 
 async def get_trace(run_id: int, expdb: AsyncConnection) -> Sequence[Row]:
