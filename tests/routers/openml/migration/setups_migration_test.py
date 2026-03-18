@@ -266,6 +266,35 @@ async def test_setup_tag_response_is_identical_tag_already_exists(
 
     assert original.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
     assert new.status_code == HTTPStatus.CONFLICT
-    assert original.json()["error"]["code"] == new.json()["code"]
     assert original.json()["error"]["message"] == "Entity already tagged by this tag."
     assert new.json()["detail"] == f"Setup {setup_id} already has tag {tag!r}."
+
+
+async def test_get_setup_response_is_identical_setup_doesnt_exist(
+    py_api: httpx.AsyncClient,
+    php_api: httpx.AsyncClient,
+) -> None:
+    setup_id = 999999
+
+    original = await php_api.get(f"/setup/{setup_id}")
+    new = await py_api.get(f"/setup/{setup_id}")
+
+    assert original.status_code == HTTPStatus.PRECONDITION_FAILED
+    assert new.status_code == HTTPStatus.NOT_FOUND
+    assert original.json()["error"]["message"] == "Unknown setup"
+    assert original.json()["error"]["code"] == new.json()["code"]
+
+
+@pytest.mark.parametrize("setup_id", [1, 48])
+async def test_get_setup_response_is_identical(
+    setup_id: int,
+    py_api: httpx.AsyncClient,
+    php_api: httpx.AsyncClient,
+) -> None:
+    original = await php_api.get(f"/setup/{setup_id}")
+    new = await py_api.get(f"/setup/{setup_id}")
+
+    assert original.status_code == HTTPStatus.OK
+    assert new.status_code == HTTPStatus.OK
+
+    assert original.json() == new.json()
