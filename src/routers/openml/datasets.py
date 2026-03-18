@@ -116,36 +116,45 @@ async def list_datasets(  # noqa: PLR0913
     )
 
     clauses = []
+    parameters = {}
     if status != DatasetStatusFilter.ALL:
-        clauses.append(f"AND IFNULL(cs.`status`, 'in_preparation') = '{status}' ")
+        clauses.append(f"AND IFNULL(cs.`status`, 'in_preparation') = :status")
+        parameters["status"] = status
 
     if user is None:
-        visible_to_user = "`visibility`='public'"
-    elif UserGroup.ADMIN in await user.get_groups():
-        visible_to_user = "TRUE"
-    else:
-        visible_to_user = f"(`visibility`='public' OR `uploader`={user.user_id})"
+        clauses.append("AND `visibility`='public'")
+    elif UserGroup.ADMIN not in await user.get_groups():
+        clauses.append("AND (`visibility`='public' OR `uploader`=:user_id)")
+        parameters["user_id"] = user.user_id
 
-    where_name = "" if data_name is None else "AND `name`=:data_name"
-    where_version = "" if data_version is None else "AND `version`=:data_version"
-    where_uploader = "" if uploader is None else "AND `uploader`=:uploader"
-    data_id_str = ",".join(str(did) for did in data_id) if data_id else ""
-    where_data_id = "" if not data_id else f"AND d.`did` IN ({data_id_str})"
+    if uploader:
+        clauses.append("AND `uploader`=:uploader")
+        parameters["uploader"] = uploader
+
+    if data_name:
+        clauses.append("AND `name`=:data_name")
+        parameters["data_name"] = data_name
+
+    if data_version:
+        clauses.append("AND `version`=:data_version")
+        parameters["data_version"] = data_version
+
+    if data_id:
+        clauses.append("AND d.`did` IN :data_ids")
+        parameters["data_ids"] = data_id
 
     # requires some benchmarking on whether e.g., IN () is more efficient.
-    matching_tag = (
-        text(
+    if tag:
+        clauses.append(
             """
-        AND d.`did` IN (
-            SELECT `id`
-            FROM dataset_tag as dt
-            WHERE dt.`tag`=:tag
+            AND d.`did` IN (
+                SELECT `id`
+                FROM dataset_tag as dt
+                WHERE dt.`tag`=:tag
+            )
+            """
         )
-        """,
-        )
-        if tag
-        else ""
-    )
+        parameters["tag"] = tag
 
     def quality_clause(quality: str, range_: str | None) -> str:
         if not range_:
@@ -173,10 +182,9 @@ async def list_datasets(  # noqa: PLR0913
                IFNULL(cs.`status`, 'in_preparation')
         FROM dataset AS d
         LEFT JOIN ({current_status}) AS cs ON d.`did`=cs.`did`
-        WHERE {visible_to_user} {where_name} {where_version} {where_uploader}
-        {where_data_id} {matching_tag} {number_instances_filter} {number_features_filter}
+        WHERE 1=1 {number_instances_filter} {number_features_filter}
         {number_classes_filter} {number_missing_values_filter}
-        {"".join(clauses)}
+        {" ".join(clauses)}
         LIMIT {pagination.limit} OFFSET {pagination.offset}
         """,  # noqa: S608
         # I am not sure how to do this correctly without an error from Bandit here.
@@ -187,12 +195,7 @@ async def list_datasets(  # noqa: PLR0913
     columns = ["did", "name", "version", "format", "file_id", "status"]
     result = await expdb_db.execute(
         matching_filter,
-        parameters={
-            "tag": tag,
-            "data_name": data_name,
-            "data_version": data_version,
-            "uploader": uploader,
-        },
+        parameters=parameters,
     )
     rows = result.all()
     datasets: dict[int, dict[str, Any]] = {
