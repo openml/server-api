@@ -73,6 +73,23 @@ class DatasetStatusFilter(StrEnum):
     ALL = "all"
 
 
+def _quality_clause(quality: str, range_: str | None) -> str:
+    if not range_:
+        return ""
+    if not (match := re.match(integer_range_regex, range_)):
+        msg = f"`range_` not a valid range: {range_}"
+        raise ValueError(msg)
+    start, end = match.groups()
+    value = f"`value` BETWEEN {start} AND {end[2:]}" if end else f"`value`={start}"
+    return f""" AND
+        d.`did` IN (
+            SELECT `data`
+            FROM data_quality
+            WHERE `quality`='{quality}' AND {value}
+        )
+    """  # noqa: S608 - `quality` is not user provided, value is filtered with regex
+
+
 @router.post(path="/list", description="Provided for convenience, same as `GET` endpoint.")
 @router.get(path="/list")
 async def list_datasets(  # noqa: PLR0913
@@ -116,9 +133,9 @@ async def list_datasets(  # noqa: PLR0913
     )
 
     clauses = []
-    parameters = {}
+    parameters: dict[str, Any] = {}
     if status != DatasetStatusFilter.ALL:
-        clauses.append(f"AND IFNULL(cs.`status`, 'in_preparation') = :status")
+        clauses.append("AND IFNULL(cs.`status`, 'in_preparation') = :status")
         parameters["status"] = status
 
     if user is None:
@@ -152,30 +169,15 @@ async def list_datasets(  # noqa: PLR0913
                 FROM dataset_tag as dt
                 WHERE dt.`tag`=:tag
             )
-            """
+            """,
         )
         parameters["tag"] = tag
 
-    def quality_clause(quality: str, range_: str | None) -> str:
-        if not range_:
-            return ""
-        if not (match := re.match(integer_range_regex, range_)):
-            msg = f"`range_` not a valid range: {range_}"
-            raise ValueError(msg)
-        start, end = match.groups()
-        value = f"`value` BETWEEN {start} AND {end[2:]}" if end else f"`value`={start}"
-        return f""" AND
-            d.`did` IN (
-                SELECT `data`
-                FROM data_quality
-                WHERE `quality`='{quality}' AND {value}
-            )
-        """  # noqa: S608 - `quality` is not user provided, value is filtered with regex
-
-    number_instances_filter = quality_clause("NumberOfInstances", number_instances)
-    number_classes_filter = quality_clause("NumberOfClasses", number_classes)
-    number_features_filter = quality_clause("NumberOfFeatures", number_features)
-    number_missing_values_filter = quality_clause("NumberOfMissingValues", number_missing_values)
+    number_instances_filter = _quality_clause("NumberOfInstances", number_instances)
+    number_classes_filter = _quality_clause("NumberOfClasses", number_classes)
+    number_features_filter = _quality_clause("NumberOfFeatures", number_features)
+    number_missing_values_filter = _quality_clause("NumberOfMissingValues", number_missing_values)
+    columns = ["did", "name", "version", "format", "file_id", "status"]
     matching_filter = text(
         f"""
         SELECT d.`did`,d.`name`,d.`version`,d.`format`,d.`file_id`,
@@ -192,7 +194,6 @@ async def list_datasets(  # noqa: PLR0913
         # of given options, so no injection is possible (I think). The `current_status`
         # subquery also has no user input. So I think this should be safe.
     )
-    columns = ["did", "name", "version", "format", "file_id", "status"]
     result = await expdb_db.execute(
         matching_filter,
         parameters=parameters,
