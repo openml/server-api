@@ -118,6 +118,7 @@ async def list_runs(  # noqa: PLR0913
         FROM run r
         JOIN algorithm_setup a ON r.setup = a.sid
         {where_clause}
+        ORDER BY r.rid
         LIMIT :limit OFFSET :offset
         """,  # noqa: S608
     )
