@@ -128,6 +128,13 @@ async def _fill_json_template(  # noqa: C901
         (field,) = match.groups()
         if field not in fetched_data:
             table, _ = field.split(".")
+            # List of tables allowed for [LOOKUP:table.column] directive.
+            # This is a security measure to prevent SQL injection via table names.
+            allowed_tables = {"estimation_procedure", "evaluation_measure", "task_type", "dataset"}
+            if table not in allowed_tables:
+                msg = f"Table {table} is not allowed for lookup."
+                raise ValueError(msg)
+
             result = await connection.execute(
                 text(
                     f"""
@@ -136,8 +143,6 @@ async def _fill_json_template(  # noqa: C901
                     WHERE `id` = :id_
                     """,  # noqa: S608
                 ),
-                # Not sure how parametrize table names, as the parametrization adds
-                # quotes which is not legal.
                 parameters={"id_": int(task_inputs[table])},
             )
             rows = result.mappings()
