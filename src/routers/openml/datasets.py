@@ -163,46 +163,63 @@ async def list_datasets(  # noqa: C901, PLR0913, PLR0915
         else ""
     )
 
-    def quality_clause(range_: str | None, param_name: str) -> str:
+    def quality_clause(
+        quality_name: str,
+        range_: str | None,
+        *,
+        prefix: str,
+    ) -> tuple[str, dict[str, Any]]:
         if not range_:
-            return ""
+            return "", {}
         if not (match := re.match(integer_range_regex, range_)):
             msg = f"`range_` not a valid range: {range_}"
             raise ValueError(msg)
         start, end = match.groups()
+        clause_params: dict[str, Any] = {f"quality_name_{prefix}": quality_name}
         if end:
-            params[f"{param_name}_start"] = int(start)
-            params[f"{param_name}_end"] = int(end[2:])
-            value_clause = f"`value` BETWEEN :{param_name}_start AND :{param_name}_end"
+            clause_params[f"{prefix}_start"] = int(start)
+            clause_params[f"{prefix}_end"] = int(end[2:])
+            value_clause = f"`value` BETWEEN :{prefix}_start AND :{prefix}_end"
         else:
-            params[f"{param_name}_val"] = int(start)
-            value_clause = f"`value` = :{param_name}_val"
+            clause_params[f"{prefix}_val"] = int(start)
+            value_clause = f"`value` = :{prefix}_val"
 
-        return f""" AND
+        sql = f""" AND
             d.`did` IN (
                 SELECT `data`
                 FROM data_quality
-                WHERE `quality`=:quality_{param_name} AND {value_clause}
+                WHERE `quality`=:quality_name_{prefix} AND {value_clause}
             )
         """  # noqa: S608
+        return sql, clause_params
 
-    params["quality_instances"] = "NumberOfInstances"
-    params["quality_classes"] = "NumberOfClasses"
-    params["quality_features"] = "NumberOfFeatures"
-    params["quality_missing"] = "NumberOfMissingValues"
-
-    number_instances_filter = quality_clause(number_instances, "instances")
-    number_classes_filter = quality_clause(number_classes, "classes")
-    number_features_filter = quality_clause(number_features, "features")
-    number_missing_values_filter = quality_clause(
-        number_missing_values,
-        "missing",
+    number_instances_filter, instances_params = quality_clause(
+        "NumberOfInstances",
+        number_instances,
+        prefix="instances",
     )
+    params.update(instances_params)
 
-    # Use bindparam with expanding=True for list parameters in IN clauses
-    bind_params = [bindparam("statuses", expanding=True)]
-    if "data_ids" in params:
-        bind_params.append(bindparam("data_ids", expanding=True))
+    number_classes_filter, classes_params = quality_clause(
+        "NumberOfClasses",
+        number_classes,
+        prefix="classes",
+    )
+    params.update(classes_params)
+
+    number_features_filter, features_params = quality_clause(
+        "NumberOfFeatures",
+        number_features,
+        prefix="features",
+    )
+    params.update(features_params)
+
+    number_missing_values_filter, missing_params = quality_clause(
+        "NumberOfMissingValues",
+        number_missing_values,
+        prefix="missing",
+    )
+    params.update(missing_params)
 
     matching_filter = text(
         f"""
@@ -216,7 +233,10 @@ async def list_datasets(  # noqa: C901, PLR0913, PLR0915
         AND IFNULL(cs.`status`, 'in_preparation') IN :statuses
         LIMIT :limit OFFSET :offset
         """,  # noqa: S608
-    ).bindparams(*bind_params)
+    ).bindparams(
+        bindparam("statuses", expanding=True),
+        bindparam("data_ids", expanding=True) if "data_ids" in params else bindparam("data_ids"),
+    )
 
     columns = ["did", "name", "version", "format", "file_id", "status"]
     result = await expdb_db.execute(

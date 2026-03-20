@@ -3,7 +3,7 @@ import re
 from typing import Annotated, cast
 
 import xmltodict
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import RowMapping, text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
@@ -17,6 +17,7 @@ from schemas.datasets.openml import Task
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 type JSON = dict[str, "JSON"] | list["JSON"] | str | int | float | bool | None
+ALLOWED_LOOKUP_TABLES = {"estimation_procedure", "evaluation_measure", "task_type", "dataset"}
 
 
 def convert_template_xml_to_json(xml_template: str) -> dict[str, JSON]:
@@ -130,10 +131,9 @@ async def _fill_json_template(  # noqa: C901
             table, _ = field.split(".")
             # List of tables allowed for [LOOKUP:table.column] directive.
             # This is a security measure to prevent SQL injection via table names.
-            allowed_tables = {"estimation_procedure", "evaluation_measure", "task_type", "dataset"}
-            if table not in allowed_tables:
+            if table not in ALLOWED_LOOKUP_TABLES:
                 msg = f"Table {table} is not allowed for lookup."
-                raise ValueError(msg)
+                raise HTTPException(status_code=400, detail=msg)
 
             result = await connection.execute(
                 text(
