@@ -4,7 +4,7 @@ from enum import StrEnum
 from typing import Annotated, Any, Literal, NamedTuple
 
 from fastapi import APIRouter, Body, Depends
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncConnection
 
@@ -75,7 +75,7 @@ class DatasetStatusFilter(StrEnum):
 
 @router.post(path="/list", description="Provided for convenience, same as `GET` endpoint.")
 @router.get(path="/list")
-async def list_datasets(  # noqa: PLR0913
+async def list_datasets(  # noqa: C901, PLR0913, PLR0915
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     data_name: Annotated[str | None, CasualString128] = None,
     tag: Annotated[str | None, SystemString64] = None,
@@ -114,65 +114,118 @@ async def list_datasets(  # noqa: PLR0913
         )
         """,
     )
-
+    statuses: list[str]
     if status == DatasetStatusFilter.ALL:
         statuses = [
-            DatasetStatusFilter.ACTIVE,
-            DatasetStatusFilter.DEACTIVATED,
-            DatasetStatusFilter.IN_PREPARATION,
+            DatasetStatusFilter.ACTIVE.value,
+            DatasetStatusFilter.DEACTIVATED.value,
+            DatasetStatusFilter.IN_PREPARATION.value,
         ]
     else:
-        statuses = [status]
+        statuses = [status.value]
 
-    where_status = ",".join(f"'{status}'" for status in statuses)
+    params: dict[str, Any] = {
+        "tag": tag,
+        "data_name": data_name,
+        "data_version": data_version,
+        "uploader": uploader,
+        "limit": pagination.limit,
+        "offset": pagination.offset,
+        "statuses": statuses,
+    }
+
     if user is None:
         visible_to_user = "`visibility`='public'"
     elif UserGroup.ADMIN in await user.get_groups():
         visible_to_user = "TRUE"
     else:
-        visible_to_user = f"(`visibility`='public' OR `uploader`={user.user_id})"
+        visible_to_user = "(`visibility`='public' OR `uploader`=:user_id)"
+        params["user_id"] = user.user_id
 
     where_name = "" if data_name is None else "AND `name`=:data_name"
     where_version = "" if data_version is None else "AND `version`=:data_version"
     where_uploader = "" if uploader is None else "AND `uploader`=:uploader"
-    data_id_str = ",".join(str(did) for did in data_id) if data_id else ""
-    where_data_id = "" if not data_id else f"AND d.`did` IN ({data_id_str})"
 
-    # requires some benchmarking on whether e.g., IN () is more efficient.
+    where_data_id = ""
+    if data_id:
+        where_data_id = "AND d.`did` IN :data_ids"
+        params["data_ids"] = data_id
+
     matching_tag = (
-        text(
-            """
+        """
         AND d.`did` IN (
             SELECT `id`
             FROM dataset_tag as dt
             WHERE dt.`tag`=:tag
         )
-        """,
-        )
+        """
         if tag
         else ""
     )
 
-    def quality_clause(quality: str, range_: str | None) -> str:
+    def quality_clause(
+        quality_name: str,
+        range_: str | None,
+        *,
+        prefix: str,
+    ) -> tuple[str, dict[str, Any]]:
         if not range_:
-            return ""
+            return "", {}
         if not (match := re.match(integer_range_regex, range_)):
             msg = f"`range_` not a valid range: {range_}"
             raise ValueError(msg)
         start, end = match.groups()
-        value = f"`value` BETWEEN {start} AND {end[2:]}" if end else f"`value`={start}"
-        return f""" AND
+        clause_params: dict[str, Any] = {f"quality_name_{prefix}": quality_name}
+        if end:
+            clause_params[f"{prefix}_start"] = int(start)
+            clause_params[f"{prefix}_end"] = int(end[2:])
+            value_clause = f"`value` BETWEEN :{prefix}_start AND :{prefix}_end"
+        else:
+            clause_params[f"{prefix}_val"] = int(start)
+            value_clause = f"`value` = :{prefix}_val"
+
+        sql = f""" AND
             d.`did` IN (
                 SELECT `data`
                 FROM data_quality
-                WHERE `quality`='{quality}' AND {value}
+                WHERE `quality`=:quality_name_{prefix} AND {value_clause}
             )
-        """  # noqa: S608 - `quality` is not user provided, value is filtered with regex
+        """  # noqa: S608
+        return sql, clause_params
 
-    number_instances_filter = quality_clause("NumberOfInstances", number_instances)
-    number_classes_filter = quality_clause("NumberOfClasses", number_classes)
-    number_features_filter = quality_clause("NumberOfFeatures", number_features)
-    number_missing_values_filter = quality_clause("NumberOfMissingValues", number_missing_values)
+    number_instances_filter, instances_params = quality_clause(
+        "NumberOfInstances",
+        number_instances,
+        prefix="instances",
+    )
+    params.update(instances_params)
+
+    number_classes_filter, classes_params = quality_clause(
+        "NumberOfClasses",
+        number_classes,
+        prefix="classes",
+    )
+    params.update(classes_params)
+
+    number_features_filter, features_params = quality_clause(
+        "NumberOfFeatures",
+        number_features,
+        prefix="features",
+    )
+    params.update(features_params)
+
+    number_missing_values_filter, missing_params = quality_clause(
+        "NumberOfMissingValues",
+        number_missing_values,
+        prefix="missing",
+    )
+    params.update(missing_params)
+
+    # Use bindparam with expanding=True for list parameters in IN clauses
+    bind_params = [bindparam("statuses", expanding=True)]
+    if "data_ids" in params:
+        bind_params.append(bindparam("data_ids", expanding=True))
+
     matching_filter = text(
         f"""
         SELECT d.`did`,d.`name`,d.`version`,d.`format`,d.`file_id`,
@@ -182,23 +235,15 @@ async def list_datasets(  # noqa: PLR0913
         WHERE {visible_to_user} {where_name} {where_version} {where_uploader}
         {where_data_id} {matching_tag} {number_instances_filter} {number_features_filter}
         {number_classes_filter} {number_missing_values_filter}
-        AND IFNULL(cs.`status`, 'in_preparation') IN ({where_status})
-        LIMIT {pagination.limit} OFFSET {pagination.offset}
+        AND IFNULL(cs.`status`, 'in_preparation') IN :statuses
+        LIMIT :limit OFFSET :offset
         """,  # noqa: S608
-        # I am not sure how to do this correctly without an error from Bandit here.
-        # However, the `status` input is already checked by FastAPI to be from a set
-        # of given options, so no injection is possible (I think). The `current_status`
-        # subquery also has no user input. So I think this should be safe.
-    )
+    ).bindparams(*bind_params)
+
     columns = ["did", "name", "version", "format", "file_id", "status"]
     result = await expdb_db.execute(
         matching_filter,
-        parameters={
-            "tag": tag,
-            "data_name": data_name,
-            "data_version": data_version,
-            "uploader": uploader,
-        },
+        parameters=params,
     )
     rows = result.all()
     datasets: dict[int, dict[str, Any]] = {
