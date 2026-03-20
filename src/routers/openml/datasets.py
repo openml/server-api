@@ -221,6 +221,11 @@ async def list_datasets(  # noqa: C901, PLR0913, PLR0915
     )
     params.update(missing_params)
 
+    # Use bindparam with expanding=True for list parameters in IN clauses
+    bind_params = [bindparam("statuses", expanding=True)]
+    if "data_ids" in params:
+        bind_params.append(bindparam("data_ids", expanding=True))
+
     matching_filter = text(
         f"""
         SELECT d.`did`,d.`name`,d.`version`,d.`format`,d.`file_id`,
@@ -233,10 +238,7 @@ async def list_datasets(  # noqa: C901, PLR0913, PLR0915
         AND IFNULL(cs.`status`, 'in_preparation') IN :statuses
         LIMIT :limit OFFSET :offset
         """,  # noqa: S608
-    ).bindparams(
-        bindparam("statuses", expanding=True),
-        bindparam("data_ids", expanding=True) if "data_ids" in params else bindparam("data_ids"),
-    )
+    ).bindparams(*bind_params)
 
     columns = ["did", "name", "version", "format", "file_id", "status"]
     result = await expdb_db.execute(
