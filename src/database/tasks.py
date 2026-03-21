@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from typing import cast
 
-from sqlalchemy import Row, text
+from sqlalchemy import Row, RowMapping, text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 
@@ -115,3 +115,18 @@ async def get_tags(id_: int, expdb: AsyncConnection) -> list[str]:
     )
     tag_rows = rows.all()
     return [row.tag for row in tag_rows]
+
+
+async def get_lookup_data(table: str, id_: int, expdb: AsyncConnection) -> RowMapping | None:
+    # table is already whitelisted in the router
+    result = await expdb.execute(
+        text(
+            f"""
+            SELECT *
+            FROM {table}
+            WHERE `id` = :id_
+            """,  # noqa: S608
+        ),
+        parameters={"id_": id_},
+    )
+    return result.mappings().one_or_none()

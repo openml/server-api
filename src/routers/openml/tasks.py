@@ -4,7 +4,7 @@ from typing import Annotated, cast
 
 import xmltodict
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import RowMapping, text
+from sqlalchemy import RowMapping
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 import config
@@ -135,18 +135,11 @@ async def _fill_json_template(  # noqa: C901
                 msg = f"Table {table} is not allowed for lookup."
                 raise HTTPException(status_code=400, detail=msg)
 
-            result = await connection.execute(
-                text(
-                    f"""
-                    SELECT *
-                    FROM {table}
-                    WHERE `id` = :id_
-                    """,  # noqa: S608
-                ),
-                parameters={"id_": int(task_inputs[table])},
+            row_data = await database.tasks.get_lookup_data(
+                table=table,
+                id_=int(task_inputs[table]),
+                expdb=connection,
             )
-            rows = result.mappings()
-            row_data = next(rows, None)
             if row_data is None:
                 msg = f"No data found for table {table} with id {task_inputs[table]}"
                 raise ValueError(msg)
