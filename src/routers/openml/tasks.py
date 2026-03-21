@@ -96,7 +96,7 @@ async def fill_template(
     )
 
 
-async def _fill_json_template(  # noqa: C901
+async def _fill_json_template(  # noqa: C901, PLR0912
     template: JSON,
     task: RowMapping,
     task_inputs: dict[str, str | int],
@@ -131,15 +131,24 @@ async def _fill_json_template(  # noqa: C901
             table, _ = field.split(".")
             # List of tables allowed for [LOOKUP:table.column] directive.
             # This is a security measure to prevent SQL injection via table names.
-            if table not in ALLOWED_LOOKUP_TABLES:
-                msg = f"Table {table} is not allowed for lookup."
+            if table not in task_inputs or not task_inputs[table]:
+                msg = f"Missing or empty input for lookup table: {table}"
                 raise HTTPException(status_code=400, detail=msg)
 
-            row_data = await database.tasks.get_lookup_data(
-                table=table,
-                id_=int(task_inputs[table]),
-                expdb=connection,
-            )
+            try:
+                id_val = int(task_inputs[table])
+            except ValueError:
+                msg = f"Invalid integer id for table {table}: {task_inputs[table]}"
+                raise HTTPException(status_code=400, detail=msg) from None
+
+            try:
+                row_data = await database.tasks.get_lookup_data(
+                    table=table,
+                    id_=id_val,
+                    expdb=connection,
+                )
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e)) from e
             if row_data is None:
                 msg = f"No data found for table {table} with id {task_inputs[table]}"
                 raise ValueError(msg)
