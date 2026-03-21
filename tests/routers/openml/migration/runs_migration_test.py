@@ -2,6 +2,7 @@
 
 import asyncio
 from http import HTTPStatus
+from typing import Any
 
 import deepdiff
 import httpx
@@ -35,9 +36,19 @@ async def test_get_run_trace_equal(
     # PHP returns all numeric values as strings — normalize Python response
     new_json = nested_num_to_str(new_json)
 
+    def _sort_trace(payload: dict[str, Any]) -> dict[str, Any]:
+        """Sort trace iterations by (repeat, fold, iteration) for order-sensitive comparison."""
+        copied = payload.copy()
+        copied["trace"] = copied["trace"].copy()
+        copied["trace"]["trace_iteration"] = sorted(
+            copied["trace"]["trace_iteration"],
+            key=lambda row: (int(row["repeat"]), int(row["fold"]), int(row["iteration"])),
+        )
+        return copied
+
     differences = deepdiff.diff.DeepDiff(
-        new_json,
-        php_response.json(),
-        ignore_order=True,
+        _sort_trace(new_json),
+        _sort_trace(php_response.json()),
+        ignore_order=False,
     )
     assert not differences
