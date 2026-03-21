@@ -73,3 +73,73 @@ class User:
             group_ids = await get_user_groups_for(user_id=self.user_id, connection=self._database)
             self._groups = [UserGroup(group_id) for group_id in group_ids]
         return self._groups
+
+
+async def get_user_resource_count(*, user_id: int, expdb: AsyncConnection) -> int:
+    """Return the total number of datasets, flows, and runs owned by the user."""
+    dataset_count = (
+        await expdb.execute(
+            text("SELECT COUNT(*) FROM dataset WHERE uploader = :user_id"),
+            parameters={"user_id": user_id},
+        )
+    ).scalar() or 0
+    flow_count = (
+        await expdb.execute(
+            text("SELECT COUNT(*) FROM implementation WHERE uploader = :user_id"),
+            parameters={"user_id": user_id},
+        )
+    ).scalar() or 0
+    run_count = (
+        await expdb.execute(
+            text("SELECT COUNT(*) FROM run WHERE uploader = :user_id"),
+            parameters={"user_id": user_id},
+        )
+    ).scalar() or 0
+
+    study_count = (
+        await expdb.execute(
+            text("SELECT COUNT(*) FROM study WHERE creator = :user_id"),
+            parameters={"user_id": user_id},
+        )
+    ).scalar() or 0
+    task_study_count = (
+        await expdb.execute(
+            text("SELECT COUNT(*) FROM task_study WHERE uploader = :user_id"),
+            parameters={"user_id": user_id},
+        )
+    ).scalar() or 0
+    run_study_count = (
+        await expdb.execute(
+            text("SELECT COUNT(*) FROM run_study WHERE uploader = :user_id"),
+            parameters={"user_id": user_id},
+        )
+    ).scalar() or 0
+    dataset_tag_count = (
+        await expdb.execute(
+            text("SELECT COUNT(*) FROM dataset_tag WHERE uploader = :user_id"),
+            parameters={"user_id": user_id},
+        )
+    ).scalar() or 0
+
+    return int(
+        dataset_count
+        + flow_count
+        + run_count
+        + study_count
+        + task_study_count
+        + run_study_count
+        + dataset_tag_count,
+    )
+
+
+async def delete_user(*, user_id: int, connection: AsyncConnection) -> None:
+    """Remove the user and their group memberships from the user database."""
+    async with connection.begin_nested():
+        await connection.execute(
+            text("DELETE FROM users_groups WHERE user_id = :user_id"),
+            parameters={"user_id": user_id},
+        )
+        await connection.execute(
+            text("DELETE FROM users WHERE id = :user_id"),
+            parameters={"user_id": user_id},
+        )

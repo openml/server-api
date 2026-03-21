@@ -19,10 +19,9 @@ async def test_flow_exists_not(
     py_api: httpx.AsyncClient,
     php_api: httpx.AsyncClient,
 ) -> None:
-    path = "exists/foo/bar"
     py_response, php_response = await asyncio.gather(
-        py_api.get(f"/flows/{path}"),
-        php_api.get(f"/flow/{path}"),
+        py_api.post("/flows/exists", json={"name": "foo", "external_version": "bar"}),
+        php_api.get("/flow/exists/foo/bar"),
     )
 
     assert py_response.status_code == HTTPStatus.NOT_FOUND
@@ -43,10 +42,15 @@ async def test_flow_exists(
     py_api: httpx.AsyncClient,
     php_api: httpx.AsyncClient,
 ) -> None:
-    path = f"exists/{persisted_flow.name}/{persisted_flow.external_version}"
     py_response, php_response = await asyncio.gather(
-        py_api.get(f"/flows/{path}"),
-        php_api.get(f"/flow/{path}"),
+        py_api.post(
+            "/flows/exists",
+            json={
+                "name": persisted_flow.name,
+                "external_version": persisted_flow.external_version,
+            },
+        ),
+        php_api.get(f"/flow/exists/{persisted_flow.name}/{persisted_flow.external_version}"),
     )
 
     assert py_response.status_code == php_response.status_code, php_response.content

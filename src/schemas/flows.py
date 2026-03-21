@@ -6,6 +6,11 @@ from typing import Any, TypedDict
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class FlowExistsBody(BaseModel):
+    name: str
+    external_version: str
+
+
 class Parameter(BaseModel):
     name: str
     default_value: Any
