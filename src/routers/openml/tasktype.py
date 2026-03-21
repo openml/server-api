@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Annotated, Any, Literal, cast
 
 from fastapi import APIRouter, Depends
@@ -9,6 +10,8 @@ from core.errors import TaskTypeNotFoundError
 from database.tasks import get_input_for_task_type, get_task_types
 from database.tasks import get_task_type as db_get_task_type
 from routers.dependencies import expdb_connection
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/tasktype", tags=["tasks"])
 
@@ -24,6 +27,75 @@ def _normalize_task_type(task_type: Row[Any]) -> dict[str, str | None | list[Any
     if ttype["description"] == "":
         ttype["description"] = []
     return ttype
+
+
+def parse_api_constraints(
+    api_constraints: Any,
+    *,
+    task_type_id: int,
+    input_name: str,
+) -> str | None:
+    """Defensively parse api_constraints and extract a valid data_type string.
+
+    Malformed api_constraints will not raise errors; instead they are logged
+    and ignored for response construction. Returns a non-empty data_type string
+    on success, or None if the value cannot be parsed or does not contain a
+    valid data_type.
+    """
+    constraint: dict[str, Any] | None = None
+
+    if api_constraints is None:
+        return None
+
+    if isinstance(api_constraints, dict):
+        constraint = api_constraints
+    elif isinstance(api_constraints, str):
+        if not api_constraints:
+            logger.warning(
+                "api_constraints: empty_string for task_type_id=%d, input=%s",
+                task_type_id,
+                input_name,
+            )
+            return None
+        try:
+            parsed = json.loads(api_constraints)
+        except json.JSONDecodeError:
+            logger.warning(
+                "api_constraints: malformed_json for task_type_id=%d, input=%s",
+                task_type_id,
+                input_name,
+            )
+            return None
+        if not isinstance(parsed, dict):
+            logger.warning(
+                "api_constraints: non_dict_json for task_type_id=%d, input=%s "
+                "(got %s)",
+                task_type_id,
+                input_name,
+                type(parsed).__name__,
+            )
+            return None
+        constraint = parsed
+    else:
+        logger.warning(
+            "api_constraints: unsupported_type for task_type_id=%d, input=%s "
+            "(got %s)",
+            task_type_id,
+            input_name,
+            type(api_constraints).__name__,
+        )
+        return None
+
+    data_type = constraint.get("data_type")
+    if not isinstance(data_type, str) or not data_type:
+        logger.debug(
+            "api_constraints: missing_data_type for task_type_id=%d, input=%s",
+            task_type_id,
+            input_name,
+        )
+        return None
+
+    return data_type
 
 
 @router.get(path="/list")
@@ -44,6 +116,13 @@ async def get_task_type(
     task_type_id: int,
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[Literal["task_type"], dict[str, str | None | list[str] | list[dict[str, str]]]]:
+    """Retrieve a task type by ID.
+
+    Response contract:
+    - Always returns 200 for valid task types.
+    - input[].data_type is optional and only included when valid constraints exist.
+    - Invalid api_constraints never break the response.
+    """
     task_type_record = await db_get_task_type(task_type_id, expdb)
     if task_type_record is None:
         msg = f"Task type {task_type_id} not found."
@@ -66,10 +145,16 @@ async def get_task_type(
         if task_type_input.requirement == "required":
             input_["requirement"] = task_type_input.requirement
         input_["name"] = task_type_input.name
-        # api_constraints is for one input only in the test database (TODO: patch db)
-        if isinstance(task_type_input.api_constraints, str):
-            constraint = json.loads(task_type_input.api_constraints)
-            input_["data_type"] = constraint["data_type"]
+        # data_type is optional and only included when valid constraints exist.
+        # Malformed api_constraints will not raise errors; instead they are
+        # logged and ignored for response construction.
+        data_type = parse_api_constraints(
+            task_type_input.api_constraints,
+            task_type_id=task_type_id,
+            input_name=task_type_input.name,
+        )
+        if data_type is not None:
+            input_["data_type"] = data_type
         input_types.append(input_)
     task_type["input"] = input_types
     return {"task_type": task_type}
