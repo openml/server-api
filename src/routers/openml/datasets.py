@@ -101,20 +101,34 @@ async def list_datasets(  # noqa: PLR0913
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> list[dict[str, Any]]:
     assert expdb_db is not None  # noqa: S101
+    if status == DatasetStatusFilter.ALL:
+        statuses = [
+            DatasetStatusFilter.ACTIVE,
+            DatasetStatusFilter.DEACTIVATED,
+            DatasetStatusFilter.IN_PREPARATION,
+        ]
+    else:
+        statuses = [status]
+
+    user_id = user.user_id if user else None
+    is_admin = UserGroup.ADMIN in await user.get_groups() if user else False
+
     try:
         rows = await database.datasets.list_datasets(
-            pagination=pagination,
+            limit=pagination.limit,
+            offset=pagination.offset,
             data_name=data_name,
             tag=tag,
-            data_version=data_version,
+            data_version=str(data_version) if data_version is not None else None,
             uploader=uploader,
-            data_id=data_id,
+            data_ids=data_id,
             number_instances=number_instances,
             number_features=number_features,
             number_classes=number_classes,
             number_missing_values=number_missing_values,
-            status=status,
-            user=user,
+            statuses=[s.value for s in statuses],
+            user_id=user_id,
+            is_admin=is_admin,
             connection=expdb_db,
         )
     except ValueError as e:

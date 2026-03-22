@@ -151,7 +151,7 @@ async def _fill_json_template(  # noqa: C901, PLR0912
                 raise HTTPException(status_code=400, detail=str(e)) from e
             if row_data is None:
                 msg = f"No data found for table {table} with id {task_inputs[table]}"
-                raise ValueError(msg)
+                raise HTTPException(status_code=400, detail=msg)
             for column, value in row_data.items():
                 fetched_data[f"{table}.{column}"] = value
         if match.string == template:

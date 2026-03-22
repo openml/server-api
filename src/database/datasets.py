@@ -3,7 +3,7 @@ import re
 from collections.abc import Sequence
 from typing import Any, cast
 
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncConnection
 
@@ -359,6 +359,10 @@ async def list_datasets(  # noqa: PLR0913
         """,  # noqa: S608
     )
 
+    sql = sql.bindparams(bindparam("statuses", expanding=True))
+    if data_ids:
+        sql = sql.bindparams(bindparam("data_ids", expanding=True))
+
     parameters = {
         "data_name": data_name,
         "data_version": data_version,
@@ -373,7 +377,7 @@ async def list_datasets(  # noqa: PLR0913
         parameters["data_ids"] = data_ids
 
     result = await connection.execute(
-        sql.bindparams(statuses=statuses, data_ids=data_ids) if data_ids else sql,
+        sql,
         parameters=parameters,
     )
     return cast("Sequence[Row]", result.all())
