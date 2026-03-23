@@ -39,7 +39,6 @@ async def get_qualities(
 ) -> list[Quality]:
     dataset = await database.datasets.get(dataset_id, expdb)
     if not dataset or not await _user_has_access(dataset, user):
-        # Backwards compatibility: PHP API returns 412 with code 113
         msg = f"Dataset with id {dataset_id} not found."
         raise DatasetNotFoundError(
             msg,
@@ -52,7 +51,8 @@ async def get_qualities(
         raise DatasetNotProcessedError(msg, code=363)
 
     if processing.error:
-        raise DatasetProcessingError(processing.error.strip(), code=364)
+        msg = processing.error.strip() or "Error occurred during processing."
+        raise DatasetProcessingError(msg, code=364)
 
     qualities = await database.qualities.get_for_dataset(dataset_id, expdb)
     if not qualities:
