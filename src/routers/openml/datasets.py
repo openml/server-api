@@ -4,7 +4,7 @@ from enum import StrEnum
 from typing import Annotated, Any, Literal, NamedTuple
 
 from fastapi import APIRouter, Body, Depends
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncConnection
 
@@ -198,6 +198,9 @@ async def list_datasets(  # noqa: PLR0913, C901
         # of given options, so no injection is possible (I think). The `current_status`
         # subquery also has no user input. So I think this should be safe.
     )
+
+    if data_id:
+        matching_filter.bindparams(bindparam("data_ids", expanding=True))
     result = await expdb_db.execute(
         matching_filter,
         parameters=parameters,
