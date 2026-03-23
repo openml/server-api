@@ -286,7 +286,7 @@ async def test_get_quality(py_api: httpx.AsyncClient) -> None:
 
 @pytest.mark.parametrize(
     "data_id",
-    list(set(range(1, 133))),
+    [*list(set(range(1, 133))), 9999999],
 )
 async def test_get_quality_identical(
     data_id: int, py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
