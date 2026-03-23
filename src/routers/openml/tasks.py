@@ -154,8 +154,8 @@ async def _fill_json_template(  # noqa: C901
             for column, value in row_data.items():
                 fetched_data[f"{table}.{column}"] = str(value)
         if match.string == template:
-            return fetched_data[field]
-        template = template.replace(match.group(), fetched_data[field])
+            return fetched_data.get(field, "")
+        template = template.replace(match.group(), fetched_data.get(field, ""))
     # I believe that the operations below are always part of string output, so
     # we don't need to be careful to avoid losing typedness
     template = template.replace("[TASK:id]", str(task.task_id))
