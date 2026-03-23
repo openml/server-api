@@ -4,7 +4,7 @@ from typing import Annotated, cast
 
 import xmltodict
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import RowMapping, text
+from sqlalchemy import RowMapping
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 import config
