@@ -17,7 +17,6 @@ from schemas.datasets.openml import Task
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 type JSON = dict[str, "JSON"] | list["JSON"] | str | int | float | bool | None
-ALLOWED_LOOKUP_TABLES = {"estimation_procedure", "evaluation_measure", "task_type", "dataset"}
 
 
 def convert_template_xml_to_json(xml_template: str) -> dict[str, JSON]:
