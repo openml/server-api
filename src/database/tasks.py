@@ -4,7 +4,7 @@ from typing import cast
 from sqlalchemy import Row, RowMapping, text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-ALLOWED_LOOKUP_TABLES = ["estimation_procedure", "evaluation_measure", "task_type", "dataset"]
+ALLOWED_LOOKUP_TABLES = {"estimation_procedure", "evaluation_measure", "task_type", "dataset"}
 PK_MAPPING = {
     "task_type": "ttid",
     "dataset": "did",

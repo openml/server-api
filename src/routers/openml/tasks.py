@@ -153,7 +153,7 @@ async def _fill_json_template(  # noqa: C901
                 msg = f"No data found for table {table} with id {task_inputs[table]}"
                 raise HTTPException(status_code=400, detail=msg)
             for column, value in row_data.items():
-                fetched_data[f"{table}.{column}"] = value
+                fetched_data[f"{table}.{column}"] = str(value)
         if match.string == template:
             return fetched_data[field]
         template = template.replace(match.group(), fetched_data[field])
