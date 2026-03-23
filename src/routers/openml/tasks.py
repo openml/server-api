@@ -123,36 +123,11 @@ async def _fill_json_template(  # noqa: C901
         if match.string == template:
             # How do we know the default value? probably ttype_io table?
             return task_inputs.get(field, [])
-        template = template.replace(match.group(), str(task_inputs[field]))
+        template = template.replace(match.group(), str(task_inputs.get(field, "")))
     if match := re.search(r"\[LOOKUP:(.*)]", template):
         (field,) = match.groups()
         if field not in fetched_data:
-            table, _ = field.split(".")
-            # List of tables allowed for [LOOKUP:table.column] directive.
-            # This is a security measure to prevent SQL injection via table names.
-            if table not in task_inputs or not task_inputs[table]:
-                msg = f"Missing or empty input for lookup table: {table}"
-                raise HTTPException(status_code=400, detail=msg)
-
-            try:
-                id_val = int(task_inputs[table])
-            except ValueError:
-                msg = f"Invalid integer id for table {table}: {task_inputs[table]}"
-                raise HTTPException(status_code=400, detail=msg) from None
-
-            try:
-                row_data = await database.tasks.get_lookup_data(
-                    table=table,
-                    id_=id_val,
-                    expdb=connection,
-                )
-            except ValueError as e:
-                raise HTTPException(status_code=400, detail=str(e)) from e
-            if row_data is None:
-                msg = f"No data found for table {table} with id {task_inputs[table]}"
-                raise HTTPException(status_code=400, detail=msg)
-            for column, value in row_data.items():
-                fetched_data[f"{table}.{column}"] = str(value)
+            await _perform_lookup(field, task_inputs, fetched_data, connection)
         if match.string == template:
             return fetched_data.get(field, "")
         template = template.replace(match.group(), fetched_data.get(field, ""))
@@ -161,6 +136,40 @@ async def _fill_json_template(  # noqa: C901
     template = template.replace("[TASK:id]", str(task.task_id))
     server_url = config.load_routing_configuration()["server_url"]
     return template.replace("[CONSTANT:base_url]", server_url)
+
+
+async def _perform_lookup(
+    field: str,
+    task_inputs: dict[str, str | int],
+    fetched_data: dict[str, str],
+    connection: AsyncConnection,
+) -> None:
+    table, _ = field.split(".")
+    # List of tables allowed for [LOOKUP:table.column] directive.
+    # This is a security measure to prevent SQL injection via table names.
+    if table not in task_inputs or not task_inputs[table]:
+        msg = f"Missing or empty input for lookup table: {table}"
+        raise HTTPException(status_code=400, detail=msg)
+
+    try:
+        id_val = int(task_inputs[table])
+    except ValueError:
+        msg = f"Invalid integer id for table {table}: {task_inputs[table]}"
+        raise HTTPException(status_code=400, detail=msg) from None
+
+    try:
+        row_data = await database.tasks.get_lookup_data(
+            table=table,
+            id_=id_val,
+            expdb=connection,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    if row_data is None:
+        msg = f"No data found for table {table} with id {task_inputs[table]}"
+        raise HTTPException(status_code=400, detail=msg)
+    for column, value in row_data.items():
+        fetched_data[f"{table}.{column}"] = str(value)
 
 
 @router.get("/{task_id}")
