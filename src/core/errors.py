@@ -379,31 +379,13 @@ class ServiceNotFoundError(ProblemDetailError):
 # =============================================================================
 
 
-class QualityNoQualitiesError(ProblemDetailError):
+class NoQualitiesError(ProblemDetailError):
     """Raised when a dataset has no stored quality values."""
 
     uri = "https://openml.org/problems/quality-no-qualities"
     title = "No Qualities Found"
     _default_status_code = HTTPStatus.PRECONDITION_FAILED
     _default_code = 362
-
-
-class QualityDatasetNotProcessedError(ProblemDetailError):
-    """Raised when quality values are requested before dataset processing finished."""
-
-    uri = "https://openml.org/problems/quality-dataset-not-processed"
-    title = "Dataset Not Processed"
-    _default_status_code = HTTPStatus.PRECONDITION_FAILED
-    _default_code = 363
-
-
-class QualityDatasetProcessingError(ProblemDetailError):
-    """Raised when quality values are unavailable due to processing errors."""
-
-    uri = "https://openml.org/problems/quality-dataset-processing-error"
-    title = "Dataset Processed With Error"
-    _default_status_code = HTTPStatus.PRECONDITION_FAILED
-    _default_code = 364
 
 
 # =============================================================================

@@ -8,9 +8,9 @@ import database.qualities
 from core.access import _user_has_access
 from core.errors import (
     DatasetNotFoundError,
-    QualityDatasetNotProcessedError,
-    QualityDatasetProcessingError,
-    QualityNoQualitiesError,
+    DatasetNotProcessedError,
+    DatasetProcessingError,
+    NoQualitiesError,
 )
 from database.users import User
 from routers.dependencies import expdb_connection, fetch_user
@@ -49,14 +49,14 @@ async def get_qualities(
     processing = await database.datasets.get_latest_processing_update(dataset_id, expdb)
     if processing is None:
         msg = f"Dataset not processed yet for dataset {dataset_id}."
-        raise QualityDatasetNotProcessedError(msg)
+        raise DatasetNotProcessedError(msg, code=363)
 
     if processing.error:
-        raise QualityDatasetProcessingError(processing.error.strip())
+        raise DatasetProcessingError(processing.error.strip(), code=364)
 
     qualities = await database.qualities.get_for_dataset(dataset_id, expdb)
     if not qualities:
         msg = f"No qualities found for dataset {dataset_id}."
-        raise QualityNoQualitiesError(msg)
+        raise NoQualitiesError(msg)
 
     return qualities

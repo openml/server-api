@@ -346,7 +346,8 @@ def _assert_get_quality_error_dataset_process_error(
     py_error = python_response.json()
 
     assert php_error["code"] == py_error["code"]
-    assert php_error["message"].title() == py_error["title"]
+    assert php_error["message"] == "Dataset processed with error"
+    assert py_error["title"] == "Dataset Processing Error"
     # The PHP can add some additional unnecessary escapes.
     assert php_error["additional_information"][:30] == py_error["detail"][:30]
     assert php_error["additional_information"][-30:] == py_error["detail"][-30:]
