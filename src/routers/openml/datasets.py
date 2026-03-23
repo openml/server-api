@@ -92,7 +92,7 @@ def _quality_clause(quality: str, range_: str | None) -> str:
 
 @router.post(path="/list", description="Provided for convenience, same as `GET` endpoint.")
 @router.get(path="/list")
-async def list_datasets(  # noqa: PLR0913
+async def list_datasets(  # noqa: PLR0913, C901
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     data_name: Annotated[str | None, CasualString128] = None,
     tag: Annotated[str | None, SystemString64] = None,
@@ -180,6 +180,7 @@ async def list_datasets(  # noqa: PLR0913
     number_classes_filter = _quality_clause("NumberOfClasses", number_classes)
     number_features_filter = _quality_clause("NumberOfFeatures", number_features)
     number_missing_values_filter = _quality_clause("NumberOfMissingValues", number_missing_values)
+
     columns = ["did", "name", "version", "format", "file_id", "status"]
     matching_filter = text(
         f"""
