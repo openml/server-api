@@ -1,5 +1,6 @@
 import asyncio
 from http import HTTPStatus
+import re
 
 import deepdiff
 import httpx
@@ -287,7 +288,7 @@ async def test_get_quality(py_api: httpx.AsyncClient) -> None:
 
 @pytest.mark.parametrize(
     "data_id",
-    list(set(range(1, 132)) - {55, 56, 59, 116, 130}),
+    list(set(range(1, 133))),
 )
 async def test_get_quality_identical(
     data_id: int, py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
@@ -296,8 +297,21 @@ async def test_get_quality_identical(
         py_api.get(f"/datasets/qualities/{data_id}"),
         php_api.get(f"/data/qualities/{data_id}"),
     )
-    assert python_response.status_code == php_response.status_code
+    if php_response.status_code == HTTPStatus.OK:
+        _assert_get_quality_success_equal(python_response, php_response)
+        return
 
+    php_error_code = int(php_response.json()["error"]["code"])
+    if php_error_code == 361:
+        _assert_get_quality_error_dataset_not_found(python_response, php_response)
+    elif php_error_code == 364:
+        _assert_get_quality_error_dataset_process_error(python_response, php_response)
+    else:
+        raise AssertionError(f"Dataset {data_id} response not under test:", php_response.json())
+
+
+def _assert_get_quality_success_equal(python_response, php_response):
+    assert python_response.status_code == php_response.status_code
     expected = [
         {
             "name": quality["name"],
@@ -308,27 +322,26 @@ async def test_get_quality_identical(
     assert python_response.json() == expected
 
 
-@pytest.mark.parametrize(
-    "data_id",
-    [55, 56, 59, 116, 130, 132],
-)
-async def test_get_quality_identical_error(
-    data_id: int,
-    py_api: httpx.AsyncClient,
-    php_api: httpx.AsyncClient,
-) -> None:
-    if data_id in [116]:  # noqa: FURB171
-        # skipping 116 is not valid case for 362
-        pytest.skip("Detailed error for code 362 (no qualities) not yet supported.")
-    python_response, php_response = await asyncio.gather(
-        py_api.get(f"/datasets/qualities/{data_id}"),
-        php_api.get(f"/data/qualities/{data_id}"),
-    )
-    assert python_response.status_code == php_response.status_code
-    # RFC 9457: Python API now returns problem+json format
-    assert python_response.headers["content-type"] == "application/problem+json"
-    error = python_response.json()
-    assert error["type"] == DatasetNotFoundError.uri
-    # Verify the error message matches the PHP API semantically
-    assert php_response.json()["error"]["message"] == "Unknown dataset"
-    assert error["detail"] == f"Dataset with id {data_id} not found."
+def _assert_get_quality_error_dataset_not_found(python_response, php_response):
+    assert php_response.status_code == HTTPStatus.CONFLICT
+    assert python_response.status_code == HTTPStatus.NOT_FOUND
+
+    php_error = php_response.json()["error"]
+    py_error = python_response.json()
+
+    assert int(php_error["code"]) == py_error["code"]
+    assert php_error["message"] == "Unknown dataset"
+    assert re.match(r"Dataset with id \d+ not found.", py_error["detail"])
+
+
+def _assert_get_quality_error_dataset_process_error(python_response, php_response):
+    assert php_response.status_code == python_response.status_code
+
+    php_error = php_response.json()["error"]
+    py_error = python_response.json()
+
+    assert php_error["code"] == py_error["code"]
+    assert php_error["message"].title() == py_error["title"]
+    # The PHP can add some additional unnecessary escapes.
+    assert php_error["additional_information"][:30] == py_error["detail"][:30]
+    assert php_error["additional_information"][-30:] == py_error["detail"][-30:]

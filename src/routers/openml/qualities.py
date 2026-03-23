@@ -44,8 +44,7 @@ async def get_qualities(
         msg = f"Dataset with id {dataset_id} not found."
         raise DatasetNotFoundError(
             msg,
-            code=113,
-            status_code=HTTPStatus.PRECONDITION_FAILED,
+            code=361,
         ) from None
 
     processing = await database.datasets.get_latest_processing_update(dataset_id, expdb)
@@ -54,8 +53,7 @@ async def get_qualities(
         raise QualityDatasetNotProcessedError(msg)
 
     if processing.error:
-        msg = f"Dataset processed with error for dataset {dataset_id}."
-        raise QualityDatasetProcessingError(msg)
+        raise QualityDatasetProcessingError(processing.error.strip())
 
     qualities = await database.qualities.get_for_dataset(dataset_id, expdb)
     if not qualities:
