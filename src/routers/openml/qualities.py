@@ -1,4 +1,3 @@
-from http import HTTPStatus
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends

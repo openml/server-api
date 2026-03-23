@@ -1,14 +1,12 @@
 import asyncio
-from http import HTTPStatus
 import re
+from http import HTTPStatus
 
 import deepdiff
 import httpx
 import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
-
-from core.errors import DatasetNotFoundError
 
 
 async def _remove_quality_from_database(quality_name: str, expdb_test: AsyncConnection) -> None:
@@ -302,15 +300,18 @@ async def test_get_quality_identical(
         return
 
     php_error_code = int(php_response.json()["error"]["code"])
-    if php_error_code == 361:
+    if php_error_code == 361:  # noqa: PLR2004
         _assert_get_quality_error_dataset_not_found(python_response, php_response)
-    elif php_error_code == 364:
+    elif php_error_code == 364:  # noqa: PLR2004
         _assert_get_quality_error_dataset_process_error(python_response, php_response)
     else:
-        raise AssertionError(f"Dataset {data_id} response not under test:", php_response.json())
+        msg = f"Dataset {data_id} response not under test:", php_response.json()
+        raise AssertionError(msg)
 
 
-def _assert_get_quality_success_equal(python_response, php_response):
+def _assert_get_quality_success_equal(
+    python_response: httpx.Response, php_response: httpx.Response
+) -> None:
     assert python_response.status_code == php_response.status_code
     expected = [
         {
@@ -322,19 +323,23 @@ def _assert_get_quality_success_equal(python_response, php_response):
     assert python_response.json() == expected
 
 
-def _assert_get_quality_error_dataset_not_found(python_response, php_response):
-    assert php_response.status_code == HTTPStatus.CONFLICT
+def _assert_get_quality_error_dataset_not_found(
+    python_response: httpx.Response, php_response: httpx.Response
+) -> None:
+    assert php_response.status_code == HTTPStatus.PRECONDITION_FAILED
     assert python_response.status_code == HTTPStatus.NOT_FOUND
 
     php_error = php_response.json()["error"]
     py_error = python_response.json()
 
-    assert int(php_error["code"]) == py_error["code"]
+    assert php_error["code"] == py_error["code"]
     assert php_error["message"] == "Unknown dataset"
     assert re.match(r"Dataset with id \d+ not found.", py_error["detail"])
 
 
-def _assert_get_quality_error_dataset_process_error(python_response, php_response):
+def _assert_get_quality_error_dataset_process_error(
+    python_response: httpx.Response, php_response: httpx.Response
+) -> None:
     assert php_response.status_code == python_response.status_code
 
     php_error = php_response.json()["error"]
