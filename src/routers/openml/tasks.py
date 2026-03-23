@@ -95,7 +95,7 @@ async def fill_template(
     )
 
 
-async def _fill_json_template(  # noqa: C901
+async def _fill_json_template(
     template: JSON,
     task: RowMapping,
     task_inputs: dict[str, str | int],
