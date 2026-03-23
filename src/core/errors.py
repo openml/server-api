@@ -379,15 +379,6 @@ class ServiceNotFoundError(ProblemDetailError):
 # =============================================================================
 
 
-class QualityUnknownDatasetError(ProblemDetailError):
-    """Raised when requesting qualities for an unknown or inaccessible dataset."""
-
-    uri = "https://openml.org/problems/quality-unknown-dataset"
-    title = "Unknown Dataset"
-    _default_status_code = HTTPStatus.PRECONDITION_FAILED
-    _default_code = 361
-
-
 class QualityNoQualitiesError(ProblemDetailError):
     """Raised when a dataset has no stored quality values."""
 
