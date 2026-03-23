@@ -120,7 +120,7 @@ async def list_datasets(  # noqa: PLR0913
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> list[dict[str, Any]]:
     assert expdb_db is not None  # noqa: S101
-    current_status = text(
+    status_subquery = text(
         """
         SELECT ds1.`did`, ds1.`status`
         FROM dataset_status as ds1
@@ -133,7 +133,10 @@ async def list_datasets(  # noqa: PLR0913
     )
 
     clauses = []
-    parameters: dict[str, Any] = {"offset": pagination.offset, "limit": pagination.limit}
+    parameters: dict[str, Any] = {
+        "offset": pagination.offset,
+        "limit": pagination.limit,
+    }
     if status != DatasetStatusFilter.ALL:
         clauses.append("AND IFNULL(cs.`status`, 'in_preparation') = :status")
         parameters["status"] = status
@@ -183,7 +186,7 @@ async def list_datasets(  # noqa: PLR0913
         SELECT d.`did`,d.`name`,d.`version`,d.`format`,d.`file_id`,
                IFNULL(cs.`status`, 'in_preparation')
         FROM dataset AS d
-        LEFT JOIN ({current_status}) AS cs ON d.`did`=cs.`did`
+        LEFT JOIN ({status_subquery}) AS cs ON d.`did`=cs.`did`
         WHERE 1=1 {number_instances_filter} {number_features_filter}
         {number_classes_filter} {number_missing_values_filter}
         {" ".join(clauses)}
