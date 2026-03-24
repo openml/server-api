@@ -126,4 +126,4 @@ class TestParseApiConstraintsLogging:
                 input_name="source_data",
             )
         assert result == "matrix"
-        assert len(caplog.records) == 0
+        assert not any(r.name == "routers.openml.tasktype" for r in caplog.records)

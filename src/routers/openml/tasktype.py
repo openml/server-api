@@ -1,5 +1,6 @@
 import json
 import logging
+from collections.abc import Mapping
 from typing import Annotated, Any, Literal, cast
 
 from fastapi import APIRouter, Depends
@@ -30,7 +31,7 @@ def _normalize_task_type(task_type: Row[Any]) -> dict[str, str | None | list[Any
 
 
 def parse_api_constraints(
-    api_constraints: Any,
+    api_constraints: str | Mapping[str, object] | None,
     *,
     task_type_id: int,
     input_name: str,
@@ -42,12 +43,12 @@ def parse_api_constraints(
     on success, or None if the value cannot be parsed or does not contain a
     valid data_type.
     """
-    constraint: dict[str, Any] | None = None
-
     if api_constraints is None:
         return None
 
-    if isinstance(api_constraints, dict):
+    constraint: Mapping[str, object] | None = None
+
+    if isinstance(api_constraints, Mapping):
         constraint = api_constraints
     elif isinstance(api_constraints, str):
         if not api_constraints:
@@ -56,25 +57,26 @@ def parse_api_constraints(
                 task_type_id,
                 input_name,
             )
-            return None
-        try:
-            parsed = json.loads(api_constraints)
-        except json.JSONDecodeError:
-            logger.warning(
-                "api_constraints: malformed_json for task_type_id=%d, input=%s",
-                task_type_id,
-                input_name,
-            )
-            return None
-        if not isinstance(parsed, dict):
-            logger.warning(
-                "api_constraints: non_dict_json for task_type_id=%d, input=%s (got %s)",
-                task_type_id,
-                input_name,
-                type(parsed).__name__,
-            )
-            return None
-        constraint = parsed
+        else:
+            try:
+                parsed = json.loads(api_constraints)
+            except json.JSONDecodeError:
+                logger.warning(
+                    "api_constraints: malformed_json for task_type_id=%d, input=%s",
+                    task_type_id,
+                    input_name,
+                )
+            else:
+                if isinstance(parsed, dict):
+                    constraint = parsed
+                else:
+                    logger.warning(
+                        "api_constraints: non_dict_json for task_type_id=%d, input=%s "
+                        "(got %s)",
+                        task_type_id,
+                        input_name,
+                        type(parsed).__name__,
+                    )
     else:
         logger.warning(
             "api_constraints: unsupported_type for task_type_id=%d, input=%s (got %s)",
@@ -82,6 +84,8 @@ def parse_api_constraints(
             input_name,
             type(api_constraints).__name__,
         )
+
+    if constraint is None:
         return None
 
     data_type = constraint.get("data_type")
