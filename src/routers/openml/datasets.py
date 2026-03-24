@@ -405,10 +405,12 @@ async def get_dataset(
         msg = f"No data file found for dataset {dataset_id}."
         raise DatasetNoDataFileError(msg)
 
-    tags = await database.datasets.get_tags_for(dataset_id, expdb_db)
-    description = await database.datasets.get_description(dataset_id, expdb_db)
-    processing_result = await _get_processing_information(dataset_id, expdb_db)
-    status = await database.datasets.get_status(dataset_id, expdb_db)
+    tags, description, processing_result, status = await asyncio.gather(
+        database.datasets.get_tags_for(dataset_id, expdb_db),
+        database.datasets.get_description(dataset_id, expdb_db),
+        _get_processing_information(dataset_id, expdb_db),
+        database.datasets.get_status(dataset_id, expdb_db),
+    )
 
     status_ = DatasetStatus(status.status) if status else DatasetStatus.IN_PREPARATION
 

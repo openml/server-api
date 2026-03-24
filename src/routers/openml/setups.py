@@ -1,5 +1,6 @@
 """All endpoints that relate to setups."""
 
+import asyncio
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends
@@ -27,11 +28,13 @@ async def tag_setup(
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[str, dict[str, str | list[str]]]:
     """Add tag `tag` to setup with id `setup_id`."""
-    if not await database.setups.get(setup_id, expdb_db):
+    setup, setup_tags = await asyncio.gather(
+        database.setups.get(setup_id, expdb_db),
+        database.setups.get_tags(setup_id, expdb_db),
+    )
+    if not setup:
         msg = f"Setup {setup_id} not found."
         raise SetupNotFoundError(msg)
-
-    setup_tags = await database.setups.get_tags(setup_id, expdb_db)
     matched_tag_row = next((t for t in setup_tags if t.tag.casefold() == tag.casefold()), None)
 
     if matched_tag_row:
@@ -51,11 +54,13 @@ async def untag_setup(
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[str, dict[str, str | list[str]]]:
     """Remove tag `tag` from setup with id `setup_id`."""
-    if not await database.setups.get(setup_id, expdb_db):
+    setup, setup_tags = await asyncio.gather(
+        database.setups.get(setup_id, expdb_db),
+        database.setups.get_tags(setup_id, expdb_db),
+    )
+    if not setup:
         msg = f"Setup {setup_id} not found."
         raise SetupNotFoundError(msg)
-
-    setup_tags = await database.setups.get_tags(setup_id, expdb_db)
     matched_tag_row = next((t for t in setup_tags if t.tag.casefold() == tag.casefold()), None)
 
     if not matched_tag_row:
