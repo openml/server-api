@@ -29,21 +29,21 @@ async def test_get_run_trace_success(run_id: int, py_api: httpx.AsyncClient) -> 
 async def test_get_run_trace_no_trace(run_id: int, py_api: httpx.AsyncClient) -> None:
     """Test that 412 is returned for a run that exists but has no trace."""
     response = await py_api.get(f"/run/trace/{run_id}")
-    assert response.status_code == HTTPStatus.PRECONDITION_FAILED
+    assert response.status_code == HTTPStatus.NOT_FOUND
     body = response.json()
     assert body["code"] == "572"  # RunTraceNotFoundError code
     assert body["type"] == RunTraceNotFoundError.uri
     assert body["title"] == RunTraceNotFoundError.title
-    assert body["status"] == HTTPStatus.PRECONDITION_FAILED
+    assert body["status"] == HTTPStatus.NOT_FOUND
 
 
 @pytest.mark.parametrize("run_id", [999999])
 async def test_get_run_trace_run_not_found(run_id: int, py_api: httpx.AsyncClient) -> None:
     """Test that 412 is returned when the run does not exist."""
     response = await py_api.get(f"/run/trace/{run_id}")
-    assert response.status_code == HTTPStatus.PRECONDITION_FAILED
+    assert response.status_code == HTTPStatus.NOT_FOUND
     body = response.json()
     assert body["code"] == "571"  # RunNotFoundError code
     assert body["type"] == RunNotFoundError.uri
     assert body["title"] == RunNotFoundError.title
-    assert body["status"] == HTTPStatus.PRECONDITION_FAILED
+    assert body["status"] == HTTPStatus.NOT_FOUND
