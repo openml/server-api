@@ -71,8 +71,7 @@ def parse_api_constraints(
                     constraint = parsed
                 else:
                     logger.warning(
-                        "api_constraints: non_dict_json for task_type_id=%d, input=%s "
-                        "(got %s)",
+                        "api_constraints: non_dict_json for task_type_id=%d, input=%s (got %s)",
                         task_type_id,
                         input_name,
                         type(parsed).__name__,
