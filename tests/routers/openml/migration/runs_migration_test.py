@@ -10,8 +10,10 @@ import pytest
 
 from core.conversions import nested_num_to_str
 
+_SERVER_RUNS = [*range(24, 40), *range(134, 140), 999_999_999]
 
-@pytest.mark.parametrize("run_id", [34])
+
+@pytest.mark.parametrize("run_id", _SERVER_RUNS)
 async def test_get_run_trace_equal(
     run_id: int,
     py_api: httpx.AsyncClient,
@@ -22,6 +24,15 @@ async def test_get_run_trace_equal(
         py_api.get(f"/run/trace/{run_id}"),
         php_api.get(f"/run/trace/{run_id}"),
     )
+    if php_response.status_code == HTTPStatus.OK:
+        _assert_trace_response_success(py_response, php_response)
+        return
+    assert php_response.status_code == HTTPStatus.OK, "Always fails"
+
+
+def _assert_trace_response_success(
+    py_response: httpx.Response, php_response: httpx.Response
+) -> None:
     assert py_response.status_code == HTTPStatus.OK
     assert php_response.status_code == HTTPStatus.OK
 
