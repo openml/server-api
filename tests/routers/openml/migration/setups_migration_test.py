@@ -1,3 +1,4 @@
+import asyncio
 import contextlib
 import re
 from collections.abc import AsyncGenerator, Callable, Iterable
@@ -114,14 +115,15 @@ async def test_setup_untag_response_is_identical_setup_doesnt_exist(
     tag = "totally_new_tag_for_migration_testing"
     api_key = ApiKey.SOME_USER
 
-    original = await php_api.post(
-        "/setup/untag",
-        data={"api_key": api_key, "tag": tag, "setup_id": setup_id},
-    )
-
-    new = await py_api.post(
-        f"/setup/untag?api_key={api_key}",
-        json={"setup_id": setup_id, "tag": tag},
+    original, new = await asyncio.gather(
+        php_api.post(
+            "/setup/untag",
+            data={"api_key": api_key, "tag": tag, "setup_id": setup_id},
+        ),
+        py_api.post(
+            f"/setup/untag?api_key={api_key}",
+            json={"setup_id": setup_id, "tag": tag},
+        ),
     )
 
     assert original.status_code == HTTPStatus.PRECONDITION_FAILED
@@ -142,14 +144,15 @@ async def test_setup_untag_response_is_identical_tag_doesnt_exist(
     tag = "totally_new_tag_for_migration_testing"
     api_key = ApiKey.SOME_USER
 
-    original = await php_api.post(
-        "/setup/untag",
-        data={"api_key": api_key, "tag": tag, "setup_id": setup_id},
-    )
-
-    new = await py_api.post(
-        f"/setup/untag?api_key={api_key}",
-        json={"setup_id": setup_id, "tag": tag},
+    original, new = await asyncio.gather(
+        php_api.post(
+            "/setup/untag",
+            data={"api_key": api_key, "tag": tag, "setup_id": setup_id},
+        ),
+        py_api.post(
+            f"/setup/untag?api_key={api_key}",
+            json={"setup_id": setup_id, "tag": tag},
+        ),
     )
 
     assert original.status_code == HTTPStatus.PRECONDITION_FAILED
@@ -223,14 +226,15 @@ async def test_setup_tag_response_is_identical_setup_doesnt_exist(
     tag = "totally_new_tag_for_migration_testing"
     api_key = ApiKey.SOME_USER
 
-    original = await php_api.post(
-        "/setup/tag",
-        data={"api_key": api_key, "tag": tag, "setup_id": setup_id},
-    )
-
-    new = await py_api.post(
-        f"/setup/tag?api_key={api_key}",
-        json={"setup_id": setup_id, "tag": tag},
+    original, new = await asyncio.gather(
+        php_api.post(
+            "/setup/tag",
+            data={"api_key": api_key, "tag": tag, "setup_id": setup_id},
+        ),
+        py_api.post(
+            f"/setup/tag?api_key={api_key}",
+            json={"setup_id": setup_id, "tag": tag},
+        ),
     )
 
     assert original.status_code == HTTPStatus.PRECONDITION_FAILED
@@ -253,15 +257,16 @@ async def test_setup_tag_response_is_identical_tag_already_exists(
     api_key = ApiKey.SOME_USER
 
     async with temporary_tags(tags=[tag], setup_id=setup_id, persist=True):
-        original = await php_api.post(
-            "/setup/tag",
-            data={"api_key": api_key, "tag": tag, "setup_id": setup_id},
-        )
-
-        # In Python, since PHP committed it, it's also there for Python test context
-        new = await py_api.post(
-            f"/setup/tag?api_key={api_key}",
-            json={"setup_id": setup_id, "tag": tag},
+        # Both APIs can be tested in parallel since the tag is already persisted
+        original, new = await asyncio.gather(
+            php_api.post(
+                "/setup/tag",
+                data={"api_key": api_key, "tag": tag, "setup_id": setup_id},
+            ),
+            py_api.post(
+                f"/setup/tag?api_key={api_key}",
+                json={"setup_id": setup_id, "tag": tag},
+            ),
         )
 
     assert original.status_code == HTTPStatus.INTERNAL_SERVER_ERROR

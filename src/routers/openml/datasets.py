@@ -1,3 +1,4 @@
+import asyncio
 import re
 from datetime import datetime
 from enum import StrEnum
@@ -298,8 +299,10 @@ async def get_dataset_features(
 ) -> list[Feature]:
     assert expdb is not None  # noqa: S101
     await _get_dataset_raise_otherwise(dataset_id, user, expdb)
-    features = await database.datasets.get_features(dataset_id, expdb)
-    ontologies = await database.datasets.get_feature_ontologies(dataset_id, expdb)
+    features, ontologies = await asyncio.gather(
+        database.datasets.get_features(dataset_id, expdb),
+        database.datasets.get_feature_ontologies(dataset_id, expdb),
+    )
     for feature in features:
         feature.ontology = ontologies.get(feature.index)
 
@@ -402,10 +405,12 @@ async def get_dataset(
         msg = f"No data file found for dataset {dataset_id}."
         raise DatasetNoDataFileError(msg)
 
-    tags = await database.datasets.get_tags_for(dataset_id, expdb_db)
-    description = await database.datasets.get_description(dataset_id, expdb_db)
-    processing_result = await _get_processing_information(dataset_id, expdb_db)
-    status = await database.datasets.get_status(dataset_id, expdb_db)
+    tags, description, processing_result, status = await asyncio.gather(
+        database.datasets.get_tags_for(dataset_id, expdb_db),
+        database.datasets.get_description(dataset_id, expdb_db),
+        _get_processing_information(dataset_id, expdb_db),
+        database.datasets.get_status(dataset_id, expdb_db),
+    )
 
     status_ = DatasetStatus(status.status) if status else DatasetStatus.IN_PREPARATION
 
