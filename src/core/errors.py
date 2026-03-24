@@ -397,7 +397,7 @@ class RunNotFoundError(ProblemDetailError):
 
     uri = "https://openml.org/problems/run-not-found"
     title = "Run Not Found"
-    _default_status_code = HTTPStatus.PRECONDITION_FAILED
+    _default_status_code = HTTPStatus.NOT_FOUND
     _default_code = 571
 
 
@@ -406,5 +406,5 @@ class RunTraceNotFoundError(ProblemDetailError):
 
     uri = "https://openml.org/problems/run-trace-not-found"
     title = "Run Trace Not Found"
-    _default_status_code = HTTPStatus.PRECONDITION_FAILED
+    _default_status_code = HTTPStatus.NOT_FOUND
     _default_code = 572

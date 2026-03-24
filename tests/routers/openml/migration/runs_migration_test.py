@@ -27,7 +27,22 @@ async def test_get_run_trace_equal(
     if php_response.status_code == HTTPStatus.OK:
         _assert_trace_response_success(py_response, php_response)
         return
-    assert php_response.status_code == HTTPStatus.OK, "Always fails"
+
+    assert php_response.status_code == HTTPStatus.PRECONDITION_FAILED
+    assert py_response.status_code == HTTPStatus.NOT_FOUND
+
+    php_error = php_response.json()["error"]
+    py_error = py_response.json()
+    assert php_error["code"] == py_error["code"]
+    if php_error["code"] == "571":
+        assert php_error["message"] == "Run not found."
+        assert py_error["detail"] == f"Run {run_id} not found."
+    elif php_error["code"] == "572":
+        assert php_error["message"] == "No successful trace associated with this run."
+        assert py_error["detail"] == f"No trace found for run {run_id}."
+    else:
+        msg = f"Unknown error code {php_error['code']} for run {run_id}."
+        raise AssertionError(msg)
 
 
 def _assert_trace_response_success(
