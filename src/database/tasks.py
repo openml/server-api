@@ -4,6 +4,11 @@ from typing import cast
 from sqlalchemy import Row, text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
+from database.tagging import insert_tag, remove_tag, select_tag, select_tags
+
+_TABLE = "task_tag"
+_ID_COLUMN = "id"
+
 
 async def get(id_: int, expdb: AsyncConnection) -> Row | None:
     row = await expdb.execute(
@@ -103,15 +108,23 @@ async def get_task_type_inout_with_template(
 
 
 async def get_tags(id_: int, expdb: AsyncConnection) -> list[str]:
-    rows = await expdb.execute(
-        text(
-            """
-            SELECT `tag`
-            FROM task_tag
-            WHERE `id` = :task_id
-            """,
-        ),
-        parameters={"task_id": id_},
+    return await select_tags(table=_TABLE, id_column=_ID_COLUMN, id_=id_, expdb=expdb)
+
+
+async def tag(id_: int, tag_: str, *, user_id: int, expdb: AsyncConnection) -> None:
+    await insert_tag(
+        table=_TABLE,
+        id_column=_ID_COLUMN,
+        id_=id_,
+        tag_=tag_,
+        user_id=user_id,
+        expdb=expdb,
     )
-    tag_rows = rows.all()
-    return [row.tag for row in tag_rows]
+
+
+async def get_tag(id_: int, tag_: str, expdb: AsyncConnection) -> Row | None:
+    return await select_tag(table=_TABLE, id_column=_ID_COLUMN, id_=id_, tag_=tag_, expdb=expdb)
+
+
+async def delete_tag(id_: int, tag_: str, expdb: AsyncConnection) -> None:
+    await remove_tag(table=_TABLE, id_column=_ID_COLUMN, id_=id_, tag_=tag_, expdb=expdb)

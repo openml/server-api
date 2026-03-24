@@ -1,15 +1,55 @@
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Body, Depends
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 import database.flows
 from core.conversions import _str_to_num
 from core.errors import FlowNotFoundError
-from routers.dependencies import expdb_connection
+from core.tagging import tag_entity, untag_entity
+from database.users import User
+from routers.dependencies import expdb_connection, fetch_user_or_raise
+from routers.types import SystemString64
 from schemas.flows import Flow, Parameter, Subflow
 
 router = APIRouter(prefix="/flows", tags=["flows"])
+
+
+@router.post(path="/tag")
+async def tag_flow(
+    flow_id: Annotated[int, Body()],
+    tag: Annotated[str, SystemString64],
+    user: Annotated[User, Depends(fetch_user_or_raise)],
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+) -> dict[str, dict[str, Any]]:
+    return await tag_entity(
+        flow_id,
+        tag,
+        user,
+        expdb,
+        get_tags_fn=database.flows.get_tags,
+        tag_fn=database.flows.tag,
+        response_key="flow_tag",
+    )
+
+
+@router.post(path="/untag")
+async def untag_flow(
+    flow_id: Annotated[int, Body()],
+    tag: Annotated[str, SystemString64],
+    user: Annotated[User, Depends(fetch_user_or_raise)],
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+) -> dict[str, dict[str, Any]]:
+    return await untag_entity(
+        flow_id,
+        tag,
+        user,
+        expdb,
+        get_tag_fn=database.flows.get_tag,
+        delete_tag_fn=database.flows.delete_tag,
+        get_tags_fn=database.flows.get_tags,
+        response_key="flow_tag",
+    )
 
 
 @router.get("/exists/{name}/{external_version}")
