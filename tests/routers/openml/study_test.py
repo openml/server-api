@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from http import HTTPStatus
 
 import httpx
+import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
