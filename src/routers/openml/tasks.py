@@ -4,7 +4,7 @@ from typing import Annotated, cast
 
 import xmltodict
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import RowMapping
+from sqlalchemy import RowMapping, text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 import config
@@ -17,6 +17,12 @@ from schemas.datasets.openml import Task
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 type JSON = dict[str, "JSON"] | list["JSON"] | str | int | float | bool | None
+
+ALLOWED_LOOKUP_TABLES = {"estimation_procedure", "evaluation_measure", "task_type", "dataset"}
+PK_MAPPING = {
+    "task_type": "ttid",
+    "dataset": "did",
+}
 
 
 def convert_template_xml_to_json(xml_template: str) -> dict[str, JSON]:
@@ -95,7 +101,7 @@ async def fill_template(
     )
 
 
-async def _fill_json_template(
+async def _fill_json_template(  # noqa: C901, PLR0912
     template: JSON,
     task: RowMapping,
     task_inputs: dict[str, str | int],
@@ -127,7 +133,38 @@ async def _fill_json_template(
     if match := re.search(r"\[LOOKUP:(.*)]", template):
         (field,) = match.groups()
         if field not in fetched_data:
-            await _perform_lookup(field, task_inputs, fetched_data, connection)
+            table, _ = field.split(".")
+            if table not in ALLOWED_LOOKUP_TABLES:
+                msg = f"Table {table} is not allowed for lookup."
+                raise HTTPException(status_code=400, detail=msg)
+            if table not in task_inputs or not task_inputs[table]:
+                msg = f"Missing or empty input for lookup table: {table}"
+                raise HTTPException(status_code=400, detail=msg)
+
+            try:
+                id_val = int(task_inputs[table])
+            except ValueError:
+                msg = f"Invalid integer id for table {table}: {task_inputs[table]}"
+                raise HTTPException(status_code=400, detail=msg) from None
+
+            pk = PK_MAPPING.get(table, "id")
+            result = await connection.execute(
+                text(
+                    f"""
+                    SELECT *
+                    FROM {table}
+                    WHERE `{pk}` = :id_
+                    """,  # noqa: S608
+                ),
+                parameters={"id_": id_val},
+            )
+            row_data = result.mappings().one_or_none()
+            if row_data is None:
+                msg = f"No data found for table {table} with id {id_val}"
+                raise HTTPException(status_code=400, detail=msg)
+            for column, value in row_data.items():
+                fetched_data[f"{table}.{column}"] = str(value)
+
         if match.string == template:
             return fetched_data.get(field, "")
         template = template.replace(match.group(), fetched_data.get(field, ""))
@@ -136,40 +173,6 @@ async def _fill_json_template(
     template = template.replace("[TASK:id]", str(task.task_id))
     server_url = config.load_routing_configuration()["server_url"]
     return template.replace("[CONSTANT:base_url]", server_url)
-
-
-async def _perform_lookup(
-    field: str,
-    task_inputs: dict[str, str | int],
-    fetched_data: dict[str, str],
-    connection: AsyncConnection,
-) -> None:
-    table, _ = field.split(".")
-    # List of tables allowed for [LOOKUP:table.column] directive.
-    # This is a security measure to prevent SQL injection via table names.
-    if table not in task_inputs or not task_inputs[table]:
-        msg = f"Missing or empty input for lookup table: {table}"
-        raise HTTPException(status_code=400, detail=msg)
-
-    try:
-        id_val = int(task_inputs[table])
-    except ValueError:
-        msg = f"Invalid integer id for table {table}: {task_inputs[table]}"
-        raise HTTPException(status_code=400, detail=msg) from None
-
-    try:
-        row_data = await database.tasks.get_lookup_data(
-            table=table,
-            id_=id_val,
-            expdb=connection,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    if row_data is None:
-        msg = f"No data found for table {table} with id {task_inputs[table]}"
-        raise HTTPException(status_code=400, detail=msg)
-    for column, value in row_data.items():
-        fetched_data[f"{table}.{column}"] = str(value)
 
 
 @router.get("/{task_id}")

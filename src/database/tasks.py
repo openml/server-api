@@ -1,14 +1,8 @@
 from collections.abc import Sequence
 from typing import cast
 
-from sqlalchemy import Row, RowMapping, text
+from sqlalchemy import Row, text
 from sqlalchemy.ext.asyncio import AsyncConnection
-
-ALLOWED_LOOKUP_TABLES = {"estimation_procedure", "evaluation_measure", "task_type", "dataset"}
-PK_MAPPING = {
-    "task_type": "ttid",
-    "dataset": "did",
-}
 
 
 async def get(id_: int, expdb: AsyncConnection) -> Row | None:
@@ -121,22 +115,3 @@ async def get_tags(id_: int, expdb: AsyncConnection) -> list[str]:
     )
     tag_rows = rows.all()
     return [row.tag for row in tag_rows]
-
-
-async def get_lookup_data(table: str, id_: int, expdb: AsyncConnection) -> RowMapping | None:
-    if table not in ALLOWED_LOOKUP_TABLES:
-        msg = f"Table {table} is not allowed for lookup."
-        raise ValueError(msg)
-
-    pk = PK_MAPPING.get(table, "id")
-    result = await expdb.execute(
-        text(
-            f"""
-            SELECT *
-            FROM {table}
-            WHERE `{pk}` = :id_
-            """,  # noqa: S608
-        ),
-        parameters={"id_": id_},
-    )
-    return result.mappings().one_or_none()

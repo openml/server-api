@@ -1,3 +1,4 @@
+from http import HTTPStatus
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends
@@ -6,12 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 import database.datasets
 import database.qualities
 from core.access import _user_has_access
-from core.errors import (
-    DatasetNotFoundError,
-    DatasetNotProcessedError,
-    DatasetProcessingError,
-    NoQualitiesError,
-)
+from core.errors import DatasetNotFoundError
 from database.users import User
 from routers.dependencies import expdb_connection, fetch_user
 from schemas.datasets.openml import Quality
@@ -39,24 +35,19 @@ async def get_qualities(
 ) -> list[Quality]:
     dataset = await database.datasets.get(dataset_id, expdb)
     if not dataset or not await _user_has_access(dataset, user):
+        # Backwards compatibility: PHP API returns 412 with code 113
         msg = f"Dataset with id {dataset_id} not found."
+        no_data_file = 113
         raise DatasetNotFoundError(
             msg,
-            code=361,
-        ) from None
-
-    processing = await database.datasets.get_latest_processing_update(dataset_id, expdb)
-    if processing is None:
-        msg = f"Dataset not processed yet for dataset {dataset_id}."
-        raise DatasetNotProcessedError(msg, code=363)
-
-    if processing.error:
-        msg = processing.error.strip() or "Error occurred during processing."
-        raise DatasetProcessingError(msg, code=364)
-
-    qualities = await database.qualities.get_for_dataset(dataset_id, expdb)
-    if not qualities:
-        msg = f"No qualities found for dataset {dataset_id}."
-        raise NoQualitiesError(msg)
-
-    return qualities
+            code=no_data_file,
+            status_code=HTTPStatus.PRECONDITION_FAILED,
+        )
+    return await database.qualities.get_for_dataset(dataset_id, expdb)
+    # The PHP API provided (sometime) helpful error messages
+    # if not qualities:
+    # check if dataset exists: error 360
+    # check if user has access: error 361
+    # check if there is a data processed entry and forward the error: 364
+    # if nothing in process table: 363
+    # otherwise: error 362

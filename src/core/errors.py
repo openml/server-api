@@ -375,20 +375,6 @@ class ServiceNotFoundError(ProblemDetailError):
 
 
 # =============================================================================
-# Quality Errors
-# =============================================================================
-
-
-class NoQualitiesError(ProblemDetailError):
-    """Raised when a dataset has no stored quality values."""
-
-    uri = "https://openml.org/problems/quality-no-qualities"
-    title = "No Qualities Found"
-    _default_status_code = HTTPStatus.PRECONDITION_FAILED
-    _default_code = 362
-
-
-# =============================================================================
 # Internal Errors
 # =============================================================================
 

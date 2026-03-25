@@ -4,7 +4,7 @@ from enum import StrEnum
 from typing import Annotated, Any, Literal, NamedTuple
 
 from fastapi import APIRouter, Body, Depends
-from sqlalchemy import bindparam, text
+from sqlalchemy import text
 from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncConnection
 
@@ -73,26 +73,9 @@ class DatasetStatusFilter(StrEnum):
     ALL = "all"
 
 
-def _quality_clause(quality: str, range_: str | None) -> str:
-    if not range_:
-        return ""
-    if not (match := re.match(integer_range_regex, range_)):
-        msg = f"`range_` not a valid range: {range_}"
-        raise ValueError(msg)
-    start, end = match.groups()
-    value = f"`value` BETWEEN {start} AND {end[2:]}" if end else f"`value`={start}"
-    return f""" AND
-        d.`did` IN (
-            SELECT `data`
-            FROM data_quality
-            WHERE `quality`='{quality}' AND {value}
-        )
-    """  # noqa: S608 - `quality` is not user provided, value is filtered with regex
-
-
 @router.post(path="/list", description="Provided for convenience, same as `GET` endpoint.")
 @router.get(path="/list")
-async def list_datasets(  # noqa: PLR0913, C901
+async def list_datasets(  # noqa: PLR0913
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     data_name: Annotated[str | None, CasualString128] = None,
     tag: Annotated[str | None, SystemString64] = None,
@@ -120,7 +103,7 @@ async def list_datasets(  # noqa: PLR0913, C901
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> list[dict[str, Any]]:
     assert expdb_db is not None  # noqa: S101
-    status_subquery = text(
+    current_status = text(
         """
         SELECT ds1.`did`, ds1.`status`
         FROM dataset_status as ds1
@@ -132,78 +115,90 @@ async def list_datasets(  # noqa: PLR0913, C901
         """,
     )
 
-    clauses = []
-    parameters: dict[str, Any] = {
-        "offset": pagination.offset,
-        "limit": pagination.limit,
-    }
-    if status != DatasetStatusFilter.ALL:
-        clauses.append("AND IFNULL(cs.`status`, 'in_preparation') = :status")
-        parameters["status"] = status
+    if status == DatasetStatusFilter.ALL:
+        statuses = [
+            DatasetStatusFilter.ACTIVE,
+            DatasetStatusFilter.DEACTIVATED,
+            DatasetStatusFilter.IN_PREPARATION,
+        ]
+    else:
+        statuses = [status]
 
+    where_status = ",".join(f"'{status}'" for status in statuses)
     if user is None:
-        clauses.append("AND `visibility`='public'")
-    elif UserGroup.ADMIN not in await user.get_groups():
-        clauses.append("AND (`visibility`='public' OR `uploader`=:user_id)")
-        parameters["user_id"] = user.user_id
+        visible_to_user = "`visibility`='public'"
+    elif UserGroup.ADMIN in await user.get_groups():
+        visible_to_user = "TRUE"
+    else:
+        visible_to_user = f"(`visibility`='public' OR `uploader`={user.user_id})"
 
-    if uploader:
-        clauses.append("AND `uploader`=:uploader")
-        parameters["uploader"] = uploader
-
-    if data_name:
-        clauses.append("AND `name`=:data_name")
-        parameters["data_name"] = data_name
-
-    if data_version:
-        clauses.append("AND `version`=:data_version")
-        parameters["data_version"] = data_version
-
-    if data_id:
-        clauses.append("AND d.`did` IN :data_ids")
-        parameters["data_ids"] = data_id
+    where_name = "" if data_name is None else "AND `name`=:data_name"
+    where_version = "" if data_version is None else "AND `version`=:data_version"
+    where_uploader = "" if uploader is None else "AND `uploader`=:uploader"
+    data_id_str = ",".join(str(did) for did in data_id) if data_id else ""
+    where_data_id = "" if not data_id else f"AND d.`did` IN ({data_id_str})"
 
     # requires some benchmarking on whether e.g., IN () is more efficient.
-    if tag:
-        clauses.append(
+    matching_tag = (
+        text(
             """
-            AND d.`did` IN (
-                SELECT `id`
-                FROM dataset_tag as dt
-                WHERE dt.`tag`=:tag
-            )
-            """,
+        AND d.`did` IN (
+            SELECT `id`
+            FROM dataset_tag as dt
+            WHERE dt.`tag`=:tag
         )
-        parameters["tag"] = tag
+        """,
+        )
+        if tag
+        else ""
+    )
 
-    number_instances_filter = _quality_clause("NumberOfInstances", number_instances)
-    number_classes_filter = _quality_clause("NumberOfClasses", number_classes)
-    number_features_filter = _quality_clause("NumberOfFeatures", number_features)
-    number_missing_values_filter = _quality_clause("NumberOfMissingValues", number_missing_values)
+    def quality_clause(quality: str, range_: str | None) -> str:
+        if not range_:
+            return ""
+        if not (match := re.match(integer_range_regex, range_)):
+            msg = f"`range_` not a valid range: {range_}"
+            raise ValueError(msg)
+        start, end = match.groups()
+        value = f"`value` BETWEEN {start} AND {end[2:]}" if end else f"`value`={start}"
+        return f""" AND
+            d.`did` IN (
+                SELECT `data`
+                FROM data_quality
+                WHERE `quality`='{quality}' AND {value}
+            )
+        """  # noqa: S608 - `quality` is not user provided, value is filtered with regex
 
-    columns = ["did", "name", "version", "format", "file_id", "status"]
+    number_instances_filter = quality_clause("NumberOfInstances", number_instances)
+    number_classes_filter = quality_clause("NumberOfClasses", number_classes)
+    number_features_filter = quality_clause("NumberOfFeatures", number_features)
+    number_missing_values_filter = quality_clause("NumberOfMissingValues", number_missing_values)
     matching_filter = text(
         f"""
         SELECT d.`did`,d.`name`,d.`version`,d.`format`,d.`file_id`,
                IFNULL(cs.`status`, 'in_preparation')
         FROM dataset AS d
-        LEFT JOIN ({status_subquery}) AS cs ON d.`did`=cs.`did`
-        WHERE 1=1 {number_instances_filter} {number_features_filter}
+        LEFT JOIN ({current_status}) AS cs ON d.`did`=cs.`did`
+        WHERE {visible_to_user} {where_name} {where_version} {where_uploader}
+        {where_data_id} {matching_tag} {number_instances_filter} {number_features_filter}
         {number_classes_filter} {number_missing_values_filter}
-        {" ".join(clauses)}
-        LIMIT :limit OFFSET :offset
+        AND IFNULL(cs.`status`, 'in_preparation') IN ({where_status})
+        LIMIT {pagination.limit} OFFSET {pagination.offset}
         """,  # noqa: S608
         # I am not sure how to do this correctly without an error from Bandit here.
         # However, the `status` input is already checked by FastAPI to be from a set
         # of given options, so no injection is possible (I think). The `current_status`
         # subquery also has no user input. So I think this should be safe.
     )
-
-    if data_id:
-        matching_filter.bindparams(bindparam("data_ids", expanding=True))
+    columns = ["did", "name", "version", "format", "file_id", "status"]
     result = await expdb_db.execute(
         matching_filter,
-        parameters=parameters,
+        parameters={
+            "tag": tag,
+            "data_name": data_name,
+            "data_version": data_version,
+            "uploader": uploader,
+        },
     )
     rows = result.all()
     datasets: dict[int, dict[str, Any]] = {
