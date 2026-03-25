@@ -21,4 +21,4 @@ For migration testing, which compares output of the Python-based REST API with t
     When we start testing more upload functionality, for which the PHP API needs built indices, we'll work on an ES image with prebuilt indices.
 
 Information for a production deployment will follow, in a nutshell you need to configure the REST API to connect to a persistent database,
-which can be the one defined in `compose.yaml` if has an appropriately mounted volume.
+which can be the one defined in `compose.yaml` if it has an appropriately mounted volume.
