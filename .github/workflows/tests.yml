@@ -1,5 +1,8 @@
 name: Tests
 on:
+  push:
+    branches:
+      - main
   pull_request:
     paths:
       - 'src/**'
@@ -37,7 +40,8 @@ jobs:
       - name: Run tests
         run: |
           marker="${{ matrix.php_api == true && 'php_api' || 'not php_api' }} and ${{ matrix.mutations == true && 'mut' || 'not mut' }}"
-          docker compose exec python-api coverage run -m pytest -n auto -v -m "$marker"
+          jobs="${{ matrix.mutations == true && '1' || 'auto' }}"
+          docker compose exec python-api coverage run -m pytest -n "$jobs" -v -m "$marker"
       - name: Produce coverage report
         run: docker compose exec python-api coverage xml
       - name: Upload results to Codecov
