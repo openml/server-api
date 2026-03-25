@@ -28,11 +28,11 @@ jobs:
       # https://github.com/docker/compose/issues/10596
       - name: Start services
         run: |
-          profiles="--profile python"
+          services="python-api"
           if [ "${{ matrix.php_api }}" = "true" ]; then
-            profiles="$profiles --profile php"
+            services="$services php-api"
           fi
-          docker compose $profiles up --detach --wait --remove-orphans || exit $(docker compose ps -q | xargs docker inspect -f '{{.State.ExitCode}}' | grep -v '^0' | wc -l)
+          docker compose up $services --detach --wait --remove-orphans || exit $(docker compose ps -q | xargs docker inspect -f '{{.State.ExitCode}}' | grep -v '^0' | wc -l)
 
       - name: Run tests
         run: |
