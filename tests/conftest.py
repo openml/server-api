@@ -16,7 +16,7 @@ from database.setup import expdb_database, user_database
 from main import create_api
 from routers.dependencies import expdb_connection, userdb_connection
 
-PHP_API_URL = "http://openml-php-rest-api:80/api/v1/json"
+PHP_API_URL = "http://php-api:80/api/v1/json"
 
 
 @contextlib.asynccontextmanager

@@ -2,7 +2,6 @@ services:
   database:
     profiles: ["python", "php", "all"]
     image: "openml/test-database:v0.1.20260204"
-    container_name: "openml-test-database"
     environment:
       MYSQL_ROOT_PASSWORD: ok
     ports:
@@ -28,7 +27,6 @@ services:
   elasticsearch:
     profiles: ["php", "all"]
     image: docker.elastic.co/elasticsearch/elasticsearch:6.8.23
-    container_name: "openml-elasticsearch"
     platform: "linux/amd64"
     ports:
       - "9200:9200"  # also known as /es (nginx)
@@ -52,7 +50,6 @@ services:
   php-api:
     profiles: ["php", "all"]
     image: "openml/php-rest-api:v1.2.4"
-    container_name: "openml-php-rest-api"
     env_file: docker/php/.env
     ports:
       - "8002:80"
@@ -70,7 +67,6 @@ services:
 
   python-api:
     profiles: ["python", "all"]
-    container_name: "openml-python-rest-api"
     build:
       context: .
       dockerfile: docker/python/Dockerfile

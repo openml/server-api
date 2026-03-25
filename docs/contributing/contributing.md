@@ -34,19 +34,19 @@ required services for development is through [`docker compose`](https://docs.doc
 docker compose --profile all up -d
 ```
 
-This will spin up 5 containers, as defined in the `docker-compose.yaml` file:
+This will spin up 5 services, as defined in the `docker-compose.yaml` file:
 
- - `openml-test-database`: this is a mysql database prepopulated with test data.
+ - `database`: this is a mysql database prepopulated with test data.
     It is reachable from the host machine with port `3306`, by default it is configured
     to have a root user with password `"ok"`.
- - `server-api-docs-1`: this container serves project documentation at `localhost:8000`.
+ - `docs`: this container serves project documentation at `localhost:8000`.
     These pages are built from the documents in the `docs/` directory of this repository,
     whenever you edit and save a file there, the page will immediately be updated.
- - `openml-php-rest-api`: this container serves the old PHP REST API at `localhost:8002`.
+ - `php-api`: this container serves the old PHP REST API at `localhost:8002`.
     For example, visit [http://localhost:8002/api/v1/json/data/1](http://localhost:8002/api/v1/json/data/1)
     to fetch a JSON description of dataset 1.
- - `openml-elasticsearch`: Elasticsearch, required for the PHP REST API to function.
- - `openml-python-rest-api`: this container serves the new Python-based REST API at `localhost:8001`.
+ - `elasticsearch`: Elasticsearch, required for the PHP REST API to function.
+ - `python-api`: this container serves the new Python-based REST API at `localhost:8001`.
     For example, visit [http://localhost:8001/docs](http://localhost:8001/docs) to see
     the REST API documentation. Changes to the code in `src/` will be reflected in this
     container.
@@ -57,7 +57,7 @@ This will spin up 5 containers, as defined in the `docker-compose.yaml` file:
 We can now run the full test suite, which takes about 4 minutes:
 
 ```bash
-docker exec openml-python-rest-api python -m pytest tests
+docker compose exec python-api python -m pytest tests
 ```
 There are three important [test markers](https://docs.pytest.org/en/7.1.x/example/markers.html) to be aware of:
 
@@ -69,8 +69,8 @@ In many cases during development it's sufficient to either run with `not php_api
 The `not slow` is only needed if a slow test would be included in your test selection. In many cases, you might prefer to only run the specific tests (or test modules) that you are working on and excluding it through markers may be unnecessary.
 Examples:
 
- - `docker exec openml-python-rest-api python -m pytest tests -m "not php_api and not slow"`, here the test selection is made primarily through markers. This command takes a few seconds.
- - `docker exec openml-python-rest-api python -m pytest tests/routers/openml/dataset_tag_test.py`, here the test selection is made through specifying the file with tests. Since this test file naturally includes neither migration tests (in `tests/routers/openml/migration`) nor the slow test (at `tests/routers/openml/datasets_list_datasets_test.py`), excluding tests through markers is unnecessary. This command takes a few seconds.
+ - `docker compose exec python-api python -m pytest tests -m "not php_api and not slow"`, here the test selection is made primarily through markers. This command takes a few seconds.
+ - `docker compose exec python-api python -m pytest tests/routers/openml/dataset_tag_test.py`, here the test selection is made through specifying the file with tests. Since this test file naturally includes neither migration tests (in `tests/routers/openml/migration`) nor the slow test (at `tests/routers/openml/datasets_list_datasets_test.py`), excluding tests through markers is unnecessary. This command takes a few seconds.
 
 
 You don't always need every container, often just having a database and the Python-based
@@ -87,18 +87,18 @@ Refer to the `docker compose` documentation for more uses.
 
 ### Connecting to containers
 
-To connect to a container, run:
+To connect to a container of a service, run:
 
 ```bash
-docker exec -it CONTAINER_NAME /bin/bash
+docker compose exec SERVICE_NAME /bin/bash
 ```
 
-where `CONTAINER_NAME` is the name of the container. If you are unsure of your container
-name, then `docker container ls` may help you find it. Assuming the default container
+where `SERVICE_NAME` is the name of the service. If you are unsure of the service
+name, then `docker compose ps` may help you find it. Assuming the default service
 names are used, you may connect to the Python-based REST API container using:
 
 ```bash
-docker exec -it openml-python-rest-api /bin/bash
+docker compose exec python-api /bin/bash
 ```
 
 This is useful, for example, to run unit tests in the container:
