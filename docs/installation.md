@@ -4,7 +4,7 @@ See also ["Contributing"](contributing/contributing.md).
 
 The primary way to run this service is through a Docker container.
 The REST API needs to be able to connect to a MySQL database with the OpenML "openml" and "openml_expdb" databases.
-The `docker-compose.yaml` file of this project defines these together out of the box.
+The `compose.yaml` file of this project defines these together out of the box.
 This is useful for development purposes, but the database does not persist between restarts in the current configuration.
 By default, the current code is also mounted into the Python REST API container (again, for development purposes).
 
@@ -21,4 +21,4 @@ For migration testing, which compares output of the Python-based REST API with t
     When we start testing more upload functionality, for which the PHP API needs built indices, we'll work on an ES image with prebuilt indices.
 
 Information for a production deployment will follow, in a nutshell you need to configure the REST API to connect to a persistent database,
-which can be the one defined in `docker-compose.yaml` if has an appropriately mounted volume.
+which can be the one defined in `compose.yaml` if has an appropriately mounted volume.

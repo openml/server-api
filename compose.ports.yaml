@@ -1,0 +1,21 @@
+services:
+  database:
+    ports:
+      - "3306:3306"
+
+  docs:
+    ports:
+      - "8000:8000"
+
+  elasticsearch:
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+
+  php-api:
+    ports:
+      - "8002:80"
+
+  python-api:
+    ports:
+      - "8001:8000"

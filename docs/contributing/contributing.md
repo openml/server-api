@@ -33,23 +33,28 @@ required services for development is through [`docker compose`](https://docs.doc
 ```bash
 docker compose --profile all up -d
 ```
+or, to expose the services to the host network at the same time:
+```bash
+docker compose -f compose.yaml -f compose.ports.yaml --profile all up -d
+```
 
-This will spin up 5 services, as defined in the `docker-compose.yaml` file:
+This will spin up 5 services, as defined in the `compose.yaml` file:
 
  - `database`: this is a mysql database prepopulated with test data.
-    It is reachable from the host machine with port `3306`, by default it is configured
-    to have a root user with password `"ok"`.
+    By default it is configured to have a root user with password `"ok"`.
  - `docs`: this container serves project documentation at `localhost:8000`.
     These pages are built from the documents in the `docs/` directory of this repository,
     whenever you edit and save a file there, the page will immediately be updated.
+ - `elasticsearch`: Elasticsearch, required for the PHP REST API to function.
  - `php-api`: this container serves the old PHP REST API at `localhost:8002`.
     For example, visit [http://localhost:8002/api/v1/json/data/1](http://localhost:8002/api/v1/json/data/1)
     to fetch a JSON description of dataset 1.
- - `elasticsearch`: Elasticsearch, required for the PHP REST API to function.
  - `python-api`: this container serves the new Python-based REST API at `localhost:8001`.
     For example, visit [http://localhost:8001/docs](http://localhost:8001/docs) to see
     the REST API documentation. Changes to the code in `src/` will be reflected in this
     container.
+
+Exposing ports to the host network isn't needed for development, but may be useful to inspect responses directly from the host machine.
 
 !!! note
     On arm-based Macs, you need to enable Rosetta emulation for Docker for the Elasticsearch container to work.
