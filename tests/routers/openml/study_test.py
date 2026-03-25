@@ -458,6 +458,7 @@ async def test_get_task_study_by_alias(py_api: httpx.AsyncClient) -> None:
     assert response.json() == expected
 
 
+@pytest.mark.mut
 async def test_create_task_study(py_api: httpx.AsyncClient) -> None:
     response = await py_api.post(
         f"/studies?api_key={ApiKey.SOME_USER}",
@@ -516,6 +517,7 @@ async def _attach_tasks_to_study(
     )
 
 
+@pytest.mark.mut
 async def test_attach_task_to_study(py_api: httpx.AsyncClient, expdb_test: AsyncConnection) -> None:
     response = await _attach_tasks_to_study(
         study_id=1,
@@ -528,6 +530,7 @@ async def test_attach_task_to_study(py_api: httpx.AsyncClient, expdb_test: Async
     assert response.json() == {"study_id": 1, "main_entity_type": StudyType.TASK}
 
 
+@pytest.mark.mut
 async def test_attach_task_to_study_needs_owner(
     py_api: httpx.AsyncClient, expdb_test: AsyncConnection
 ) -> None:
@@ -542,6 +545,7 @@ async def test_attach_task_to_study_needs_owner(
     assert response.status_code == HTTPStatus.FORBIDDEN, response.content
 
 
+@pytest.mark.mut
 async def test_attach_task_to_study_already_linked_raises(
     py_api: httpx.AsyncClient,
     expdb_test: AsyncConnection,
@@ -561,6 +565,7 @@ async def test_attach_task_to_study_already_linked_raises(
     assert error["detail"] == "Task 1 is already attached to study 1."
 
 
+@pytest.mark.mut
 async def test_attach_task_to_study_but_task_not_exist_raises(
     py_api: httpx.AsyncClient,
     expdb_test: AsyncConnection,

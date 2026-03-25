@@ -14,7 +14,6 @@ from core.conversions import (
 from tests.conftest import Flow
 
 
-@pytest.mark.mut
 async def test_flow_exists_not(
     py_api: httpx.AsyncClient,
     php_api: httpx.AsyncClient,

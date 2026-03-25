@@ -47,6 +47,7 @@ def temporary_tags(
     return _temporary_tags
 
 
+@pytest.mark.mut
 @pytest.mark.parametrize(
     "api_key",
     [ApiKey.ADMIN, ApiKey.SOME_USER, ApiKey.OWNER_USER],
@@ -165,6 +166,7 @@ async def test_setup_untag_response_is_identical_tag_doesnt_exist(
     )
 
 
+@pytest.mark.mut
 @pytest.mark.parametrize(
     "api_key",
     [ApiKey.ADMIN, ApiKey.SOME_USER],
@@ -247,6 +249,7 @@ async def test_setup_tag_response_is_identical_setup_doesnt_exist(
     )
 
 
+@pytest.mark.mut
 async def test_setup_tag_response_is_identical_tag_already_exists(
     py_api: httpx.AsyncClient,
     php_api: httpx.AsyncClient,

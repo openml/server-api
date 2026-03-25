@@ -42,6 +42,7 @@ async def test_list_qualities_identical(
     # To keep the test idempotent, we cannot test if reaction to database changes is identical
 
 
+@pytest.mark.mut
 async def test_list_qualities(py_api: httpx.AsyncClient, expdb_test: AsyncConnection) -> None:
     response = await py_api.get("/datasets/qualities/list")
     assert response.status_code == HTTPStatus.OK

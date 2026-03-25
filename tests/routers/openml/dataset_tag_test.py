@@ -28,6 +28,7 @@ async def test_dataset_tag_rejects_unauthorized(key: ApiKey, py_api: httpx.Async
     assert error["code"] == "103"
 
 
+@pytest.mark.mut
 @pytest.mark.parametrize(
     "key",
     [ApiKey.ADMIN, ApiKey.SOME_USER, ApiKey.OWNER_USER],
@@ -48,6 +49,7 @@ async def test_dataset_tag(
     assert tag in tags
 
 
+@pytest.mark.mut
 async def test_dataset_tag_returns_existing_tags(py_api: httpx.AsyncClient) -> None:
     dataset_id, tag = 1, "test"
     response = await py_api.post(
@@ -58,6 +60,7 @@ async def test_dataset_tag_returns_existing_tags(py_api: httpx.AsyncClient) -> N
     assert response.json() == {"data_tag": {"id": str(dataset_id), "tag": ["study_14", tag]}}
 
 
+@pytest.mark.mut
 async def test_dataset_tag_fails_if_tag_exists(py_api: httpx.AsyncClient) -> None:
     dataset_id, tag = 1, "study_14"  # Dataset 1 already is tagged with 'study_14'
     response = await py_api.post(
