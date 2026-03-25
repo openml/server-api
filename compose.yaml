@@ -14,8 +14,6 @@ services:
 
   docs:
     profiles: ["all"]
-    ports:
-      - "8000:8000"
     build:
       context: .
       dockerfile: docker/docs/Dockerfile
