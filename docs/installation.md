@@ -8,11 +8,12 @@ The `compose.yaml` file of this project defines these together out of the box.
 This is useful for development purposes, but the database does not persist between restarts in the current configuration.
 By default, the current code is also mounted into the Python REST API container (again, for development purposes).
 
-For development, it should suffice to run the services from a fresh clone by running `docker compose --profile "python" up -d`.
-The REST API will be exposed on port 8001 on the host machine. To visit the Swagger Docs, visit http://localhost:8001/docs.
+For development, it should suffice to run the services from a fresh clone by running `docker compose up python-api -d`.
+If you want to make sure to bind the exposed container ports to the host machine then you will need to use the `compose.ports.yaml` file too (`docker compose -f compose.yaml -f compose.ports.yaml up python-api -d`).
+The REST API will then be exposed on port 8001 on the host machine. To visit the Swagger Docs, visit http://localhost:8001/docs.
 
 Once the containers are started, you can run tests with `docker compose exec python-api python -m pytest -m "not php_api" tests`.
-For migration testing, which compares output of the Python-based REST API with the old PHP-based one, also start the PHP server (`docker compose --profile "php" --profile "python" up -d`) and include tests with the `php_api` marker/fixture: `docker compose exec python-api python -m pytest tests`.
+For migration testing, which compares output of the Python-based REST API with the old PHP-based one, also start the PHP server (`docker compose --profile "apis" up -d`) and include tests with the `php_api` marker/fixture: `docker compose exec python-api python -m pytest tests`.
 
 !!! note
 

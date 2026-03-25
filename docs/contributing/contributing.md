@@ -82,7 +82,7 @@ You don't always need every container, often just having a database and the Pyth
 REST API may be enough. In that case, only specify those services:
 
 ```bash
-docker compose --profile python up -d
+docker compose up python-api -d
 ```
 
 Refer to the `docker compose` documentation for more uses.
