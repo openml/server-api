@@ -2,7 +2,7 @@ from typing import Any
 
 from sqlalchemy.engine import Row
 
-from database.users import User, UserGroup
+from database.users import User
 from schemas.datasets.openml import Visibility
 
 
@@ -17,5 +17,4 @@ async def _user_has_access(
         return False
     if user.user_id == dataset.uploader:
         return True
-    user_groups = await user.get_groups()
-    return UserGroup.ADMIN in user_groups
+    return await user.is_admin()

@@ -17,7 +17,7 @@ from core.errors import (
     StudyPrivateError,
 )
 from core.formatting import _str_to_bool
-from database.users import User, UserGroup
+from database.users import User
 from routers.dependencies import expdb_connection, fetch_user
 from schemas.core import Visibility
 from schemas.study import CreateStudy, Study, StudyStatus, StudyType
@@ -44,7 +44,7 @@ async def _get_study_raise_otherwise(
         if user is None:
             msg = "Must authenticate for private study."
             raise AuthenticationRequiredError(msg)
-        if study.creator != user.user_id and UserGroup.ADMIN not in await user.get_groups():
+        if study.creator != user.user_id and not await user.is_admin():
             msg = "Study is private."
             raise StudyPrivateError(msg)
     if _str_to_bool(study.legacy):
@@ -71,7 +71,7 @@ async def attach_to_study(
         raise AuthenticationRequiredError(msg)
     study = await _get_study_raise_otherwise(study_id, user, expdb)
     # PHP lets *anyone* edit *any* study. We're not going to do that.
-    if study.creator != user.user_id and UserGroup.ADMIN not in await user.get_groups():
+    if study.creator != user.user_id and not await user.is_admin():
         msg = f"Study {study_id} can only be edited by its creator."
         raise StudyNotEditableError(msg)
     if study.status != StudyStatus.IN_PREPARATION:
