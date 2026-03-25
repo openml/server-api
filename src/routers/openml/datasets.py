@@ -32,7 +32,7 @@ from core.formatting import (
     _format_dataset_url,
     _format_parquet_url,
 )
-from database.users import User, UserGroup
+from database.users import User
 from routers.dependencies import (
     Pagination,
     expdb_connection,
@@ -144,7 +144,7 @@ async def list_datasets(  # noqa: PLR0913, C901
 
     if user is None:
         clauses.append("AND `visibility`='public'")
-    elif UserGroup.ADMIN not in await user.get_groups():
+    elif not await user.is_admin():
         clauses.append("AND (`visibility`='public' OR `uploader`=:user_id)")
         parameters["user_id"] = user.user_id
 
@@ -347,12 +347,12 @@ async def update_dataset_status(
 
     dataset = await _get_dataset_raise_otherwise(dataset_id, user, expdb)
 
-    can_deactivate = dataset.uploader == user.user_id or UserGroup.ADMIN in await user.get_groups()
+    can_deactivate = dataset.uploader == user.user_id or await user.is_admin()
     if status == DatasetStatus.DEACTIVATED and not can_deactivate:
         msg = f"Dataset {dataset_id} is not owned by you."
         raise DatasetNotOwnedError(msg)
 
-    if status == DatasetStatus.ACTIVE and UserGroup.ADMIN not in await user.get_groups():
+    if status == DatasetStatus.ACTIVE and not await user.is_admin():
         msg = "Only administrators can activate datasets."
         raise DatasetAdminOnlyError(msg)
 

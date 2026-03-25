@@ -13,7 +13,7 @@ from core.errors import (
     TagNotFoundError,
     TagNotOwnedError,
 )
-from database.users import User, UserGroup
+from database.users import User
 from routers.dependencies import expdb_connection, fetch_user_or_raise
 from routers.types import SystemString64
 
@@ -67,7 +67,7 @@ async def untag_setup(
         msg = f"Setup {setup_id} does not have tag {tag!r}."
         raise TagNotFoundError(msg)
 
-    if matched_tag_row.uploader != user.user_id and UserGroup.ADMIN not in await user.get_groups():
+    if matched_tag_row.uploader != user.user_id and not await user.is_admin():
         msg = (
             f"You may not remove tag {tag!r} of setup {setup_id} because it was not created by you."
         )
