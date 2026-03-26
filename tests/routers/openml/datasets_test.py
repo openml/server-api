@@ -7,48 +7,27 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from core.errors import (
+    DatasetAdminOnlyError,
     DatasetNoAccessError,
     DatasetNotFoundError,
+    DatasetNotOwnedError,
     DatasetProcessingError,
 )
 from database.users import User
-from routers.openml.datasets import get_dataset
+from routers.openml.datasets import get_dataset, get_dataset_features, update_dataset_status
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus
 from tests import constants
 from tests.users import ADMIN_USER, DATASET_130_OWNER, NO_USER, SOME_USER, ApiKey
 
 
-@pytest.mark.parametrize(
-    ("dataset_id", "response_code"),
-    [
-        (-1, HTTPStatus.NOT_FOUND),
-        (138, HTTPStatus.NOT_FOUND),
-        (100_000, HTTPStatus.NOT_FOUND),
-    ],
-)
-async def test_error_unknown_dataset(
-    dataset_id: int,
-    response_code: int,
-    py_api: httpx.AsyncClient,
-) -> None:
-    response = await py_api.get(f"/datasets/{dataset_id}")
-
-    assert response.status_code == response_code
-    assert response.headers["content-type"] == "application/problem+json"
-    error = response.json()
-    assert error["type"] == DatasetNotFoundError.uri
-    assert error["title"] == "Dataset Not Found"
-    assert error["status"] == HTTPStatus.NOT_FOUND
-    assert re.match(r"No dataset with id -?\d+ found.", error["detail"])
-    assert error["code"] == "111"
+# ── py_api: routing + serialization, RFC 9457 format, regression ──
 
 
-async def test_get_dataset(py_api: httpx.AsyncClient) -> None:
+async def test_get_dataset_via_api(py_api: httpx.AsyncClient) -> None:
     response = await py_api.get("/datasets/1")
     assert response.status_code == HTTPStatus.OK
     description = response.json()
     assert description.pop("description").startswith("**Author**:")
-
     assert description == {
         "id": 1,
         "name": "anneal",
@@ -81,48 +60,7 @@ async def test_get_dataset(py_api: httpx.AsyncClient) -> None:
     }
 
 
-@pytest.mark.parametrize(
-    "user",
-    [
-        NO_USER,
-        SOME_USER,
-    ],
-)
-async def test_private_dataset_no_access(
-    user: User | None,
-    expdb_test: AsyncConnection,
-    user_test: AsyncConnection,
-) -> None:
-    with pytest.raises(DatasetNoAccessError) as e:
-        await get_dataset(
-            dataset_id=130,
-            user=user,
-            user_db=user_test,
-            expdb_db=expdb_test,
-        )
-    assert e.value.status_code == HTTPStatus.FORBIDDEN
-    assert e.value.uri == DatasetNoAccessError.uri
-    no_access = 112
-    assert e.value.code == no_access
-
-
-@pytest.mark.parametrize(
-    "user", [DATASET_130_OWNER, ADMIN_USER, pytest.param(SOME_USER, marks=pytest.mark.xfail)]
-)
-async def test_private_dataset_access(
-    user: User, expdb_test: AsyncConnection, user_test: AsyncConnection
-) -> None:
-    dataset = await get_dataset(
-        dataset_id=130,
-        user=user,
-        user_db=user_test,
-        expdb_db=expdb_test,
-    )
-    assert isinstance(dataset, DatasetMetadata)
-
-
-async def test_dataset_features(py_api: httpx.AsyncClient) -> None:
-    # Dataset 4 has both nominal and numerical features, so provides reasonable coverage
+async def test_get_features_via_api(py_api: httpx.AsyncClient) -> None:
     response = await py_api.get("/datasets/features/4")
     assert response.status_code == HTTPStatus.OK
     assert response.json() == [
@@ -175,145 +113,26 @@ async def test_dataset_features(py_api: httpx.AsyncClient) -> None:
     ]
 
 
-async def test_dataset_features_with_ontology(py_api: httpx.AsyncClient) -> None:
-    # Dataset 11 has ontology data for features 1, 2, and 3
-    response = await py_api.get("/datasets/features/11")
-    assert response.status_code == HTTPStatus.OK
-    features = {f["index"]: f for f in response.json()}
-    assert features[1]["ontology"] == ["https://en.wikipedia.org/wiki/Service_(motor_vehicle)"]
-    assert features[2]["ontology"] == [
-        "https://en.wikipedia.org/wiki/Car_door",
-        "https://en.wikipedia.org/wiki/Door",
-    ]
-    assert features[3]["ontology"] == [
-        "https://en.wikipedia.org/wiki/Passenger_vehicles_in_the_United_States"
-    ]
-    # Features without ontology should not include the field
-    assert "ontology" not in features[0]
-    assert "ontology" not in features[4]
+async def test_update_status_via_api(py_api: httpx.AsyncClient) -> None:
+    response = await py_api.post(
+        "/datasets/status/update",
+        json={"dataset_id": 1, "status": "active"},
+    )
+    # Without authentication, we expect 401 — confirms the route is wired up.
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
 
 
-async def test_dataset_features_no_access(py_api: httpx.AsyncClient) -> None:
-    response = await py_api.get("/datasets/features/130")
-    assert response.status_code == HTTPStatus.FORBIDDEN
-
-
-@pytest.mark.parametrize(
-    "api_key",
-    [ApiKey.ADMIN, ApiKey.DATASET_130_OWNER],
-)
-async def test_dataset_features_access_to_private(
-    api_key: ApiKey, py_api: httpx.AsyncClient
-) -> None:
-    response = await py_api.get(f"/datasets/features/130?api_key={api_key}")
-    assert response.status_code == HTTPStatus.OK
-
-
-async def test_dataset_features_with_processing_error(py_api: httpx.AsyncClient) -> None:
-    # When a dataset is processed to extract its feature metadata, errors may occur.
-    # In that case, no feature information will ever be available.
-    dataset_id = 55
-    response = await py_api.get(f"/datasets/features/{dataset_id}")
-    assert response.status_code == HTTPStatus.PRECONDITION_FAILED
+async def test_rfc9457_error_format(py_api: httpx.AsyncClient) -> None:
+    """Single test for the generic RFC 9457 exception handler — covers all error types."""
+    response = await py_api.get("/datasets/100000")
+    assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.headers["content-type"] == "application/problem+json"
     error = response.json()
-    assert error["type"] == DatasetProcessingError.uri
-    assert error["code"] == "274"
-    assert "No features found" in error["detail"]
-    assert str(dataset_id) in error["detail"]
-
-
-async def test_dataset_features_dataset_does_not_exist(py_api: httpx.AsyncClient) -> None:
-    resource = await py_api.get("/datasets/features/1000")
-    assert resource.status_code == HTTPStatus.NOT_FOUND
-
-
-async def _assert_status_update_is_successful(
-    apikey: ApiKey,
-    dataset_id: int,
-    status: str,
-    py_api: httpx.AsyncClient,
-) -> None:
-    response = await py_api.post(
-        f"/datasets/status/update?api_key={apikey}",
-        json={"dataset_id": dataset_id, "status": status},
-    )
-    assert response.status_code == HTTPStatus.OK
-    assert response.json() == {
-        "dataset_id": dataset_id,
-        "status": status,
-    }
-
-
-@pytest.mark.mut
-@pytest.mark.parametrize(
-    "dataset_id",
-    [3, 4],
-)
-async def test_dataset_status_update_active_to_deactivated(
-    dataset_id: int, py_api: httpx.AsyncClient
-) -> None:
-    await _assert_status_update_is_successful(
-        apikey=ApiKey.ADMIN,
-        dataset_id=dataset_id,
-        status=DatasetStatus.DEACTIVATED,
-        py_api=py_api,
-    )
-
-
-@pytest.mark.mut
-async def test_dataset_status_update_in_preparation_to_active(py_api: httpx.AsyncClient) -> None:
-    await _assert_status_update_is_successful(
-        apikey=ApiKey.ADMIN,
-        dataset_id=next(iter(constants.IN_PREPARATION_ID)),
-        status=DatasetStatus.ACTIVE,
-        py_api=py_api,
-    )
-
-
-@pytest.mark.mut
-async def test_dataset_status_update_in_preparation_to_deactivated(
-    py_api: httpx.AsyncClient,
-) -> None:
-    await _assert_status_update_is_successful(
-        apikey=ApiKey.ADMIN,
-        dataset_id=next(iter(constants.IN_PREPARATION_ID)),
-        status=DatasetStatus.DEACTIVATED,
-        py_api=py_api,
-    )
-
-
-@pytest.mark.mut
-async def test_dataset_status_update_deactivated_to_active(py_api: httpx.AsyncClient) -> None:
-    await _assert_status_update_is_successful(
-        apikey=ApiKey.ADMIN,
-        dataset_id=next(iter(constants.DEACTIVATED_DATASETS)),
-        status=DatasetStatus.ACTIVE,
-        py_api=py_api,
-    )
-
-
-@pytest.mark.parametrize(
-    ("dataset_id", "api_key", "status"),
-    [
-        (1, ApiKey.SOME_USER, DatasetStatus.ACTIVE),
-        (1, ApiKey.SOME_USER, DatasetStatus.DEACTIVATED),
-        (2, ApiKey.SOME_USER, DatasetStatus.DEACTIVATED),
-        (33, ApiKey.SOME_USER, DatasetStatus.ACTIVE),
-        (131, ApiKey.SOME_USER, DatasetStatus.ACTIVE),
-    ],
-)
-async def test_dataset_status_unauthorized(
-    dataset_id: int,
-    api_key: ApiKey,
-    status: str,
-    py_api: httpx.AsyncClient,
-) -> None:
-    response = await py_api.post(
-        f"/datasets/status/update?api_key={api_key}",
-        json={"dataset_id": dataset_id, "status": status},
-    )
-    assert response.status_code == HTTPStatus.FORBIDDEN
+    assert error["type"] == DatasetNotFoundError.uri
+    assert error["title"] == "Dataset Not Found"
+    assert error["status"] == HTTPStatus.NOT_FOUND
+    assert re.match(r"No dataset with id \d+ found.", error["detail"])
+    assert error["code"] == "111"
 
 
 @pytest.mark.mut
@@ -333,3 +152,195 @@ async def test_dataset_no_500_with_multiple_processing_entries(
     )
     response = await py_api.get("/datasets/1")
     assert response.status_code == HTTPStatus.OK
+
+
+# ── Direct call tests: get_dataset ──
+
+
+@pytest.mark.parametrize(
+    "dataset_id",
+    [-1, 138, 100_000],
+)
+async def test_get_dataset_not_found(
+    dataset_id: int,
+    expdb_test: AsyncConnection,
+    user_test: AsyncConnection,
+) -> None:
+    with pytest.raises(DatasetNotFoundError):
+        await get_dataset(
+            dataset_id=dataset_id,
+            user=None,
+            user_db=user_test,
+            expdb_db=expdb_test,
+        )
+
+
+@pytest.mark.parametrize(
+    "user",
+    [
+        NO_USER,
+        SOME_USER,
+    ],
+)
+async def test_private_dataset_no_access(
+    user: User | None,
+    expdb_test: AsyncConnection,
+    user_test: AsyncConnection,
+) -> None:
+    with pytest.raises(DatasetNoAccessError) as e:
+        await get_dataset(
+            dataset_id=130,
+            user=user,
+            user_db=user_test,
+            expdb_db=expdb_test,
+        )
+    assert e.value.status_code == HTTPStatus.FORBIDDEN
+    assert e.value.uri == DatasetNoAccessError.uri
+    no_access = 112
+    assert e.value.code == no_access
+
+
+@pytest.mark.parametrize(
+    "user", [DATASET_130_OWNER, ADMIN_USER, pytest.param(SOME_USER, marks=pytest.mark.xfail)]
+)
+async def test_private_dataset_access(
+    user: User, expdb_test: AsyncConnection, user_test: AsyncConnection
+) -> None:
+    dataset = await get_dataset(
+        dataset_id=130,
+        user=user,
+        user_db=user_test,
+        expdb_db=expdb_test,
+    )
+    assert isinstance(dataset, DatasetMetadata)
+
+
+# ── Direct call tests: get_dataset_features ──
+
+
+async def test_dataset_features_with_ontology(expdb_test: AsyncConnection) -> None:
+    features = await get_dataset_features(dataset_id=11, user=None, expdb=expdb_test)
+    by_index = {f.index: f for f in features}
+    assert by_index[1].ontology == ["https://en.wikipedia.org/wiki/Service_(motor_vehicle)"]
+    assert by_index[2].ontology == [
+        "https://en.wikipedia.org/wiki/Car_door",
+        "https://en.wikipedia.org/wiki/Door",
+    ]
+    assert by_index[3].ontology == [
+        "https://en.wikipedia.org/wiki/Passenger_vehicles_in_the_United_States"
+    ]
+    assert by_index[0].ontology is None
+    assert by_index[4].ontology is None
+
+
+async def test_dataset_features_no_access(expdb_test: AsyncConnection) -> None:
+    with pytest.raises(DatasetNoAccessError):
+        await get_dataset_features(dataset_id=130, user=None, expdb=expdb_test)
+
+
+@pytest.mark.parametrize("user", [ADMIN_USER, DATASET_130_OWNER])
+async def test_dataset_features_access_to_private(
+    user: User, expdb_test: AsyncConnection
+) -> None:
+    features = await get_dataset_features(dataset_id=130, user=user, expdb=expdb_test)
+    assert isinstance(features, list)
+
+
+async def test_dataset_features_with_processing_error(expdb_test: AsyncConnection) -> None:
+    dataset_id = 55
+    with pytest.raises(DatasetProcessingError) as e:
+        await get_dataset_features(dataset_id=dataset_id, user=None, expdb=expdb_test)
+    assert "No features found" in e.value.detail
+    assert str(dataset_id) in e.value.detail
+
+
+async def test_dataset_features_dataset_does_not_exist(expdb_test: AsyncConnection) -> None:
+    with pytest.raises(DatasetNotFoundError):
+        await get_dataset_features(dataset_id=1000, user=None, expdb=expdb_test)
+
+
+# ── Direct call tests: update_dataset_status ──
+
+
+@pytest.mark.mut
+@pytest.mark.parametrize("dataset_id", [3, 4])
+async def test_dataset_status_update_active_to_deactivated(
+    dataset_id: int, expdb_test: AsyncConnection
+) -> None:
+    result = await update_dataset_status(
+        dataset_id=dataset_id,
+        status=DatasetStatus.DEACTIVATED,
+        user=ADMIN_USER,
+        expdb=expdb_test,
+    )
+    assert result == {"dataset_id": dataset_id, "status": DatasetStatus.DEACTIVATED}
+
+
+@pytest.mark.mut
+async def test_dataset_status_update_in_preparation_to_active(
+    expdb_test: AsyncConnection,
+) -> None:
+    dataset_id = next(iter(constants.IN_PREPARATION_ID))
+    result = await update_dataset_status(
+        dataset_id=dataset_id,
+        status=DatasetStatus.ACTIVE,
+        user=ADMIN_USER,
+        expdb=expdb_test,
+    )
+    assert result == {"dataset_id": dataset_id, "status": DatasetStatus.ACTIVE}
+
+
+@pytest.mark.mut
+async def test_dataset_status_update_in_preparation_to_deactivated(
+    expdb_test: AsyncConnection,
+) -> None:
+    dataset_id = next(iter(constants.IN_PREPARATION_ID))
+    result = await update_dataset_status(
+        dataset_id=dataset_id,
+        status=DatasetStatus.DEACTIVATED,
+        user=ADMIN_USER,
+        expdb=expdb_test,
+    )
+    assert result == {"dataset_id": dataset_id, "status": DatasetStatus.DEACTIVATED}
+
+
+@pytest.mark.mut
+async def test_dataset_status_update_deactivated_to_active(
+    expdb_test: AsyncConnection,
+) -> None:
+    dataset_id = next(iter(constants.DEACTIVATED_DATASETS))
+    result = await update_dataset_status(
+        dataset_id=dataset_id,
+        status=DatasetStatus.ACTIVE,
+        user=ADMIN_USER,
+        expdb=expdb_test,
+    )
+    assert result == {"dataset_id": dataset_id, "status": DatasetStatus.ACTIVE}
+
+
+@pytest.mark.parametrize("dataset_id", [1, 33, 131])
+async def test_dataset_status_non_admin_cannot_activate(
+    dataset_id: int,
+    expdb_test: AsyncConnection,
+) -> None:
+    with pytest.raises(DatasetAdminOnlyError):
+        await update_dataset_status(
+            dataset_id=dataset_id,
+            status=DatasetStatus.ACTIVE,
+            user=SOME_USER,
+            expdb=expdb_test,
+        )
+
+
+@pytest.mark.parametrize("dataset_id", [1, 2])
+async def test_dataset_status_non_owner_cannot_deactivate(
+    dataset_id: int,
+    expdb_test: AsyncConnection,
+) -> None:
+    with pytest.raises(DatasetNotOwnedError):
+        await update_dataset_status(
+            dataset_id=dataset_id,
+            status=DatasetStatus.DEACTIVATED,
+            user=SOME_USER,
+            expdb=expdb_test,
+        )
