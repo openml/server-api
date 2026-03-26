@@ -14,7 +14,7 @@ from database.users import User
 from routers.dependencies import Pagination
 from routers.openml.datasets import DatasetStatusFilter, list_datasets
 from tests import constants
-from tests.users import ADMIN_USER, DATASET_130_OWNER, OWNER_USER, SOME_USER, ApiKey
+from tests.users import ADMIN_USER, DATASET_130_OWNER, SOME_USER, ApiKey
 
 
 async def test_list_route(py_api: httpx.AsyncClient) -> None:

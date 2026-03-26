@@ -17,8 +17,7 @@ from database.users import User
 from routers.openml.datasets import get_dataset, get_dataset_features, update_dataset_status
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus
 from tests import constants
-from tests.users import ADMIN_USER, DATASET_130_OWNER, NO_USER, SOME_USER, ApiKey
-
+from tests.users import ADMIN_USER, DATASET_130_OWNER, NO_USER, SOME_USER
 
 # ── py_api: routing + serialization, RFC 9457 format, regression ──
 
@@ -239,9 +238,7 @@ async def test_dataset_features_no_access(expdb_test: AsyncConnection) -> None:
 
 
 @pytest.mark.parametrize("user", [ADMIN_USER, DATASET_130_OWNER])
-async def test_dataset_features_access_to_private(
-    user: User, expdb_test: AsyncConnection
-) -> None:
+async def test_dataset_features_access_to_private(user: User, expdb_test: AsyncConnection) -> None:
     features = await get_dataset_features(dataset_id=130, user=user, expdb=expdb_test)
     assert isinstance(features, list)
 
