@@ -217,7 +217,8 @@ async def test_list_pagination(
             expdb_db=expdb_test,
         )
     except NoResultsError:
-        assert offset == 140, "Result was expected but NoResultsError was raised."
+        expect_empty_offset = 140
+        assert offset == expect_empty_offset, "Result was expected but NoResultsError was raised."
         return
     reported_ids = {dataset["did"] for dataset in result}
     assert reported_ids == set(expected_ids)
@@ -340,6 +341,6 @@ async def test_list_data_quality(
         status=DatasetStatusFilter.ALL,
         user=None,
         expdb_db=expdb_test,
-        **{quality: range_},
+        **{quality: range_},  # type: ignore[arg-type]
     )
     assert len(result) == count

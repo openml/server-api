@@ -86,9 +86,7 @@ async def test_dataset_features_no_access(expdb_test: AsyncConnection) -> None:
 
 
 @pytest.mark.parametrize("user", [ADMIN_USER, DATASET_130_OWNER])
-async def test_dataset_features_access_to_private(
-    user: User, expdb_test: AsyncConnection
-) -> None:
+async def test_dataset_features_access_to_private(user: User, expdb_test: AsyncConnection) -> None:
     features = await get_dataset_features(dataset_id=130, user=user, expdb=expdb_test)
     assert isinstance(features, list)
 
