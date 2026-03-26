@@ -10,6 +10,7 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
+from core.conversions import nested_remove_nones
 from tests.conftest import temporary_records
 from tests.users import OWNER_USER, ApiKey
 
@@ -318,11 +319,7 @@ async def test_get_setup_response_is_identical(
         for p in setup_params["parameter"]:
             p["id"] = int(p["id"])
             p["flow_id"] = int(p["flow_id"])
-            if p.get("data_type") == []:
-                del p["data_type"]
-            if p.get("default_value") == []:
-                del p["default_value"]
-            if p.get("value") == []:
-                del p["value"]
+
+    original_json = nested_remove_nones(original_json, remove_empty_list=True)
 
     assert original_json == new.json()
