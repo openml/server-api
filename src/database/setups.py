@@ -26,8 +26,8 @@ async def get_parameters(setup_id: int, connection: AsyncConnection) -> list[Row
         text(
             """
             SELECT
-                CAST(t_input.id AS CHAR) as id,
-                CAST(t_input.implementation_id AS CHAR) as flow_id,
+                t_input.id as id,
+                t_input.implementation_id as flow_id,
                 t_impl.name AS flow_name,
                 CONCAT(t_impl.fullName, '_', t_input.name) AS full_name,
                 t_input.name AS parameter_name,

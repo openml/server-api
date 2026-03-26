@@ -6,8 +6,8 @@ from pydantic import BaseModel, ConfigDict
 class SetupParameter(BaseModel):
     """Schema representing an individual parameter within a setup."""
 
-    id: str
-    flow_id: str
+    id: int
+    flow_id: int
     flow_name: str
     full_name: str
     parameter_name: str
@@ -22,8 +22,8 @@ class SetupParameter(BaseModel):
 class SetupParameters(BaseModel):
     """Schema representing the grouped properties of a setup and its parameters."""
 
-    setup_id: str
-    flow_id: str
+    setup_id: int
+    flow_id: int
     parameter: list[SetupParameter] | None = None
 
     model_config = ConfigDict(from_attributes=True)

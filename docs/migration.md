@@ -110,7 +110,7 @@ For example, after tagging dataset 21 with the tag `"foo"`:
 ## Setups
 
 ### `GET /{id}`
-The endpoint behaves identically to the PHP implementation. Note that `setup_id` and `flow_id` are consistently returned as strings instead of integers to maintain strict backward compatibility. Also, if a setup has no parameters, the `parameter` field is omitted entirely from the response.
+The endpoint behaves almost identically to the PHP implementation. Note that fields representing integers like `setup_id` and `flow_id` are returned as integers instead of strings to align with typed JSON. Also, if a setup has no parameters, the `parameter` field is omitted entirely from the response.
 
 ### `POST /setup/tag` and `POST /setup/untag`
 When successful, the "tag" property in the returned response is now always a list, even if only one tag exists for the entity. When removing the last tag, the "tag" property will be an empty list `[]` instead of being omitted from the response.

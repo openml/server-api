@@ -34,8 +34,8 @@ async def get_setup(
     setup_parameters = await database.setups.get_parameters(setup_id, expdb_db)
 
     params_model = SetupParameters(
-        setup_id=str(setup_id),
-        flow_id=str(setup.implementation_id),
+        setup_id=setup_id,
+        flow_id=setup.implementation_id,
         parameter=setup_parameters or None,
     )
 

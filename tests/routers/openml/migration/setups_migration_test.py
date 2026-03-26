@@ -1,3 +1,4 @@
+import asyncio
 import contextlib
 import re
 from collections.abc import AsyncGenerator, Callable, Iterable
@@ -276,25 +277,52 @@ async def test_get_setup_response_is_identical_setup_doesnt_exist(
 ) -> None:
     setup_id = 999999
 
-    original = await php_api.get(f"/setup/{setup_id}")
-    new = await py_api.get(f"/setup/{setup_id}")
+    original, new = await asyncio.gather(
+        php_api.get(f"/setup/{setup_id}"),
+        py_api.get(f"/setup/{setup_id}"),
+    )
 
     assert original.status_code == HTTPStatus.PRECONDITION_FAILED
     assert new.status_code == HTTPStatus.NOT_FOUND
     assert original.json()["error"]["message"] == "Unknown setup"
     assert original.json()["error"]["code"] == new.json()["code"]
+    assert new.json()["detail"] == f"Setup {setup_id} not found."
 
 
-@pytest.mark.parametrize("setup_id", [1, 48])
+@pytest.mark.parametrize("setup_id", range(1, 125))
 async def test_get_setup_response_is_identical(
     setup_id: int,
     py_api: httpx.AsyncClient,
     php_api: httpx.AsyncClient,
 ) -> None:
-    original = await php_api.get(f"/setup/{setup_id}")
-    new = await py_api.get(f"/setup/{setup_id}")
+    original, new = await asyncio.gather(
+        php_api.get(f"/setup/{setup_id}"),
+        py_api.get(f"/setup/{setup_id}"),
+    )
+
+    if original.status_code == HTTPStatus.PRECONDITION_FAILED:
+        assert new.status_code == HTTPStatus.NOT_FOUND
+        return
 
     assert original.status_code == HTTPStatus.OK
     assert new.status_code == HTTPStatus.OK
 
-    assert original.json() == new.json()
+    original_json = original.json()
+
+    # PHP returns integer fields as strings. To compare, we cast them to ints in the PHP response.
+    # PHP also returns `[]` instead of null for empty string optional fields, which Python omits.
+    setup_params = original_json["setup_parameters"]
+    setup_params["setup_id"] = int(setup_params["setup_id"])
+    setup_params["flow_id"] = int(setup_params["flow_id"])
+    if "parameter" in setup_params:
+        for p in setup_params["parameter"]:
+            p["id"] = int(p["id"])
+            p["flow_id"] = int(p["flow_id"])
+            if p.get("data_type") == []:
+                del p["data_type"]
+            if p.get("default_value") == []:
+                del p["default_value"]
+            if p.get("value") == []:
+                del p["value"]
+
+    assert original_json == new.json()
