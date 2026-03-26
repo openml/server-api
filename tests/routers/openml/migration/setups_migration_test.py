@@ -10,7 +10,7 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from core.conversions import nested_remove_nones
+from core.conversions import nested_remove_nones, nested_str_to_num
 from tests.conftest import temporary_records
 from tests.users import OWNER_USER, ApiKey
 
@@ -310,16 +310,13 @@ async def test_get_setup_response_is_identical(
 
     original_json = original.json()
 
-    # PHP returns integer fields as strings. To compare, we cast them to ints in the PHP response.
+    # PHP returns integer fields as strings. To compare, we recursively convert string digits
+    # to integers.
     # PHP also returns `[]` instead of null for empty string optional fields, which Python omits.
-    setup_params = original_json["setup_parameters"]
-    setup_params["setup_id"] = int(setup_params["setup_id"])
-    setup_params["flow_id"] = int(setup_params["flow_id"])
-    if "parameter" in setup_params:
-        for p in setup_params["parameter"]:
-            p["id"] = int(p["id"])
-            p["flow_id"] = int(p["flow_id"])
-
+    original_json = nested_str_to_num(original_json)
     original_json = nested_remove_nones(original_json, remove_empty_list=True)
 
-    assert original_json == new.json()
+    new_json = nested_str_to_num(new.json())
+    new_json = nested_remove_nones(new_json, remove_empty_list=True)
+
+    assert original_json == new_json

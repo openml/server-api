@@ -1,3 +1,4 @@
+import math
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
@@ -7,9 +8,13 @@ def _str_to_num(string: str) -> int | float | str:
     if string.isdigit():
         return int(string)
     try:
-        return float(string)
+        f = float(string)
+        if math.isnan(f) or math.isinf(f):
+            return string
     except ValueError:
         return string
+    else:
+        return f
 
 
 def nested_str_to_num(obj: Any) -> Any:
