@@ -46,19 +46,25 @@ def nested_remove_nones(obj: Any, *, remove_empty_list: bool = False) -> Any:
     if isinstance(obj, str):
         return obj
     if isinstance(obj, Mapping):
-        return {
-            key: nested_remove_nones(val, remove_empty_list=remove_empty_list)
-            for key, val in obj.items()
-            if val is not None
-            and (not remove_empty_list or val != [])
-            and nested_remove_nones(val, remove_empty_list=remove_empty_list) is not None
-        }
+        cleaned: dict[Any, Any] = {}
+        for key, val in obj.items():
+            cleaned_val = nested_remove_nones(val, remove_empty_list=remove_empty_list)
+            if cleaned_val is None:
+                continue
+            if remove_empty_list and cleaned_val == []:
+                continue
+            cleaned[key] = cleaned_val
+        return cleaned
     if isinstance(obj, Iterable):
-        return [
-            nested_remove_nones(val, remove_empty_list=remove_empty_list)
-            for val in obj
-            if nested_remove_nones(val, remove_empty_list=remove_empty_list) is not None
-        ]
+        cleaned_list: list[Any] = []
+        for val in obj:
+            cleaned_val = nested_remove_nones(val, remove_empty_list=remove_empty_list)
+            if cleaned_val is None:
+                continue
+            if remove_empty_list and cleaned_val == []:
+                continue
+            cleaned_list.append(cleaned_val)
+        return cleaned_list
     return obj
 
 
