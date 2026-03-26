@@ -107,6 +107,11 @@ For example, after tagging dataset 21 with the tag `"foo"`:
 }
 ```
 
+## Setups
+
+### `POST /setup/tag` and `POST /setup/untag`
+When successful, the "tag" property in the returned response is now always a list, even if only one tag exists for the entity. When removing the last tag, the "tag" property will be an empty list `[]` instead of being omitted from the response.
+
 ## Studies
 
 ### `GET /{id_or_alias}`

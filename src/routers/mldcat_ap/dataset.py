@@ -4,6 +4,7 @@ Incredibly inefficient, but it's just a proof of concept.
 Specific queries could be written to fetch e.g., a single feature or quality.
 """
 
+import asyncio
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -46,13 +47,16 @@ async def get_mldcat_ap_distribution(
 ) -> JsonLDGraph:
     assert user_db is not None  # noqa: S101
     assert expdb is not None  # noqa: S101
-    oml_dataset = await get_dataset(
-        dataset_id=distribution_id,
-        user=user,
-        user_db=user_db,
-        expdb_db=expdb,
+    oml_dataset, openml_features, oml_qualities = await asyncio.gather(
+        get_dataset(
+            dataset_id=distribution_id,
+            user=user,
+            user_db=user_db,
+            expdb_db=expdb,
+        ),
+        get_dataset_features(distribution_id, user, expdb),
+        get_qualities(distribution_id, user, expdb),
     )
-    openml_features = await get_dataset_features(distribution_id, user, expdb)
     features = [
         Feature(
             id_=f"{_server_url}/feature/{distribution_id}/{feature.index}",
@@ -61,7 +65,6 @@ async def get_mldcat_ap_distribution(
         )
         for feature in openml_features
     ]
-    oml_qualities = await get_qualities(distribution_id, user, expdb)
     qualities = [
         Quality(
             id_=f"{_server_url}/quality/{quality.name}/{distribution_id}",

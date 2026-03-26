@@ -1,3 +1,4 @@
+import asyncio
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends
@@ -40,7 +41,11 @@ async def get_flow(
         msg = f"Flow with id {flow_id} not found."
         raise FlowNotFoundError(msg)
 
-    parameter_rows = await database.flows.get_parameters(flow_id, expdb)
+    parameter_rows, tags, subflow_rows = await asyncio.gather(
+        database.flows.get_parameters(flow_id, expdb),
+        database.flows.get_tags(flow_id, expdb),
+        database.flows.get_subflows(flow_id, expdb),
+    )
     parameters = [
         Parameter(
             name=parameter.name,
@@ -53,9 +58,6 @@ async def get_flow(
         )
         for parameter in parameter_rows
     ]
-
-    tags = await database.flows.get_tags(flow_id, expdb)
-    subflow_rows = await database.flows.get_subflows(flow_id, expdb)
     subflows = []
     for subflow in subflow_rows:
         subflows.append(  # noqa: PERF401
