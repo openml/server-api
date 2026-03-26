@@ -9,16 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 from core.errors import NoResultsError
 from routers.dependencies import Pagination, expdb_connection
 from routers.types import SystemString64
+
 """Endpoints for run-related data."""
 
-from typing import Annotated
-
-from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 import database.runs
 from core.errors import RunNotFoundError, RunTraceNotFoundError
-from routers.dependencies import expdb_connection
 from schemas.runs import RunTrace, TraceIteration
 
 router = APIRouter(prefix="/run", tags=["run"])
@@ -147,6 +143,8 @@ async def list_runs(  # noqa: PLR0913
     return [
         {**row, "upload_time": row["upload_time"].strftime("%Y-%m-%d %H:%M:%S")} for row in rows
     ]
+
+
 @router.get("/trace/{run_id}")
 async def get_run_trace(
     run_id: int,
