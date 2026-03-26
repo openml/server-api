@@ -6,15 +6,10 @@ from fastapi import APIRouter, Body, Depends
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from core.errors import NoResultsError
+import database.runs
+from core.errors import NoResultsError, RunNotFoundError, RunTraceNotFoundError
 from routers.dependencies import Pagination, expdb_connection
 from routers.types import SystemString64
-
-"""Endpoints for run-related data."""
-
-
-import database.runs
-from core.errors import RunNotFoundError, RunTraceNotFoundError
 from schemas.runs import RunTrace, TraceIteration
 
 router = APIRouter(prefix="/run", tags=["run"])
@@ -72,7 +67,11 @@ async def list_runs(  # noqa: PLR0913
         list[int] | None,
         Body(description="Only include runs uploaded by these user id(s)."),
     ] = None,
-    tag: Annotated[str | None, SystemString64] = None,
+    tag: Annotated[
+        str | None,
+        SystemString64,
+        Body(description="Only include runs with this tag(s)."),
+    ] = None,
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> list[dict[str, Any]]:
     """List runs, optionally filtered by one or more criteria.
