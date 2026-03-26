@@ -43,6 +43,7 @@ def _add_in_filter(
 @router.post(path="/list", description="Provided for convenience, same as `GET` endpoint.")
 @router.get(path="/list")
 async def list_runs(  # noqa: PLR0913
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     run_id: Annotated[
         list[int] | None,
@@ -70,9 +71,8 @@ async def list_runs(  # noqa: PLR0913
     tag: Annotated[
         str | None,
         SystemString64,
-        Body(description="Only include runs with this tag(s)."),
+        Body(description="Only include runs with this tag."),
     ] = None,
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> list[dict[str, Any]]:
     """List runs, optionally filtered by one or more criteria.
 
@@ -86,8 +86,12 @@ async def list_runs(  # noqa: PLR0913
     Note: Unlike PHP (which requires at least one filter), this endpoint allows
     an empty filter set and returns all runs paginated.
     """
+    # Clamp Pagination (Safety against massive scans or negative values)
+    limit = max(1, min(pagination.limit, 1000))  # Enforce sensible limits to prevent abuse
+    offset = max(0, pagination.offset)
+
     filters: list[str] = []
-    params: dict[str, Any] = {"limit": pagination.limit, "offset": pagination.offset}
+    params: dict[str, Any] = {"limit": limit, "offset": offset}
 
     # Each list filter maps a user-facing param to a SQL column.
     # flow_id maps to algorithm_setup.implementation_id (aliased as `a`).
