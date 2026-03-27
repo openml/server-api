@@ -19,7 +19,10 @@ async def _attach_tasks_to_study(
 ) -> httpx.Response:
     # Adding requires the study to be in preparation,
     # but the current snapshot has no in-preparation studies.
-    await expdb_test.execute(text("UPDATE study SET status = 'in_preparation' WHERE id = 1"))
+    await expdb_test.execute(
+        text("UPDATE study SET status = 'in_preparation' WHERE id = :study_id"),
+        parameters={"study_id": study_id},
+    )
     return await py_api.post(
         f"/studies/attach?api_key={api_key}",
         json={"study_id": study_id, "entity_ids": task_ids},
