@@ -4,10 +4,12 @@ import httpx
 import pytest
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from core.errors import AuthenticationFailedError, TagAlreadyExistsError
+from core.errors import TagAlreadyExistsError
 from database.datasets import get_tags_for
+from database.users import User
+from routers.openml.datasets import tag_dataset
 from tests import constants
-from tests.users import ApiKey
+from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
 
 
 @pytest.mark.parametrize(
@@ -22,58 +24,6 @@ async def test_dataset_tag_rejects_unauthorized(key: ApiKey, py_api: httpx.Async
         json={"data_id": next(iter(constants.PRIVATE_DATASET_ID)), "tag": "test"},
     )
     assert response.status_code == HTTPStatus.UNAUTHORIZED
-    assert response.headers["content-type"] == "application/problem+json"
-    error = response.json()
-    assert error["type"] == AuthenticationFailedError.uri
-    assert error["code"] == "103"
-
-
-@pytest.mark.mut
-@pytest.mark.parametrize(
-    "key",
-    [ApiKey.ADMIN, ApiKey.SOME_USER, ApiKey.OWNER_USER],
-    ids=["administrator", "non-owner", "owner"],
-)
-async def test_dataset_tag(
-    key: ApiKey, expdb_test: AsyncConnection, py_api: httpx.AsyncClient
-) -> None:
-    dataset_id, tag = next(iter(constants.PRIVATE_DATASET_ID)), "test"
-    response = await py_api.post(
-        f"/datasets/tag?api_key={key}",
-        json={"data_id": dataset_id, "tag": tag},
-    )
-    assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"data_tag": {"id": str(dataset_id), "tag": [tag]}}
-
-    tags = await get_tags_for(id_=dataset_id, connection=expdb_test)
-    assert tag in tags
-
-
-@pytest.mark.mut
-async def test_dataset_tag_returns_existing_tags(py_api: httpx.AsyncClient) -> None:
-    dataset_id, tag = 1, "test"
-    response = await py_api.post(
-        f"/datasets/tag?api_key={ApiKey.ADMIN}",
-        json={"data_id": dataset_id, "tag": tag},
-    )
-    assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"data_tag": {"id": str(dataset_id), "tag": ["study_14", tag]}}
-
-
-@pytest.mark.mut
-async def test_dataset_tag_fails_if_tag_exists(py_api: httpx.AsyncClient) -> None:
-    dataset_id, tag = 1, "study_14"  # Dataset 1 already is tagged with 'study_14'
-    response = await py_api.post(
-        f"/datasets/tag?api_key={ApiKey.ADMIN}",
-        json={"data_id": dataset_id, "tag": tag},
-    )
-    assert response.status_code == HTTPStatus.CONFLICT
-    assert response.headers["content-type"] == "application/problem+json"
-    error = response.json()
-    assert error["type"] == TagAlreadyExistsError.uri
-    assert error["code"] == "473"
-    assert str(dataset_id) in error["detail"]
-    assert tag in error["detail"]
 
 
 @pytest.mark.parametrize(
@@ -82,6 +32,7 @@ async def test_dataset_tag_fails_if_tag_exists(py_api: httpx.AsyncClient) -> Non
     ids=["too short", "@", "space", "too long"],
 )
 async def test_dataset_tag_invalid_tag_is_rejected(
+    # Constraints for the tag are handled by FastAPI
     tag: str,
     py_api: httpx.AsyncClient,
 ) -> None:
@@ -92,3 +43,52 @@ async def test_dataset_tag_invalid_tag_is_rejected(
 
     assert new.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     assert new.json()["detail"][0]["loc"] == ["body", "tag"]
+
+
+# ── Direct call tests: tag_dataset ──
+
+
+@pytest.mark.mut
+@pytest.mark.parametrize(
+    "user",
+    [ADMIN_USER, SOME_USER, OWNER_USER],
+    ids=["administrator", "non-owner", "owner"],
+)
+async def test_dataset_tag(user: User, expdb_test: AsyncConnection) -> None:
+    dataset_id, tag = next(iter(constants.PRIVATE_DATASET_ID)), "test"
+    result = await tag_dataset(
+        data_id=dataset_id,
+        tag=tag,
+        user=user,
+        expdb_db=expdb_test,
+    )
+    assert result == {"data_tag": {"id": str(dataset_id), "tag": [tag]}}
+
+    tags = await get_tags_for(id_=dataset_id, connection=expdb_test)
+    assert tag in tags
+
+
+@pytest.mark.mut
+async def test_dataset_tag_returns_existing_tags(expdb_test: AsyncConnection) -> None:
+    dataset_id, tag = 1, "test"  # Dataset 1 already is tagged with 'study_14'
+    result = await tag_dataset(
+        data_id=dataset_id,
+        tag=tag,
+        user=ADMIN_USER,
+        expdb_db=expdb_test,
+    )
+    assert result == {"data_tag": {"id": str(dataset_id), "tag": ["study_14", tag]}}
+
+
+@pytest.mark.mut
+async def test_dataset_tag_fails_if_tag_exists(expdb_test: AsyncConnection) -> None:
+    dataset_id, tag = 1, "study_14"  # Dataset 1 already is tagged with 'study_14'
+    with pytest.raises(TagAlreadyExistsError) as e:
+        await tag_dataset(
+            data_id=dataset_id,
+            tag=tag,
+            user=ADMIN_USER,
+            expdb_db=expdb_test,
+        )
+    assert str(dataset_id) in e.value.detail
+    assert tag in e.value.detail

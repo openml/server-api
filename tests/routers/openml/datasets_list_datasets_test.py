@@ -7,233 +7,20 @@ import hypothesis
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
+from sqlalchemy.ext.asyncio import AsyncConnection
 
 from core.errors import NoResultsError
+from database.users import User
+from routers.dependencies import Pagination
+from routers.openml.datasets import DatasetStatusFilter, list_datasets
 from tests import constants
-from tests.users import ApiKey
+from tests.users import ADMIN_USER, DATASET_130_OWNER, SOME_USER, ApiKey
 
 
-def _assert_empty_result(
-    response: httpx.Response,
-) -> None:
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.headers["content-type"] == "application/problem+json"
-    error = response.json()
-    assert error["type"] == NoResultsError.uri
-    assert error["code"] == "372"
-
-
-async def test_list(py_api: httpx.AsyncClient) -> None:
+async def test_list_route(py_api: httpx.AsyncClient) -> None:
     response = await py_api.get("/datasets/list/")
     assert response.status_code == HTTPStatus.OK
     assert len(response.json()) >= 1
-
-
-@pytest.mark.parametrize(
-    ("status", "amount"),
-    [
-        ("active", constants.NUMBER_OF_PUBLIC_ACTIVE_DATASETS),
-        ("deactivated", constants.NUMBER_OF_DEACTIVATED_DATASETS),
-        ("in_preparation", constants.NUMBER_OF_DATASETS_IN_PREPARATION),
-        ("all", constants.NUMBER_OF_DATASETS - constants.NUMBER_OF_PRIVATE_DATASETS),
-    ],
-)
-async def test_list_filter_active(status: str, amount: int, py_api: httpx.AsyncClient) -> None:
-    response = await py_api.post(
-        "/datasets/list",
-        json={"status": status, "pagination": {"limit": constants.NUMBER_OF_DATASETS}},
-    )
-    assert response.status_code == HTTPStatus.OK, response.json()
-    assert len(response.json()) == amount
-
-
-@pytest.mark.parametrize(
-    ("api_key", "amount"),
-    [
-        (ApiKey.ADMIN, constants.NUMBER_OF_DATASETS),
-        (ApiKey.DATASET_130_OWNER, constants.NUMBER_OF_DATASETS),
-        (ApiKey.SOME_USER, constants.NUMBER_OF_DATASETS - constants.NUMBER_OF_PRIVATE_DATASETS),
-        (None, constants.NUMBER_OF_DATASETS - constants.NUMBER_OF_PRIVATE_DATASETS),
-    ],
-)
-async def test_list_accounts_privacy(
-    api_key: ApiKey | None, amount: int, py_api: httpx.AsyncClient
-) -> None:
-    key = f"?api_key={api_key}" if api_key else ""
-    response = await py_api.post(
-        f"/datasets/list{key}",
-        json={"status": "all", "pagination": {"limit": 1000}},
-    )
-    assert response.status_code == HTTPStatus.OK, response.json()
-    assert len(response.json()) == amount
-
-
-@pytest.mark.parametrize(
-    ("name", "count"),
-    [("abalone", 1), ("iris", 2)],
-)
-async def test_list_data_name_present(name: str, count: int, py_api: httpx.AsyncClient) -> None:
-    # The second iris dataset is private, so we need to authenticate.
-    response = await py_api.post(
-        f"/datasets/list?api_key={ApiKey.ADMIN}",
-        json={"status": "all", "data_name": name},
-    )
-    assert response.status_code == HTTPStatus.OK
-    datasets = response.json()
-    assert len(datasets) == count
-    assert all(dataset["name"] == name for dataset in datasets)
-
-
-@pytest.mark.parametrize(
-    "name",
-    ["ir", "long_name_without_overlap"],
-)
-async def test_list_data_name_absent(name: str, py_api: httpx.AsyncClient) -> None:
-    response = await py_api.post(
-        f"/datasets/list?api_key={ApiKey.ADMIN}",
-        json={"status": "all", "data_name": name},
-    )
-    _assert_empty_result(response)
-
-
-@pytest.mark.parametrize("limit", [None, 5, 10, 200])
-@pytest.mark.parametrize("offset", [None, 0, 5, 129, 140, 200])
-async def test_list_pagination(
-    limit: int | None, offset: int | None, py_api: httpx.AsyncClient
-) -> None:
-    # dataset ids are contiguous until 131, then there are 161, 162, and 163.
-    extra_datasets = [161, 162, 163]
-    all_ids = [
-        did
-        for did in range(1, 1 + constants.NUMBER_OF_DATASETS - len(extra_datasets))
-        if did not in constants.PRIVATE_DATASET_ID
-    ] + extra_datasets
-
-    start = 0 if offset is None else offset
-    end = start + (100 if limit is None else limit)
-    expected_ids = all_ids[start:end]
-
-    offset_body = {} if offset is None else {"offset": offset}
-    limit_body = {} if limit is None else {"limit": limit}
-    filters = {"status": "all", "pagination": offset_body | limit_body}
-    response = await py_api.post("/datasets/list", json=filters)
-
-    if offset in [140, 200]:
-        _assert_empty_result(response)
-        return
-
-    assert response.status_code == HTTPStatus.OK
-    reported_ids = {dataset["did"] for dataset in response.json()}
-    assert reported_ids == set(expected_ids)
-
-
-@pytest.mark.parametrize(
-    ("version", "count"),
-    [(1, 100), (2, 7), (5, 1)],
-)
-async def test_list_data_version(version: int, count: int, py_api: httpx.AsyncClient) -> None:
-    response = await py_api.post(
-        f"/datasets/list?api_key={ApiKey.ADMIN}",
-        json={"status": "all", "data_version": version},
-    )
-    assert response.status_code == HTTPStatus.OK
-    datasets = response.json()
-    assert len(datasets) == count
-    assert {dataset["version"] for dataset in datasets} == {version}
-
-
-async def test_list_data_version_no_result(py_api: httpx.AsyncClient) -> None:
-    version_with_no_datasets = 42
-    response = await py_api.post(
-        f"/datasets/list?api_key={ApiKey.ADMIN}",
-        json={"status": "all", "data_version": version_with_no_datasets},
-    )
-    _assert_empty_result(response)
-
-
-@pytest.mark.parametrize(
-    "key",
-    [ApiKey.SOME_USER, ApiKey.DATASET_130_OWNER, ApiKey.ADMIN],
-)
-@pytest.mark.parametrize(
-    ("user_id", "count"),
-    [(1, 59), (2, 34), (16, 1)],
-)
-async def test_list_uploader(user_id: int, count: int, key: str, py_api: httpx.AsyncClient) -> None:
-    response = await py_api.post(
-        f"/datasets/list?api_key={key}",
-        json={"status": "all", "uploader": user_id},
-    )
-    # The dataset of user 16 is private, so can not be retrieved by other users.
-    owner_user_id = 16
-    if key == ApiKey.SOME_USER and user_id == owner_user_id:
-        _assert_empty_result(response)
-        return
-
-    assert response.status_code == HTTPStatus.OK
-    assert len(response.json()) == count
-
-
-@pytest.mark.parametrize(
-    "data_id",
-    [[1], [1, 2, 3], [1, 2, 3, 3000], [1, 2, 3, 130]],
-)
-async def test_list_data_id(data_id: list[int], py_api: httpx.AsyncClient) -> None:
-    response = await py_api.post(
-        "/datasets/list",
-        json={"status": "all", "data_id": data_id},
-    )
-
-    assert response.status_code == HTTPStatus.OK
-    private_or_not_exist = {130, 3000}
-    assert len(response.json()) == len(set(data_id) - private_or_not_exist)
-
-
-@pytest.mark.parametrize(
-    ("tag", "count"),
-    [("study_14", 100), ("study_15", 1)],
-)
-async def test_list_data_tag(tag: str, count: int, py_api: httpx.AsyncClient) -> None:
-    response = await py_api.post(
-        "/datasets/list",
-        # study_14 has 100 datasets, we overwrite the default `limit` because otherwise
-        # we don't know if the results are limited by filtering on the tag.
-        json={"status": "all", "tag": tag, "pagination": {"limit": 101}},
-    )
-    assert response.status_code == HTTPStatus.OK
-    assert len(response.json()) == count
-
-
-async def test_list_data_tag_empty(py_api: httpx.AsyncClient) -> None:
-    response = await py_api.post(
-        "/datasets/list",
-        json={"status": "all", "tag": "not-a-tag"},
-    )
-    _assert_empty_result(response)
-
-
-@pytest.mark.parametrize(
-    ("quality", "range_", "count"),
-    [
-        ("number_instances", "150", 2),
-        ("number_instances", "150..200", 8),
-        ("number_features", "3", 6),
-        ("number_features", "5..7", 20),
-        ("number_classes", "2", 51),
-        ("number_classes", "2..3", 56),
-        ("number_missing_values", "2", 1),
-        ("number_missing_values", "2..100000", 23),
-    ],
-)
-async def test_list_data_quality(
-    quality: str, range_: str, count: int, py_api: httpx.AsyncClient
-) -> None:
-    response = await py_api.post(
-        "/datasets/list",
-        json={"status": "all", quality: range_},
-    )
-    assert response.status_code == HTTPStatus.OK, response.json()
-    assert len(response.json()) == count
 
 
 @pytest.mark.slow
@@ -321,3 +108,239 @@ async def test_list_data_identical(
     assert len(php_json) == len(new_json)
     assert php_json == new_json
     return None
+
+
+# ── Direct call tests: list_datasets ──
+
+
+@pytest.mark.parametrize(
+    ("status", "amount"),
+    [
+        (DatasetStatusFilter.ACTIVE, constants.NUMBER_OF_PUBLIC_ACTIVE_DATASETS),
+        (DatasetStatusFilter.DEACTIVATED, constants.NUMBER_OF_DEACTIVATED_DATASETS),
+        (DatasetStatusFilter.IN_PREPARATION, constants.NUMBER_OF_DATASETS_IN_PREPARATION),
+        (
+            DatasetStatusFilter.ALL,
+            constants.NUMBER_OF_DATASETS - constants.NUMBER_OF_PRIVATE_DATASETS,
+        ),
+    ],
+)
+async def test_list_filter_active(
+    status: DatasetStatusFilter, amount: int, expdb_test: AsyncConnection
+) -> None:
+    result = await list_datasets(
+        pagination=Pagination(limit=constants.NUMBER_OF_DATASETS),
+        status=status,
+        user=None,
+        expdb_db=expdb_test,
+    )
+    assert len(result) == amount
+
+
+@pytest.mark.parametrize(
+    ("user", "amount"),
+    [
+        (ADMIN_USER, constants.NUMBER_OF_DATASETS),
+        (DATASET_130_OWNER, constants.NUMBER_OF_DATASETS),
+        (SOME_USER, constants.NUMBER_OF_DATASETS - constants.NUMBER_OF_PRIVATE_DATASETS),
+        (None, constants.NUMBER_OF_DATASETS - constants.NUMBER_OF_PRIVATE_DATASETS),
+    ],
+)
+async def test_list_accounts_privacy(
+    user: User | None, amount: int, expdb_test: AsyncConnection
+) -> None:
+    result = await list_datasets(
+        pagination=Pagination(limit=1000),
+        status=DatasetStatusFilter.ALL,
+        user=user,
+        expdb_db=expdb_test,
+    )
+    assert len(result) == amount
+
+
+@pytest.mark.parametrize(
+    ("name", "count"),
+    [("abalone", 1), ("iris", 2)],
+)
+async def test_list_data_name_present(name: str, count: int, expdb_test: AsyncConnection) -> None:
+    # The second iris dataset is private, so we need an admin user.
+    result = await list_datasets(
+        pagination=Pagination(),
+        status=DatasetStatusFilter.ALL,
+        data_name=name,
+        user=ADMIN_USER,
+        expdb_db=expdb_test,
+    )
+    assert len(result) == count
+    assert all(dataset["name"] == name for dataset in result)
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["ir", "long_name_without_overlap"],
+)
+async def test_list_data_name_absent(name: str, expdb_test: AsyncConnection) -> None:
+    with pytest.raises(NoResultsError):
+        await list_datasets(
+            pagination=Pagination(),
+            status=DatasetStatusFilter.ALL,
+            data_name=name,
+            user=ADMIN_USER,
+            expdb_db=expdb_test,
+        )
+
+
+@pytest.mark.parametrize("limit", [None, 5, 10, 200])
+@pytest.mark.parametrize("offset", [None, 0, 5, 129, 140])
+async def test_list_pagination(
+    limit: int | None, offset: int | None, expdb_test: AsyncConnection
+) -> None:
+    # dataset ids are contiguous until 131, then there are 161, 162, and 163.
+    extra_datasets = [161, 162, 163]
+    all_ids = [
+        did
+        for did in range(1, 1 + constants.NUMBER_OF_DATASETS - len(extra_datasets))
+        if did not in constants.PRIVATE_DATASET_ID
+    ] + extra_datasets
+
+    start = 0 if offset is None else offset
+    end = start + (100 if limit is None else limit)
+    expected_ids = all_ids[start:end]
+
+    pagination = Pagination(offset=offset or 0, limit=limit or 100)
+
+    try:
+        result = await list_datasets(
+            pagination=pagination,
+            status=DatasetStatusFilter.ALL,
+            user=None,
+            expdb_db=expdb_test,
+        )
+    except NoResultsError:
+        expect_empty_offset = 140
+        assert offset == expect_empty_offset, "Result was expected but NoResultsError was raised."
+        return
+    reported_ids = {dataset["did"] for dataset in result}
+    assert reported_ids == set(expected_ids)
+
+
+@pytest.mark.parametrize(
+    ("version", "count"),
+    [(1, 100), (2, 7), (5, 1)],
+)
+async def test_list_data_version(version: int, count: int, expdb_test: AsyncConnection) -> None:
+    result = await list_datasets(
+        pagination=Pagination(),
+        status=DatasetStatusFilter.ALL,
+        data_version=version,
+        user=ADMIN_USER,
+        expdb_db=expdb_test,
+    )
+    assert len(result) == count
+    assert {dataset["version"] for dataset in result} == {version}
+
+
+async def test_list_data_version_no_result(expdb_test: AsyncConnection) -> None:
+    version_with_no_datasets = 42
+    with pytest.raises(NoResultsError):
+        await list_datasets(
+            pagination=Pagination(),
+            status=DatasetStatusFilter.ALL,
+            data_version=version_with_no_datasets,
+            user=ADMIN_USER,
+            expdb_db=expdb_test,
+        )
+
+
+@pytest.mark.parametrize("user", [SOME_USER, DATASET_130_OWNER, ADMIN_USER])
+@pytest.mark.parametrize(
+    ("user_id", "count"),
+    [(1, 59), (2, 34), (16, 1)],
+)
+async def test_list_uploader(
+    user_id: int, count: int, user: User, expdb_test: AsyncConnection
+) -> None:
+    # The dataset of user 16 is private, so can not be retrieved by other users.
+    owner_user_id = 16
+    try:
+        result = await list_datasets(
+            pagination=Pagination(),
+            status=DatasetStatusFilter.ALL,
+            uploader=user_id,
+            user=user,
+            expdb_db=expdb_test,
+        )
+        assert len(result) == count
+    except NoResultsError:
+        assert user is SOME_USER, "Admin and Owner should always see a result"
+        assert user_id == owner_user_id, "Only empty result should be for owner_user filter"
+
+
+@pytest.mark.parametrize(
+    "data_id",
+    [[1], [1, 2, 3], [1, 2, 3, 3000], [1, 2, 3, 130]],
+)
+async def test_list_data_id(data_id: list[int], expdb_test: AsyncConnection) -> None:
+    result = await list_datasets(
+        pagination=Pagination(),
+        status=DatasetStatusFilter.ALL,
+        data_id=data_id,
+        user=None,
+        expdb_db=expdb_test,
+    )
+    private_or_not_exist = {130, 3000}
+    expected = set(data_id) - private_or_not_exist
+    returned = {dataset["did"] for dataset in result}
+    assert returned == expected
+
+
+@pytest.mark.parametrize(
+    ("tag", "count"),
+    [("study_14", 100), ("study_15", 1)],
+)
+async def test_list_data_tag(tag: str, count: int, expdb_test: AsyncConnection) -> None:
+    result = await list_datasets(
+        pagination=Pagination(limit=101),
+        status=DatasetStatusFilter.ALL,
+        tag=tag,
+        user=None,
+        expdb_db=expdb_test,
+    )
+    assert len(result) == count
+
+
+async def test_list_data_tag_empty(expdb_test: AsyncConnection) -> None:
+    with pytest.raises(NoResultsError):
+        await list_datasets(
+            pagination=Pagination(),
+            status=DatasetStatusFilter.ALL,
+            tag="not-a-tag",
+            user=None,
+            expdb_db=expdb_test,
+        )
+
+
+@pytest.mark.parametrize(
+    ("quality", "range_", "count"),
+    [
+        ("number_instances", "150", 2),
+        ("number_instances", "150..200", 8),
+        ("number_features", "3", 6),
+        ("number_features", "5..7", 20),
+        ("number_classes", "2", 51),
+        ("number_classes", "2..3", 56),
+        ("number_missing_values", "2", 1),
+        ("number_missing_values", "2..100000", 23),
+    ],
+)
+async def test_list_data_quality(
+    quality: str, range_: str, count: int, expdb_test: AsyncConnection
+) -> None:
+    result = await list_datasets(
+        pagination=Pagination(),
+        status=DatasetStatusFilter.ALL,
+        user=None,
+        expdb_db=expdb_test,
+        **{quality: range_},  # type: ignore[arg-type]
+    )
+    assert len(result) == count
