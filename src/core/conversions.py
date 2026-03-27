@@ -47,10 +47,7 @@ def nested_num_to_str(obj: Any) -> Any:
     return obj
 
 
-def nested_remove_values(obj: Any, *, values: list[Any] | None = None) -> Any:
-    if values is None:
-        values = [None]
-
+def nested_remove_values(obj: Any, *, values: list[Any]) -> Any:
     if isinstance(obj, str):
         return obj
     if isinstance(obj, Mapping):
