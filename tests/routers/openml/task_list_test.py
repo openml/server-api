@@ -114,7 +114,10 @@ async def test_list_tasks_pagination_order_stable(py_api: httpx.AsyncClient) -> 
     r2 = await py_api.post("/tasks/list", json={"pagination": {"limit": 5, "offset": 5}})
     ids1 = [t["task_id"] for t in r1.json()]
     ids2 = [t["task_id"] for t in r2.json()]
-    assert max(ids1) < min(ids2)
+    assert ids1 == sorted(ids1)
+    assert ids2 == sorted(ids2)
+    if ids1 and ids2:
+        assert max(ids1) < min(ids2)
 
 
 async def test_list_tasks_number_instances_range(py_api: httpx.AsyncClient) -> None:

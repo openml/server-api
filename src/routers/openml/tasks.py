@@ -263,11 +263,17 @@ async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
         clauses.append("AND d.`name` = :data_name")
         parameters["data_name"] = data_name
 
-    if task_id:
+    if task_id is not None:
+        if not task_id:
+            msg = "No tasks match the search criteria."
+            raise NoResultsError(msg)
         clauses.append("AND t.`task_id` IN :task_ids")
         parameters["task_ids"] = task_id
 
-    if data_id:
+    if data_id is not None:
+        if not data_id:
+            msg = "No tasks match the search criteria."
+            raise NoResultsError(msg)
         clauses.append("AND d.`did` IN :data_ids")
         parameters["data_ids"] = data_id
 
@@ -318,9 +324,9 @@ async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
         """,  # noqa: S608
     )
 
-    if task_id:
+    if task_id is not None:
         main_query = main_query.bindparams(bindparam("task_ids", expanding=True))
-    if data_id:
+    if data_id is not None:
         main_query = main_query.bindparams(bindparam("data_ids", expanding=True))
 
     result = await expdb.execute(main_query, parameters=parameters)

@@ -112,9 +112,26 @@ _FILTER_COMBOS: list[tuple[dict[str, Any], dict[str, Any]]] = [
     ({"type": 1}, {"task_type_id": 1}),  # by task type
     ({"tag": "OpenML100"}, {"tag": "OpenML100"}),  # by tag
     ({"type": 1, "tag": "OpenML100"}, {"task_type_id": 1, "tag": "OpenML100"}),  # combined
+    ({"data_name": "iris"}, {"data_name": "iris"}),  # by dataset name
+    ({"data_id": 61}, {"data_id": [61]}),  # by dataset id
+    ({"data_tag": "study_14"}, {"data_tag": "study_14"}),  # by dataset tag
+    ({"number_instances": "150"}, {"number_instances": "150"}),  # quality filter
+    (
+        {"data_id": 61, "number_instances": "150"},
+        {"data_id": [61], "number_instances": "150"},
+    ),
 ]
 
-_FILTER_IDS = ["type", "tag", "type_and_tag"]
+_FILTER_IDS = [
+    "type",
+    "tag",
+    "type_and_tag",
+    "data_name",
+    "data_id",
+    "data_tag",
+    "number_instances",
+    "data_and_quality",
+]
 
 
 @pytest.mark.parametrize(
@@ -156,7 +173,10 @@ async def test_list_tasks_equal(
     assert php_response.status_code == HTTPStatus.OK
     assert py_response.status_code == HTTPStatus.OK
 
-    php_tasks: list[dict[str, Any]] = php_response.json()["tasks"]["task"]
+    php_tasks_raw = php_response.json()["tasks"]["task"]
+    php_tasks: list[dict[str, Any]] = (
+        php_tasks_raw if isinstance(php_tasks_raw, list) else [php_tasks_raw]
+    )
     py_tasks: list[dict[str, Any]] = [_normalize_py_task(t) for t in py_response.json()]
 
     php_ids = {int(t["task_id"]) for t in php_tasks}
