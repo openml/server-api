@@ -5,7 +5,8 @@ from typing import Annotated, Any, cast
 
 import xmltodict
 from fastapi import APIRouter, Body, Depends
-from sqlalchemy import RowMapping, text
+from sqlalchemy import bindparam, text
+from sqlalchemy.engine import RowMapping
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 import config
@@ -217,7 +218,7 @@ def _quality_clause(quality: str, range_: str | None) -> str:
 
 @router.post(path="/list", description="Provided for convenience, same as `GET` endpoint.")
 @router.get(path="/list")
-async def list_tasks(  # noqa: PLR0913
+async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     task_type_id: Annotated[int | None, Body(description="Filter by task type id.")] = None,
     tag: Annotated[str | None, SystemString64] = None,
@@ -235,36 +236,46 @@ async def list_tasks(  # noqa: PLR0913
     """List tasks, optionally filtered by type, tag, status, dataset properties, and more."""
     assert expdb is not None  # noqa: S101
 
-    # --- WHERE clauses ---
-    if status == TaskStatusFilter.ALL:
-        where_status = ""
-    else:
-        where_status = f"AND IFNULL(ds.`status`, 'in_preparation') = '{status}'"
+    clauses: list[str] = []
+    parameters: dict[str, Any] = {
+        "offset": max(0, pagination.offset),
+        "limit": max(0, pagination.limit),
+    }
 
-    where_type = "" if task_type_id is None else "AND t.`ttid` = :task_type_id"
-    where_tag = (
-        "" if tag is None else "AND t.`task_id` IN (SELECT `id` FROM task_tag WHERE `tag` = :tag)"
-    )
-    where_data_tag = (
-        ""
-        if data_tag is None
-        else "AND d.`did` IN (SELECT `id` FROM dataset_tag WHERE `tag` = :data_tag)"
-    )
-    task_id_str = ",".join(str(tid) for tid in task_id) if task_id else ""
-    where_task_id = "" if not task_id else f"AND t.`task_id` IN ({task_id_str})"
-    data_id_str = ",".join(str(did) for did in data_id) if data_id else ""
-    where_data_id = "" if not data_id else f"AND d.`did` IN ({data_id_str})"
-    where_data_name = "" if data_name is None else "AND d.`name` = :data_name"
+    if status != TaskStatusFilter.ALL:
+        clauses.append("AND IFNULL(ds.`status`, 'in_preparation') = :status")
+        parameters["status"] = status
+
+    if task_type_id is not None:
+        clauses.append("AND t.`ttid` = :task_type_id")
+        parameters["task_type_id"] = task_type_id
+
+    if tag is not None:
+        clauses.append("AND t.`task_id` IN (SELECT `id` FROM task_tag WHERE `tag` = :tag)")
+        parameters["tag"] = tag
+
+    if data_tag is not None:
+        clauses.append("AND d.`did` IN (SELECT `id` FROM dataset_tag WHERE `tag` = :data_tag)")
+        parameters["data_tag"] = data_tag
+
+    if data_name is not None:
+        clauses.append("AND d.`name` = :data_name")
+        parameters["data_name"] = data_name
+
+    if task_id:
+        clauses.append("AND t.`task_id` IN :task_ids")
+        parameters["task_ids"] = task_id
+
+    if data_id:
+        clauses.append("AND d.`did` IN :data_ids")
+        parameters["data_ids"] = data_id
 
     where_number_instances = _quality_clause("NumberOfInstances", number_instances)
     where_number_features = _quality_clause("NumberOfFeatures", number_features)
     where_number_classes = _quality_clause("NumberOfClasses", number_classes)
     where_number_missing_values = _quality_clause("NumberOfMissingValues", number_missing_values)
 
-    basic_inputs_str = ", ".join(f"'{i}'" for i in BASIC_TASK_INPUTS)
-
-    # subquery to get the latest status per dataset
-    # dataset_status has multiple rows per dataset (history), we want only the most recent
+    # subquery to get the latest status per dataset (dataset_status is a history table)
     status_subquery = """
         SELECT ds1.did, ds1.status
         FROM dataset_status ds1
@@ -274,49 +285,44 @@ async def list_tasks(  # noqa: PLR0913
         )
     """
 
-    query = text(
+    main_query = text(
         f"""
         SELECT
             t.`task_id`,
-            t.`ttid` AS task_type_id,
-            tt.`name` AS task_type,
+            t.`ttid`     AS task_type_id,
+            tt.`name`    AS task_type,
             d.`did`,
             d.`name`,
             d.`format`,
             IFNULL(ds.`status`, 'in_preparation') AS status
         FROM task t
-        JOIN task_type tt ON tt.`ttid` = t.`ttid`
-        JOIN task_inputs ti_source ON ti_source.`task_id` = t.`task_id`
+        JOIN task_type tt
+            ON tt.`ttid` = t.`ttid`
+        JOIN task_inputs ti_source
+            ON ti_source.`task_id` = t.`task_id`
             AND ti_source.`input` = 'source_data'
-        JOIN dataset d ON d.`did` = ti_source.`value`
-        LEFT JOIN ({status_subquery}) ds ON ds.`did` = d.`did`
+        JOIN dataset d
+            ON d.`did` = ti_source.`value`
+        LEFT JOIN ({status_subquery}) ds
+            ON ds.`did` = d.`did`
         WHERE 1=1
-            {where_status}
-            {where_type}
-            {where_tag}
-            {where_data_tag}
-            {where_task_id}
-            {where_data_id}
-            {where_data_name}
             {where_number_instances}
             {where_number_features}
             {where_number_classes}
             {where_number_missing_values}
+            {" ".join(clauses)}
         GROUP BY t.`task_id`, t.`ttid`, tt.`name`, d.`did`, d.`name`, d.`format`, ds.`status`
         ORDER BY t.`task_id`
-        LIMIT {pagination.limit} OFFSET {pagination.offset}
+        LIMIT :limit OFFSET :offset
         """,  # noqa: S608
     )
 
-    result = await expdb.execute(
-        query,
-        parameters={
-            "task_type_id": task_type_id,
-            "tag": tag,
-            "data_tag": data_tag,
-            "data_name": data_name,
-        },
-    )
+    if task_id:
+        main_query = main_query.bindparams(bindparam("task_ids", expanding=True))
+    if data_id:
+        main_query = main_query.bindparams(bindparam("data_ids", expanding=True))
+
+    result = await expdb.execute(main_query, parameters=parameters)
     rows = result.mappings().all()
 
     if not rows:
@@ -327,39 +333,45 @@ async def list_tasks(  # noqa: PLR0913
     tasks: dict[int, dict[str, Any]] = {
         row["task_id"]: {col: row[col] for col in columns} for row in rows
     }
+    task_ids: list[int] = list(tasks.keys())
+    dataset_ids: list[int] = list({t["did"] for t in tasks.values()})
 
-    # fetch inputs for all tasks in one query
-    task_ids_str = ",".join(str(tid) for tid in tasks)
+    inputs_query = text(
+        """
+        SELECT `task_id`, `input`, `value`
+        FROM task_inputs
+        WHERE `task_id` IN :task_ids
+        AND `input` IN :basic_inputs
+        """,
+    ).bindparams(
+        bindparam("task_ids", expanding=True),
+        bindparam("basic_inputs", expanding=True),
+    )
     inputs_result = await expdb.execute(
-        text(
-            f"""
-            SELECT `task_id`, `input`, `value`
-            FROM task_inputs
-            WHERE `task_id` IN ({task_ids_str})
-            AND `input` IN ({basic_inputs_str})
-            """,  # noqa: S608
-        ),
+        inputs_query,
+        parameters={"task_ids": task_ids, "basic_inputs": BASIC_TASK_INPUTS},
     )
     for row in inputs_result.all():
         tasks[row.task_id].setdefault("input", []).append(
             {"name": row.input, "value": row.value},
         )
 
-    # fetch qualities for all datasets in one query
-    did_list = ",".join(str(t["did"]) for t in tasks.values())
-    qualities_str = ", ".join(f"'{q}'" for q in QUALITIES_TO_SHOW)
-    qualities_result = await expdb.execute(
-        text(
-            f"""
-            SELECT `data`, `quality`, `value`
-            FROM data_quality
-            WHERE `data` IN ({did_list})
-            AND `quality` IN ({qualities_str})
-            """,  # noqa: S608
-        ),
+    qualities_query = text(
+        """
+        SELECT `data`, `quality`, `value`
+        FROM data_quality
+        WHERE `data` IN :dataset_ids
+        AND `quality` IN :quality_names
+        """,
+    ).bindparams(
+        bindparam("dataset_ids", expanding=True),
+        bindparam("quality_names", expanding=True),
     )
-    # build a reverse map: dataset_id -> task_id
-    # needed because quality rows come back keyed by did, but our tasks dict is keyed by task_id
+    qualities_result = await expdb.execute(
+        qualities_query,
+        parameters={"dataset_ids": dataset_ids, "quality_names": QUALITIES_TO_SHOW},
+    )
+    # multiple tasks can reference the same dataset; map dataset_id -> [task_id, ...]
     did_to_task_ids: dict[int, list[int]] = {}
     for tid, t in tasks.items():
         did_to_task_ids.setdefault(t["did"], []).append(tid)
@@ -369,21 +381,18 @@ async def list_tasks(  # noqa: PLR0913
                 {"name": row.quality, "value": str(row.value)},
             )
 
-    # fetch tags for all tasks in one query
-    tags_result = await expdb.execute(
-        text(
-            f"""
-            SELECT `id`, `tag`
-            FROM task_tag
-            WHERE `id` IN ({task_ids_str})
-            """,  # noqa: S608
-        ),
-    )
+    tags_query = text(
+        """
+        SELECT `id`, `tag`
+        FROM task_tag
+        WHERE `id` IN :task_ids
+        """,
+    ).bindparams(bindparam("task_ids", expanding=True))
+    tags_result = await expdb.execute(tags_query, parameters={"task_ids": task_ids})
     for row in tags_result.all():
         tasks[row.id].setdefault("tag", []).append(row.tag)
 
-    # ensure every task has all expected keys(input/quality/tag) even if no rows were found for them
-    # e.g. a task with no tags should return "tag": [] not missing key
+    # ensure every task has all expected keys even if no related rows were found
     for task in tasks.values():
         task.setdefault("input", [])
         task.setdefault("quality", [])
