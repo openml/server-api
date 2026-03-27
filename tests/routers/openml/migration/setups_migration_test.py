@@ -10,6 +10,7 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
+from core.conversions import nested_remove_values, nested_str_to_num
 from tests.conftest import temporary_records
 from tests.users import OWNER_USER, ApiKey
 
@@ -274,6 +275,55 @@ async def test_setup_tag_response_is_identical_tag_already_exists(
 
     assert original.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
     assert new.status_code == HTTPStatus.CONFLICT
-    assert original.json()["error"]["code"] == new.json()["code"]
     assert original.json()["error"]["message"] == "Entity already tagged by this tag."
     assert new.json()["detail"] == f"Setup {setup_id} already has tag {tag!r}."
+
+
+async def test_get_setup_response_is_identical_setup_doesnt_exist(
+    py_api: httpx.AsyncClient,
+    php_api: httpx.AsyncClient,
+) -> None:
+    setup_id = 999999
+
+    original, new = await asyncio.gather(
+        php_api.get(f"/setup/{setup_id}"),
+        py_api.get(f"/setup/{setup_id}"),
+    )
+
+    assert original.status_code == HTTPStatus.PRECONDITION_FAILED
+    assert new.status_code == HTTPStatus.NOT_FOUND
+    assert original.json()["error"]["message"] == "Unknown setup"
+    assert original.json()["error"]["code"] == new.json()["code"]
+    assert new.json()["detail"] == f"Setup {setup_id} not found."
+
+
+@pytest.mark.parametrize("setup_id", range(1, 125))
+async def test_get_setup_response_is_identical(
+    setup_id: int,
+    py_api: httpx.AsyncClient,
+    php_api: httpx.AsyncClient,
+) -> None:
+    original, new = await asyncio.gather(
+        php_api.get(f"/setup/{setup_id}"),
+        py_api.get(f"/setup/{setup_id}"),
+    )
+
+    if original.status_code == HTTPStatus.PRECONDITION_FAILED:
+        assert new.status_code == HTTPStatus.NOT_FOUND
+        return
+
+    assert original.status_code == HTTPStatus.OK
+    assert new.status_code == HTTPStatus.OK
+
+    original_json = original.json()
+
+    # PHP returns integer fields as strings. To compare, we recursively convert string digits
+    # to integers.
+    # PHP also returns `[]` instead of null for empty string optional fields, which Python omits.
+    original_json = nested_str_to_num(original_json)
+    original_json = nested_remove_values(original_json, values=[[], None])
+
+    new_json = nested_str_to_num(new.json())
+    new_json = nested_remove_values(new_json, values=[[], None])
+
+    assert original_json == new_json

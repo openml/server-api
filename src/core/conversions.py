@@ -1,3 +1,4 @@
+import math
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
@@ -7,9 +8,13 @@ def _str_to_num(string: str) -> int | float | str:
     if string.isdigit():
         return int(string)
     try:
-        return float(string)
+        f = float(string)
+        if math.isnan(f) or math.isinf(f):
+            return string
     except ValueError:
         return string
+    else:
+        return f
 
 
 def nested_str_to_num(obj: Any) -> Any:
@@ -42,17 +47,21 @@ def nested_num_to_str(obj: Any) -> Any:
     return obj
 
 
-def nested_remove_nones(obj: Any) -> Any:
+def nested_remove_values(obj: Any, *, values: list[Any]) -> Any:
     if isinstance(obj, str):
         return obj
     if isinstance(obj, Mapping):
         return {
-            key: nested_remove_nones(val)
+            key: nested_remove_values(val, values=values)
             for key, val in obj.items()
-            if val is not None and nested_remove_nones(val) is not None
+            if nested_remove_values(val, values=values) not in values
         }
     if isinstance(obj, Iterable):
-        return [nested_remove_nones(val) for val in obj if nested_remove_nones(val) is not None]
+        return [
+            nested_remove_values(val, values=values)
+            for val in obj
+            if nested_remove_values(val, values=values) not in values
+        ]
     return obj
 
 
