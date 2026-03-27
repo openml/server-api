@@ -21,16 +21,18 @@ async def test_setup_tag_missing_auth(py_api: httpx.AsyncClient) -> None:
 async def test_setup_tag_api_success(
     py_api: httpx.AsyncClient, expdb_test: AsyncConnection
 ) -> None:
+    tag = "setup_tag_via_http"
     response = await py_api.post(
         f"/setup/tag?api_key={ApiKey.SOME_USER}",
-        json={"setup_id": 1, "tag": "my_new_success_api_tag"},
+        json={"setup_id": 1, "tag": tag},
     )
 
     assert response.status_code == HTTPStatus.OK
-    assert "my_new_success_api_tag" in response.json()["setup_tag"]["tag"]
+    assert response.json()["setup_tag"]["tag"][-1] == tag
 
     rows = await expdb_test.execute(
-        text("SELECT * FROM setup_tag WHERE id = 1 AND tag = 'my_new_success_api_tag'")
+        text("SELECT * FROM setup_tag WHERE id = 1 AND tag = :tag"),
+        parameters={"tag": tag},
     )
     assert len(rows.all()) == 1
 
@@ -50,13 +52,15 @@ async def test_setup_tag_unknown_setup(expdb_test: AsyncConnection) -> None:
 
 @pytest.mark.mut
 async def test_setup_tag_already_exists(expdb_test: AsyncConnection) -> None:
+    tag = "setup_tag_conflict"
     await expdb_test.execute(
-        text("INSERT INTO setup_tag (id, tag, uploader) VALUES (1, 'existing_tag_123', 2);")
+        text("INSERT INTO setup_tag (id, tag, uploader) VALUES (1, :tag, 2);"),
+        parameters={"tag": tag},
     )
-    with pytest.raises(TagAlreadyExistsError, match=r"Setup 1 already has tag 'existing_tag_123'."):
+    with pytest.raises(TagAlreadyExistsError, match=rf"Setup 1 already has tag '{tag}'\."):
         await tag_setup(
             setup_id=1,
-            tag="existing_tag_123",
+            tag=tag,
             user=SOME_USER,
             expdb_db=expdb_test,
         )
@@ -64,15 +68,17 @@ async def test_setup_tag_already_exists(expdb_test: AsyncConnection) -> None:
 
 @pytest.mark.mut
 async def test_setup_tag_direct_success(expdb_test: AsyncConnection) -> None:
+    tag = "setup_tag_via_direct"
     result = await tag_setup(
         setup_id=1,
-        tag="my_direct_success_tag",
+        tag=tag,
         user=SOME_USER,
         expdb_db=expdb_test,
     )
 
-    assert "my_direct_success_tag" in result["setup_tag"]["tag"]
+    assert result["setup_tag"]["tag"][-1] == tag
     rows = await expdb_test.execute(
-        text("SELECT * FROM setup_tag WHERE id = 1 AND tag = 'my_direct_success_tag'")
+        text("SELECT * FROM setup_tag WHERE id = 1 AND tag = :tag"),
+        parameters={"tag": tag},
     )
     assert len(rows.all()) == 1
