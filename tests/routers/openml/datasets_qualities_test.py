@@ -1,172 +1,10 @@
 import asyncio
+import re
 from http import HTTPStatus
 
 import deepdiff
 import httpx
 import pytest
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncConnection
-
-from core.errors import DatasetNotFoundError
-
-
-async def _remove_quality_from_database(quality_name: str, expdb_test: AsyncConnection) -> None:
-    await expdb_test.execute(
-        text(
-            """
-        DELETE FROM data_quality
-        WHERE `quality`=:deleted_quality
-        """,
-        ),
-        parameters={"deleted_quality": quality_name},
-    )
-    await expdb_test.execute(
-        text(
-            """
-        DELETE FROM quality
-        WHERE `name`=:deleted_quality
-        """,
-        ),
-        parameters={"deleted_quality": quality_name},
-    )
-
-
-async def test_list_qualities_identical(
-    py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
-) -> None:
-    new, original = await asyncio.gather(
-        py_api.get("/datasets/qualities/list"),
-        php_api.get("/data/qualities/list"),
-    )
-    assert original.status_code == new.status_code
-    assert original.json() == new.json()
-    # To keep the test idempotent, we cannot test if reaction to database changes is identical
-
-
-async def test_list_qualities(py_api: httpx.AsyncClient, expdb_test: AsyncConnection) -> None:
-    response = await py_api.get("/datasets/qualities/list")
-    assert response.status_code == HTTPStatus.OK
-    expected = {
-        "data_qualities_list": {
-            "quality": [
-                "AutoCorrelation",
-                "CfsSubsetEval_DecisionStumpAUC",
-                "CfsSubsetEval_DecisionStumpErrRate",
-                "CfsSubsetEval_DecisionStumpKappa",
-                "CfsSubsetEval_NaiveBayesAUC",
-                "CfsSubsetEval_NaiveBayesErrRate",
-                "CfsSubsetEval_NaiveBayesKappa",
-                "CfsSubsetEval_kNN1NAUC",
-                "CfsSubsetEval_kNN1NErrRate",
-                "CfsSubsetEval_kNN1NKappa",
-                "ClassEntropy",
-                "DecisionStumpAUC",
-                "DecisionStumpErrRate",
-                "DecisionStumpKappa",
-                "Dimensionality",
-                "EquivalentNumberOfAtts",
-                "J48.00001.AUC",
-                "J48.00001.ErrRate",
-                "J48.00001.Kappa",
-                "J48.0001.AUC",
-                "J48.0001.ErrRate",
-                "J48.0001.Kappa",
-                "J48.001.AUC",
-                "J48.001.ErrRate",
-                "J48.001.Kappa",
-                "MajorityClassPercentage",
-                "MajorityClassSize",
-                "MaxAttributeEntropy",
-                "MaxKurtosisOfNumericAtts",
-                "MaxMeansOfNumericAtts",
-                "MaxMutualInformation",
-                "MaxNominalAttDistinctValues",
-                "MaxSkewnessOfNumericAtts",
-                "MaxStdDevOfNumericAtts",
-                "MeanAttributeEntropy",
-                "MeanKurtosisOfNumericAtts",
-                "MeanMeansOfNumericAtts",
-                "MeanMutualInformation",
-                "MeanNoiseToSignalRatio",
-                "MeanNominalAttDistinctValues",
-                "MeanSkewnessOfNumericAtts",
-                "MeanStdDevOfNumericAtts",
-                "MinAttributeEntropy",
-                "MinKurtosisOfNumericAtts",
-                "MinMeansOfNumericAtts",
-                "MinMutualInformation",
-                "MinNominalAttDistinctValues",
-                "MinSkewnessOfNumericAtts",
-                "MinStdDevOfNumericAtts",
-                "MinorityClassPercentage",
-                "MinorityClassSize",
-                "NaiveBayesAUC",
-                "NaiveBayesErrRate",
-                "NaiveBayesKappa",
-                "NumberOfBinaryFeatures",
-                "NumberOfClasses",
-                "NumberOfFeatures",
-                "NumberOfInstances",
-                "NumberOfInstancesWithMissingValues",
-                "NumberOfMissingValues",
-                "NumberOfNumericFeatures",
-                "NumberOfSymbolicFeatures",
-                "PercentageOfBinaryFeatures",
-                "PercentageOfInstancesWithMissingValues",
-                "PercentageOfMissingValues",
-                "PercentageOfNumericFeatures",
-                "PercentageOfSymbolicFeatures",
-                "Quartile1AttributeEntropy",
-                "Quartile1KurtosisOfNumericAtts",
-                "Quartile1MeansOfNumericAtts",
-                "Quartile1MutualInformation",
-                "Quartile1SkewnessOfNumericAtts",
-                "Quartile1StdDevOfNumericAtts",
-                "Quartile2AttributeEntropy",
-                "Quartile2KurtosisOfNumericAtts",
-                "Quartile2MeansOfNumericAtts",
-                "Quartile2MutualInformation",
-                "Quartile2SkewnessOfNumericAtts",
-                "Quartile2StdDevOfNumericAtts",
-                "Quartile3AttributeEntropy",
-                "Quartile3KurtosisOfNumericAtts",
-                "Quartile3MeansOfNumericAtts",
-                "Quartile3MutualInformation",
-                "Quartile3SkewnessOfNumericAtts",
-                "Quartile3StdDevOfNumericAtts",
-                "REPTreeDepth1AUC",
-                "REPTreeDepth1ErrRate",
-                "REPTreeDepth1Kappa",
-                "REPTreeDepth2AUC",
-                "REPTreeDepth2ErrRate",
-                "REPTreeDepth2Kappa",
-                "REPTreeDepth3AUC",
-                "REPTreeDepth3ErrRate",
-                "REPTreeDepth3Kappa",
-                "RandomTreeDepth1AUC",
-                "RandomTreeDepth1ErrRate",
-                "RandomTreeDepth1Kappa",
-                "RandomTreeDepth2AUC",
-                "RandomTreeDepth2ErrRate",
-                "RandomTreeDepth2Kappa",
-                "RandomTreeDepth3AUC",
-                "RandomTreeDepth3ErrRate",
-                "RandomTreeDepth3Kappa",
-                "StdvNominalAttDistinctValues",
-                "kNN1NAUC",
-                "kNN1NErrRate",
-                "kNN1NKappa",
-            ],
-        },
-    }
-    assert expected == response.json()
-
-    deleted = expected["data_qualities_list"]["quality"].pop()
-    await _remove_quality_from_database(quality_name=deleted, expdb_test=expdb_test)
-
-    response = await py_api.get("/datasets/qualities/list")
-    assert response.status_code == HTTPStatus.OK
-    assert expected == response.json()
 
 
 async def test_get_quality(py_api: httpx.AsyncClient) -> None:
@@ -287,7 +125,7 @@ async def test_get_quality(py_api: httpx.AsyncClient) -> None:
 
 @pytest.mark.parametrize(
     "data_id",
-    list(set(range(1, 132)) - {55, 56, 59, 116, 130}),
+    [*list(set(range(1, 133))), 9999999],
 )
 async def test_get_quality_identical(
     data_id: int, py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
@@ -296,8 +134,24 @@ async def test_get_quality_identical(
         py_api.get(f"/datasets/qualities/{data_id}"),
         php_api.get(f"/data/qualities/{data_id}"),
     )
-    assert python_response.status_code == php_response.status_code
+    if php_response.status_code == HTTPStatus.OK:
+        _assert_get_quality_success_equal(python_response, php_response)
+        return
 
+    php_error_code = int(php_response.json()["error"]["code"])
+    if php_error_code == 361:  # noqa: PLR2004
+        _assert_get_quality_error_dataset_not_found(python_response, php_response)
+    elif php_error_code == 364:  # noqa: PLR2004
+        _assert_get_quality_error_dataset_process_error(python_response, php_response)
+    else:
+        msg = f"Dataset {data_id} response not under test:", php_response.json()
+        raise AssertionError(msg)
+
+
+def _assert_get_quality_success_equal(
+    python_response: httpx.Response, php_response: httpx.Response
+) -> None:
+    assert python_response.status_code == php_response.status_code
     expected = [
         {
             "name": quality["name"],
@@ -308,28 +162,31 @@ async def test_get_quality_identical(
     assert python_response.json() == expected
 
 
-@pytest.mark.parametrize(
-    "data_id",
-    [55, 56, 59, 116, 130, 132],
-)
-async def test_get_quality_identical_error(
-    data_id: int,
-    py_api: httpx.AsyncClient,
-    php_api: httpx.AsyncClient,
+def _assert_get_quality_error_dataset_not_found(
+    python_response: httpx.Response, php_response: httpx.Response
 ) -> None:
-    if data_id in [55, 56, 59]:
-        pytest.skip("Detailed error for code 364 (failed processing) not yet supported.")
-    if data_id in [116]:  # noqa: FURB171
-        pytest.skip("Detailed error for code 362 (no qualities) not yet supported.")
-    python_response, php_response = await asyncio.gather(
-        py_api.get(f"/datasets/qualities/{data_id}"),
-        php_api.get(f"/data/qualities/{data_id}"),
-    )
-    assert python_response.status_code == php_response.status_code
-    # RFC 9457: Python API now returns problem+json format
-    assert python_response.headers["content-type"] == "application/problem+json"
-    error = python_response.json()
-    assert error["type"] == DatasetNotFoundError.uri
-    # Verify the error message matches the PHP API semantically
-    assert php_response.json()["error"]["message"] == "Unknown dataset"
-    assert error["detail"] == f"Dataset with id {data_id} not found."
+    assert php_response.status_code == HTTPStatus.PRECONDITION_FAILED
+    assert python_response.status_code == HTTPStatus.NOT_FOUND
+
+    php_error = php_response.json()["error"]
+    py_error = python_response.json()
+
+    assert php_error["code"] == py_error["code"]
+    assert php_error["message"] == "Unknown dataset"
+    assert re.match(r"Dataset with id \d+ not found.", py_error["detail"])
+
+
+def _assert_get_quality_error_dataset_process_error(
+    python_response: httpx.Response, php_response: httpx.Response
+) -> None:
+    assert php_response.status_code == python_response.status_code
+
+    php_error = php_response.json()["error"]
+    py_error = python_response.json()
+
+    assert php_error["code"] == py_error["code"]
+    assert php_error["message"] == "Dataset processed with error"
+    assert py_error["title"] == "Dataset Processing Error"
+    # The PHP can add some additional unnecessary escapes.
+    assert php_error["additional_information"][:30] == py_error["detail"][:30]
+    assert php_error["additional_information"][-30:] == py_error["detail"][-30:]

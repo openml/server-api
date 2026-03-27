@@ -156,6 +156,7 @@ async def test_private_dataset_owner_access(
     assert new_response.json()["id"] == private_dataset
 
 
+@pytest.mark.mut
 @pytest.mark.parametrize(
     "dataset_id",
     [*range(1, 10), 101, 131],

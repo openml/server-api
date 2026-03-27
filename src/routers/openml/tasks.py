@@ -1,3 +1,4 @@
+import asyncio
 import json
 import re
 from enum import StrEnum
@@ -413,23 +414,30 @@ async def get_task(
         msg = f"Task {task_id} has task type {task.ttid}, but task type {task.ttid} is not found."
         raise InternalError(msg)
 
+    task_input_rows, ttios, tags = await asyncio.gather(
+        database.tasks.get_input_for_task(task_id, expdb),
+        database.tasks.get_task_type_inout_with_template(task_type.ttid, expdb),
+        database.tasks.get_tags(task_id, expdb),
+    )
     task_inputs = {
-        row.input: int(row.value) if row.value.isdigit() else row.value
-        for row in await database.tasks.get_input_for_task(task_id, expdb)
+        row.input: int(row.value) if row.value.isdigit() else row.value for row in task_input_rows
     }
-    ttios = await database.tasks.get_task_type_inout_with_template(task_type.ttid, expdb)
     templates = [(tt_io.name, tt_io.io, tt_io.requirement, tt_io.template_api) for tt_io in ttios]
+    input_templates = [
+        (name, template) for name, io, required, template in templates if io == "input"
+    ]
+    filled_templates = await asyncio.gather(
+        *[fill_template(template, task, task_inputs, expdb) for name, template in input_templates],
+    )
     inputs = [
-        await fill_template(template, task, task_inputs, expdb) | {"name": name}
-        for name, io, required, template in templates
-        if io == "input"
+        filled | {"name": name}
+        for (name, _), filled in zip(input_templates, filled_templates, strict=True)
     ]
     outputs = [
         convert_template_xml_to_json(template) | {"name": name}
         for name, io, required, template in templates
         if io == "output"
     ]
-    tags = await database.tasks.get_tags(task_id, expdb)
     name = f"Task {task_id} ({task_type.name})"
     dataset_id = task_inputs.get("source_data")
     if isinstance(dataset_id, int) and (dataset := await database.datasets.get(dataset_id, expdb)):

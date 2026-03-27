@@ -8,8 +8,8 @@ import pytest
 
 from core.conversions import (
     nested_num_to_str,
-    nested_remove_nones,
     nested_remove_single_element_list,
+    nested_remove_values,
 )
 
 
@@ -33,7 +33,7 @@ async def test_get_task_equal(
     new_json["task_id"] = new_json.pop("id")
     new_json["task_name"] = new_json.pop("name")
     # PHP is not typed *and* automatically removes None values
-    new_json = nested_remove_nones(new_json)
+    new_json = nested_remove_values(new_json, values=[None])
     new_json = nested_num_to_str(new_json)
     # It also removes "value" entries for parameters if the list is empty,
     # it does not remove *all* empty lists, e.g., for cost_matrix input they are kept

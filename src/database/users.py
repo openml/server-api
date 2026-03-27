@@ -73,3 +73,6 @@ class User:
             group_ids = await get_user_groups_for(user_id=self.user_id, connection=self._database)
             self._groups = [UserGroup(group_id) for group_id in group_ids]
         return self._groups
+
+    async def is_admin(self) -> bool:
+        return UserGroup.ADMIN in await self.get_groups()

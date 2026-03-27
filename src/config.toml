@@ -8,7 +8,7 @@ allow_test_api_keys=true
 root_path=""
 
 [databases.defaults]
-host="openml-test-database"
+host="database"
 port="3306"
 # SQLAlchemy `dialect` and `driver`: https://docs.sqlalchemy.org/en/20/dialects/index.html
 drivername="mysql+aiomysql"
