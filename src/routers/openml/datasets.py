@@ -326,7 +326,7 @@ async def get_dataset_features(
             raise DatasetProcessingError(msg)
         msg = (
             "No features found. "
-            "Dataset {dataset_id} did not contain any features, or we could not extract them."
+            f"Dataset {dataset_id} did not contain any features, or we could not extract them."
         )
         raise DatasetNoFeaturesError(msg)
     return features
