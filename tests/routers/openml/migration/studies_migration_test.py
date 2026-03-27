@@ -3,7 +3,7 @@ import asyncio
 import deepdiff
 import httpx
 
-from core.conversions import nested_num_to_str, nested_remove_nones
+from core.conversions import nested_num_to_str, nested_remove_values
 
 
 async def test_get_study_equal(py_api: httpx.AsyncClient, php_api: httpx.AsyncClient) -> None:
@@ -17,7 +17,7 @@ async def test_get_study_equal(py_api: httpx.AsyncClient, php_api: httpx.AsyncCl
     # New implementation is typed
     new_json = nested_num_to_str(new_json)
     # New implementation has same fields even if empty
-    new_json = nested_remove_nones(new_json)
+    new_json = nested_remove_values(new_json, values=[None])
     new_json["tasks"] = {"task_id": new_json.pop("task_ids")}
     new_json["data"] = {"data_id": new_json.pop("data_ids")}
     if runs := new_json.pop("run_ids", None):

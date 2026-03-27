@@ -47,29 +47,24 @@ def nested_num_to_str(obj: Any) -> Any:
     return obj
 
 
-def nested_remove_nones(obj: Any, *, remove_empty_list: bool = False) -> Any:
+def nested_remove_values(obj: Any, *, values: list[Any] | None = None) -> Any:
+    if values is None:
+        values = [None]
+
     if isinstance(obj, str):
         return obj
     if isinstance(obj, Mapping):
-        cleaned: dict[Any, Any] = {}
-        for key, val in obj.items():
-            cleaned_val = nested_remove_nones(val, remove_empty_list=remove_empty_list)
-            if cleaned_val is None:
-                continue
-            if remove_empty_list and cleaned_val == []:
-                continue
-            cleaned[key] = cleaned_val
-        return cleaned
+        return {
+            key: nested_remove_values(val, values=values)
+            for key, val in obj.items()
+            if nested_remove_values(val, values=values) not in values
+        }
     if isinstance(obj, Iterable):
-        cleaned_list: list[Any] = []
-        for val in obj:
-            cleaned_val = nested_remove_nones(val, remove_empty_list=remove_empty_list)
-            if cleaned_val is None:
-                continue
-            if remove_empty_list and cleaned_val == []:
-                continue
-            cleaned_list.append(cleaned_val)
-        return cleaned_list
+        return [
+            nested_remove_values(val, values=values)
+            for val in obj
+            if nested_remove_values(val, values=values) not in values
+        ]
     return obj
 
 
