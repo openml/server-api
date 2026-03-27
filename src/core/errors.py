@@ -186,6 +186,7 @@ class AuthenticationRequiredError(ProblemDetailError):
     uri = "https://openml.org/problems/authentication-required"
     title = "Authentication Required"
     _default_status_code = HTTPStatus.UNAUTHORIZED
+    _default_code = 103  # PHP API doesn't differentiate
 
 
 class AuthenticationFailedError(ProblemDetailError):
