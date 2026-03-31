@@ -62,10 +62,8 @@ async def test_get_task_equal(
     assert not differences
 
 
-# PHP task list no-results error code is 482 (unlike datasets which uses 372).
-# Python uses 372 (NoResultsError). This difference is documented in the tests below.
-_PHP_TASK_LIST_NO_RESULTS_CODE = "482"
-_PY_TASK_LIST_NO_RESULTS_CODE = "372"
+# Task list no-results error code is 482 (unlike datasets which uses 372).
+_TASK_LIST_NO_RESULTS_CODE = "482"
 
 
 def _build_php_task_list_path(php_params: dict[str, Any]) -> str:
@@ -80,11 +78,10 @@ def _normalize_py_task(task: dict[str, Any]) -> dict[str, Any]:
     """Normalize a single Python task list entry to match PHP format.
 
     PHP (XML-to-JSON) returns single-element arrays as plain values, not lists.
-    PHP also returns IDs as ints
+    PHP returns task_id, task_type_id, and did as integers (same for Python).
     and completely omits the "tag" field for all tasks in the list endpoint.
     """
-    t = nested_num_to_str(task)
-    t = nested_remove_single_element_list(t)
+    t = nested_remove_single_element_list(task.copy())
 
     # PHP's list endpoint does not return tags AT ALL
     t.pop("tag", None)
@@ -92,16 +89,6 @@ def _normalize_py_task(task: dict[str, Any]) -> dict[str, Any]:
     # PHP omits qualities where value is None string
     if "quality" in t:
         t["quality"] = [q for q in t["quality"] if q.get("value") != "None"]
-
-    # PHP's list endpoint does not return these arrays when empty
-    for opt_key in ("quality", "input"):
-        if t.get(opt_key) == []:
-            t.pop(opt_key)
-
-    # PHP's list endpoint returns these specific fields as ints
-    t["task_id"] = int(t["task_id"])
-    t["task_type_id"] = int(t["task_type_id"])
-    t["did"] = int(t["did"])
 
     return cast("dict[str, Any]", t)
 
@@ -149,10 +136,9 @@ async def test_list_tasks_equal(
 
     Known differences documented here:
     - PHP wraps response in {"tasks": {"task": [...]}}, Python returns a flat list.
-    - PHP uses string values for all fields; Python is typed (handled via nested_num_to_str).
+    - PHP uses XML-to-JSON which collapses single-element arrays into plain values.
     - PHP omits the "tag" key when a task has no tags; Python returns "tag": [].
     - PHP error status is 412 PRECONDITION_FAILED; Python uses 404 NOT_FOUND.
-    - PHP no-results error code is 482; Python is 372.
     """
     php_path = _build_php_task_list_path(php_params)
     # Use a very large limit on Python side to match PHP's unbounded default result count
@@ -166,8 +152,8 @@ async def test_list_tasks_equal(
     if php_response.status_code == HTTPStatus.PRECONDITION_FAILED:
         assert py_response.status_code == HTTPStatus.NOT_FOUND
         assert py_response.headers["content-type"] == "application/problem+json"
-        assert php_response.json()["error"]["code"] == _PHP_TASK_LIST_NO_RESULTS_CODE
-        assert py_response.json()["code"] == _PY_TASK_LIST_NO_RESULTS_CODE
+        assert php_response.json()["error"]["code"] == _TASK_LIST_NO_RESULTS_CODE
+        assert py_response.json()["code"] == _TASK_LIST_NO_RESULTS_CODE
         return
 
     assert php_response.status_code == HTTPStatus.OK
@@ -182,9 +168,9 @@ async def test_list_tasks_equal(
     php_ids = {int(t["task_id"]) for t in php_tasks}
     py_ids = {int(t["task_id"]) for t in py_tasks}
 
-    # Python may return more tasks than PHP (PHP may apply visibility/limit rules server-side).
-    # Assert that every task PHP returns is also present in Python — not the reverse.
-    assert php_ids.issubset(py_ids), f"PHP has task IDs not in Python: {php_ids - py_ids}"
+    assert php_ids == py_ids, (
+        f"PHP and Python must return the exact same task IDs: {php_ids ^ py_ids}"
+    )
 
     # Compare only the tasks PHP returned — per-task deepdiff for clear error messages
     py_by_id = {int(t["task_id"]): t for t in py_tasks}
@@ -217,7 +203,6 @@ async def test_list_tasks_no_results_matches_php(
 
     Documented differences:
     - PHP returns 412 PRECONDITION_FAILED; Python returns 404 NOT_FOUND.
-    - PHP error code is 482; Python error code is 372.
     - PHP message: "No results"; Python detail: "No tasks match the search criteria."
     """
     php_path = _build_php_task_list_path(php_params)
@@ -232,9 +217,9 @@ async def test_list_tasks_no_results_matches_php(
     php_error = php_response.json()["error"]
     py_error = py_response.json()
 
-    # Error codes differ between PHP and Python for task list no-results
-    assert php_error["code"] == _PHP_TASK_LIST_NO_RESULTS_CODE
-    assert py_error["code"] == _PY_TASK_LIST_NO_RESULTS_CODE
+    # Error codes should be the same
+    assert php_error["code"] == _TASK_LIST_NO_RESULTS_CODE
+    assert py_error["code"] == _TASK_LIST_NO_RESULTS_CODE
     assert php_error["message"] == "No results"
     assert py_error["detail"] == "No tasks match the search criteria."
     assert py_response.headers["content-type"] == "application/problem+json"

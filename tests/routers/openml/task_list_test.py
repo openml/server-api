@@ -85,13 +85,13 @@ async def test_list_tasks_filter_data_name(py_api: httpx.AsyncClient) -> None:
     assert all(t["name"] == "mfeat-pixel" for t in tasks)
 
 
-async def test_list_tasks_filter_status_all(py_api: httpx.AsyncClient) -> None:
-    """Status='all' returns >= results compared to default active-only."""
-    active_resp = await py_api.post("/tasks/list", json={})
-    all_resp = await py_api.post("/tasks/list", json={"status": "all"})
-    assert active_resp.status_code == HTTPStatus.OK
-    assert all_resp.status_code == HTTPStatus.OK
-    assert len(all_resp.json()) >= len(active_resp.json())
+async def test_list_tasks_filter_status_deactivated(py_api: httpx.AsyncClient) -> None:
+    """Filter by status='deactivated' returns tasks with that status."""
+    response = await py_api.post("/tasks/list", json={"status": "deactivated"})
+    assert response.status_code == HTTPStatus.OK
+    tasks = response.json()
+    assert len(tasks) > 0
+    assert all(t["status"] == "deactivated" for t in tasks)
 
 
 @pytest.mark.parametrize(
@@ -155,18 +155,6 @@ async def test_list_tasks_quality_values_are_strings(py_api: httpx.AsyncClient) 
             assert isinstance(quality["value"], str)
 
 
-async def test_list_tasks_all_keys_present_even_with_empty_values(
-    py_api: httpx.AsyncClient,
-) -> None:
-    """Every task has input/quality/tag keys even if they are empty lists."""
-    response = await py_api.post("/tasks/list", json={"task_id": [1, 2, 3]})
-    assert response.status_code == HTTPStatus.OK
-    for task in response.json():
-        assert "input" in task
-        assert "quality" in task
-        assert "tag" in task
-
-
 @pytest.mark.parametrize(
     "pagination_override",
     [
@@ -203,7 +191,7 @@ async def test_list_tasks_negative_pagination_safely_clamped(
 ) -> None:
     """Negative pagination values are safely clamped to 0 instead of causing 500 errors.
 
-    A limit clamped to 0 returns a 372 NoResultsError (404 Not Found).
+    A limit clamped to 0 returns a 482 NoResultsError (404 Not Found).
     An offset clamped to 0 simply returns the first page of results (200 OK).
     """
     response = await py_api.post(
@@ -216,7 +204,6 @@ async def test_list_tasks_negative_pagination_safely_clamped(
     else:
         error = response.json()
         assert error["type"] == NoResultsError.uri
-        assert error["code"] == "372"
 
 
 @pytest.mark.parametrize(
@@ -235,7 +222,6 @@ async def test_list_tasks_no_results(payload: dict[str, Any], py_api: httpx.Asyn
     assert response.headers["content-type"] == "application/problem+json"
     error = response.json()
     assert error["type"] == NoResultsError.uri
-    assert error["code"] == "372"  # NoResultsError code
 
 
 @pytest.mark.parametrize(

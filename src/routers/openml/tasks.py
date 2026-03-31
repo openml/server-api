@@ -225,8 +225,14 @@ async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
     tag: Annotated[str | None, SystemString64] = None,
     data_tag: Annotated[str | None, SystemString64] = None,
     status: Annotated[TaskStatusFilter, Body()] = TaskStatusFilter.ACTIVE,
-    task_id: Annotated[list[int] | None, Body(description="Filter by task id(s).")] = None,
-    data_id: Annotated[list[int] | None, Body(description="Filter by dataset id(s).")] = None,
+    task_id: Annotated[
+        list[int] | None,
+        Body(description="Filter by task id(s).", min_length=1),
+    ] = None,
+    data_id: Annotated[
+        list[int] | None,
+        Body(description="Filter by dataset id(s).", min_length=1),
+    ] = None,
     data_name: Annotated[str | None, CasualString128] = None,
     number_instances: Annotated[str | None, IntegerRange] = None,
     number_features: Annotated[str | None, IntegerRange] = None,
@@ -264,16 +270,10 @@ async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
         parameters["data_name"] = data_name
 
     if task_id is not None:
-        if not task_id:
-            msg = "No tasks match the search criteria."
-            raise NoResultsError(msg)
         clauses.append("AND t.`task_id` IN :task_ids")
         parameters["task_ids"] = task_id
 
     if data_id is not None:
-        if not data_id:
-            msg = "No tasks match the search criteria."
-            raise NoResultsError(msg)
         clauses.append("AND d.`did` IN :data_ids")
         parameters["data_ids"] = data_id
 
@@ -334,7 +334,7 @@ async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
 
     if not rows:
         msg = "No tasks match the search criteria."
-        raise NoResultsError(msg)
+        raise NoResultsError(msg, code="482")
 
     columns = ["task_id", "task_type_id", "task_type", "did", "name", "format", "status"]
     tasks: dict[int, dict[str, Any]] = {
@@ -354,15 +354,6 @@ async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
         bindparam("task_ids", expanding=True),
         bindparam("basic_inputs", expanding=True),
     )
-    inputs_result = await expdb.execute(
-        inputs_query,
-        parameters={"task_ids": task_ids, "basic_inputs": BASIC_TASK_INPUTS},
-    )
-    for row in inputs_result.all():
-        tasks[row.task_id].setdefault("input", []).append(
-            {"name": row.input, "value": row.value},
-        )
-
     qualities_query = text(
         """
         SELECT `data`, `quality`, `value`
@@ -374,10 +365,35 @@ async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
         bindparam("dataset_ids", expanding=True),
         bindparam("quality_names", expanding=True),
     )
-    qualities_result = await expdb.execute(
-        qualities_query,
-        parameters={"dataset_ids": dataset_ids, "quality_names": QUALITIES_TO_SHOW},
+
+    tags_query = text(
+        """
+        SELECT `id`, `tag`
+        FROM task_tag
+        WHERE `id` IN :task_ids
+        """,
+    ).bindparams(bindparam("task_ids", expanding=True))
+
+    inputs_result, qualities_result, tags_result = await asyncio.gather(
+        expdb.execute(
+            inputs_query,
+            parameters={"task_ids": task_ids, "basic_inputs": BASIC_TASK_INPUTS},
+        ),
+        expdb.execute(
+            qualities_query,
+            parameters={"dataset_ids": dataset_ids, "quality_names": QUALITIES_TO_SHOW},
+        ),
+        expdb.execute(
+            tags_query,
+            parameters={"task_ids": task_ids},
+        ),
     )
+
+    for row in inputs_result.all():
+        tasks[row.task_id].setdefault("input", []).append(
+            {"name": row.input, "value": row.value},
+        )
+
     # multiple tasks can reference the same dataset; map dataset_id -> [task_id, ...]
     did_to_task_ids: dict[int, list[int]] = {}
     for tid, t in tasks.items():
@@ -388,22 +404,8 @@ async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
                 {"name": row.quality, "value": str(row.value)},
             )
 
-    tags_query = text(
-        """
-        SELECT `id`, `tag`
-        FROM task_tag
-        WHERE `id` IN :task_ids
-        """,
-    ).bindparams(bindparam("task_ids", expanding=True))
-    tags_result = await expdb.execute(tags_query, parameters={"task_ids": task_ids})
     for row in tags_result.all():
         tasks[row.id].setdefault("tag", []).append(row.tag)
-
-    # ensure every task has all expected keys even if no related rows were found
-    for task in tasks.values():
-        task.setdefault("input", [])
-        task.setdefault("quality", [])
-        task.setdefault("tag", [])
 
     return list(tasks.values())
 
