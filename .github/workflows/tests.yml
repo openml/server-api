@@ -44,7 +44,9 @@ jobs:
           jobs="${{ matrix.mutations == true && '1' || 'auto' }}"
           docker compose exec python-api coverage run -m pytest -n "$jobs" -v -m "$marker"
       - name: Produce coverage report
-        run: docker compose exec python-api coverage xml
+        run: |
+          docker compose exec python-api coverage combine
+          docker compose exec python-api coverage xml
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v4
         with:
