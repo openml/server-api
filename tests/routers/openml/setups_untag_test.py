@@ -85,6 +85,11 @@ async def test_setup_untag_not_owned_by_you(expdb_test: AsyncConnection) -> None
             user=OWNER_USER,
             expdb_db=expdb_test,
         )
+    rows = await expdb_test.execute(
+        text("SELECT * FROM setup_tag WHERE id = 1 AND tag = :tag"),
+        parameters={"tag": tag},
+    )
+    assert len(rows.all()) == 1
 
 
 @pytest.mark.mut
