@@ -18,7 +18,7 @@ from core.errors import (
 )
 from core.formatting import _str_to_bool
 from database.users import User
-from routers.dependencies import expdb_connection, fetch_user
+from routers.dependencies import expdb_connection, fetch_user, fetch_user_or_raise
 from schemas.core import Visibility
 from schemas.study import CreateStudy, Study, StudyStatus, StudyType
 
@@ -62,7 +62,7 @@ class AttachDetachResponse(BaseModel):
 async def attach_to_study(
     study_id: Annotated[int, Body()],
     entity_ids: Annotated[list[int], Body()],
-    user: Annotated[User | None, Depends(fetch_user)] = None,
+    user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> AttachDetachResponse:
     assert expdb is not None  # noqa: S101
@@ -99,13 +99,10 @@ async def attach_to_study(
 @router.post("/")
 async def create_study(
     study: CreateStudy,
-    user: Annotated[User | None, Depends(fetch_user)] = None,
+    user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> dict[Literal["study_id"], int]:
     assert expdb is not None  # noqa: S101
-    if user is None:
-        msg = "Creating a study requires authentication."
-        raise AuthenticationRequiredError(msg)
     if study.main_entity_type == StudyType.RUN and study.tasks:
         msg = "Cannot create a run study with tasks."
         raise StudyInvalidTypeError(msg)

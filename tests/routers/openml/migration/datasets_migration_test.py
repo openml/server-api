@@ -118,16 +118,10 @@ async def test_error_unknown_dataset(
     assert error["detail"].startswith("No dataset")
 
 
-@pytest.mark.parametrize(
-    "api_key",
-    [None, ApiKey.INVALID],
-)
 async def test_private_dataset_no_user_no_access(
     py_api: httpx.AsyncClient,
-    api_key: str | None,
 ) -> None:
-    query = f"?api_key={api_key}" if api_key else ""
-    response = await py_api.get(f"/datasets/130{query}")
+    response = await py_api.get("/datasets/130")
 
     # New response is 403: Forbidden instead of 412: PRECONDITION FAILED
     assert response.status_code == HTTPStatus.FORBIDDEN

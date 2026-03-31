@@ -27,6 +27,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "coverage",
+    "pytest-cov",
     "pre-commit",
     "pytest",
     "pytest-mock",
@@ -47,8 +48,6 @@ docs = [
 
 [tool.coverage.run]
 branch=true
-concurrency=["multiprocessing"]
-parallel=true
 
 [tool.coverage.report]
 show_missing=true

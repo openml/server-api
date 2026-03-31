@@ -13,7 +13,6 @@ import database.datasets
 import database.qualities
 from core.access import _user_has_access
 from core.errors import (
-    AuthenticationRequiredError,
     DatasetAdminOnlyError,
     DatasetNoAccessError,
     DatasetNoDataFileError,
@@ -338,13 +337,9 @@ async def get_dataset_features(
 async def update_dataset_status(
     dataset_id: Annotated[int, Body()],
     status: Annotated[Literal[DatasetStatus.ACTIVE, DatasetStatus.DEACTIVATED], Body()],
-    user: Annotated[User | None, Depends(fetch_user)],
+    user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[str, str | int]:
-    if user is None:
-        msg = "Updating dataset status requires authentication."
-        raise AuthenticationRequiredError(msg)
-
     dataset = await _get_dataset_raise_otherwise(dataset_id, user, expdb)
 
     can_deactivate = dataset.uploader == user.user_id or await user.is_admin()

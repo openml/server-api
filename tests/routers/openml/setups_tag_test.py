@@ -14,7 +14,7 @@ async def test_setup_tag_missing_auth(py_api: httpx.AsyncClient) -> None:
     response = await py_api.post("/setup/tag", json={"setup_id": 1, "tag": "test_tag"})
     assert response.status_code == HTTPStatus.UNAUTHORIZED
     assert response.json()["code"] == "103"
-    assert response.json()["detail"] == "Authentication failed"
+    assert response.json()["detail"] == "No API key provided."
 
 
 @pytest.mark.mut

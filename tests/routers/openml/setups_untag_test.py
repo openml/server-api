@@ -13,7 +13,7 @@ async def test_setup_untag_missing_auth(py_api: httpx.AsyncClient) -> None:
     response = await py_api.post("/setup/untag", json={"setup_id": 1, "tag": "test_tag"})
     assert response.status_code == HTTPStatus.UNAUTHORIZED
     assert response.json()["code"] == "103"
-    assert response.json()["detail"] == "Authentication failed"
+    assert response.json()["detail"] == "No API key provided."
 
 
 async def test_setup_untag_unknown_setup(py_api: httpx.AsyncClient) -> None:

@@ -42,11 +42,7 @@ jobs:
         run: |
           marker="${{ matrix.php_api == true && 'php_api' || 'not php_api' }} and ${{ matrix.mutations == true && 'mut' || 'not mut' }}"
           jobs="${{ matrix.mutations == true && '1' || 'auto' }}"
-          docker compose exec python-api coverage run -m pytest -n "$jobs" -v -m "$marker"
-      - name: Produce coverage report
-        run: |
-          docker compose exec python-api coverage combine
-          docker compose exec python-api coverage xml
+          docker compose exec python-api pytest -n "$jobs" -v -m "$marker" --cov --cov-report=xml
       - name: Upload results to Codecov
         uses: codecov/codecov-action@v4
         with:
