@@ -28,7 +28,8 @@ async def test_setup_tag_api_success(
     )
 
     assert response.status_code == HTTPStatus.OK
-    assert response.json()["setup_tag"]["tag"][-1] == tag
+    expected = {'setup_tag': {'id': '1', 'tag': ['setup_tag_via_http']}}
+    assert expected == response.json()
 
     rows = await expdb_test.execute(
         text("SELECT * FROM setup_tag WHERE id = 1 AND tag = :tag"),
