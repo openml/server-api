@@ -70,8 +70,8 @@ def create_api() -> FastAPI:
     app.include_router(task_router)
     app.include_router(flows_router)
     app.include_router(study_router)
-    app.include_router(setup_router)
     app.include_router(run_router)
+    app.include_router(setup_router)
     return app
 
 
