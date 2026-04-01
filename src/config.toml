@@ -4,6 +4,21 @@ minio_base_url="https://openml1.win.tue.nl"
 [development]
 allow_test_api_keys=true
 
+# Any number of logging.NAME configurations can be added.
+# NAME is for reference only, it has no meaning otherwise.
+# You can add any arguments to `loguru.logger.add`,
+# the `sink` variable will be used as first positional argument.
+# https://loguru.readthedocs.io/en/stable/api/logger.html
+[logging.develop]
+sink="develop.log"
+# One of loguru levels: TRACE, DEBUG, INFO, SUCCESS, WARNING, ERROR
+level="DEBUG"
+# Automatically create a new file by date or file size
+rotation="50 MB"
+# Retention specifies the timespan after which automatic cleanup occurs.
+retention="1 day"
+compression="gz"
+
 [fastapi]
 root_path=""
 

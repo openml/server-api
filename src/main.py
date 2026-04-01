@@ -1,5 +1,5 @@
 import argparse
-import logging
+import sys
 import uuid
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
@@ -12,6 +12,7 @@ from starlette.responses import Response
 
 from config import load_configuration
 from core.errors import ProblemDetailError, problem_detail_exception_handler
+from core.logging import setup_log_sinks
 from database.setup import close_databases
 from routers.mldcat_ap.dataset import router as mldcat_ap_router
 from routers.openml.datasets import router as datasets_router
@@ -93,10 +94,15 @@ async def request_response_logger(
 
 
 def create_api() -> FastAPI:
-    logger.add("log.log", serialize=True)
+    # Default logging configuration so we have logs during setup
+    setup_sink = logger.add(sys.stderr, serialize=True)
+    setup_log_sinks()
+
     fastapi_kwargs = load_configuration()["fastapi"]
+    logger.info("Creating FastAPI App", lifespan=lifespan, **fastapi_kwargs)
     app = FastAPI(**fastapi_kwargs, lifespan=lifespan)
 
+    logger.info("Setting up middleware and exception handlers.")
     # Order matters! Each added middleware wraps the previous, creating a stack.
     # See also: https://fastapi.tiangolo.com/tutorial/middleware/#multiple-middleware-execution-order
     app.middleware("http")(request_response_logger)
@@ -104,6 +110,7 @@ def create_api() -> FastAPI:
 
     app.add_exception_handler(ProblemDetailError, problem_detail_exception_handler)  # type: ignore[arg-type]
 
+    logger.info("Adding routers to app")
     app.include_router(datasets_router)
     app.include_router(qualities_router)
     app.include_router(mldcat_ap_router)
@@ -115,11 +122,13 @@ def create_api() -> FastAPI:
     app.include_router(study_router)
     app.include_router(setup_router)
     app.include_router(run_router)
+
+    logger.info("App setup completed.")
+    logger.remove(setup_sink)
     return app
 
 
 def main() -> None:
-    logging.basicConfig(level=logging.INFO)
     args = _parse_args()
     uvicorn.run(
         app="main:create_api",

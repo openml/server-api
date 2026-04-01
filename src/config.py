@@ -1,13 +1,11 @@
 import functools
-import logging
 import os
 import tomllib
 import typing
 from pathlib import Path
 
 from dotenv import load_dotenv
-
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 TomlTable = dict[str, typing.Any]
 
@@ -27,9 +25,13 @@ _config_file = _config_file.expanduser().absolute()
 _dotenv_file = Path(os.getenv(DOTENV_FILE_ENV, _config_directory / ".env"))
 _dotenv_file = _dotenv_file.expanduser().absolute()
 
-logger.info("Configuration directory is '%s'", _config_directory)
-logger.info("Loading configuration file from '%s'", _config_file)
-logger.info("Loading environment variables from '%s'", _dotenv_file)
+
+logger.info(
+    "Determined configuration sources.",
+    configuration_directory=_config_directory,
+    configuration_file=_config_file,
+    dotenv_file=_dotenv_file,
+)
 
 load_dotenv(dotenv_path=_dotenv_file)
 
