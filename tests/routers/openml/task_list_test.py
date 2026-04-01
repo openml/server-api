@@ -60,8 +60,7 @@ async def test_list_tasks_negative_pagination_safely_clamped(
     An offset clamped to 0 simply returns the first page of results (200 OK).
 
     Note: This remains an HTTP-level (py_api) test to ensure end-to-end safety is
-    preserved, especially if validation logic is moved to the Pydantic layer in
-    the future. Then error will be 422 Unprocessable Entity.
+    preserved.
     """
     response = await py_api.post(
         "/tasks/list",
@@ -76,15 +75,15 @@ async def test_list_tasks_negative_pagination_safely_clamped(
 
 
 @pytest.mark.parametrize(
-    "pagination_override",
+    ("pagination_override", "expected_field"),
     [
-        {"limit": "abc", "offset": 0},  # Invalid type
-        {"limit": 5, "offset": "xyz"},  # Invalid type
+        ({"limit": "abc", "offset": 0}, "limit"),  # Invalid type
+        ({"limit": 5, "offset": "xyz"}, "offset"),  # Invalid type
     ],
     ids=["bad_limit_type", "bad_offset_type"],
 )
 async def test_list_tasks_invalid_pagination_type(
-    pagination_override: dict[str, Any], py_api: httpx.AsyncClient
+    pagination_override: dict[str, Any], expected_field: str, py_api: httpx.AsyncClient
 ) -> None:
     """Invalid pagination types return 422 Unprocessable Entity."""
     response = await py_api.post(
@@ -92,6 +91,10 @@ async def test_list_tasks_invalid_pagination_type(
         json={"pagination": pagination_override},
     )
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    # Verify that the error points to the correct field
+    detail = response.json()["detail"][0]
+    assert detail["loc"][-2:] == ["pagination", expected_field]
+    assert detail["type"] in {"type_error.integer", "int_parsing", "int_type"}
 
 
 @pytest.mark.parametrize(
@@ -103,6 +106,9 @@ async def test_list_tasks_invalid_range(value: str, py_api: httpx.AsyncClient) -
     """Invalid number_instances format returns 422 Unprocessable Entity."""
     response = await py_api.post("/tasks/list", json={"number_instances": value})
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    # Verify the error is for the correct field
+    detail = response.json()["detail"][0]
+    assert detail["loc"][-1] == "number_instances"
 
 
 @pytest.mark.parametrize(
@@ -121,6 +127,21 @@ async def test_list_tasks_invalid_inputs(
     """Malformed inputs violating Pydantic/FastAPI constraints return 422."""
     response = await py_api.post("/tasks/list", json=payload)
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    # Ensure we are failing for the field we provided
+    detail = response.json()["detail"][0]
+    expected_field = next(iter(payload))
+    assert detail["loc"][-1] == expected_field
+
+
+async def test_list_tasks_no_results_api_mapping(py_api: httpx.AsyncClient) -> None:
+    """Verify that a triggered NoResultsError is correctly mapped to 404/problem+json."""
+    # This acts as the Happy Path verification for end-to-end error handling
+    payload = {"tag": "completely-nonexistent-tag-12345"}
+    response = await py_api.post("/tasks/list", json=payload)
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.headers["content-type"] == "application/problem+json"
+    error = response.json()
+    assert error["type"] == NoResultsError.uri
 
 
 # ── Direct call tests: list_tasks ──
@@ -144,9 +165,11 @@ async def test_list_tasks_filter_tag(expdb_test: AsyncConnection) -> None:
 async def test_list_tasks_filter_task_id(
     task_id: int | list[int], expdb_test: AsyncConnection
 ) -> None:
-    """Filter by task_id returns only those tasks."""
+    """Filter by task_id returns only those tasks (regardless of status)."""
     ids = [task_id] if isinstance(task_id, int) else task_id
-    tasks = await list_tasks(pagination=Pagination(), task_id=ids, expdb=expdb_test)
+    tasks = await list_tasks(
+        pagination=Pagination(), task_id=ids, status=TaskStatusFilter.ALL, expdb=expdb_test
+    )
     returned_ids = {t["task_id"] for t in tasks}
     assert returned_ids == set(ids)
 
@@ -208,8 +231,8 @@ async def test_list_tasks_number_instances_range(expdb_test: AsyncConnection) ->
     assert len(tasks) > 0
     for task in tasks:
         qualities = {q["name"]: q["value"] for q in task["quality"]}
-        if "NumberOfInstances" in qualities:
-            assert min_instances <= float(qualities["NumberOfInstances"]) <= max_instances
+        assert "NumberOfInstances" in qualities
+        assert min_instances <= float(qualities["NumberOfInstances"]) <= max_instances
 
 
 async def test_list_tasks_inputs_are_basic_subset(expdb_test: AsyncConnection) -> None:
