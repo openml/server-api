@@ -68,7 +68,15 @@ async def test_list_tasks_negative_pagination_safely_clamped(
     )
     assert response.status_code == expected_status
     if expected_status == HTTPStatus.OK:
-        assert len(response.json()) <= expected_max_results
+        body = response.json()
+        assert len(body) <= expected_max_results
+        # Compare to a baseline with offset=0 to prove it was correctly clamped
+        baseline = await py_api.post(
+            "/tasks/list",
+            json={"pagination": {"limit": limit, "offset": 0}},
+        )
+        assert baseline.status_code == HTTPStatus.OK
+        assert [t["task_id"] for t in body] == [t["task_id"] for t in baseline.json()]
     else:
         error = response.json()
         assert error["type"] == NoResultsError.uri
@@ -170,8 +178,8 @@ async def test_list_tasks_filter_task_id(
     tasks = await list_tasks(
         pagination=Pagination(), task_id=ids, status=TaskStatusFilter.ALL, expdb=expdb_test
     )
-    returned_ids = {t["task_id"] for t in tasks}
-    assert returned_ids == set(ids)
+    returned_ids = sorted(t["task_id"] for t in tasks)
+    assert returned_ids == sorted(ids)
 
 
 async def test_list_tasks_filter_data_id(expdb_test: AsyncConnection) -> None:
@@ -239,6 +247,7 @@ async def test_list_tasks_inputs_are_basic_subset(expdb_test: AsyncConnection) -
     """Input entries only contain the expected basic input names."""
     basic_inputs = {"source_data", "target_feature", "estimation_procedure", "evaluation_measures"}
     tasks = await list_tasks(pagination=Pagination(limit=5, offset=0), expdb=expdb_test)
+    assert any(task["input"] for task in tasks), "Expected at least one task to have inputs"
     for task in tasks:
         for inp in task["input"]:
             assert inp["name"] in basic_inputs
@@ -247,6 +256,7 @@ async def test_list_tasks_inputs_are_basic_subset(expdb_test: AsyncConnection) -
 async def test_list_tasks_quality_values_are_strings(expdb_test: AsyncConnection) -> None:
     """Quality values must be strings (to match PHP API behaviour)."""
     tasks = await list_tasks(pagination=Pagination(limit=5, offset=0), expdb=expdb_test)
+    assert any(task["quality"] for task in tasks), "Expected at least one task to have qualities"
     for task in tasks:
         for quality in task["quality"]:
             assert isinstance(quality["value"], str)
