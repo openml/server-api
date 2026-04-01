@@ -23,10 +23,9 @@ async def add_request_context_to_log(
     request: Request,
     call_next: Callable[[Request], Awaitable[Response]],
 ) -> Response:
-    """Add a unique request id and client ip address to each log call."""
+    """Add a unique request id to each log call."""
     identifier = uuid.uuid4().hex
-    host = request.client.host if request.client else "unknown host"
-    with logger.contextualize(request_id=identifier, client_ip=host):
+    with logger.contextualize(request_id=identifier):
         return await call_next(request)
 
 
