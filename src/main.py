@@ -1,10 +1,14 @@
 import argparse
 import logging
-from collections.abc import AsyncGenerator
+import uuid
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
+from loguru import logger
+from starlette.requests import Request
+from starlette.responses import Response
 
 from config import load_configuration
 from core.errors import ProblemDetailError, problem_detail_exception_handler
@@ -55,9 +59,45 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+async def add_request_context_to_log(
+    request: Request,
+    call_next: Callable[[Request], Awaitable[Response]],
+) -> Response:
+    identifier = uuid.uuid4().hex
+    host = request.client.host if request.client else "unknown host"
+    with logger.contextualize(request_id=identifier, client_ip=host):
+        return await call_next(request)
+
+
+async def request_response_logger(
+    request: Request,
+    call_next: Callable[[Request], Awaitable[Response]],
+) -> Response:
+    logger.info(
+        "request",
+        url=request.url,
+        headers=request.headers,
+        cookies=request.cookies,
+        path_params=request.path_params,
+        query_params=request.query_params,
+        body=await request.body(),
+    )
+    response: Response = await call_next(request)
+    logger.info(
+        "response",
+        status_code=response.status_code,
+        headers=response.headers,
+        media_type=response.media_type,
+    )
+    return response
+
+
 def create_api() -> FastAPI:
+    logger.add("log.log", serialize=True)
     fastapi_kwargs = load_configuration()["fastapi"]
     app = FastAPI(**fastapi_kwargs, lifespan=lifespan)
+    app.middleware("http")(add_request_context_to_log)
+    app.middleware("http")(request_response_logger)
 
     app.add_exception_handler(ProblemDetailError, problem_detail_exception_handler)  # type: ignore[arg-type]
 

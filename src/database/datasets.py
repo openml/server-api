@@ -3,6 +3,7 @@
 import datetime
 from collections import defaultdict
 
+from loguru import logger
 from sqlalchemy import text
 from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncConnection
@@ -11,6 +12,7 @@ from schemas.datasets.openml import Feature
 
 
 async def get(id_: int, connection: AsyncConnection) -> Row | None:
+    logger.info("Fetching dataset from database", dataset_id=id_)
     row = await connection.execute(
         text(
             """
