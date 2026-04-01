@@ -1,5 +1,6 @@
 import contextlib
 import json
+import sys
 from collections.abc import AsyncIterator, Iterable, Iterator
 from pathlib import Path
 from typing import Any, NamedTuple
@@ -9,6 +10,7 @@ import httpx
 import pytest
 from _pytest.config import Config
 from _pytest.nodes import Item
+from loguru import logger
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
@@ -74,6 +76,8 @@ async def py_api(
     expdb_test: AsyncConnection, user_test: AsyncConnection
 ) -> AsyncIterator[httpx.AsyncClient]:
     app = create_api()
+    logger.remove()
+    logger.add(sys.stderr, serialize=True)
 
     # We use async generator functions because fixtures may not be called directly.
     # The async generator returns the test connections for FastAPI to handle properly
