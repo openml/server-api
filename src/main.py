@@ -96,8 +96,11 @@ def create_api() -> FastAPI:
     logger.add("log.log", serialize=True)
     fastapi_kwargs = load_configuration()["fastapi"]
     app = FastAPI(**fastapi_kwargs, lifespan=lifespan)
-    app.middleware("http")(add_request_context_to_log)
+
+    # Order matters! Each added middleware wraps the previous, creating a stack.
+    # See also: https://fastapi.tiangolo.com/tutorial/middleware/#multiple-middleware-execution-order
     app.middleware("http")(request_response_logger)
+    app.middleware("http")(add_request_context_to_log)
 
     app.add_exception_handler(ProblemDetailError, problem_detail_exception_handler)  # type: ignore[arg-type]
 
