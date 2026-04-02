@@ -5,7 +5,7 @@ import typing
 from pathlib import Path
 
 from dotenv import load_dotenv
-from loguru import logger
+# from loguru import logger
 
 TomlTable = dict[str, typing.Any]
 
@@ -26,12 +26,12 @@ _dotenv_file = Path(os.getenv(DOTENV_FILE_ENV, _config_directory / ".env"))
 _dotenv_file = _dotenv_file.expanduser().absolute()
 
 
-logger.info(
-    "Determined configuration sources.",
-    configuration_directory=_config_directory,
-    configuration_file=_config_file,
-    dotenv_file=_dotenv_file,
-)
+# logger.info(
+#    "Determined configuration sources.",
+#    configuration_directory=_config_directory,
+#    configuration_file=_config_file,
+#    dotenv_file=_dotenv_file,
+# )
 
 load_dotenv(dotenv_path=_dotenv_file)
 
