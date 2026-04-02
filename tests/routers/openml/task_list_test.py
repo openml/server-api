@@ -56,7 +56,7 @@ async def test_list_tasks_negative_pagination_safely_clamped(
 ) -> None:
     """Negative pagination values are safely clamped to 0 instead of causing 500 errors.
 
-    A limit clamped to 0 returns a 482 NoResultsError (404 Not Found).
+    A limit clamped to 0 raises NoResultsError, which the API maps to HTTP 404.
     An offset clamped to 0 simply returns the first page of results (200 OK).
 
     Note: This remains an HTTP-level (py_api) test to ensure end-to-end safety is
@@ -214,6 +214,13 @@ async def test_list_tasks_pagination(limit: int, offset: int, expdb_test: AsyncC
     """Pagination limit and offset are respected."""
     tasks = await list_tasks(pagination=Pagination(limit=limit, offset=offset), expdb=expdb_test)
     assert len(tasks) <= limit
+
+    # Precise verification: compare IDs against a corresponding slice from an offset=0 baseline
+    baseline = await list_tasks(
+        pagination=Pagination(limit=limit + offset, offset=0), expdb=expdb_test
+    )
+    expected_ids = [t["task_id"] for t in baseline][offset : offset + limit]
+    assert [t["task_id"] for t in tasks] == expected_ids
 
 
 async def test_list_tasks_pagination_order_stable(expdb_test: AsyncConnection) -> None:
