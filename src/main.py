@@ -5,10 +5,11 @@ from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI
+from loguru import logger
 
-# from loguru import logger
 from config import load_configuration
 from core.errors import ProblemDetailError, problem_detail_exception_handler
+from core.logging import add_request_context_to_log, request_response_logger, setup_log_sinks
 from database.setup import close_databases
 from routers.mldcat_ap.dataset import router as mldcat_ap_router
 from routers.openml.datasets import router as datasets_router
