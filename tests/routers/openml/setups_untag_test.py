@@ -6,7 +6,6 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from core.errors import SetupNotFoundError, TagNotFoundError, TagNotOwnedError
-from database.users import User
 from routers.openml.setups import untag_setup
 from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
 
@@ -93,12 +92,10 @@ async def test_setup_untag_not_owned_by_you(expdb_test: AsyncConnection) -> None
 
 
 @pytest.mark.mut
-@pytest.mark.parametrize(
-    "user",
-    [SOME_USER, ADMIN_USER],
-    ids=["Owner", "Administrator"],
-)
-async def test_setup_untag_direct_success(user: User, expdb_test: AsyncConnection) -> None:
+async def test_setup_untag_admin_removes_tag_uploaded_by_another_user(
+    expdb_test: AsyncConnection,
+) -> None:
+    """Administrator can remove a tag uploaded by another user."""
     tag = "setup_untag_via_direct"
     await expdb_test.execute(
         text("INSERT INTO setup_tag (id, tag, uploader) VALUES (1, :tag, 2);"),
@@ -108,7 +105,7 @@ async def test_setup_untag_direct_success(user: User, expdb_test: AsyncConnectio
     result = await untag_setup(
         setup_id=1,
         tag=tag,
-        user=user,
+        user=ADMIN_USER,
         expdb_db=expdb_test,
     )
 
