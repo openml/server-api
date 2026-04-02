@@ -1,11 +1,12 @@
 import argparse
+import sys
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
-import sys
 
 import uvicorn
 from fastapi import FastAPI
+from core.logging import add_request_context_to_log
 from loguru import logger
 
 from config import load_configuration
@@ -66,11 +67,11 @@ def create_api(configuration_file: Path | None = None) -> FastAPI:
     logger.info("Creating FastAPI App", lifespan=lifespan, **fastapi_kwargs)
     app = FastAPI(**fastapi_kwargs, lifespan=lifespan)
 
-    # logger.info("Setting up middleware and exception handlers.")
+    logger.info("Setting up middleware and exception handlers.")
     # Order matters! Each added middleware wraps the previous, creating a stack.
     # See also: https://fastapi.tiangolo.com/tutorial/middleware/#multiple-middleware-execution-order
     # app.middleware("http")(request_response_#logger)
-    # app.middleware("http")(add_request_context_to_log)
+    app.middleware("http")(add_request_context_to_log)
 
     app.add_exception_handler(ProblemDetailError, problem_detail_exception_handler)  # type: ignore[arg-type]
 
