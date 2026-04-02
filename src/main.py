@@ -10,7 +10,7 @@ from loguru import logger
 
 from config import load_configuration
 from core.errors import ProblemDetailError, problem_detail_exception_handler
-from core.logging import add_request_context_to_log
+from core.logging import add_request_context_to_log, request_response_logger, setup_log_sinks
 from database.setup import close_databases
 from routers.mldcat_ap.dataset import router as mldcat_ap_router
 from routers.openml.datasets import router as datasets_router
@@ -60,8 +60,9 @@ def _parse_args() -> argparse.Namespace:
 
 def create_api(configuration_file: Path | None = None) -> FastAPI:
     # Default logging configuration so we have logs during setup
+    logger.remove()
     setup_sink = logger.add(sys.stderr, serialize=True)
-    # setup_log_sinks(configuration_file)
+    setup_log_sinks(configuration_file)
 
     fastapi_kwargs = load_configuration(configuration_file)["fastapi"]
     logger.info("Creating FastAPI App", lifespan=lifespan, **fastapi_kwargs)
@@ -70,7 +71,7 @@ def create_api(configuration_file: Path | None = None) -> FastAPI:
     logger.info("Setting up middleware and exception handlers.")
     # Order matters! Each added middleware wraps the previous, creating a stack.
     # See also: https://fastapi.tiangolo.com/tutorial/middleware/#multiple-middleware-execution-order
-    # app.middleware("http")(request_response_#logger)
+    app.middleware("http")(request_response_logger)
     app.middleware("http")(add_request_context_to_log)
 
     app.add_exception_handler(ProblemDetailError, problem_detail_exception_handler)  # type: ignore[arg-type]
