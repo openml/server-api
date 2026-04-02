@@ -1,4 +1,6 @@
 docker/mysql/data
+*.log
+logs/
 .DS_Store
 
 # Byte-compiled / optimized / DLL files

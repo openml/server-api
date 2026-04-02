@@ -73,7 +73,7 @@ async def php_api() -> AsyncIterator[httpx.AsyncClient]:
 async def py_api(
     expdb_test: AsyncConnection, user_test: AsyncConnection
 ) -> AsyncIterator[httpx.AsyncClient]:
-    app = create_api()
+    app = create_api(Path(__file__).parent / "config.test.toml")
 
     # We use async generator functions because fixtures may not be called directly.
     # The async generator returns the test connections for FastAPI to handle properly
