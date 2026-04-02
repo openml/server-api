@@ -79,5 +79,6 @@ def load_database_configuration(file: Path = _config_file) -> TomlTable:
     return database_configuration
 
 
-def load_configuration(file: Path = _config_file) -> TomlTable:
+def load_configuration(file: Path | None = None) -> TomlTable:
+    file = file or _config_file
     return tomllib.loads(file.read_text())

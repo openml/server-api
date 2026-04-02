@@ -2,6 +2,7 @@ import argparse
 import sys
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI
@@ -57,12 +58,12 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def create_api() -> FastAPI:
+def create_api(configuration_file: Path | None = None) -> FastAPI:
     # Default logging configuration so we have logs during setup
     setup_sink = logger.add(sys.stderr, serialize=True)
-    setup_log_sinks()
+    setup_log_sinks(configuration_file)
 
-    fastapi_kwargs = load_configuration()["fastapi"]
+    fastapi_kwargs = load_configuration(configuration_file)["fastapi"]
     logger.info("Creating FastAPI App", lifespan=lifespan, **fastapi_kwargs)
     app = FastAPI(**fastapi_kwargs, lifespan=lifespan)
 
