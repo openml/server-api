@@ -45,7 +45,6 @@ async def request_response_logger(
         cookies=request.cookies,
         path_params=request.path_params,
         query_params=request.query_params,
-        body=await request.body(),
     )
     response: Response = await call_next(request)
     logger.info(
