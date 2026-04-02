@@ -2,6 +2,7 @@ import argparse
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
+import sys
 
 import uvicorn
 from fastapi import FastAPI
@@ -9,7 +10,6 @@ from loguru import logger
 
 from config import load_configuration
 from core.errors import ProblemDetailError, problem_detail_exception_handler
-from core.logging import add_request_context_to_log, request_response_logger, setup_log_sinks
 from database.setup import close_databases
 from routers.mldcat_ap.dataset import router as mldcat_ap_router
 from routers.openml.datasets import router as datasets_router
@@ -59,11 +59,11 @@ def _parse_args() -> argparse.Namespace:
 
 def create_api(configuration_file: Path | None = None) -> FastAPI:
     # Default logging configuration so we have logs during setup
-    # setup_sink = logger.add(sys.stderr, serialize=True)
+    setup_sink = logger.add(sys.stderr, serialize=True)
     # setup_log_sinks(configuration_file)
 
     fastapi_kwargs = load_configuration(configuration_file)["fastapi"]
-    # logger.info("Creating FastAPI App", lifespan=lifespan, **fastapi_kwargs)
+    logger.info("Creating FastAPI App", lifespan=lifespan, **fastapi_kwargs)
     app = FastAPI(**fastapi_kwargs, lifespan=lifespan)
 
     # logger.info("Setting up middleware and exception handlers.")
@@ -74,7 +74,7 @@ def create_api(configuration_file: Path | None = None) -> FastAPI:
 
     app.add_exception_handler(ProblemDetailError, problem_detail_exception_handler)  # type: ignore[arg-type]
 
-    # logger.info("Adding routers to app")
+    logger.info("Adding routers to app")
     app.include_router(datasets_router)
     app.include_router(qualities_router)
     app.include_router(mldcat_ap_router)
@@ -87,8 +87,8 @@ def create_api(configuration_file: Path | None = None) -> FastAPI:
     app.include_router(setup_router)
     app.include_router(run_router)
 
-    # logger.info("App setup completed.")
-    # logger.remove(setup_sink)
+    logger.info("App setup completed.")
+    logger.remove(setup_sink)
     return app
 
 
