@@ -38,21 +38,19 @@ async def request_response_logger(
     call_next: Callable[[Request], Awaitable[Response]],
 ) -> Response:
     """Log the incoming request and outgoing response."""
-    # logger.info(
-    #    "request",
-    #    url=request.url,
-    #    headers=request.headers,
-    #    cookies=request.cookies,
-    #    path_params=request.path_params,
-    #    query_params=request.query_params,
-    # )
-    logger.info("before request")
+    logger.info(
+        "request",
+        url=request.url,
+        headers=request.headers,
+        cookies=request.cookies,
+        path_params=request.path_params,
+        query_params=request.query_params,
+    )
     response: Response = await call_next(request)
-    logger.info("after request")
-    # logger.info(
-    #    "response",
-    #    status_code=response.status_code,
-    #    headers=response.headers,
-    #    media_type=response.media_type,
-    # )
+    logger.info(
+        "response",
+        status_code=response.status_code,
+        headers=response.headers,
+        media_type=response.media_type,
+    )
     return response
