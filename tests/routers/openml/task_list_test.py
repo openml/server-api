@@ -39,6 +39,41 @@ async def test_list_tasks_get(py_api: httpx.AsyncClient) -> None:
     assert isinstance(response.json(), list)
 
 
+async def test_list_tasks_api_happy_path(py_api: httpx.AsyncClient) -> None:
+    """A successful API call returns correctly valued JSON (Task 1: anneal).
+    This test verifies that the API returns the expected values for a known task (Task 1).
+    """
+    # This acts the Happy path verification for successful request
+    response = await py_api.post("/tasks/list", json={"task_id": [1]})
+    assert response.status_code == HTTPStatus.OK
+    tasks = response.json()
+    assert len(tasks) == 1
+    task = tasks[0]
+
+    # Core Identifiers
+    assert task["task_id"] == 1
+    assert task["task_type_id"] == 1
+    assert task["did"] == 1
+    assert task["name"] == "anneal"
+    assert task["status"] == "active"
+    assert task["format"] == "ARFF"
+
+    # Nested Inputs
+    inputs = {inp["name"]: inp["value"] for inp in task["input"]}
+    assert inputs["estimation_procedure"] == "1"
+    assert inputs["source_data"] == "1"
+    assert inputs["target_feature"] == "class"
+
+    # Nested Qualities
+    qualities = {q["name"]: q["value"] for q in task["quality"]}
+    assert qualities["NumberOfInstances"] == "898.0"
+    assert qualities["NumberOfFeatures"] == "39.0"
+    assert qualities["MajorityClassSize"] == "684.0"
+
+    # Tags
+    assert "OpenML100" in task["tag"]
+
+
 @pytest.mark.parametrize(
     ("limit", "offset", "expected_status", "expected_max_results"),
     [
