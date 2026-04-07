@@ -1,4 +1,3 @@
-import re
 from http import HTTPStatus
 
 import httpx
@@ -6,7 +5,9 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from tests.users import ApiKey
+from core.errors import SetupNotFoundError, TagNotFoundError, TagNotOwnedError
+from routers.openml.setups import untag_setup
+from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
 
 
 async def test_setup_untag_missing_auth(py_api: httpx.AsyncClient) -> None:
@@ -16,70 +17,102 @@ async def test_setup_untag_missing_auth(py_api: httpx.AsyncClient) -> None:
     assert response.json()["detail"] == "No API key provided."
 
 
-async def test_setup_untag_unknown_setup(py_api: httpx.AsyncClient) -> None:
-    response = await py_api.post(
-        f"/setup/untag?api_key={ApiKey.SOME_USER}",
-        json={"setup_id": 999999, "tag": "test_tag"},
-    )
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    assert re.match(
-        r"Setup \d+ not found.",
-        response.json()["detail"],
-    )
-
-
-async def test_setup_untag_tag_not_found(py_api: httpx.AsyncClient) -> None:
-    response = await py_api.post(
-        f"/setup/untag?api_key={ApiKey.SOME_USER}",
-        json={"setup_id": 1, "tag": "non_existent_tag_12345"},
-    )
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    assert re.match(
-        r"Setup \d+ does not have tag '\S+'.",
-        response.json()["detail"],
-    )
-
-
 @pytest.mark.mut
-async def test_setup_untag_not_owned_by_you(
+async def test_setup_untag_api_success(
     py_api: httpx.AsyncClient, expdb_test: AsyncConnection
 ) -> None:
+    tag = "setup_untag_via_http"
     await expdb_test.execute(
-        text("INSERT INTO setup_tag (id, tag, uploader) VALUES (1, 'test_unit_tag_123', 2);")
-    )
-    response = await py_api.post(
-        f"/setup/untag?api_key={ApiKey.OWNER_USER}",
-        json={"setup_id": 1, "tag": "test_unit_tag_123"},
-    )
-    assert response.status_code == HTTPStatus.FORBIDDEN
-    assert re.match(
-        r"You may not remove tag '\S+' of setup \d+ because it was not created by you.",
-        response.json()["detail"],
-    )
-
-
-@pytest.mark.mut
-@pytest.mark.parametrize(
-    "api_key",
-    [ApiKey.SOME_USER, ApiKey.ADMIN],
-    ids=["Owner", "Administrator"],
-)
-async def test_setup_untag_success(
-    api_key: str, py_api: httpx.AsyncClient, expdb_test: AsyncConnection
-) -> None:
-    await expdb_test.execute(
-        text("INSERT INTO setup_tag (id, tag, uploader) VALUES (1, 'test_success_tag', 2)")
+        text("INSERT INTO setup_tag (id, tag, uploader) VALUES (1, :tag, 2);"),
+        parameters={"tag": tag},
     )
 
     response = await py_api.post(
-        f"/setup/untag?api_key={api_key}",
-        json={"setup_id": 1, "tag": "test_success_tag"},
+        f"/setup/untag?api_key={ApiKey.SOME_USER}",
+        json={"setup_id": 1, "tag": tag},
     )
 
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"setup_untag": {"id": "1", "tag": []}}
+    expected = {"setup_untag": {"id": "1", "tag": []}}
+    assert expected == response.json()
 
     rows = await expdb_test.execute(
-        text("SELECT * FROM setup_tag WHERE id = 1 AND tag = 'test_success_tag'")
+        text("SELECT * FROM setup_tag WHERE id = 1 AND tag = :tag"),
+        parameters={"tag": tag},
+    )
+    assert len(rows.all()) == 0
+
+
+# ── Direct call tests: untag_setup ──
+
+
+async def test_setup_untag_unknown_setup(expdb_test: AsyncConnection) -> None:
+    with pytest.raises(SetupNotFoundError, match=r"Setup \d+ not found."):
+        await untag_setup(
+            setup_id=999999,
+            tag="test_tag",
+            user=SOME_USER,
+            expdb_db=expdb_test,
+        )
+
+
+async def test_setup_untag_tag_not_found(expdb_test: AsyncConnection) -> None:
+    tag = "non_existent_tag_12345"
+    with pytest.raises(TagNotFoundError, match=rf"Setup 1 does not have tag '{tag}'\."):
+        await untag_setup(
+            setup_id=1,
+            tag=tag,
+            user=SOME_USER,
+            expdb_db=expdb_test,
+        )
+
+
+@pytest.mark.mut
+async def test_setup_untag_not_owned_by_you(expdb_test: AsyncConnection) -> None:
+    tag = "setup_untag_forbidden"
+    await expdb_test.execute(
+        text("INSERT INTO setup_tag (id, tag, uploader) VALUES (1, :tag, 2);"),
+        parameters={"tag": tag},
+    )
+    with pytest.raises(
+        TagNotOwnedError,
+        match=rf"You may not remove tag '{tag}' of setup 1 because it was not created by you\.",
+    ):
+        await untag_setup(
+            setup_id=1,
+            tag=tag,
+            user=OWNER_USER,
+            expdb_db=expdb_test,
+        )
+    rows = await expdb_test.execute(
+        text("SELECT * FROM setup_tag WHERE id = 1 AND tag = :tag"),
+        parameters={"tag": tag},
+    )
+    assert len(rows.all()) == 1
+
+
+@pytest.mark.mut
+async def test_setup_untag_admin_removes_tag_uploaded_by_another_user(
+    expdb_test: AsyncConnection,
+) -> None:
+    """Administrator can remove a tag uploaded by another user."""
+    tag = "setup_untag_via_direct"
+    await expdb_test.execute(
+        text("INSERT INTO setup_tag (id, tag, uploader) VALUES (1, :tag, 2);"),
+        parameters={"tag": tag},
+    )
+
+    result = await untag_setup(
+        setup_id=1,
+        tag=tag,
+        user=ADMIN_USER,
+        expdb_db=expdb_test,
+    )
+
+    assert result == {"setup_untag": {"id": "1", "tag": []}}
+
+    rows = await expdb_test.execute(
+        text("SELECT * FROM setup_tag WHERE id = 1 AND tag = :tag"),
+        parameters={"tag": tag},
     )
     assert len(rows.all()) == 0
