@@ -5,6 +5,7 @@ from enum import StrEnum
 from typing import Annotated, Any, Literal, NamedTuple
 
 from fastapi import APIRouter, Body, Depends
+from loguru import logger
 from sqlalchemy import bindparam, text
 from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncConnection
@@ -61,6 +62,7 @@ async def tag_dataset(
         raise TagAlreadyExistsError(msg)
 
     await database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
+    logger.info("Dataset {dataset_id} tagged '{tag}'.", dataset_id=data_id, tag=tag)
     return {
         "data_tag": {"id": str(data_id), "tag": [*tags, tag]},
     }
@@ -375,6 +377,12 @@ async def update_dataset_status(
         msg = f"Unknown status transition: {current_status} -> {status}"
         raise InternalError(msg)
 
+    logger.info(
+        "Dataset {dataset_id} changed from {previous} to {current}",
+        dataset_id=dataset_id,
+        previous=current_status.status if current_status else DatasetStatus.IN_PREPARATION,
+        current=status,
+    )
     return {"dataset_id": dataset_id, "status": status}
 
 
