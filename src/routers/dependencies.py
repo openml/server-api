@@ -26,7 +26,7 @@ async def userdb_connection() -> AsyncGenerator[AsyncConnection, None]:
 async def fetch_user(
     api_key: APIKey | None = None,
     user_data: Annotated[AsyncConnection | None, Depends(userdb_connection)] = None,
-) -> AsyncGenerator[User | None]:
+) -> AsyncGenerator[User | None, None]:
     if not (api_key and user_data):
         yield None
         return

@@ -103,6 +103,7 @@ async def attach_to_study(
         "User {user_id} attached entities to study {study_id}.",
         study_id=study_id,
         entity_ids=entity_ids,
+        user_id=user.user_id,
     )
     return AttachDetachResponse(study_id=study_id, main_entity_type=study.type_)
 
@@ -138,6 +139,7 @@ async def create_study(
     logger.info(
         "User {user_id} created study {study_id}.",
         study_id=study_id,
+        user_id=user.user_id,
     )
     # Make sure that invalid fields raise an error (e.g., "task_ids")
     return {"study_id": study_id}
