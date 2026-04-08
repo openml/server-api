@@ -26,23 +26,25 @@ async def userdb_connection() -> AsyncGenerator[AsyncConnection, None]:
 async def fetch_user(
     api_key: APIKey | None = None,
     user_data: Annotated[AsyncConnection | None, Depends(userdb_connection)] = None,
-) -> User | None:
+) -> AsyncGenerator[User | None]:
     if not (api_key and user_data):
-        return None
+        yield None
+        return
 
     user = await User.fetch(api_key, user_data)
-    mask_length = 28
-    masked_key = "*" * mask_length + api_key[mask_length:]
-    if user:
-        logger.info(
-            "User {identifier} authenticated in with api key {api_key}.",
-            identifier=user.user_id,
-            api_key=masked_key,
-        )
-        return user
-    logger.info("Authentication failed.", api_key=masked_key)
-    msg = "Invalid API key provided."
-    raise AuthenticationFailedError(msg)
+    masked_key = api_key[-4:]
+    if not user:
+        logger.info("Authentication failed.", api_key=masked_key)
+        msg = "Invalid API key provided."
+        raise AuthenticationFailedError(msg)
+
+    logger.info(
+        "User {identifier} authenticated in with api key ending in '{api_key}'.",
+        identifier=user.user_id,
+        api_key=masked_key,
+    )
+    with logger.contextualize(user_id=user.user_id):
+        yield user
 
 
 def fetch_user_or_raise(
