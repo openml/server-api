@@ -75,9 +75,10 @@ async def attach_to_study(
     if study.creator != user.user_id and not await user.is_admin():
         msg = f"Study {study_id} can only be edited by its creator."
         logger.warning(
-            "User attempted to attach entities to study they do not own.",
+            "User {user_id} attempted to attach entities to study they do not own.",
             study_id=study_id,
             entity_ids=entity_ids,
+            user_id=user.user_id,
         )
         raise StudyNotEditableError(msg)
     if study.status != StudyStatus.IN_PREPARATION:

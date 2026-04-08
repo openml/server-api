@@ -39,7 +39,7 @@ async def fetch_user(
         raise AuthenticationFailedError(msg)
 
     logger.info(
-        "User {identifier} authenticated in with api key ending in '{api_key}'.",
+        "User {identifier} authenticated with api key ending in '{api_key}'.",
         identifier=user.user_id,
         api_key=masked_key,
     )

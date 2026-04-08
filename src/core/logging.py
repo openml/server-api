@@ -34,7 +34,11 @@ async def add_request_context_to_log(
 ) -> Response:
     """Add a unique request id to each log call."""
     identifier = uuid.uuid4().hex
-    with logger.contextualize(request_id=identifier):
+    with logger.contextualize(
+        request_id=identifier,
+        method=request.method,
+        path=request.url.path,
+    ):
         return await call_next(request)
 
 
@@ -61,6 +65,7 @@ async def log_request_duration(
         process_ms=int(duration_process_ns / 1_000_000),
         wallclock_time_ns=duration_mono_ns,
         process_time_ns=duration_process_ns,
+        status=response.status_code,
     )
     return response
 
