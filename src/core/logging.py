@@ -20,7 +20,11 @@ def setup_log_sinks(configuration_file: Path | None = None) -> None:
         sink = sink_configuration.pop("sink")
         if sink == "sys.stderr":
             sink = sys.stderr
-        logger.add(sink, serialize=True, **sink_configuration)
+        # Logs the additionally provided data as JSON.
+        sink_configuration.setdefault("serialize", True)
+        # Decouples log calls from I/O and makes it multiprocessing safe.
+        sink_configuration.setdefault("enqueue", True)
+        logger.add(sink, **sink_configuration)
 
 
 async def add_request_context_to_log(
