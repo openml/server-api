@@ -65,7 +65,9 @@ async def user_test() -> AsyncIterator[AsyncConnection]:
         yield connection
 
 
-@pytest.fixture
+# The PHP API fixture can be session scoped since they do not need access to
+# function-scoped database transactions.
+@pytest.fixture(scope="session")
 async def php_api() -> AsyncIterator[httpx.AsyncClient]:
     async with httpx.AsyncClient(base_url=PHP_API_URL) as client:
         yield client
