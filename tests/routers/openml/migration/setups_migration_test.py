@@ -1,7 +1,7 @@
 import asyncio
 import contextlib
 import re
-from collections.abc import AsyncGenerator, Callable, Iterable
+from collections.abc import AsyncIterator, Callable, Iterable
 from contextlib import AbstractAsyncContextManager
 from http import HTTPStatus
 
@@ -22,7 +22,7 @@ def temporary_tags(
     @contextlib.asynccontextmanager
     async def _temporary_tags(
         tags: Iterable[str], setup_id: int, *, persist: bool = False
-    ) -> AsyncGenerator[None]:
+    ) -> AsyncIterator[None]:
         insert_queries = [
             (
                 "INSERT INTO setup_tag(`id`,`tag`,`uploader`) VALUES (:setup_id, :tag, :user_id);",
