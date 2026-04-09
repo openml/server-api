@@ -34,6 +34,7 @@ from routers.openml.tasktype import router as ttype_router
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
     """Manage application lifespan - startup and shutdown events."""
     yield
+    logger.complete()
     await close_databases()
 
 
