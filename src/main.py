@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import sys
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -34,8 +35,10 @@ from routers.openml.tasktype import router as ttype_router
 async def lifespan(app: FastAPI | None) -> AsyncGenerator[None, None]:  # noqa: ARG001
     """Manage application lifespan - startup and shutdown events."""
     yield
-    logger.complete()
-    await close_databases()
+    asyncio.gather(
+        logger.complete(),
+        close_databases(),
+    )
 
 
 def _parse_args() -> argparse.Namespace:
