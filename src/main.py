@@ -31,7 +31,7 @@ from routers.openml.tasktype import router as ttype_router
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
+async def lifespan(app: FastAPI | None) -> AsyncGenerator[None, None]:  # noqa: ARG001
     """Manage application lifespan - startup and shutdown events."""
     yield
     logger.complete()
