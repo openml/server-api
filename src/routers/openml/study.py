@@ -1,6 +1,7 @@
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Body, Depends
+from loguru import logger
 from pydantic import BaseModel
 from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncConnection
@@ -73,6 +74,12 @@ async def attach_to_study(
     # PHP lets *anyone* edit *any* study. We're not going to do that.
     if study.creator != user.user_id and not await user.is_admin():
         msg = f"Study {study_id} can only be edited by its creator."
+        logger.warning(
+            "User {user_id} attempted to attach entities to study they do not own.",
+            study_id=study_id,
+            entity_ids=entity_ids,
+            user_id=user.user_id,
+        )
         raise StudyNotEditableError(msg)
     if study.status != StudyStatus.IN_PREPARATION:
         msg = f"Study {study_id} can only be edited while in preparation."
@@ -93,6 +100,12 @@ async def attach_to_study(
     except ValueError as e:
         msg = str(e)
         raise StudyConflictError(msg) from e
+    logger.info(
+        "User {user_id} attached entities to study {study_id}.",
+        study_id=study_id,
+        entity_ids=entity_ids,
+        user_id=user.user_id,
+    )
     return AttachDetachResponse(study_id=study_id, main_entity_type=study.type_)
 
 
@@ -124,6 +137,11 @@ async def create_study(
                 user=user,
                 expdb=expdb,
             )
+    logger.info(
+        "User {user_id} created study {study_id}.",
+        study_id=study_id,
+        user_id=user.user_id,
+    )
     # Make sure that invalid fields raise an error (e.g., "task_ids")
     return {"study_id": study_id}
 

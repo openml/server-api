@@ -1,6 +1,7 @@
 """Utility functions for logging."""
 
 import sys
+import time
 import uuid
 from collections.abc import Awaitable, Callable
 from pathlib import Path
@@ -20,7 +21,11 @@ def setup_log_sinks(configuration_file: Path | None = None) -> None:
         sink = sink_configuration.pop("sink")
         if sink == "sys.stderr":
             sink = sys.stderr
-        logger.add(sink, serialize=True, **sink_configuration)
+        # Logs the additionally provided data as JSON.
+        sink_configuration.setdefault("serialize", True)
+        # Decouples log calls from I/O and makes it multiprocessing safe.
+        sink_configuration.setdefault("enqueue", True)
+        logger.add(sink, **sink_configuration)
 
 
 async def add_request_context_to_log(
@@ -29,8 +34,40 @@ async def add_request_context_to_log(
 ) -> Response:
     """Add a unique request id to each log call."""
     identifier = uuid.uuid4().hex
-    with logger.contextualize(request_id=identifier):
+    with logger.contextualize(
+        request_id=identifier,
+        method=request.method,
+        path=request.url.path,
+    ):
         return await call_next(request)
+
+
+async def log_request_duration(
+    request: Request,
+    call_next: Callable[[Request], Awaitable[Response]],
+) -> Response:
+    """Log the process and wallclock time for each call.
+
+    Reported times cannot be attributed solely to processing the request.
+    As multiple requests can be handled concurrently in the same process,
+    process time may be spent on other requests as well. The same goes for
+    wallclock time, which is additionally influenced by e.g., context switches.
+    """
+    start_mono_ns = time.monotonic_ns()
+    start_process_ns = time.process_time_ns()
+    response: Response = await call_next(request)
+
+    duration_mono_ns = time.monotonic_ns() - start_mono_ns
+    duration_process_ns = time.process_time_ns() - start_process_ns
+    logger.info(
+        "Request took {mono_ms} ms wallclock time (process time {process_ms} ms)",
+        mono_ms=int(duration_mono_ns / 1_000_000),
+        process_ms=int(duration_process_ns / 1_000_000),
+        wallclock_time_ns=duration_mono_ns,
+        process_time_ns=duration_process_ns,
+        status=response.status_code,
+    )
+    return response
 
 
 async def request_response_logger(

@@ -1,4 +1,5 @@
 import argparse
+import asyncio
 import sys
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -10,7 +11,12 @@ from loguru import logger
 
 from config import load_configuration
 from core.errors import ProblemDetailError, problem_detail_exception_handler
-from core.logging import add_request_context_to_log, request_response_logger, setup_log_sinks
+from core.logging import (
+    add_request_context_to_log,
+    log_request_duration,
+    request_response_logger,
+    setup_log_sinks,
+)
 from database.setup import close_databases
 from routers.mldcat_ap.dataset import router as mldcat_ap_router
 from routers.openml.datasets import router as datasets_router
@@ -26,10 +32,13 @@ from routers.openml.tasktype import router as ttype_router
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:  # noqa: ARG001
+async def lifespan(app: FastAPI | None) -> AsyncGenerator[None, None]:  # noqa: ARG001
     """Manage application lifespan - startup and shutdown events."""
     yield
-    await close_databases()
+    asyncio.gather(
+        logger.complete(),
+        close_databases(),
+    )
 
 
 def _parse_args() -> argparse.Namespace:
@@ -72,6 +81,7 @@ def create_api(configuration_file: Path | None = None) -> FastAPI:
     # Order matters! Each added middleware wraps the previous, creating a stack.
     # See also: https://fastapi.tiangolo.com/tutorial/middleware/#multiple-middleware-execution-order
     app.middleware("http")(request_response_logger)
+    app.middleware("http")(log_request_duration)
     app.middleware("http")(add_request_context_to_log)
 
     app.add_exception_handler(ProblemDetailError, problem_detail_exception_handler)  # type: ignore[arg-type]

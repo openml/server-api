@@ -1,6 +1,6 @@
 import contextlib
 import json
-from collections.abc import AsyncIterator, Iterable, Iterator
+from collections.abc import AsyncGenerator, AsyncIterator, Iterable, Iterator
 from pathlib import Path
 from typing import Any, NamedTuple
 
@@ -13,7 +13,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
 from database.setup import expdb_database, user_database
-from main import create_api
+from main import create_api, lifespan
 from routers.dependencies import expdb_connection, userdb_connection
 
 PHP_API_URL = "http://php-api:80/api/v1/json"
@@ -51,6 +51,12 @@ async def temporary_records(
             await connection.commit()
 
 
+@pytest.fixture(autouse=True, scope="session")
+async def one_lifespan() -> AsyncGenerator[None, None]:
+    async with lifespan(app=None):
+        yield
+
+
 @pytest.fixture
 async def expdb_test() -> AsyncIterator[AsyncConnection]:
     async with automatic_rollback(expdb_database()) as connection:
@@ -85,6 +91,8 @@ async def py_api(
 
     app.dependency_overrides[expdb_connection] = override_expdb
     app.dependency_overrides[userdb_connection] = override_userdb
+    # We do not use the Lifespan manager for now because our auto-use fixture
+    # `one_lifespan` will do setup and teardown at a session scope level instead.
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
         base_url="http://test",

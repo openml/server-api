@@ -4,6 +4,7 @@ import asyncio
 from typing import Annotated
 
 from fastapi import APIRouter, Body, Depends, Path
+from loguru import logger
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 import database.setups
@@ -65,6 +66,7 @@ async def tag_setup(
         raise TagAlreadyExistsError(msg)
 
     await database.setups.tag(setup_id, tag, user.user_id, expdb_db)
+    logger.info("Setup {setup_id} tagged '{tag}'.", setup_id=setup_id, tag=tag)
     all_tags = [t.tag for t in setup_tags] + [tag]
     return {"setup_tag": {"id": str(setup_id), "tag": all_tags}}
 
@@ -94,9 +96,15 @@ async def untag_setup(
         msg = (
             f"You may not remove tag {tag!r} of setup {setup_id} because it was not created by you."
         )
+        logger.warning(
+            "User attempted to remove tag '{tag}' from setup {setup_id}.",
+            setup_id=setup_id,
+            tag=tag,
+        )
         raise TagNotOwnedError(msg)
 
     await database.setups.untag(setup_id, matched_tag_row.tag, expdb_db)
+    logger.info("Setup {setup_id} had tag '{tag}' removed.", setup_id=setup_id, tag=tag)
     remaining_tags = [
         t.tag for t in setup_tags if t.tag.casefold() != matched_tag_row.tag.casefold()
     ]
