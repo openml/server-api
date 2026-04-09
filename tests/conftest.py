@@ -9,6 +9,7 @@ import httpx
 import pytest
 from _pytest.config import Config
 from _pytest.nodes import Item
+from asgi_lifespan import LifespanManager
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
@@ -85,11 +86,14 @@ async def py_api(
 
     app.dependency_overrides[expdb_connection] = override_expdb
     app.dependency_overrides[userdb_connection] = override_userdb
-    async with httpx.AsyncClient(
-        transport=httpx.ASGITransport(app=app),
-        base_url="http://test",
-        follow_redirects=True,
-    ) as client:
+    async with (
+        LifespanManager(app) as manager,
+        httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=manager.app),
+            base_url="http://test",
+            follow_redirects=True,
+        ) as client,
+    ):
         yield client
 
 

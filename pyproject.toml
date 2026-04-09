@@ -34,6 +34,7 @@ dev = [
     "pytest-mock",
     "pytest-asyncio",
     "httpx",
+    "asgi-lifespan",
     "hypothesis",
     "deepdiff",
     "pytest-xdist",
