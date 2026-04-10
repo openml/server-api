@@ -1,4 +1,4 @@
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, AsyncIterator
 from typing import Annotated
 
 from fastapi import Depends
@@ -11,13 +11,13 @@ from database.setup import expdb_database, user_database
 from database.users import APIKey, User
 
 
-async def expdb_connection() -> AsyncGenerator[AsyncConnection, None]:
+async def expdb_connection() -> AsyncIterator[AsyncConnection]:
     engine = expdb_database()
     async with engine.connect() as connection, connection.begin():
         yield connection
 
 
-async def userdb_connection() -> AsyncGenerator[AsyncConnection, None]:
+async def userdb_connection() -> AsyncIterator[AsyncConnection]:
     engine = user_database()
     async with engine.connect() as connection, connection.begin():
         yield connection
@@ -26,7 +26,7 @@ async def userdb_connection() -> AsyncGenerator[AsyncConnection, None]:
 async def fetch_user(
     api_key: APIKey | None = None,
     user_data: Annotated[AsyncConnection | None, Depends(userdb_connection)] = None,
-) -> AsyncGenerator[User | None, None]:
+) -> AsyncGenerator[User | None]:
     if not (api_key and user_data):
         yield None
         return

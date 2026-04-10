@@ -1,6 +1,6 @@
 import contextlib
 import json
-from collections.abc import AsyncGenerator, AsyncIterator, Iterable, Iterator
+from collections.abc import AsyncIterator, Iterable, Iterator
 from pathlib import Path
 from typing import Any, NamedTuple
 
@@ -9,11 +9,13 @@ import httpx
 import pytest
 from _pytest.config import Config
 from _pytest.nodes import Item
+from asgi_lifespan import LifespanManager
+from fastapi import FastAPI
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
 from database.setup import expdb_database, user_database
-from main import create_api, lifespan
+from main import create_api
 from routers.dependencies import expdb_connection, userdb_connection
 
 PHP_API_URL = "http://php-api:80/api/v1/json"
@@ -51,12 +53,6 @@ async def temporary_records(
             await connection.commit()
 
 
-@pytest.fixture(autouse=True, scope="session")
-async def one_lifespan() -> AsyncGenerator[None, None]:
-    async with lifespan(app=None):
-        yield
-
-
 @pytest.fixture
 async def expdb_test() -> AsyncIterator[AsyncConnection]:
     async with automatic_rollback(expdb_database()) as connection:
@@ -69,20 +65,34 @@ async def user_test() -> AsyncIterator[AsyncConnection]:
         yield connection
 
 
-@pytest.fixture
+# The PHP API fixture can be session scoped since they do not need access to
+# function-scoped database transactions.
+@pytest.fixture(scope="session")
 async def php_api() -> AsyncIterator[httpx.AsyncClient]:
     async with httpx.AsyncClient(base_url=PHP_API_URL) as client:
         yield client
 
 
+@pytest.fixture(scope="session")
+async def app() -> AsyncIterator[FastAPI]:
+    _app = create_api(Path(__file__).parent / "config.test.toml")
+    async with LifespanManager(_app):
+        yield _app
+
+
 @pytest.fixture
 async def py_api(
-    expdb_test: AsyncConnection, user_test: AsyncConnection
+    expdb_test: AsyncConnection, user_test: AsyncConnection, app: FastAPI
 ) -> AsyncIterator[httpx.AsyncClient]:
-    app = create_api(Path(__file__).parent / "config.test.toml")
+    """Create test client which automatically rolls back database updates on teardown."""
+    # Using the function-scoped database fixtures automatically benefits the
+    # automatic rollbacks, but also lets a test author write to a database
+    # transaction that is shared with the app. That is, it enables:
+    #
+    # def my_test(expdb_test, py_api):
+    #     expdb_test.execute(...)  # write some data  # noqa: ERA001
+    #     py_api.get(...)  # read that data           # noqa: ERA001
 
-    # We use async generator functions because fixtures may not be called directly.
-    # The async generator returns the test connections for FastAPI to handle properly
     async def override_expdb() -> AsyncIterator[AsyncConnection]:
         yield expdb_test
 
@@ -91,14 +101,16 @@ async def py_api(
 
     app.dependency_overrides[expdb_connection] = override_expdb
     app.dependency_overrides[userdb_connection] = override_userdb
-    # We do not use the Lifespan manager for now because our auto-use fixture
-    # `one_lifespan` will do setup and teardown at a session scope level instead.
+
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
         base_url="http://test",
         follow_redirects=True,
     ) as client:
         yield client
+
+    app.dependency_overrides[expdb_connection] = expdb_connection
+    app.dependency_overrides[userdb_connection] = userdb_connection
 
 
 @pytest.fixture
