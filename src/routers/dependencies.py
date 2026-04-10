@@ -1,4 +1,4 @@
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator, AsyncIterator
 from typing import Annotated
 
 from fastapi import Depends
@@ -26,7 +26,7 @@ async def userdb_connection() -> AsyncIterator[AsyncConnection]:
 async def fetch_user(
     api_key: APIKey | None = None,
     user_data: Annotated[AsyncConnection | None, Depends(userdb_connection)] = None,
-) -> AsyncIterator[User | None]:
+) -> AsyncGenerator[User | None]:
     if not (api_key and user_data):
         yield None
         return
