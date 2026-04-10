@@ -109,6 +109,9 @@ async def py_api(
     ) as client:
         yield client
 
+    app.dependency_overrides[expdb_connection] = expdb_connection
+    app.dependency_overrides[userdb_connection] = userdb_connection
+
 
 @pytest.fixture
 def dataset_130() -> Iterator[dict[str, Any]]:

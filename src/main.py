@@ -37,7 +37,7 @@ async def lifespan(
 ) -> AsyncIterator[None]:
     """Manage application lifespan - startup and shutdown events."""
     yield
-    asyncio.gather(
+    await asyncio.gather(
         logger.complete(),
         close_databases(),
     )
