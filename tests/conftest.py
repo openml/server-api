@@ -102,8 +102,6 @@ async def py_api(
     app.dependency_overrides[expdb_connection] = override_expdb
     app.dependency_overrides[userdb_connection] = override_userdb
 
-    # We do not use the Lifespan manager for now because our auto-use fixture
-    # `one_lifespan` will do setup and teardown at a session scope level instead.
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
         base_url="http://test",
