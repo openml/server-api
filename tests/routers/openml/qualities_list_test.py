@@ -31,12 +31,12 @@ async def _remove_quality_from_database(quality_name: str, expdb_test: AsyncConn
 async def test_list_qualities_identical(
     py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
 ) -> None:
-    new, original = await asyncio.gather(
+    py_response, php_response = await asyncio.gather(
         py_api.get("/datasets/qualities/list"),
         php_api.get("/data/qualities/list"),
     )
-    assert new.status_code == original.status_code
-    assert new.json() == original.json()
+    assert py_response.status_code == php_response.status_code
+    assert py_response.json() == php_response.json()
     # To keep the test idempotent, we cannot test if reaction to database changes is identical
 
 

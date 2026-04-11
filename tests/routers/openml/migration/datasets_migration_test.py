@@ -20,39 +20,39 @@ async def test_dataset_response_is_identical(  # noqa: C901, PLR0912
     py_api: httpx.AsyncClient,
     php_api: httpx.AsyncClient,
 ) -> None:
-    new, original = await asyncio.gather(
+    py_response, php_response = await asyncio.gather(
         py_api.get(f"/datasets/{dataset_id}"),
         php_api.get(f"/data/{dataset_id}"),
     )
 
-    if new.status_code == HTTPStatus.FORBIDDEN:
-        assert original.status_code == HTTPStatus.PRECONDITION_FAILED
+    if py_response.status_code == HTTPStatus.FORBIDDEN:
+        assert php_response.status_code == HTTPStatus.PRECONDITION_FAILED
     else:
-        assert new.status_code == original.status_code
+        assert py_response.status_code == php_response.status_code
 
-    if new.status_code != HTTPStatus.OK:
+    if py_response.status_code != HTTPStatus.OK:
         # RFC 9457: Python API now returns problem+json format
-        assert new.headers["content-type"] == "application/problem+json"
+        assert py_response.headers["content-type"] == "application/problem+json"
         # Both APIs should return error responses in the same cases
-        assert new.json()["code"] == original.json()["error"]["code"]
-        old_error_message = original.json()["error"]["message"]
-        assert new.json()["detail"].startswith(old_error_message)
+        assert py_response.json()["code"] == php_response.json()["error"]["code"]
+        old_error_message = php_response.json()["error"]["message"]
+        assert py_response.json()["detail"].startswith(old_error_message)
         return
 
     try:
-        original_json = original.json()["data_set_description"]
+        php_json = php_response.json()["data_set_description"]
     except json.decoder.JSONDecodeError:
         pytest.skip("A PHP error occurred on the test server.")
 
-    if "div" in original_json:
+    if "div" in php_json:
         pytest.skip("A PHP error occurred on the test server.")
 
     # There are a few changes between the old API and the new API, so we convert here:
     # The new API has normalized `format` field:
-    original_json["format"] = original_json["format"].lower()
+    php_json["format"] = php_json["format"].lower()
 
     # Pydantic HttpURL serialization omits port 80 for HTTP urls.
-    original_json["url"] = original_json["url"].replace(":80", "")
+    php_json["url"] = php_json["url"].replace(":80", "")
 
     # There is odd behavior in the live server that I don't want to recreate:
     # when the creator is a list of csv names, it can either be a str or a list
@@ -60,42 +60,42 @@ async def test_dataset_response_is_identical(  # noqa: C901, PLR0912
     # '"Alice", "Bob"' -> ["Alice", "Bob"]
     # 'Alice, Bob' -> 'Alice, Bob'
     if (
-        "creator" in original_json
-        and isinstance(original_json["creator"], str)
-        and len(original_json["creator"].split(",")) > 1
+        "creator" in php_json
+        and isinstance(php_json["creator"], str)
+        and len(php_json["creator"].split(",")) > 1
     ):
-        original_json["creator"] = [name.strip() for name in original_json["creator"].split(",")]
+        php_json["creator"] = [name.strip() for name in php_json["creator"].split(",")]
 
-    new_body = new.json()
-    if processing_data := new_body.get("processing_date"):
-        new_body["processing_date"] = str(processing_data).replace("T", " ")
+    py_json = py_response.json()
+    if processing_data := py_json.get("processing_date"):
+        py_json["processing_date"] = str(processing_data).replace("T", " ")
 
     manual = []
     # ref test.openml.org/d/33 (contributor) and d/34 (creator)
     #   contributor/creator in database is '""'
     #   json content is []
     for field in ["contributor", "creator"]:
-        if new_body[field] == [""]:
-            new_body[field] = []
+        if py_json[field] == [""]:
+            py_json[field] = []
             manual.append(field)
 
-    if isinstance(new_body["original_data_url"], list):
-        new_body["original_data_url"] = ", ".join(str(url) for url in new_body["original_data_url"])
+    if isinstance(py_json["original_data_url"], list):
+        py_json["original_data_url"] = ", ".join(str(url) for url in py_json["original_data_url"])
 
-    for field, value in list(new_body.items()):
+    for field, value in list(py_json.items()):
         if field in manual:
             continue
         if isinstance(value, int):
-            new_body[field] = str(value)
+            py_json[field] = str(value)
         elif isinstance(value, list) and len(value) == 1:
-            new_body[field] = str(value[0])
-        if not new_body[field]:
-            del new_body[field]
+            py_json[field] = str(value[0])
+        if not py_json[field]:
+            del py_json[field]
 
-    if "description" not in new_body:
-        new_body["description"] = []
+    if "description" not in py_json:
+        py_json["description"] = []
 
-    assert new_body == original_json
+    assert py_json == php_json
 
 
 @pytest.mark.parametrize(
@@ -141,13 +141,13 @@ async def test_private_dataset_owner_access(
     api_key: str,
 ) -> None:
     [private_dataset] = tests.constants.PRIVATE_DATASET_ID
-    new_response, old_response = await asyncio.gather(
+    py_response, php_response = await asyncio.gather(
         py_api.get(f"/datasets/{private_dataset}?api_key={api_key}"),
         php_api.get(f"/data/{private_dataset}?api_key={api_key}"),
     )
-    assert old_response.status_code == HTTPStatus.OK
-    assert new_response.status_code == old_response.status_code
-    assert new_response.json()["id"] == private_dataset
+    assert php_response.status_code == HTTPStatus.OK
+    assert py_response.status_code == php_response.status_code
+    assert py_response.json()["id"] == private_dataset
 
 
 @pytest.mark.mut
@@ -173,13 +173,13 @@ async def test_dataset_tag_response_is_identical(
     php_api: httpx.AsyncClient,
 ) -> None:
     # PHP request must happen first to check state, can't parallelize
-    original = await php_api.post(
+    php_response = await php_api.post(
         "/data/tag",
         data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
     )
     already_tagged = (
-        original.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-        and "already tagged" in original.json()["error"]["message"]
+        php_response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        and "already tagged" in php_response.json()["error"]["message"]
     )
     if not already_tagged:
         # undo the tag, because we don't want to persist this change to the database
@@ -189,36 +189,36 @@ async def test_dataset_tag_response_is_identical(
             data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
         )
     if (
-        original.status_code != HTTPStatus.OK
-        and original.json()["error"]["message"] == "An Elastic Search Exception occured."
+        php_response.status_code != HTTPStatus.OK
+        and php_response.json()["error"]["message"] == "An Elastic Search Exception occured."
     ):
         pytest.skip("Encountered Elastic Search error.")
-    new = await py_api.post(
+    py_response = await py_api.post(
         f"/datasets/tag?api_key={api_key}",
         json={"data_id": dataset_id, "tag": tag},
     )
 
     # RFC 9457: Tag conflict now returns 409 instead of 500
-    if original.status_code == HTTPStatus.INTERNAL_SERVER_ERROR and already_tagged:
-        assert new.status_code == HTTPStatus.CONFLICT
-        assert new.json()["code"] == original.json()["error"]["code"]
-        assert original.json()["error"]["message"] == "Entity already tagged by this tag."
+    if php_response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR and already_tagged:
+        assert py_response.status_code == HTTPStatus.CONFLICT
+        assert py_response.json()["code"] == php_response.json()["error"]["code"]
+        assert php_response.json()["error"]["message"] == "Entity already tagged by this tag."
         assert re.match(
             pattern=r"Dataset \d+ already tagged with " + f"'{tag}'.",
-            string=new.json()["detail"],
+            string=py_response.json()["detail"],
         )
         return
 
-    assert new.status_code == original.status_code, original.json()
-    if new.status_code != HTTPStatus.OK:
-        assert new.json()["code"] == original.json()["error"]["code"]
-        assert new.json()["detail"] == original.json()["error"]["message"]
+    assert py_response.status_code == php_response.status_code, php_response.json()
+    if py_response.status_code != HTTPStatus.OK:
+        assert py_response.json()["code"] == php_response.json()["error"]["code"]
+        assert py_response.json()["detail"] == php_response.json()["error"]["message"]
         return
 
-    original = original.json()
-    new = new.json()
-    new = nested_remove_single_element_list(new)
-    assert new == original
+    php_json = php_response.json()
+    py_json = py_response.json()
+    py_json = nested_remove_single_element_list(py_json)
+    assert py_json == php_json
 
 
 @pytest.mark.parametrize(
@@ -230,24 +230,24 @@ async def test_datasets_feature_is_identical(
     py_api: httpx.AsyncClient,
     php_api: httpx.AsyncClient,
 ) -> None:
-    new, original = await asyncio.gather(
+    py_response, php_response = await asyncio.gather(
         py_api.get(f"/datasets/features/{data_id}"),
         php_api.get(f"/data/features/{data_id}"),
     )
-    assert new.status_code == original.status_code
+    assert py_response.status_code == php_response.status_code
 
-    if new.status_code != HTTPStatus.OK:
-        error = original.json()["error"]
-        assert new.json()["code"] == error["code"]
+    if py_response.status_code != HTTPStatus.OK:
+        error = php_response.json()["error"]
+        assert py_response.json()["code"] == error["code"]
         if error["message"] == "No features found. Additionally, dataset processed with error":
             pattern = r"No features found. Additionally, dataset \d+ processed with error\."
-            assert re.match(pattern, new.json()["detail"])
+            assert re.match(pattern, py_response.json()["detail"])
         else:
-            assert new.json()["detail"] == error["message"]
+            assert py_response.json()["detail"] == error["message"]
         return
 
-    python_body = new.json()
-    for feature in python_body:
+    py_json = py_response.json()
+    for feature in py_json:
         for key, value in list(feature.items()):
             if key == "nominal_values":
                 # The old API uses `nominal_value` instead of `nominal_values`
@@ -261,5 +261,5 @@ async def test_datasets_feature_is_identical(
             else:
                 # The old API formats bool as string in lower-case
                 feature[key] = str(value) if not isinstance(value, bool) else str(value).lower()
-    original_features = original.json()["data_features"]["feature"]
-    assert python_body == original_features
+    php_features = php_response.json()["data_features"]["feature"]
+    assert py_json == php_features

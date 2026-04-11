@@ -74,39 +74,39 @@ async def test_list_data_identical(
         uri += f"/{'/'.join([str(v) for q in query for v in q])}"
     uri += api_key_query
 
-    new, original = await asyncio.gather(
+    py_response, php_response = await asyncio.gather(
         py_api.post(f"/datasets/list{api_key_query}", json=new_style),
         php_api.get(uri),
     )
 
     # Note: RFC 9457 changed some status codes (PRECONDITION_FAILED -> NOT_FOUND for no results)
     # and the error response format, so we can't compare error responses directly.
-    php_is_error = original.status_code == HTTPStatus.PRECONDITION_FAILED
-    py_is_error = new.status_code == HTTPStatus.NOT_FOUND
+    php_is_error = php_response.status_code == HTTPStatus.PRECONDITION_FAILED
+    py_is_error = py_response.status_code == HTTPStatus.NOT_FOUND
 
     if php_is_error or py_is_error:
         # Both should be errors in the same cases
         assert php_is_error == py_is_error, (
-            f"PHP status={original.status_code}, Python status={new.status_code}"
+            f"PHP status={php_response.status_code}, Python status={py_response.status_code}"
         )
         # Verify Python API returns RFC 9457 format
-        assert new.headers["content-type"] == "application/problem+json"
-        error = new.json()
+        assert py_response.headers["content-type"] == "application/problem+json"
+        error = py_response.json()
         assert error["type"] == NoResultsError.uri
         assert error["code"] == "372"
-        assert original.json()["error"]["message"] == "No results"
+        assert php_response.json()["error"]["message"] == "No results"
         assert error["detail"] == "No datasets match the search criteria."
         return None
-    new_json = new.json()
+    py_json = py_response.json()
     # Qualities in new response are typed
-    for dataset in new_json:
+    for dataset in py_json:
         for quality in dataset["quality"]:
             quality["value"] = str(quality["value"])
 
     # PHP API has a double nested dictionary that never has other entries
-    php_json = original.json()["data"]["dataset"]
-    assert len(new_json) == len(php_json)
-    assert new_json == php_json
+    php_json = php_response.json()["data"]["dataset"]
+    assert len(py_json) == len(php_json)
+    assert py_json == php_json
     return None
 
 

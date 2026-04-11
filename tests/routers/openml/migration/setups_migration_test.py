@@ -71,7 +71,7 @@ async def test_setup_untag_response_is_identical_when_tag_exists(
 
     all_tags = [tag, *other_tags]
     async with temporary_tags(tags=all_tags, setup_id=setup_id, persist=True):
-        original = await php_api.post(
+        php_response = await php_api.post(
             "/setup/untag",
             data={"api_key": api_key, "tag": tag, "setup_id": setup_id},
         )
@@ -79,33 +79,33 @@ async def test_setup_untag_response_is_identical_when_tag_exists(
     # expdb_test transaction shared with Python API,
     # no commit needed and rolled back at the end of the test
     async with temporary_tags(tags=all_tags, setup_id=setup_id):
-        new = await py_api.post(
+        py_response = await py_api.post(
             f"/setup/untag?api_key={api_key}",
             json={"setup_id": setup_id, "tag": tag},
         )
 
-    if new.status_code == HTTPStatus.OK:
-        assert new.status_code == original.status_code
-        original_untag = original.json()["setup_untag"]
-        new_untag = new.json()["setup_untag"]
-        assert new_untag["id"] == original_untag["id"]
-        if tags := original_untag.get("tag"):
+    if py_response.status_code == HTTPStatus.OK:
+        assert py_response.status_code == php_response.status_code
+        php_untag = php_response.json()["setup_untag"]
+        py_untag = py_response.json()["setup_untag"]
+        assert py_untag["id"] == php_untag["id"]
+        if tags := php_untag.get("tag"):
             if isinstance(tags, str):
-                assert new_untag["tag"][0] == tags
+                assert py_untag["tag"][0] == tags
             else:
-                assert new_untag["tag"] == tags
+                assert py_untag["tag"] == tags
         else:
-            assert new_untag["tag"] == []
+            assert py_untag["tag"] == []
         return
 
-    code, message = original.json()["error"].values()
-    assert original.status_code == HTTPStatus.PRECONDITION_FAILED
-    assert new.status_code == HTTPStatus.FORBIDDEN
-    assert new.json()["code"] == code
+    code, message = php_response.json()["error"].values()
+    assert php_response.status_code == HTTPStatus.PRECONDITION_FAILED
+    assert py_response.status_code == HTTPStatus.FORBIDDEN
+    assert py_response.json()["code"] == code
     assert message == "Tag is not owned by you"
     assert re.match(
         r"You may not remove tag \S+ of setup \d+ because it was not created by you.",
-        new.json()["detail"],
+        py_response.json()["detail"],
     )
 
 
@@ -117,7 +117,7 @@ async def test_setup_untag_response_is_identical_setup_doesnt_exist(
     tag = "totally_new_tag_for_migration_testing"
     api_key = ApiKey.SOME_USER
 
-    original, new = await asyncio.gather(
+    php_response, py_response = await asyncio.gather(
         php_api.post(
             "/setup/untag",
             data={"api_key": api_key, "tag": tag, "setup_id": setup_id},
@@ -128,13 +128,13 @@ async def test_setup_untag_response_is_identical_setup_doesnt_exist(
         ),
     )
 
-    assert original.status_code == HTTPStatus.PRECONDITION_FAILED
-    assert new.status_code == HTTPStatus.NOT_FOUND
-    assert original.json()["error"]["message"] == "Entity not found."
-    assert new.json()["code"] == original.json()["error"]["code"]
+    assert php_response.status_code == HTTPStatus.PRECONDITION_FAILED
+    assert py_response.status_code == HTTPStatus.NOT_FOUND
+    assert php_response.json()["error"]["message"] == "Entity not found."
+    assert py_response.json()["code"] == php_response.json()["error"]["code"]
     assert re.match(
         r"Setup \d+ not found.",
-        new.json()["detail"],
+        py_response.json()["detail"],
     )
 
 
@@ -146,7 +146,7 @@ async def test_setup_untag_response_is_identical_tag_doesnt_exist(
     tag = "totally_new_tag_for_migration_testing"
     api_key = ApiKey.SOME_USER
 
-    original, new = await asyncio.gather(
+    php_response, py_response = await asyncio.gather(
         php_api.post(
             "/setup/untag",
             data={"api_key": api_key, "tag": tag, "setup_id": setup_id},
@@ -157,13 +157,13 @@ async def test_setup_untag_response_is_identical_tag_doesnt_exist(
         ),
     )
 
-    assert original.status_code == HTTPStatus.PRECONDITION_FAILED
-    assert new.status_code == HTTPStatus.NOT_FOUND
-    assert new.json()["code"] == original.json()["error"]["code"]
-    assert original.json()["error"]["message"] == "Tag not found."
+    assert php_response.status_code == HTTPStatus.PRECONDITION_FAILED
+    assert py_response.status_code == HTTPStatus.NOT_FOUND
+    assert py_response.json()["code"] == php_response.json()["error"]["code"]
+    assert php_response.json()["error"]["message"] == "Tag not found."
     assert re.match(
         r"Setup \d+ does not have tag '\S+'.",
-        new.json()["detail"],
+        py_response.json()["detail"],
     )
 
 
@@ -190,7 +190,7 @@ async def test_setup_tag_response_is_identical_when_tag_doesnt_exist(  # noqa: P
     tag = "totally_new_tag_for_migration_testing"
 
     async with temporary_tags(tags=other_tags, setup_id=setup_id, persist=True):
-        original = await php_api.post(
+        php_response = await php_api.post(
             "/setup/tag",
             data={"api_key": api_key, "tag": tag, "setup_id": setup_id},
         )
@@ -202,23 +202,23 @@ async def test_setup_tag_response_is_identical_when_tag_doesnt_exist(  # noqa: P
         await expdb_test.commit()
 
     async with temporary_tags(tags=other_tags, setup_id=setup_id):
-        new = await py_api.post(
+        py_response = await py_api.post(
             f"/setup/tag?api_key={api_key}",
             json={"setup_id": setup_id, "tag": tag},
         )
 
-    assert new.status_code == HTTPStatus.OK
-    assert new.status_code == original.status_code
-    original_tag = original.json()["setup_tag"]
-    new_tag = new.json()["setup_tag"]
-    assert new_tag["id"] == original_tag["id"]
-    if tags := original_tag.get("tag"):
+    assert py_response.status_code == HTTPStatus.OK
+    assert py_response.status_code == php_response.status_code
+    php_tag = php_response.json()["setup_tag"]
+    py_tag = py_response.json()["setup_tag"]
+    assert py_tag["id"] == php_tag["id"]
+    if tags := php_tag.get("tag"):
         if isinstance(tags, str):
-            assert new_tag["tag"][0] == tags
+            assert py_tag["tag"][0] == tags
         else:
-            assert set(new_tag["tag"]) == set(tags)
+            assert set(py_tag["tag"]) == set(tags)
     else:
-        assert new_tag["tag"] == []
+        assert py_tag["tag"] == []
 
 
 async def test_setup_tag_response_is_identical_setup_doesnt_exist(
@@ -229,7 +229,7 @@ async def test_setup_tag_response_is_identical_setup_doesnt_exist(
     tag = "totally_new_tag_for_migration_testing"
     api_key = ApiKey.SOME_USER
 
-    original, new = await asyncio.gather(
+    php_response, py_response = await asyncio.gather(
         php_api.post(
             "/setup/tag",
             data={"api_key": api_key, "tag": tag, "setup_id": setup_id},
@@ -240,13 +240,13 @@ async def test_setup_tag_response_is_identical_setup_doesnt_exist(
         ),
     )
 
-    assert original.status_code == HTTPStatus.PRECONDITION_FAILED
-    assert new.status_code == HTTPStatus.NOT_FOUND
-    assert original.json()["error"]["message"] == "Entity not found."
-    assert new.json()["code"] == original.json()["error"]["code"]
+    assert php_response.status_code == HTTPStatus.PRECONDITION_FAILED
+    assert py_response.status_code == HTTPStatus.NOT_FOUND
+    assert php_response.json()["error"]["message"] == "Entity not found."
+    assert py_response.json()["code"] == php_response.json()["error"]["code"]
     assert re.match(
         r"Setup \d+ not found.",
-        new.json()["detail"],
+        py_response.json()["detail"],
     )
 
 
@@ -262,7 +262,7 @@ async def test_setup_tag_response_is_identical_tag_already_exists(
 
     async with temporary_tags(tags=[tag], setup_id=setup_id, persist=True):
         # Both APIs can be tested in parallel since the tag is already persisted
-        original, new = await asyncio.gather(
+        php_response, py_response = await asyncio.gather(
             php_api.post(
                 "/setup/tag",
                 data={"api_key": api_key, "tag": tag, "setup_id": setup_id},
@@ -273,10 +273,10 @@ async def test_setup_tag_response_is_identical_tag_already_exists(
             ),
         )
 
-    assert original.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-    assert new.status_code == HTTPStatus.CONFLICT
-    assert original.json()["error"]["message"] == "Entity already tagged by this tag."
-    assert new.json()["detail"] == f"Setup {setup_id} already has tag {tag!r}."
+    assert php_response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+    assert py_response.status_code == HTTPStatus.CONFLICT
+    assert php_response.json()["error"]["message"] == "Entity already tagged by this tag."
+    assert py_response.json()["detail"] == f"Setup {setup_id} already has tag {tag!r}."
 
 
 async def test_get_setup_response_is_identical_setup_doesnt_exist(
@@ -285,16 +285,16 @@ async def test_get_setup_response_is_identical_setup_doesnt_exist(
 ) -> None:
     setup_id = 999999
 
-    original, new = await asyncio.gather(
+    php_response, py_response = await asyncio.gather(
         php_api.get(f"/setup/{setup_id}"),
         py_api.get(f"/setup/{setup_id}"),
     )
 
-    assert original.status_code == HTTPStatus.PRECONDITION_FAILED
-    assert new.status_code == HTTPStatus.NOT_FOUND
-    assert original.json()["error"]["message"] == "Unknown setup"
-    assert new.json()["code"] == original.json()["error"]["code"]
-    assert new.json()["detail"] == f"Setup {setup_id} not found."
+    assert php_response.status_code == HTTPStatus.PRECONDITION_FAILED
+    assert py_response.status_code == HTTPStatus.NOT_FOUND
+    assert php_response.json()["error"]["message"] == "Unknown setup"
+    assert py_response.json()["code"] == php_response.json()["error"]["code"]
+    assert py_response.json()["detail"] == f"Setup {setup_id} not found."
 
 
 @pytest.mark.parametrize("setup_id", range(1, 125))
@@ -303,27 +303,27 @@ async def test_get_setup_response_is_identical(
     py_api: httpx.AsyncClient,
     php_api: httpx.AsyncClient,
 ) -> None:
-    original, new = await asyncio.gather(
+    php_response, py_response = await asyncio.gather(
         php_api.get(f"/setup/{setup_id}"),
         py_api.get(f"/setup/{setup_id}"),
     )
 
-    if original.status_code == HTTPStatus.PRECONDITION_FAILED:
-        assert new.status_code == HTTPStatus.NOT_FOUND
+    if php_response.status_code == HTTPStatus.PRECONDITION_FAILED:
+        assert py_response.status_code == HTTPStatus.NOT_FOUND
         return
 
-    assert original.status_code == HTTPStatus.OK
-    assert new.status_code == HTTPStatus.OK
+    assert php_response.status_code == HTTPStatus.OK
+    assert py_response.status_code == HTTPStatus.OK
 
-    original_json = original.json()
+    php_json = php_response.json()
 
     # PHP returns integer fields as strings. To compare, we recursively convert string digits
     # to integers.
     # PHP also returns `[]` instead of null for empty string optional fields, which Python omits.
-    original_json = nested_str_to_num(original_json)
-    original_json = nested_remove_values(original_json, values=[[], None])
+    php_json = nested_str_to_num(php_json)
+    php_json = nested_remove_values(php_json, values=[[], None])
 
-    new_json = nested_str_to_num(new.json())
-    new_json = nested_remove_values(new_json, values=[[], None])
+    py_json = nested_str_to_num(py_response.json())
+    py_json = nested_remove_values(py_json, values=[[], None])
 
-    assert new_json == original_json
+    assert py_json == php_json

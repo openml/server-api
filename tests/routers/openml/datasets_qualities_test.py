@@ -130,28 +130,28 @@ async def test_get_quality(py_api: httpx.AsyncClient) -> None:
 async def test_get_quality_identical(
     data_id: int, py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
 ) -> None:
-    python_response, php_response = await asyncio.gather(
+    py_response, php_response = await asyncio.gather(
         py_api.get(f"/datasets/qualities/{data_id}"),
         php_api.get(f"/data/qualities/{data_id}"),
     )
     if php_response.status_code == HTTPStatus.OK:
-        _assert_get_quality_success_equal(python_response, php_response)
+        _assert_get_quality_success_equal(py_response, php_response)
         return
 
     php_error_code = int(php_response.json()["error"]["code"])
     if php_error_code == 361:  # noqa: PLR2004
-        _assert_get_quality_error_dataset_not_found(python_response, php_response)
+        _assert_get_quality_error_dataset_not_found(py_response, php_response)
     elif php_error_code == 364:  # noqa: PLR2004
-        _assert_get_quality_error_dataset_process_error(python_response, php_response)
+        _assert_get_quality_error_dataset_process_error(py_response, php_response)
     else:
         msg = f"Dataset {data_id} response not under test:", php_response.json()
         raise AssertionError(msg)
 
 
 def _assert_get_quality_success_equal(
-    python_response: httpx.Response, php_response: httpx.Response
+    py_response: httpx.Response, php_response: httpx.Response
 ) -> None:
-    assert python_response.status_code == php_response.status_code
+    assert py_response.status_code == php_response.status_code
     expected = [
         {
             "name": quality["name"],
@@ -159,17 +159,17 @@ def _assert_get_quality_success_equal(
         }
         for quality in php_response.json()["data_qualities"]["quality"]
     ]
-    assert python_response.json() == expected
+    assert py_response.json() == expected
 
 
 def _assert_get_quality_error_dataset_not_found(
-    python_response: httpx.Response, php_response: httpx.Response
+    py_response: httpx.Response, php_response: httpx.Response
 ) -> None:
     assert php_response.status_code == HTTPStatus.PRECONDITION_FAILED
-    assert python_response.status_code == HTTPStatus.NOT_FOUND
+    assert py_response.status_code == HTTPStatus.NOT_FOUND
 
     php_error = php_response.json()["error"]
-    py_error = python_response.json()
+    py_error = py_response.json()
 
     assert py_error["code"] == php_error["code"]
     assert php_error["message"] == "Unknown dataset"
@@ -177,12 +177,12 @@ def _assert_get_quality_error_dataset_not_found(
 
 
 def _assert_get_quality_error_dataset_process_error(
-    python_response: httpx.Response, php_response: httpx.Response
+    py_response: httpx.Response, php_response: httpx.Response
 ) -> None:
-    assert python_response.status_code == php_response.status_code
+    assert py_response.status_code == php_response.status_code
 
     php_error = php_response.json()["error"]
-    py_error = python_response.json()
+    py_error = py_response.json()
 
     assert py_error["code"] == php_error["code"]
     assert php_error["message"] == "Dataset processed with error"

@@ -51,16 +51,16 @@ def _assert_trace_response_success(
     assert py_response.status_code == HTTPStatus.OK
     assert php_response.status_code == HTTPStatus.OK
 
-    new_json = py_response.json()
+    py_json = py_response.json()
 
     # PHP nests response under "trace" key — match that structure
-    new_json = {"trace": new_json}
+    py_json = {"trace": py_json}
 
     # PHP uses "trace_iteration" key, Python uses "trace"
-    new_json["trace"]["trace_iteration"] = new_json["trace"].pop("trace")
+    py_json["trace"]["trace_iteration"] = py_json["trace"].pop("trace")
 
     # PHP returns all numeric values as strings — normalize Python response
-    new_json = nested_num_to_str(new_json)
+    py_json = nested_num_to_str(py_json)
 
     def _sort_trace(payload: dict[str, Any]) -> dict[str, Any]:
         """Sort trace iterations by (repeat, fold, iteration) for order-sensitive comparison."""
@@ -73,7 +73,7 @@ def _assert_trace_response_success(
         return copied
 
     differences = deepdiff.diff.DeepDiff(
-        _sort_trace(new_json),
+        _sort_trace(py_json),
         _sort_trace(php_response.json()),
         ignore_order=False,
     )
