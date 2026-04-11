@@ -62,13 +62,13 @@ async def test_flow_exists(
 async def test_get_flow_equal(
     flow_id: int, py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
 ) -> None:
-    response, php_response = await asyncio.gather(
+    py_response, php_response = await asyncio.gather(
         py_api.get(f"/flows/{flow_id}"),
         php_api.get(f"/flow/{flow_id}"),
     )
-    assert response.status_code == HTTPStatus.OK
+    assert py_response.status_code == HTTPStatus.OK
 
-    new = response.json()
+    py_json = py_response.json()
 
     # PHP sets parameter default value to [], None is more appropriate, omission is considered
     # Similar for the default "identifier" of subflows.
@@ -86,16 +86,16 @@ async def test_get_flow_equal(
             flow.pop("component")
         return flow
 
-    new = convert_flow_naming_and_defaults(new)
-    new = nested_remove_single_element_list(new)
+    py_json = convert_flow_naming_and_defaults(py_json)
+    py_json = nested_remove_single_element_list(py_json)
 
-    expected = php_response.json()["flow"]
-    # The reason we don't transform "new" to str is that it becomes harder to ignore numeric type
+    php_json = php_response.json()["flow"]
+    # The reason we don't transform py_json to str is that it becomes harder to ignore numeric type
     # differences (e.g., '1.0' vs '1')
-    expected = nested_str_to_num(expected)
+    php_json = nested_str_to_num(php_json)
     difference = deepdiff.diff.DeepDiff(
-        expected,
-        new,
+        py_json,
+        php_json,
         ignore_order=True,
         ignore_numeric_type_changes=True,
     )

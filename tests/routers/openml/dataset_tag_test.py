@@ -36,13 +36,13 @@ async def test_dataset_tag_invalid_tag_is_rejected(
     tag: str,
     py_api: httpx.AsyncClient,
 ) -> None:
-    new = await py_api.post(
+    response = await py_api.post(
         f"/datasets/tag?api_key={ApiKey.ADMIN}",
         json={"data_id": 1, "tag": tag},
     )
 
-    assert new.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-    assert new.json()["detail"][0]["loc"] == ["body", "tag"]
+    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert response.json()["detail"][0]["loc"] == ["body", "tag"]
 
 
 # ── Direct call tests: tag_dataset ──

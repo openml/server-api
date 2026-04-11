@@ -299,9 +299,8 @@ async def test_list_tasks_quality_values_are_strings(expdb_test: AsyncConnection
     """Quality values must be strings (to match PHP API behaviour)."""
     tasks = await list_tasks(pagination=Pagination(limit=5, offset=0), expdb=expdb_test)
     assert any(task["quality"] for task in tasks), "Expected at least one task to have qualities"
-    for task in tasks:
-        for quality in task["quality"]:
-            assert isinstance(quality["value"], str)
+    qualities = [quality for task in tasks for quality in task["quality"]]
+    assert all(isinstance(quality["value"], str) for quality in qualities)
 
 
 @pytest.mark.parametrize(

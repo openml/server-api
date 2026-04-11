@@ -15,14 +15,14 @@ from core.errors import TaskTypeNotFoundError
 async def test_get_task_type(
     ttype_id: int, py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
 ) -> None:
-    response, original = await asyncio.gather(
+    py_response, php_response = await asyncio.gather(
         py_api.get(f"/tasktype/{ttype_id}"),
         php_api.get(f"/tasktype/{ttype_id}"),
     )
-    assert response.status_code == original.status_code
+    assert py_response.status_code == php_response.status_code
 
-    py_json = response.json()
-    php_json = original.json()
+    py_json = py_response.json()
+    php_json = php_response.json()
 
     # The PHP types distinguish between single (str) or multiple (list) creator/contrib
     for field in ["contributor", "creator"]:

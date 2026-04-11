@@ -21,8 +21,8 @@ async def test_fetch_user(api_key: str, user: User, user_test: AsyncConnection) 
     async with aclosing(fetch_user(api_key, user_data=user_test)) as agen:
         db_user = await anext(agen)
     assert isinstance(db_user, User)
-    assert user.user_id == db_user.user_id
-    assert set(await user.get_groups()) == set(await db_user.get_groups())
+    assert db_user.user_id == user.user_id
+    assert set(await db_user.get_groups()) == set(await user.get_groups())
 
 
 async def test_fetch_user_no_key_no_user() -> None:

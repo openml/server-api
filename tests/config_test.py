@@ -9,21 +9,21 @@ def test_apply_defaults_to_siblings_applies_defaults() -> None:
     input_ = {"defaults": {1: 1}, "other": {}}
     expected = {"other": {1: 1}}
     output = _apply_defaults_to_siblings(input_)
-    assert expected == output
+    assert output == expected
 
 
 def test_apply_defaults_to_siblings_does_not_override() -> None:
     input_ = {"defaults": {1: 1}, "other": {1: 2}}
     expected = {"other": {1: 2}}
     output = _apply_defaults_to_siblings(input_)
-    assert expected == output
+    assert output == expected
 
 
 def test_apply_defaults_to_siblings_ignores_nontables() -> None:
     input_ = {"defaults": {1: 1}, "other": {1: 2}, "not-a-table": 3}
     expected = {"other": {1: 2}, "not-a-table": 3}
     output = _apply_defaults_to_siblings(input_)
-    assert expected == output
+    assert output == expected
 
 
 def test_load_configuration_adds_environment_variables(default_configuration_file: Path) -> None:

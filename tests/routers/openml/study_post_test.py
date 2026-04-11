@@ -21,9 +21,9 @@ async def test_create_task_study(py_api: httpx.AsyncClient) -> None:
         },
     )
     assert response.status_code == HTTPStatus.OK
-    new = response.json()
-    assert "study_id" in new
-    study_id = new["study_id"]
+    body = response.json()
+    assert "study_id" in body
+    study_id = body["study_id"]
     assert isinstance(study_id, int)
 
     study = await py_api.get(f"/studies/{study_id}")
