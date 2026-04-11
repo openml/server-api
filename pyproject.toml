@@ -108,6 +108,7 @@ ignore = [
 
 [tool.mypy]
 strict = true
+mypy_path = "src"
 plugins = [
     "pydantic.mypy"
 ]

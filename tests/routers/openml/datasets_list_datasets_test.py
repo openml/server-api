@@ -341,6 +341,6 @@ async def test_list_data_quality(
         status=DatasetStatusFilter.ALL,
         user=None,
         expdb_db=expdb_test,
-        **{quality: range_},
+        **{quality: range_},  # type: ignore[arg-type]
     )
     assert len(result) == count
