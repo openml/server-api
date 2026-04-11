@@ -168,7 +168,7 @@ async def test_list_tasks_equal(
     php_ids = {int(t["task_id"]) for t in php_tasks}
     py_ids = {int(t["task_id"]) for t in py_tasks}
 
-    assert php_ids == py_ids, (
+    assert py_ids == php_ids, (
         f"PHP and Python must return the exact same task IDs: {php_ids ^ py_ids}"
     )
 

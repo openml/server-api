@@ -85,15 +85,15 @@ async def test_setup_untag_response_is_identical_when_tag_exists(
         )
 
     if new.status_code == HTTPStatus.OK:
-        assert original.status_code == new.status_code
+        assert new.status_code == original.status_code
         original_untag = original.json()["setup_untag"]
         new_untag = new.json()["setup_untag"]
-        assert original_untag["id"] == new_untag["id"]
+        assert new_untag["id"] == original_untag["id"]
         if tags := original_untag.get("tag"):
             if isinstance(tags, str):
-                assert tags == new_untag["tag"][0]
+                assert new_untag["tag"][0] == tags
             else:
-                assert tags == new_untag["tag"]
+                assert new_untag["tag"] == tags
         else:
             assert new_untag["tag"] == []
         return
@@ -101,7 +101,7 @@ async def test_setup_untag_response_is_identical_when_tag_exists(
     code, message = original.json()["error"].values()
     assert original.status_code == HTTPStatus.PRECONDITION_FAILED
     assert new.status_code == HTTPStatus.FORBIDDEN
-    assert code == new.json()["code"]
+    assert new.json()["code"] == code
     assert message == "Tag is not owned by you"
     assert re.match(
         r"You may not remove tag \S+ of setup \d+ because it was not created by you.",
@@ -131,7 +131,7 @@ async def test_setup_untag_response_is_identical_setup_doesnt_exist(
     assert original.status_code == HTTPStatus.PRECONDITION_FAILED
     assert new.status_code == HTTPStatus.NOT_FOUND
     assert original.json()["error"]["message"] == "Entity not found."
-    assert original.json()["error"]["code"] == new.json()["code"]
+    assert new.json()["code"] == original.json()["error"]["code"]
     assert re.match(
         r"Setup \d+ not found.",
         new.json()["detail"],
@@ -159,7 +159,7 @@ async def test_setup_untag_response_is_identical_tag_doesnt_exist(
 
     assert original.status_code == HTTPStatus.PRECONDITION_FAILED
     assert new.status_code == HTTPStatus.NOT_FOUND
-    assert original.json()["error"]["code"] == new.json()["code"]
+    assert new.json()["code"] == original.json()["error"]["code"]
     assert original.json()["error"]["message"] == "Tag not found."
     assert re.match(
         r"Setup \d+ does not have tag '\S+'.",
@@ -208,15 +208,15 @@ async def test_setup_tag_response_is_identical_when_tag_doesnt_exist(  # noqa: P
         )
 
     assert new.status_code == HTTPStatus.OK
-    assert original.status_code == new.status_code
+    assert new.status_code == original.status_code
     original_tag = original.json()["setup_tag"]
     new_tag = new.json()["setup_tag"]
-    assert original_tag["id"] == new_tag["id"]
+    assert new_tag["id"] == original_tag["id"]
     if tags := original_tag.get("tag"):
         if isinstance(tags, str):
-            assert tags == new_tag["tag"][0]
+            assert new_tag["tag"][0] == tags
         else:
-            assert set(tags) == set(new_tag["tag"])
+            assert set(new_tag["tag"]) == set(tags)
     else:
         assert new_tag["tag"] == []
 
@@ -243,7 +243,7 @@ async def test_setup_tag_response_is_identical_setup_doesnt_exist(
     assert original.status_code == HTTPStatus.PRECONDITION_FAILED
     assert new.status_code == HTTPStatus.NOT_FOUND
     assert original.json()["error"]["message"] == "Entity not found."
-    assert original.json()["error"]["code"] == new.json()["code"]
+    assert new.json()["code"] == original.json()["error"]["code"]
     assert re.match(
         r"Setup \d+ not found.",
         new.json()["detail"],
@@ -293,7 +293,7 @@ async def test_get_setup_response_is_identical_setup_doesnt_exist(
     assert original.status_code == HTTPStatus.PRECONDITION_FAILED
     assert new.status_code == HTTPStatus.NOT_FOUND
     assert original.json()["error"]["message"] == "Unknown setup"
-    assert original.json()["error"]["code"] == new.json()["code"]
+    assert new.json()["code"] == original.json()["error"]["code"]
     assert new.json()["detail"] == f"Setup {setup_id} not found."
 
 
@@ -326,4 +326,4 @@ async def test_get_setup_response_is_identical(
     new_json = nested_str_to_num(new.json())
     new_json = nested_remove_values(new_json, values=[[], None])
 
-    assert original_json == new_json
+    assert new_json == original_json

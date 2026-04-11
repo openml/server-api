@@ -94,8 +94,8 @@ async def test_get_flow_equal(
     # differences (e.g., '1.0' vs '1')
     expected = nested_str_to_num(expected)
     difference = deepdiff.diff.DeepDiff(
-        expected,
         new,
+        expected,
         ignore_order=True,
         ignore_numeric_type_changes=True,
     )

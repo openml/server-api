@@ -119,7 +119,7 @@ async def test_get_quality(py_api: httpx.AsyncClient) -> None:
         {"name": "kNN1NErrRate", "value": 0.06347438752783964},
         {"name": "kNN1NKappa", "value": 0.8261102938928316},
     ]
-    difference = deepdiff.DeepDiff(expected, response.json(), ignore_order=True)
+    difference = deepdiff.DeepDiff(response.json(), expected, ignore_order=True)
     assert not difference
 
 
@@ -171,7 +171,7 @@ def _assert_get_quality_error_dataset_not_found(
     php_error = php_response.json()["error"]
     py_error = python_response.json()
 
-    assert php_error["code"] == py_error["code"]
+    assert py_error["code"] == php_error["code"]
     assert php_error["message"] == "Unknown dataset"
     assert re.match(r"Dataset with id \d+ not found.", py_error["detail"])
 
@@ -179,14 +179,14 @@ def _assert_get_quality_error_dataset_not_found(
 def _assert_get_quality_error_dataset_process_error(
     python_response: httpx.Response, php_response: httpx.Response
 ) -> None:
-    assert php_response.status_code == python_response.status_code
+    assert python_response.status_code == php_response.status_code
 
     php_error = php_response.json()["error"]
     py_error = python_response.json()
 
-    assert php_error["code"] == py_error["code"]
+    assert py_error["code"] == php_error["code"]
     assert php_error["message"] == "Dataset processed with error"
     assert py_error["title"] == "Dataset Processing Error"
     # The PHP can add some additional unnecessary escapes.
-    assert php_error["additional_information"][:30] == py_error["detail"][:30]
-    assert php_error["additional_information"][-30:] == py_error["detail"][-30:]
+    assert py_error["detail"][:30] == php_error["additional_information"][:30]
+    assert py_error["detail"][-30:] == php_error["additional_information"][-30:]

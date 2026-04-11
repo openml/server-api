@@ -34,7 +34,7 @@ async def test_setup_untag_api_success(
 
     assert response.status_code == HTTPStatus.OK
     expected = {"setup_untag": {"id": "1", "tag": []}}
-    assert expected == response.json()
+    assert response.json() == expected
 
     rows = await expdb_test.execute(
         text("SELECT * FROM setup_tag WHERE id = 1 AND tag = :tag"),

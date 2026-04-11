@@ -105,8 +105,8 @@ async def test_list_data_identical(
 
     # PHP API has a double nested dictionary that never has other entries
     php_json = original.json()["data"]["dataset"]
-    assert len(php_json) == len(new_json)
-    assert php_json == new_json
+    assert len(new_json) == len(php_json)
+    assert new_json == php_json
     return None
 
 
@@ -341,6 +341,6 @@ async def test_list_data_quality(
         status=DatasetStatusFilter.ALL,
         user=None,
         expdb_db=expdb_test,
-        **{quality: range_},  # type: ignore[arg-type]
+        **{quality: range_},
     )
     assert len(result) == count

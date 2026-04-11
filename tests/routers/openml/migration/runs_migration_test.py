@@ -33,7 +33,7 @@ async def test_get_run_trace_equal(
 
     php_error = php_response.json()["error"]
     py_error = py_response.json()
-    assert php_error["code"] == py_error["code"]
+    assert py_error["code"] == php_error["code"]
     if php_error["code"] == "571":
         assert php_error["message"] == "Run not found."
         assert py_error["detail"] == f"Run {run_id} not found."

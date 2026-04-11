@@ -28,13 +28,13 @@ async def test_dataset_response_is_identical(  # noqa: C901, PLR0912
     if new.status_code == HTTPStatus.FORBIDDEN:
         assert original.status_code == HTTPStatus.PRECONDITION_FAILED
     else:
-        assert original.status_code == new.status_code
+        assert new.status_code == original.status_code
 
     if new.status_code != HTTPStatus.OK:
         # RFC 9457: Python API now returns problem+json format
         assert new.headers["content-type"] == "application/problem+json"
         # Both APIs should return error responses in the same cases
-        assert original.json()["error"]["code"] == new.json()["code"]
+        assert new.json()["code"] == original.json()["error"]["code"]
         old_error_message = original.json()["error"]["message"]
         assert new.json()["detail"].startswith(old_error_message)
         return
@@ -95,7 +95,7 @@ async def test_dataset_response_is_identical(  # noqa: C901, PLR0912
     if "description" not in new_body:
         new_body["description"] = []
 
-    assert original_json == new_body
+    assert new_body == original_json
 
 
 @pytest.mark.parametrize(
@@ -146,7 +146,7 @@ async def test_private_dataset_owner_access(
         php_api.get(f"/data/{private_dataset}?api_key={api_key}"),
     )
     assert old_response.status_code == HTTPStatus.OK
-    assert old_response.status_code == new_response.status_code
+    assert new_response.status_code == old_response.status_code
     assert new_response.json()["id"] == private_dataset
 
 
@@ -201,7 +201,7 @@ async def test_dataset_tag_response_is_identical(
     # RFC 9457: Tag conflict now returns 409 instead of 500
     if original.status_code == HTTPStatus.INTERNAL_SERVER_ERROR and already_tagged:
         assert new.status_code == HTTPStatus.CONFLICT
-        assert original.json()["error"]["code"] == new.json()["code"]
+        assert new.json()["code"] == original.json()["error"]["code"]
         assert original.json()["error"]["message"] == "Entity already tagged by this tag."
         assert re.match(
             pattern=r"Dataset \d+ already tagged with " + f"'{tag}'.",
@@ -209,16 +209,16 @@ async def test_dataset_tag_response_is_identical(
         )
         return
 
-    assert original.status_code == new.status_code, original.json()
+    assert new.status_code == original.status_code, original.json()
     if new.status_code != HTTPStatus.OK:
-        assert original.json()["error"]["code"] == new.json()["code"]
-        assert original.json()["error"]["message"] == new.json()["detail"]
+        assert new.json()["code"] == original.json()["error"]["code"]
+        assert new.json()["detail"] == original.json()["error"]["message"]
         return
 
     original = original.json()
     new = new.json()
     new = nested_remove_single_element_list(new)
-    assert original == new
+    assert new == original
 
 
 @pytest.mark.parametrize(
@@ -238,12 +238,12 @@ async def test_datasets_feature_is_identical(
 
     if new.status_code != HTTPStatus.OK:
         error = original.json()["error"]
-        assert error["code"] == new.json()["code"]
+        assert new.json()["code"] == error["code"]
         if error["message"] == "No features found. Additionally, dataset processed with error":
             pattern = r"No features found. Additionally, dataset \d+ processed with error\."
             assert re.match(pattern, new.json()["detail"])
         else:
-            assert error["message"] == new.json()["detail"]
+            assert new.json()["detail"] == error["message"]
         return
 
     python_body = new.json()
