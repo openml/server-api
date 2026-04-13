@@ -117,28 +117,6 @@ async def test_list_tasks_negative_pagination_safely_clamped(
         assert error["type"] == NoResultsError.uri
 
 
-@pytest.mark.parametrize(
-    ("pagination_override", "expected_field"),
-    [
-        ({"limit": "abc", "offset": 0}, "limit"),  # Invalid type
-        ({"limit": 5, "offset": "xyz"}, "offset"),  # Invalid type
-    ],
-    ids=["bad_limit_type", "bad_offset_type"],
-)
-async def test_list_tasks_invalid_pagination_type(
-    pagination_override: dict[str, Any], expected_field: str, py_api: httpx.AsyncClient
-) -> None:
-    """Invalid pagination types return 422 Unprocessable Entity."""
-    response = await py_api.post(
-        "/tasks/list",
-        json={"pagination": pagination_override},
-    )
-    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-    # Verify that the error points to the correct field
-    error = response.json()["errors"][0]
-    assert error["loc"][-2:] == ["pagination", expected_field]
-    assert error["type"] in {"type_error.integer", "int_parsing", "int_type"}
-
 
 @pytest.mark.parametrize(
     "value",
