@@ -3,7 +3,7 @@ from typing import Annotated
 
 from fastapi import Depends
 from loguru import logger
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from core.errors import AuthenticationFailedError, AuthenticationRequiredError
@@ -58,5 +58,5 @@ def fetch_user_or_raise(
 
 
 class Pagination(BaseModel):
-    offset: int = 0
-    limit: int = 100
+    offset: int = Field(default=0, ge=0)
+    limit: int = Field(default=100, gt=0, le=1000)

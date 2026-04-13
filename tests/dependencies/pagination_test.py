@@ -17,7 +17,10 @@ def test_pagination_defaults() -> None:
     ("kwargs", "expected_field"),
     [
         ({"limit": "abc", "offset": 0}, "limit"),
+        ({"limit": -5, "offset": 0}, "limit"),
+        ({"limit": 2000, "offset": 0}, "limit"),
         ({"limit": 5, "offset": "xyz"}, "offset"),
+        ({"limit": 5, "offset": -5}, "offset"),
     ],
     ids=["bad_limit_type", "bad_offset_type"],
 )
