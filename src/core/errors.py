@@ -7,6 +7,7 @@ See: https://www.rfc-editor.org/rfc/rfc9457.html
 from http import HTTPStatus
 
 from fastapi import Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 # =============================================================================
@@ -85,6 +86,27 @@ def problem_detail_exception_handler(
     return JSONResponse(
         status_code=int(exc.status_code),
         content=content,
+        media_type="application/problem+json",
+    )
+
+
+def validation_exception_handler(
+    request: Request,  # noqa: ARG001
+    exc: RequestValidationError,
+) -> JSONResponse:
+    """FastAPI exception handler for RequestValidationError.
+
+    Returns a RFC 9457 compliant response for input validation failures.
+    """
+    return JSONResponse(
+        status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
+        content={
+            "type": "https://openml.org/problems/validation-error",
+            "title": "Validation Error",
+            "status": HTTPStatus.UNPROCESSABLE_ENTITY,
+            "detail": "Input validation failed.",
+            "errors": exc.errors(),
+        },
         media_type="application/problem+json",
     )
 

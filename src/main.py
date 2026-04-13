@@ -7,10 +7,15 @@ from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from loguru import logger
 
 from config import load_configuration
-from core.errors import ProblemDetailError, problem_detail_exception_handler
+from core.errors import (
+    ProblemDetailError,
+    problem_detail_exception_handler,
+    validation_exception_handler,
+)
 from core.logging import (
     add_request_context_to_log,
     log_request_duration,
@@ -87,6 +92,7 @@ def create_api(configuration_file: Path | None = None) -> FastAPI:
     app.middleware("http")(add_request_context_to_log)
 
     app.add_exception_handler(ProblemDetailError, problem_detail_exception_handler)  # type: ignore[arg-type]
+    app.add_exception_handler(RequestValidationError, validation_exception_handler)  # type: ignore[arg-type]
 
     logger.info("Adding routers to app")
     app.include_router(datasets_router)
