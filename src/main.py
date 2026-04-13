@@ -7,11 +7,10 @@ from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from loguru import logger
 
 from config import load_configuration
-from fastapi.exceptions import RequestValidationError
-
 from core.errors import (
     ProblemDetailError,
     problem_detail_exception_handler,
