@@ -135,9 +135,9 @@ async def test_list_tasks_invalid_pagination_type(
     )
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     # Verify that the error points to the correct field
-    detail = response.json()["detail"][0]
-    assert detail["loc"][-2:] == ["pagination", expected_field]
-    assert detail["type"] in {"type_error.integer", "int_parsing", "int_type"}
+    error = response.json()["errors"][0]
+    assert error["loc"][-2:] == ["pagination", expected_field]
+    assert error["type"] in {"type_error.integer", "int_parsing", "int_type"}
 
 
 @pytest.mark.parametrize(
@@ -150,8 +150,8 @@ async def test_list_tasks_invalid_range(value: str, py_api: httpx.AsyncClient) -
     response = await py_api.post("/tasks/list", json={"number_instances": value})
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     # Verify the error is for the correct field
-    detail = response.json()["detail"][0]
-    assert detail["loc"][-1] == "number_instances"
+    error = response.json()["errors"][0]
+    assert error["loc"][-1] == "number_instances"
 
 
 @pytest.mark.parametrize(
@@ -171,9 +171,9 @@ async def test_list_tasks_invalid_inputs(
     response = await py_api.post("/tasks/list", json=payload)
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
     # Ensure we are failing for the field we provided
-    detail = response.json()["detail"][0]
+    error = response.json()["errors"][0]
     expected_field = next(iter(payload))
-    assert detail["loc"][-1] == expected_field
+    assert error["loc"][-1] == expected_field
 
 
 async def test_list_tasks_no_results_api_mapping(py_api: httpx.AsyncClient) -> None:

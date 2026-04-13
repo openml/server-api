@@ -42,7 +42,12 @@ async def test_dataset_tag_invalid_tag_is_rejected(
     )
 
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-    assert response.json()["detail"][0]["loc"] == ["body", "tag"]
+    assert response.headers["content-type"] == "application/problem+json"
+    body = response.json()
+    assert body["type"] == "about:blank"
+    assert body["title"] == "Validation Error"
+    assert body["status"] == HTTPStatus.UNPROCESSABLE_ENTITY
+    assert body["errors"][0]["loc"] == ["body", "tag"]
 
 
 # ── Direct call tests: tag_dataset ──
