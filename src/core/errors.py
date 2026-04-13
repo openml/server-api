@@ -101,7 +101,7 @@ def validation_exception_handler(
     return JSONResponse(
         status_code=HTTPStatus.UNPROCESSABLE_ENTITY,
         content={
-            "type": "about:blank",
+            "type": "https://openml.org/problems/validation-error",
             "title": "Validation Error",
             "status": HTTPStatus.UNPROCESSABLE_ENTITY,
             "detail": "Input validation failed.",
