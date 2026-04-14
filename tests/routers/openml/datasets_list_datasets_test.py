@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 
 from core.errors import NoResultsError
 from database.users import User
-from routers.dependencies import Pagination
+from routers.dependencies import LIMIT_DEFAULT, Pagination
 from routers.openml.datasets import DatasetStatusFilter, list_datasets
 from tests import constants
 from tests.users import ADMIN_USER, DATASET_130_OWNER, SOME_USER, ApiKey
@@ -57,12 +57,6 @@ async def test_list_data_identical(
     api_key = kwargs.pop("api_key")
     api_key_query = f"?api_key={api_key}" if api_key else ""
 
-    # Pagination parameters are nested in the new query style
-    # The old style has no `limit` by default, so we mimic this with a high default
-    new_style = kwargs | {"pagination": {"limit": limit or 1_000_000}}
-    if offset is not None:
-        new_style["pagination"]["offset"] = offset
-
     # old style `/data/filter` encodes all filters as a path
     query = [
         [filter_, value if not isinstance(value, list) else ",".join(str(v) for v in value)]
@@ -74,13 +68,21 @@ async def test_list_data_identical(
         uri += f"/{'/'.join([str(v) for q in query for v in q])}"
     uri += api_key_query
 
+    # new style just takes the values directly in a JSON body,
+    # except that the limit and offset parameters are under a pagination field.
+    if limit is not None:
+        kwargs.setdefault("pagination", {})["limit"] = limit
+    if offset is not None:
+        kwargs.setdefault("pagination", {})["offset"] = offset
+
     py_response, php_response = await asyncio.gather(
-        py_api.post(f"/datasets/list{api_key_query}", json=new_style),
+        py_api.post(f"/datasets/list{api_key_query}", json=kwargs),
         php_api.get(uri),
     )
 
     # Note: RFC 9457 changed some status codes (PRECONDITION_FAILED -> NOT_FOUND for no results)
     # and the error response format, so we can't compare error responses directly.
+    # Validation errors shouldn't occur since the search space doesn't include invalid values
     php_is_error = php_response.status_code == HTTPStatus.PRECONDITION_FAILED
     py_is_error = py_response.status_code == HTTPStatus.NOT_FOUND
 
@@ -105,6 +107,9 @@ async def test_list_data_identical(
 
     # PHP API has a double nested dictionary that never has other entries
     php_json = php_response.json()["data"]["dataset"]
+    # The default limit changed from unbound to 100.
+    if limit is None:
+        php_json = php_json[:LIMIT_DEFAULT]
     assert len(py_json) == len(php_json)
     assert py_json == php_json
     return None

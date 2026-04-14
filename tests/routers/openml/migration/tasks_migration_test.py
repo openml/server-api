@@ -11,6 +11,7 @@ from core.conversions import (
     nested_remove_single_element_list,
     nested_remove_values,
 )
+from routers.dependencies import LIMIT_MAX
 
 
 @pytest.mark.parametrize(
@@ -141,8 +142,7 @@ async def test_list_tasks_equal(
     - PHP error status is 412 PRECONDITION_FAILED; Python uses 404 NOT_FOUND.
     """
     php_path = _build_php_task_list_path(php_params)
-    # Use a very large limit on Python side to match PHP's unbounded default result count
-    py_body = {**py_extra, "pagination": {"limit": 1_000_000, "offset": 0}}
+    py_body = {**py_extra, "pagination": {"limit": LIMIT_MAX, "offset": 0}}
     py_response, php_response = await asyncio.gather(
         py_api.post("/tasks/list", json=py_body),
         php_api.get(php_path),
@@ -163,6 +163,7 @@ async def test_list_tasks_equal(
     php_tasks: list[dict[str, Any]] = (
         php_tasks_raw if isinstance(php_tasks_raw, list) else [php_tasks_raw]
     )
+    php_tasks = php_tasks[:LIMIT_MAX]
     py_tasks: list[dict[str, Any]] = [_normalize_py_task(t) for t in py_response.json()]
 
     php_ids = {int(t["task_id"]) for t in php_tasks}
