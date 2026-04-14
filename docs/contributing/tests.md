@@ -44,7 +44,7 @@ Some guidelines and things to keep in mind when writing tests:
 
  - Try to keep tests small, so that they fail for one particular reason only.
  - Mark tests that update the database in anyway with the `mut` marker (`@pytest.mark.mut`).
- - If the test is excessively slow (>0.1 sec), use a `slow` marker.
+ - If the test is excessively slow (>0.1 sec) and does not connect to PHP, use a `slow` marker. Tests always require roundtrips through other services which makes them slow by default. These tests can be filtered out with the automatically generated "php_api" marker.
  - Four common fixtures you might need when writing tests are:
     - py_api: an async client for the Python based REST API
     - php_api: an async client for the PHP based REST API

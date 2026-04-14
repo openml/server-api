@@ -19,7 +19,7 @@ For larger changes, clone a fork of the repository as described in the
     After cloning the repository, you may also build and serve the documentation through Docker:
 
     ```
-    docker compose up docs
+    docker compose -f compose.yaml -f compose.ports.yaml up docs
     ```
 
 

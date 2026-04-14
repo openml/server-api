@@ -121,7 +121,8 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
 markers = [
-    "slow: test or sets of tests which take more than 0.1 second to run.",
+    # We exclude PHP tests because they are quite slow to begin with.
+    "slow: python-only test or sets of tests which take more than 0.1 second to run.",
     # While the `mut`ation marker below is not strictly necessary as every change is
     # executed within transaction that is rolled back, it can halt other unit tests
     # whose queries may depend on the execution or rollback of the transaction.
