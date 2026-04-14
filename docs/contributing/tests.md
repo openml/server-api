@@ -44,7 +44,7 @@ Some guidelines and things to keep in mind when writing tests:
 
  - Try to keep tests small, so that they fail for one particular reason only.
  - Mark tests that update the database in anyway with the `mut` marker (`@pytest.mark.mut`).
- - If the test is excessively slow (>0.1 sec) and does not connect to PHP, use a `slow` marker. Tests always require roundtrips through other services which makes them slow by default. These tests can be filtered out with the automatically generated "php_api" marker.
+ - If the test is excessively slow (>0.1 sec) and does not connect to PHP, use a `slow` marker. Tests that include PHP always require roundtrips through other services which makes them slow by default. PHP tests can be filtered out with the automatically generated "php_api" marker.
  - Four common fixtures you might need when writing tests are:
     - py_api: an async client for the Python based REST API
     - php_api: an async client for the PHP based REST API
@@ -84,7 +84,7 @@ async def test_get_dataset_private_success(expdb_test: AsyncConnection, user_tes
 
 async def test_get_dataset_private_access_denied(expdb_test: AsyncConnection, user_test: AsyncConnection) -> None:
     private_dataset = 42
-    owner_of_that_dataset = OWNER_USER  # Test User defined in a common file
+    owner_of_that_dataset = SOME_USER  # Test User defined in a common file
     with pytest.raises(DatasetNoAccessError) as e:
         await get_dataset(dataset_id=42, user=owner_of_that_dataset, user_db=user_test, expdb_db=expdb_test)
     assert e.value.status_code == HTTPStatus.FORBIDDEN
