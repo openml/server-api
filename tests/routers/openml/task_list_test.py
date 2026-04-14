@@ -117,7 +117,6 @@ async def test_list_tasks_negative_pagination_safely_clamped(
         assert error["type"] == NoResultsError.uri
 
 
-
 @pytest.mark.parametrize(
     "value",
     ["1...2", "abc"],
