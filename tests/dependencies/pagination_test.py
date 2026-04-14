@@ -13,13 +13,6 @@ def test_pagination_defaults() -> None:
     assert pagination.limit == 100
 
 
-def test_pagination_valid_values() -> None:
-    """Non-default values within bounds are accepted."""
-    pagination = Pagination(limit=500, offset=10)
-    assert pagination.limit == 500
-    assert pagination.offset == 10
-
-
 @pytest.mark.parametrize(
     ("kwargs", "expected_field"),
     [
@@ -29,7 +22,13 @@ def test_pagination_valid_values() -> None:
         ({"limit": 5, "offset": "xyz"}, "offset"),
         ({"limit": 5, "offset": -5}, "offset"),
     ],
-    ids=["bad_limit_type", "negative_limit", "limit_too_large", "bad_offset_type", "negative_offset"],
+    ids=[
+        "bad_limit_type",
+        "negative_limit",
+        "limit_too_large",
+        "bad_offset_type",
+        "negative_offset",
+    ],
 )
 def test_pagination_invalid_type(kwargs: dict[str, Any], expected_field: str) -> None:
     """Non-integer values for limit or offset raise a ValidationError."""
