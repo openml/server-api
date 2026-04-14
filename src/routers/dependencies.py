@@ -57,6 +57,10 @@ def fetch_user_or_raise(
     return user
 
 
+LIMIT_DEFAULT = 100
+LIMIT_MAX = 1000
+
+
 class Pagination(BaseModel):
     offset: int = Field(default=0, ge=0)
-    limit: int = Field(default=100, gt=0, le=1000)
+    limit: int = Field(default=LIMIT_DEFAULT, gt=0, le=LIMIT_MAX)
