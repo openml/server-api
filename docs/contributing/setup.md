@@ -112,7 +112,7 @@ This is useful, for example, to run unit tests in the container:
 python -m pytest -x -v -m "not php_api"
 ```
 
-## Unit tests
+## Running Unit tests
 
 Our unit tests are written with the [`pytest`](https://pytest.org) framework.
 An invocation could look like this:
