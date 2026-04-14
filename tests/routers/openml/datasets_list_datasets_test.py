@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 
 from core.errors import NoResultsError
 from database.users import User
-from routers.dependencies import LIMIT_DEFAULT, LIMIT_MAX, Pagination
+from routers.dependencies import LIMIT_DEFAULT, Pagination
 from routers.openml.datasets import DatasetStatusFilter, list_datasets
 from tests import constants
 from tests.users import ADMIN_USER, DATASET_130_OWNER, SOME_USER, ApiKey
