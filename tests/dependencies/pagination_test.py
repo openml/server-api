@@ -10,7 +10,7 @@ def test_pagination_defaults() -> None:
     """Pagination has expected defaults when no values are provided."""
     pagination = Pagination()
     assert pagination.offset == 0
-    assert pagination.limit == 100
+    assert pagination.limit == 100  # noqa: PLR2004
 
 
 @pytest.mark.parametrize(
