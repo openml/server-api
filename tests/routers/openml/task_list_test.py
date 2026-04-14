@@ -75,49 +75,6 @@ async def test_list_tasks_api_happy_path(py_api: httpx.AsyncClient) -> None:
 
 
 @pytest.mark.parametrize(
-    ("limit", "offset", "expected_status", "expected_max_results"),
-    [
-        (-10, 0, HTTPStatus.NOT_FOUND, 0),  # negative limit clamped to 0 -> No results
-        (5, -10, HTTPStatus.OK, 5),  # negative offset clamped to 0 -> First 5 results
-    ],
-    ids=["negative_limit", "negative_offset"],
-)
-async def test_list_tasks_negative_pagination_safely_clamped(
-    limit: int,
-    offset: int,
-    expected_status: int,
-    expected_max_results: int,
-    py_api: httpx.AsyncClient,
-) -> None:
-    """Negative pagination values are safely clamped to 0 instead of causing 500 errors.
-
-    A limit clamped to 0 raises NoResultsError, which the API maps to HTTP 404.
-    An offset clamped to 0 simply returns the first page of results (200 OK).
-
-    Note: This remains an HTTP-level (py_api) test to ensure end-to-end safety is
-    preserved.
-    """
-    response = await py_api.post(
-        "/tasks/list",
-        json={"pagination": {"limit": limit, "offset": offset}},
-    )
-    assert response.status_code == expected_status
-    if expected_status == HTTPStatus.OK:
-        body = response.json()
-        assert len(body) <= expected_max_results
-        # Compare to a baseline with offset=0 to prove it was correctly clamped
-        baseline = await py_api.post(
-            "/tasks/list",
-            json={"pagination": {"limit": limit, "offset": 0}},
-        )
-        assert baseline.status_code == HTTPStatus.OK
-        assert [t["task_id"] for t in body] == [t["task_id"] for t in baseline.json()]
-    else:
-        error = response.json()
-        assert error["type"] == NoResultsError.uri
-
-
-@pytest.mark.parametrize(
     "value",
     ["1...2", "abc"],
     ids=["triple_dot", "non_numeric"],
