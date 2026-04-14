@@ -60,7 +60,7 @@ follow these guidelines for writing a test suite for an endpoint.
 Include tests against `py_api` for input validation specific to that endpoint. Validation in reused components should be tested centrally (e.g., Pagination).
 ```python
 def test_get_dataset_identifier_validation(py_api: httpx.AsyncClient) -> None:
-    response = py_api.get("/datasets/not-an-integer")
+    response = await py_api.get("/datasets/not-an-integer")
     assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
 ```
 
@@ -68,8 +68,8 @@ Include one test against the `py_api` that confirms a successful request has the
 
 ```python
 def test_get_dataset_success(py_api: httpx.AsyncClient) -> None:
-    response = py_api.get("/datasets/1")
-    assert response.status_code == HTTPStatus.SUCCESS
+    response = await py_api.get("/datasets/1")
+    assert response.status_code == HTTPStatus.OK
     assert response.json() == {...}  # some expected data
 ```
 
@@ -106,7 +106,7 @@ async def test_get_dataset(py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
         php_api.get("/data/1"),
     )
 
-    if py_response.status_code == HTTPStatus.SUCCESS and php_response.status_code == HTTPStatus.SUCCESS:
+    if py_response.status_code == HTTPStatus.OK and php_response.status_code == HTTPStatus.OK:
         _assert_success_response_equal(py_response.json(), php_response.json())
     else:
         _assert_error_response_equal(py_response, php_response)

@@ -129,7 +129,7 @@ markers = [
     "mut: executes a mutation on the database (even when it is cleaned up).",
     # *_api markers included for documentation, should not be added manually.
     "py_api: requests the py_api fixture. Added automatically.",
-    "php_api: requests the py_api fixture. Added automatically.",
+    "php_api: requests the php_api fixture. Added automatically.",
 ]
 filterwarnings = [
     'ignore:A private pytest class or function was used.:DeprecationWarning:tests.conftest:',
