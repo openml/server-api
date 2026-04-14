@@ -108,7 +108,8 @@ async def test_list_data_identical(
     # PHP API has a double nested dictionary that never has other entries
     php_json = php_response.json()["data"]["dataset"]
     # The default limit changed from unbound to 100.
-    php_json = php_json[:LIMIT_DEFAULT]
+    if limit is None:
+        php_json = php_json[:LIMIT_DEFAULT]
     assert len(py_json) == len(php_json)
     assert py_json == php_json
     return None
