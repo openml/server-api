@@ -24,7 +24,7 @@ docker compose exec python-api python -m pytest tests
 As of writing, the full test suite ran in sequence takes about 2 minutes.
 We generally recommend running subsets of the tests during development.
 In particular, running only the tests which do not use fuzzing or the PHP API takes under 3 seconds:
-```
+```bash
 docker compose exec python-api python -m pytest tests -m "not php_api and not slow"
 ```
 
@@ -99,7 +99,7 @@ Note that in some cases, there are some quite significant differences between th
 That's okay, but in that case we want to "document" the behavior of both in the test.
 Please reference a few implemented migration tests to get a better understanding, but here is a high level sketch:
 
-```
+```python
 async def test_get_dataset(py_api: httpx.AsyncClient, php_api: httpx.AsyncClient) -> None:
     py_response, php_response = await asyncio.gather(
         py_api.get("/datasets/1"),
