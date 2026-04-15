@@ -1,6 +1,6 @@
 import contextlib
 import json
-from collections.abc import AsyncIterator, Iterable, Iterator
+from collections.abc import AsyncIterator, Callable, Iterable, Iterator
 from pathlib import Path
 from typing import Any, NamedTuple
 
@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 from database.setup import expdb_database, user_database
 from main import create_api
 from routers.dependencies import expdb_connection, userdb_connection
+from tests.users import OWNER_USER
 
 PHP_API_URL = "http://php-api:80/api/v1/json"
 
@@ -166,6 +167,39 @@ async def persisted_flow(flow: Flow, expdb_test: AsyncConnection) -> AsyncIterat
         parameters={"flow_id": flow.id},
     )
     await expdb_test.commit()
+
+
+@pytest.fixture
+def temporary_tags(
+    expdb_test: AsyncConnection,
+) -> Callable[..., contextlib.AbstractAsyncContextManager[None]]:
+    @contextlib.asynccontextmanager
+    async def _temporary_tags(
+        tags: Iterable[str], setup_id: int, *, persist: bool = False
+    ) -> AsyncIterator[None]:
+        insert_queries = [
+            (
+                "INSERT INTO setup_tag(`id`,`tag`,`uploader`) VALUES (:setup_id, :tag, :user_id);",
+                {"setup_id": setup_id, "tag": tag, "user_id": OWNER_USER.user_id},
+            )
+            for tag in tags
+        ]
+        delete_queries = [
+            (
+                "DELETE FROM setup_tag WHERE `id`=:setup_id AND `tag`=:tag",
+                {"setup_id": setup_id, "tag": tag},
+            )
+            for tag in tags
+        ]
+        async with temporary_records(
+            connection=expdb_test,
+            insert_queries=insert_queries,
+            delete_queries=delete_queries,
+            persist=persist,
+        ):
+            yield
+
+    return _temporary_tags
 
 
 def pytest_collection_modifyitems(config: Config, items: list[Item]) -> None:  # noqa: ARG001

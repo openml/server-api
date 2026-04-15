@@ -1,3 +1,5 @@
+import asyncio
+import re
 from http import HTTPStatus
 
 import httpx
@@ -79,3 +81,47 @@ async def test_flow_exists_handles_flow_not_found(
         await flow_exists("foo", "bar", expdb_test)
     assert error.value.status_code == HTTPStatus.NOT_FOUND
     assert error.value.uri == FlowNotFoundError.uri
+
+
+# -- migration tests --
+
+
+async def test_flow_exists_not(
+    py_api: httpx.AsyncClient,
+    php_api: httpx.AsyncClient,
+) -> None:
+    path = "exists/foo/bar"
+    py_response, php_response = await asyncio.gather(
+        py_api.get(f"/flows/{path}"),
+        php_api.get(f"/flow/{path}"),
+    )
+
+    assert py_response.status_code == HTTPStatus.NOT_FOUND
+    assert php_response.status_code == HTTPStatus.OK
+
+    assert php_response.json() == {"flow_exists": {"exists": "false", "id": str(-1)}}
+    # RFC 9457: Python API now returns problem+json format
+    error = py_response.json()
+    assert re.match(
+        pattern=r"Flow with name \S+ and external version \S+ not found.",
+        string=error["detail"],
+    )
+
+
+@pytest.mark.mut
+async def test_flow_exists_migration(
+    persisted_flow: Flow,
+    py_api: httpx.AsyncClient,
+    php_api: httpx.AsyncClient,
+) -> None:
+    path = f"exists/{persisted_flow.name}/{persisted_flow.external_version}"
+    py_response, php_response = await asyncio.gather(
+        py_api.get(f"/flows/{path}"),
+        php_api.get(f"/flow/{path}"),
+    )
+
+    assert py_response.status_code == php_response.status_code, php_response.content
+
+    expect_php = {"flow_exists": {"exists": "true", "id": str(persisted_flow.id)}}
+    assert php_response.json() == expect_php
+    assert py_response.json() == {"flow_id": persisted_flow.id}
