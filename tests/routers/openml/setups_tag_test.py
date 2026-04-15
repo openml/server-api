@@ -1,7 +1,6 @@
 import asyncio
-import contextlib
 import re
-from collections.abc import AsyncIterator, Callable, Iterable
+from collections.abc import Callable
 from contextlib import AbstractAsyncContextManager
 from http import HTTPStatus
 
@@ -12,8 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 
 from core.errors import SetupNotFoundError, TagAlreadyExistsError
 from routers.openml.setups import tag_setup
-from tests.conftest import temporary_records
-from tests.users import OWNER_USER, SOME_USER, ApiKey
+from tests.users import SOME_USER, ApiKey
 
 
 async def test_setup_tag_missing_auth(py_api: httpx.AsyncClient) -> None:
@@ -201,36 +199,3 @@ async def test_setup_tag_response_is_identical_tag_already_exists(
     assert py_response.status_code == HTTPStatus.CONFLICT
     assert php_response.json()["error"]["message"] == "Entity already tagged by this tag."
     assert py_response.json()["detail"] == f"Setup {setup_id} already has tag {tag!r}."
-
-
-@pytest.fixture
-def temporary_tags(
-    expdb_test: AsyncConnection,
-) -> Callable[..., AbstractAsyncContextManager[None]]:
-    @contextlib.asynccontextmanager
-    async def _temporary_tags(
-        tags: Iterable[str], setup_id: int, *, persist: bool = False
-    ) -> AsyncIterator[None]:
-        insert_queries = [
-            (
-                "INSERT INTO setup_tag(`id`,`tag`,`uploader`) VALUES (:setup_id, :tag, :user_id);",
-                {"setup_id": setup_id, "tag": tag, "user_id": OWNER_USER.user_id},
-            )
-            for tag in tags
-        ]
-        delete_queries = [
-            (
-                "DELETE FROM setup_tag WHERE `id`=:setup_id AND `tag`=:tag",
-                {"setup_id": setup_id, "tag": tag},
-            )
-            for tag in tags
-        ]
-        async with temporary_records(
-            connection=expdb_test,
-            insert_queries=insert_queries,
-            delete_queries=delete_queries,
-            persist=persist,
-        ):
-            yield
-
-    return _temporary_tags
