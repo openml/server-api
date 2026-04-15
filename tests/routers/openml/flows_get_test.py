@@ -1,7 +1,15 @@
+import asyncio
 from http import HTTPStatus
+from typing import Any
 
 import deepdiff.diff
 import httpx
+import pytest
+
+from core.conversions import (
+    nested_remove_single_element_list,
+    nested_str_to_num,
+)
 
 
 async def test_get_flow_no_subflow(py_api: httpx.AsyncClient) -> None:
@@ -301,4 +309,54 @@ async def test_get_flow_with_subflow(py_api: httpx.AsyncClient) -> None:
         "tag": ["OpenmlWeka", "weka"],
     }
     difference = deepdiff.diff.DeepDiff(response.json(), expected, ignore_order=True)
+    assert not difference
+
+
+# -- migration test --
+
+
+@pytest.mark.parametrize(
+    "flow_id",
+    range(1, 16),
+)
+async def test_get_flow_equal(
+    flow_id: int, py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
+) -> None:
+    py_response, php_response = await asyncio.gather(
+        py_api.get(f"/flows/{flow_id}"),
+        php_api.get(f"/flow/{flow_id}"),
+    )
+    assert py_response.status_code == HTTPStatus.OK
+
+    py_json = py_response.json()
+
+    # PHP sets parameter default value to [], None is more appropriate, omission is considered
+    # Similar for the default "identifier" of subflows.
+    # Subflow field (old: component) is omitted if empty
+    def convert_flow_naming_and_defaults(flow: dict[str, Any]) -> dict[str, Any]:
+        for parameter in flow["parameter"]:
+            if parameter["default_value"] is None:
+                parameter["default_value"] = []
+        for subflow in flow["subflows"]:
+            subflow["flow"] = convert_flow_naming_and_defaults(subflow["flow"])
+            if subflow["identifier"] is None:
+                subflow["identifier"] = []
+        flow["component"] = flow.pop("subflows")
+        if flow["component"] == []:
+            flow.pop("component")
+        return flow
+
+    py_json = convert_flow_naming_and_defaults(py_json)
+    py_json = nested_remove_single_element_list(py_json)
+
+    php_json = php_response.json()["flow"]
+    # The reason we don't transform py_json to str is that it becomes harder to ignore numeric type
+    # differences (e.g., '1.0' vs '1')
+    php_json = nested_str_to_num(php_json)
+    difference = deepdiff.diff.DeepDiff(
+        py_json,
+        php_json,
+        ignore_order=True,
+        ignore_numeric_type_changes=True,
+    )
     assert not difference
