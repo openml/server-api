@@ -7,30 +7,64 @@ largely functioning the same way. However, there are a few major deviations:
  * Restriction or expansion of input types as appropriate.
  * Standardizing authentication and access messages, and consistently execute those checks
   before fetching data or providing error messages about the data.
+ * Errors are returned in the [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html) standard, and HTTP status codes may be changed to be more semantically appropriate.
 
 The list above is not exhaustive. Minor changes include, for example, bug fixes and the removal of unnecessary nesting.
 There may be undocumented changes, especially in edge cases which may not have occurred in the test environment.
 As the PHP API was underspecified, the re-implementation is based on a mix of reading old code and probing the API.
-If there is a behavioral change which was not documented but affects you, please [open a bug report](https://github.com/openml/server-api/issues/new?assignees=&labels=bug%2C+triage&projects=&template=bug-report.md&title=).
+If there is a behavioral change which was not documented but affects you, please [open a bug report](https://github.com/openml/server-api/issues/new?assignees=&labels=bug%2C+triage&projects=&template=bug-report.md&title=). Also feel free to open an issue on the issue tracker if you feel that we made a mistake with a decision on e.g., a new status code.
 
 It is possible this migration guide is out of sync for endpoints not yet deployed to production (currently that includes them all).
 Before an endpoint is deployed to production we will ensure that the documentation is up-to-date to the best of our knowledge.
 
-## All Endpoints
-The following changes affect all endpoints.
+# RFC 9457 Errors
+Errors will follow the RFC9457 standard. However, the original "code" is preserved through a custom field.
+Take for example the "Dataset not found" response for trying to access a dataset that does not exist.
 
-### Error on Invalid Input
-When providing input of invalid types (e.g., a non-integer dataset id) the HTTP header
-and JSON content will be different.
+```diff title="CURL Commands"
+curl -i https://www.openml.org/api/v1/json/data/1000000
+- HTTP/1.1 412 Precondition Failed
+- ...
+- {"error":{"code":"111","message":"Unknown dataset"}}
+
++ HTTP/1.1 404 Not Found
++ ...
++ {"type":"https://openml.org/problems/dataset-not-found","title":"Dataset Not Found","status":404,"detail":"No dataset with id 100000 found.","code":"111"}
+```
+
+You will notice that the response still contains a "code" of "111" (though as a top level property not embedded in the "error" scope).
+This field is included to support the migration of clients, but should be considered deprecated.
+As per the RFC9457 standard, the "type" field now includes the unique code for the error.
+The "title" field is a human readable summary of the general issue and the "detail" field may provide additional information for the specific request.
+They _will_ be resolvable URIs in the future, providing a page with more information.
+
+In some cases the JSON endpoints previously returned XML ([example](https://github.com/openml/OpenML/issues/1200)), the new API always returns JSON.
+
+# Appropriate HTTP Status Codes
+There are several cases where the PHP server did not provide semantically correct status codes.
+The Python server aims to correct that.
+The errors that changed which are most likely to occur are probably errors when there is no result, or when the input is incorrect.
+
+
+For not being able to resolve an identifier ("dataset not found"):
+
+```diff title="HTTP Header"
+- 412 Precondition Failed
++ 404 Not Found
+```
+
+When authentication is required but not provided or not valid:
+
+```diff title="HTTP Header"
+- 412 Precondition Failed
++ 401 Unauthorized
+```
+
+For incorrect input (e.g., providing a string instead of an integer identifier):
 
 ```diff title="HTTP Header"
 - 412 Precondition Failed
 + 422 Unprocessable Entity
-```
-
-```diff title="JSON Content"
-- {"error":{"code":"100","message":"Function not valid"}}
-+ {"detail":[{"loc":["query","_dataset_id"],"msg":"value is not a valid integer","type":"type_error.integer"}]}
 ```
 
 !!! warning "Input validation has been added to many end points"
@@ -39,23 +73,7 @@ and JSON content will be different.
    These endpoints now do enforce stricter input constraints.
    Constraints for each endpoint parameter are documented in the API docs.
 
-### Other Errors
-For any other error messages, the response is identical except that outer field will be `"detail"` instead of `"error"`:
-
-```diff title="JSON Content"
-- {"error":{"code":"112","message":"No access granted"}}
-+ {"detail":{"code":"112","message":"No access granted"}}
-```
-
-In some cases the JSON endpoints previously returned XML ([example](https://github.com/openml/OpenML/issues/1200)), the new API always returns JSON.
-
-```diff title="XML replaced by JSON"
-- <oml:error xmlns:oml="http://openml.org/openml">
--   <oml:code>103</oml:code>
--   <oml:message>Authentication failed</oml:message>
-- </oml:error>
-+ {"detail": {"code":"103", "message": "Authentication failed" } }
-```
+# Endpoint Specific Notes
 
 ## Datasets
 
