@@ -140,7 +140,7 @@ There is a test database that is prepopulated with data available for use as def
 
 The `expdb_test` and `user_test` connections automatically start a transaction during setup and perform a rollback during teardown.
 This means that as long as you do not `.commit()` any changes, the data will not persist.
-This is a good thing. We do not want our tests to side effects, as it might lead to inconsistent behavior.
+This is a good thing. We do not want our tests to have side effects, as it might lead to inconsistent behavior.
 
 There is one situation where you may need to commit to the database: migration tests.
 Since the PHP API communicates to the database in a separate transaction, changes made within the transaction in "Python land" are not visible to PHP.
