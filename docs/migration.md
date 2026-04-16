@@ -29,19 +29,19 @@ curl -i https://www.openml.org/api/v1/json/data/1000000
 
 + HTTP/1.1 404 Not Found
 + ...
-+ {"type":"https://openml.org/problems/dataset-not-found","title":"Dataset Not Found","status":404,"detail":"No dataset with id 10000 found.","code":"111"}
++ {"type":"https://openml.org/problems/dataset-not-found","title":"Dataset Not Found","status":404,"detail":"No dataset with id 100000 found.","code":"111"}
 ```
 
 You will notice that the response still contains a "code" of "111" (though as a top level property not embedded in the "error" scope).
 This field is included to support the migration of clients, but should be considered deprecated.
 As per the RFC9457 standard, the "type" field now includes the unique code for the error.
-The "title" field is a human readable summary of the general issue and the "detail" case may provide additional information for the specific request.
+The "title" field is a human readable summary of the general issue and the "detail" field may provide additional information for the specific request.
 They _will_ be resolvable URIs in the future, providing a page with more information.
 
 In some cases the JSON endpoints previously returned XML ([example](https://github.com/openml/OpenML/issues/1200)), the new API always returns JSON.
 
 # Appropriate HTTP Status Codes
-There are several cases were the PHP server did not provide semantically correct status codes.
+There are several cases where the PHP server did not provide semantically correct status codes.
 The Python server aims to correct that.
 The errors that changed which are most likely to occur are probably errors when there is no result, or when the input is incorrect.
 
