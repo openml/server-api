@@ -133,3 +133,16 @@ def _assert_error_response_equal(py_response, php_response) -> None:
     assert py_response.json()["code"] == php_response.json()["error"]["code"]
 
 ```
+
+### Usage of the Database
+You frequently need to write tests which include fetching from or writing to the database.
+There is a test database that is prepopulated with data available for use as defined in our `compose.yaml` file.
+
+The `expdb_test` and `user_test` connections automatically start a transaction during setup and perform a rollback during teardown.
+This means that as long as you do not `.commit()` any changes, the data will not persist.
+This is a good thing. We do not want our tests to side effects, as it might lead to inconsistent behavior.
+
+There is one situation where you may need to commit to the database: migration tests.
+Since the PHP API communicates to the database in a separate transaction, changes made within the transaction in "Python land" are not visible to PHP.
+In this case, be extremely careful! You *must* write the test so that even if things fail unexpectedly, there is no data left behind.
+Generally speaking, you want to use a context manager that cleans up after you. In some cases you may need to clean up after yourself during the test.
