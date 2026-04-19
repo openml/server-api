@@ -9,6 +9,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from core.errors import AccountHasResourcesError, ForbiddenError, UserNotFoundError
+from database.users import UserGroup
 from routers.openml.users import delete_user_account
 from tests.users import ADMIN_USER, SOME_USER, ApiKey
 
@@ -88,8 +89,8 @@ async def test_delete_user_api_success_self_delete(
     uid_row = await user_test.execute(text("SELECT LAST_INSERT_ID() AS id"))
     (new_id,) = uid_row.one()
     await user_test.execute(
-        text("INSERT INTO users_groups (user_id, group_id) VALUES (:uid, 2)"),
-        parameters={"uid": new_id},
+        text("INSERT INTO users_groups (user_id, group_id) VALUES (:uid, :gid)"),
+        parameters={"uid": new_id, "gid": UserGroup.READ_WRITE.value},
     )
 
     response = await py_api.delete(
@@ -131,8 +132,8 @@ async def test_delete_user_api_success_admin_deletes_disposable_user(
     uid_row = await user_test.execute(text("SELECT LAST_INSERT_ID() AS id"))
     (new_id,) = uid_row.one()
     await user_test.execute(
-        text("INSERT INTO users_groups (user_id, group_id) VALUES (:uid, 2)"),
-        parameters={"uid": new_id},
+        text("INSERT INTO users_groups (user_id, group_id) VALUES (:uid, :gid)"),
+        parameters={"uid": new_id, "gid": UserGroup.READ_WRITE.value},
     )
 
     response = await py_api.delete(

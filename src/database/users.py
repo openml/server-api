@@ -86,22 +86,33 @@ async def exists_by_id(*, user_id: int, connection: AsyncConnection) -> bool:
     return row.one_or_none() is not None
 
 
-async def count_uploaded_resources(*, user_id: int, expdb: AsyncConnection) -> int:
-    """Count datasets, flows, runs, and studies uploaded or created by this user (expdb)."""
+async def has_user_references(*, user_id: int, expdb: AsyncConnection) -> bool:
+    """Return ``True`` if any ``expdb`` row still references ``user_id``."""
     row = await expdb.execute(
         text(
             """
-            SELECT (
-                (SELECT COUNT(*) FROM dataset WHERE uploader = :uid)
-                + (SELECT COUNT(*) FROM implementation WHERE uploader = :uid)
-                + (SELECT COUNT(*) FROM `run` WHERE uploader = :uid)
-                + (SELECT COUNT(*) FROM study WHERE creator = :uid)
-            ) AS total
+            SELECT EXISTS (
+                SELECT 1 FROM dataset              WHERE uploader = :uid
+                UNION ALL SELECT 1 FROM dataset_description WHERE uploader = :uid
+                UNION ALL SELECT 1 FROM dataset_status      WHERE user_id  = :uid
+                UNION ALL SELECT 1 FROM dataset_tag         WHERE uploader = :uid
+                UNION ALL SELECT 1 FROM dataset_topic       WHERE uploader = :uid
+                UNION ALL SELECT 1 FROM implementation      WHERE uploader = :uid
+                UNION ALL SELECT 1 FROM implementation_tag  WHERE uploader = :uid
+                UNION ALL SELECT 1 FROM `run`               WHERE uploader = :uid
+                UNION ALL SELECT 1 FROM run_study           WHERE uploader = :uid
+                UNION ALL SELECT 1 FROM run_tag             WHERE uploader = :uid
+                UNION ALL SELECT 1 FROM setup_tag           WHERE uploader = :uid
+                UNION ALL SELECT 1 FROM study               WHERE creator  = :uid
+                UNION ALL SELECT 1 FROM task                WHERE creator  = :uid
+                UNION ALL SELECT 1 FROM task_study          WHERE uploader = :uid
+                UNION ALL SELECT 1 FROM task_tag            WHERE uploader = :uid
+            ) AS has_refs
             """,
         ),
         parameters={"uid": user_id},
     )
-    return int(row.scalar_one())
+    return bool(row.scalar_one())
 
 
 async def delete_user_rows(*, user_id: int, userdb: AsyncConnection) -> None:

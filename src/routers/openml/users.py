@@ -3,12 +3,18 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Response
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 import database.users
 from core.errors import AccountHasResourcesError, ForbiddenError, UserNotFoundError
 from database.users import User
 from routers.dependencies import expdb_connection, fetch_user_or_raise, userdb_connection
+
+_ACCOUNT_HAS_RESOURCES_MSG = (
+    "Cannot delete this account while records still reference the user "
+    "(datasets, flows, runs, studies, tags, etc.). Remove or transfer them first."
+)
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -42,13 +48,14 @@ async def delete_user_account(
         msg = f"User {user_id} not found."
         raise UserNotFoundError(msg)
 
-    resource_count = await database.users.count_uploaded_resources(user_id=user_id, expdb=expdb)
-    if resource_count > 0:
-        msg = (
-            "Cannot delete this account while datasets, flows, runs, or studies "
-            "are still associated with the user. Remove or transfer them first."
-        )
-        raise AccountHasResourcesError(msg)
+    if await database.users.has_user_references(user_id=user_id, expdb=expdb):
+        raise AccountHasResourcesError(_ACCOUNT_HAS_RESOURCES_MSG)
 
-    await database.users.delete_user_rows(user_id=user_id, userdb=userdb)
+    try:
+        await database.users.delete_user_rows(user_id=user_id, userdb=userdb)
+    except IntegrityError as exc:
+        # Safety net: a user-reference table was added without updating
+        # ``has_user_references``. Surface a clean 409 instead of a 500.
+        raise AccountHasResourcesError(_ACCOUNT_HAS_RESOURCES_MSG) from exc
+
     return Response(status_code=204)
