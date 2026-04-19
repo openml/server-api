@@ -228,6 +228,22 @@ class ForbiddenError(ProblemDetailError):
     _default_status_code = HTTPStatus.FORBIDDEN
 
 
+class UserNotFoundError(ProblemDetailError):
+    """Raised when a user id does not exist in the user database."""
+
+    uri = "https://openml.org/problems/user-not-found"
+    title = "User Not Found"
+    _default_status_code = HTTPStatus.NOT_FOUND
+
+
+class AccountHasResourcesError(ProblemDetailError):
+    """Raised when account deletion is blocked because the user still owns resources."""
+
+    uri = "https://openml.org/problems/account-has-resources"
+    title = "Account Has Active Resources"
+    _default_status_code = HTTPStatus.CONFLICT
+
+
 # =============================================================================
 # Tag Errors
 # =============================================================================

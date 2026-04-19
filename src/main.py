@@ -34,6 +34,7 @@ from routers.openml.setups import router as setup_router
 from routers.openml.study import router as study_router
 from routers.openml.tasks import router as task_router
 from routers.openml.tasktype import router as ttype_router
+from routers.openml.users import router as users_router
 
 
 @asynccontextmanager
@@ -106,6 +107,7 @@ def create_api(configuration_file: Path | None = None) -> FastAPI:
     app.include_router(study_router)
     app.include_router(setup_router)
     app.include_router(run_router)
+    app.include_router(users_router)
 
     logger.info("App setup completed.")
     logger.remove(setup_sink)

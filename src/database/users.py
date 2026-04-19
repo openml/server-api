@@ -76,3 +76,41 @@ class User:
 
     async def is_admin(self) -> bool:
         return UserGroup.ADMIN in await self.get_groups()
+
+
+async def exists_by_id(*, user_id: int, connection: AsyncConnection) -> bool:
+    row = await connection.execute(
+        text("SELECT 1 FROM users WHERE id = :user_id LIMIT 1"),
+        parameters={"user_id": user_id},
+    )
+    return row.one_or_none() is not None
+
+
+async def count_uploaded_resources(*, user_id: int, expdb: AsyncConnection) -> int:
+    """Count datasets, flows, runs, and studies uploaded or created by this user (expdb)."""
+    row = await expdb.execute(
+        text(
+            """
+            SELECT (
+                (SELECT COUNT(*) FROM dataset WHERE uploader = :uid)
+                + (SELECT COUNT(*) FROM implementation WHERE uploader = :uid)
+                + (SELECT COUNT(*) FROM `run` WHERE uploader = :uid)
+                + (SELECT COUNT(*) FROM study WHERE creator = :uid)
+            ) AS total
+            """,
+        ),
+        parameters={"uid": user_id},
+    )
+    return int(row.scalar_one())
+
+
+async def delete_user_rows(*, user_id: int, userdb: AsyncConnection) -> None:
+    """Remove group memberships then the user row (openml user database)."""
+    await userdb.execute(
+        text("DELETE FROM users_groups WHERE user_id = :user_id"),
+        parameters={"user_id": user_id},
+    )
+    await userdb.execute(
+        text("DELETE FROM users WHERE id = :user_id"),
+        parameters={"user_id": user_id},
+    )
