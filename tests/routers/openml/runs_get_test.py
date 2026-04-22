@@ -3,6 +3,7 @@
 import asyncio
 from http import HTTPStatus
 from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import deepdiff
 import httpx
@@ -199,6 +200,23 @@ async def test_task_evaluation_measure_omitted_when_null(py_api: httpx.AsyncClie
     response = await py_api.get(f"/run/{_RUN_ID}")
     run = response.json()
     assert "task_evaluation_measure" not in run
+
+
+async def test_task_evaluation_measure_present_when_configured(
+    py_api: httpx.AsyncClient,
+) -> None:
+    """task_evaluation_measure is present and matches DB when a measure is configured."""
+    # Since the test database does not have a run with an evaluation measure, we mock the DB fetch
+    with patch(
+        "routers.openml.runs.database.runs.get_task_evaluation_measure", new_callable=AsyncMock
+    ) as mock_get_measure:
+        mock_get_measure.return_value = "predictive_accuracy"
+        response = await py_api.get(f"/run/{_RUN_ID}")
+        assert response.status_code == HTTPStatus.OK
+
+        run = response.json()
+        assert "task_evaluation_measure" in run
+        assert run["task_evaluation_measure"] == "predictive_accuracy"
 
 
 async def test_get_run_invalid_id_type(py_api: httpx.AsyncClient) -> None:
