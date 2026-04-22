@@ -3,7 +3,7 @@
 from collections.abc import Sequence
 from typing import cast
 
-from sqlalchemy import Row, text
+from sqlalchemy import Row, bindparam, text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 
@@ -50,7 +50,7 @@ async def get_uploader_name(uploader_id: int, userdb: AsyncConnection) -> str | 
     row = await userdb.execute(
         text(
             """
-            SELECT CONCAT(`first_name`, ' ', `last_name`) AS `name`
+            SELECT CONCAT_WS(' ', `first_name`, `last_name`) AS `name`
             FROM `users`
             WHERE `id` = :uploader_id
             """,
@@ -138,22 +138,18 @@ async def get_evaluations(
     if not evaluation_engine_ids:
         return []
 
-    # Build :eid_0, :eid_1, ... placeholders — one per engine ID.
-    eid_params = {f"eid_{i}": eid for i, eid in enumerate(evaluation_engine_ids)}
-    placeholders = ", ".join(f":eid_{i}" for i in range(len(evaluation_engine_ids)))
-
     query = text(
-        f"""
+        """
         SELECT `m`.`name`, `e`.`value`, `e`.`array_data`
         FROM `evaluation` `e`
         JOIN `math_function` `m` ON `e`.`function_id` = `m`.`id`
         WHERE `e`.`source` = :run_id
-          AND `e`.`evaluation_engine_id` IN ({placeholders})
-        """,  # noqa: S608  # placeholders are trusted integer params, not user input
-    )
+          AND `e`.`evaluation_engine_id` IN :engine_ids
+        """,
+    ).bindparams(bindparam("engine_ids", expanding=True))
     rows = await expdb.execute(
         query,
-        parameters={"run_id": run_id, **eid_params},
+        parameters={"run_id": run_id, "engine_ids": evaluation_engine_ids},
     )
     return cast("list[Row]", rows.all())
 

@@ -78,6 +78,19 @@ class EvaluationScore(BaseModel):
     array_data: str | None
 
 
+class InputData(BaseModel):
+    """Wrapper for input datasets configuration."""
+
+    dataset: list[InputDataset]
+
+
+class OutputData(BaseModel):
+    """Wrapper for output files and evaluations."""
+
+    file: list[OutputFile]
+    evaluation: list[EvaluationScore]
+
+
 class Run(BaseModel):
     """Full metadata response for a single OpenML run.
 
@@ -96,17 +109,14 @@ class Run(BaseModel):
     task_id: int
     task_type: str | None  # e.g. "Supervised Classification"
     task_evaluation_measure: str | None  # omitted when null/empty (not returned)
-    flow_id: int  # = algorithm_setup.implementation_id
+    flow_id: int | None = None  # = algorithm_setup.implementation_id; None when no setup
     flow_name: str | None  # = implementation.fullName
-    setup_id: int  # = algorithm_setup.sid
+    setup_id: int | None = None  # = algorithm_setup.sid; None when run has no setup
     setup_string: str | None  # human-readable description of the setup
     parameter_setting: list[ParameterSetting]
     # Serialized as "error" in JSON to match the PHP response key.
     # At the Python level we keep the name error_message for clarity.
     error_message: list[str] = Field(serialization_alias="error")  # [] when NULL in DB
     tag: list[str]
-    input_data: dict[str, list[InputDataset]]  # {"dataset": [...]}
-    output_data: dict[
-        str,
-        list[OutputFile | EvaluationScore],
-    ]  # {"file": [...], "evaluation": [...]}
+    input_data: InputData
+    output_data: OutputData

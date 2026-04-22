@@ -11,11 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 
 import database.runs
 from core.conversions import nested_num_to_str, nested_remove_single_element_list
+from routers.openml.runs import _build_evaluations
 
 # ── Fixtures assume run 24 exists in the test DB (confirmed in research) ──
 _RUN_ID = 24
 _MISSING_RUN_ID = 999_999_999
-_RUN_NOT_FOUND_CODE = "236"  # PHP compat error code (not 220)
+_RUN_NOT_FOUND_CODE = "236"
 
 _RUN_UPLOADER_ID = 1159
 _RUN_TASK_ID = 115
@@ -96,7 +97,7 @@ async def test_get_run_known_values(py_api: httpx.AsyncClient) -> None:
     # Tags
     assert "openml-python" in run["tag"]
 
-    # Error — NULL in DB → empty list
+    # Error — NULL in DB -> empty list
     assert run["error"] == []
 
 
@@ -190,6 +191,14 @@ async def test_get_run_not_found(py_api: httpx.AsyncClient) -> None:
     error = response.json()
     # Verify PHP-compat error code
     assert str(error.get("code")) == _RUN_NOT_FOUND_CODE
+
+
+async def test_task_evaluation_measure_omitted_when_null(py_api: httpx.AsyncClient) -> None:
+    """task_evaluation_measure is not present in JSON when no measure is configured."""
+    # Run 24 is known to not have a task evaluation measure (verified in db test)
+    response = await py_api.get(f"/run/{_RUN_ID}")
+    run = response.json()
+    assert "task_evaluation_measure" not in run
 
 
 async def test_get_run_invalid_id_type(py_api: httpx.AsyncClient) -> None:
@@ -340,7 +349,7 @@ async def test_get_run_equal(
     if php_response.status_code != HTTPStatus.OK:
         assert php_response.status_code == HTTPStatus.PRECONDITION_FAILED
         assert py_response.status_code == HTTPStatus.NOT_FOUND
-        php_code = php_response.json()["error"]["code"]
+        php_code = php_response.json().get("error", {}).get("code")
         py_code = py_response.json()["code"]
         assert py_code == php_code
         return
@@ -381,3 +390,29 @@ async def test_get_run_equal(
         exclude_regex_paths=_EXCLUDE_PATHS,
     )
     assert not differences, f"Differences for run {run_id}: {differences}"
+
+
+def test_build_evaluations_coverage() -> None:
+    """Ensure _build_evaluations string-normalization branches are covered."""
+
+    class MockRow:
+        def __init__(self, name: str, value: object, array_data: str | None = None) -> None:
+            self.name = name
+            self.value = value
+            self.array_data = array_data
+
+    rows = [
+        MockRow("float_val", 1.0),
+        MockRow("str_float", "2.0"),
+        MockRow("str_text", "not_a_number"),
+        MockRow("unhandled_type", ["list"]),
+    ]
+    evals = _build_evaluations(rows)
+
+    values = {e.name: e.value for e in evals}
+    expected_one = 1
+    expected_two = 2
+    assert values["float_val"] == expected_one
+    assert values["str_float"] == expected_two
+    assert values["str_text"] is None
+    assert values["unhandled_type"] is None
