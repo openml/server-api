@@ -2,7 +2,7 @@
 
 import asyncio
 from http import HTTPStatus
-from typing import Any
+from typing import Any, NamedTuple
 from unittest.mock import AsyncMock, patch
 
 import deepdiff
@@ -17,6 +17,7 @@ from routers.openml.runs import _build_evaluations
 # ── Fixtures assume run 24 exists in the test DB (confirmed in research) ──
 _RUN_ID = 24
 _MISSING_RUN_ID = 999_999_999
+_MISSING_USER_ID = 999_999_999
 _RUN_NOT_FOUND_CODE = "236"
 
 _RUN_UPLOADER_ID = 1159
@@ -100,6 +101,34 @@ async def test_get_run_known_values(py_api: httpx.AsyncClient) -> None:
 
     # Error — NULL in DB -> empty list
     assert run["error"] == []
+
+
+async def test_get_run_non_empty_error(py_api: httpx.AsyncClient) -> None:
+    """A run with a non-null error_message is serialized as a single-item error list."""
+
+    # Since the test database does not have a run with an error, we mock the DB fetch
+    class MockRunRow(NamedTuple):
+        rid: int
+        uploader: int
+        setup: int
+        task_id: int
+        error_message: str
+
+    mock_row = MockRunRow(
+        rid=_RUN_ID,
+        uploader=_RUN_UPLOADER_ID,
+        setup=_RUN_SETUP_ID,
+        task_id=_RUN_TASK_ID,
+        error_message="Some error from the backend",
+    )
+
+    with patch("routers.openml.runs.database.runs.get", new_callable=AsyncMock) as mock_get:
+        mock_get.return_value = mock_row
+        response = await py_api.get(f"/run/{_RUN_ID}")
+        assert response.status_code == HTTPStatus.OK
+
+        run = response.json()
+        assert run["error"] == ["Some error from the backend"]
 
 
 async def test_get_run_input_data_shape(py_api: httpx.AsyncClient) -> None:
@@ -291,30 +320,30 @@ async def test_db_get_evaluations(expdb_test: AsyncConnection) -> None:
 async def test_db_get_evaluations_empty_engine_list(expdb_test: AsyncConnection) -> None:
     """get_evaluations with no engine IDs returns an empty list (not an error)."""
     rows = await database.runs.get_evaluations(_RUN_ID, expdb_test, evaluation_engine_ids=[])
-    assert isinstance(rows, list)
+    assert rows == []
 
 
 async def test_db_get_task_type(expdb_test: AsyncConnection) -> None:
     """database.runs.get_task_type returns 'Supervised Classification' for task 115."""
-    task_type = await database.runs.get_task_type(115, expdb_test)
+    task_type = await database.runs.get_task_type(_RUN_TASK_ID, expdb_test)
     assert task_type == "Supervised Classification"
 
 
 async def test_db_get_task_evaluation_measure_missing(expdb_test: AsyncConnection) -> None:
     """get_task_evaluation_measure returns None (not '') when absent."""
-    measure = await database.runs.get_task_evaluation_measure(115, expdb_test)
+    measure = await database.runs.get_task_evaluation_measure(_RUN_TASK_ID, expdb_test)
     assert measure is None
 
 
 async def test_db_get_uploader_name(user_test: AsyncConnection) -> None:
     """database.runs.get_uploader_name returns 'Cynthia Glover' for user 1159."""
-    name = await database.runs.get_uploader_name(1159, user_test)
+    name = await database.runs.get_uploader_name(_RUN_UPLOADER_ID, user_test)
     assert name == "Cynthia Glover"
 
 
 async def test_db_get_uploader_name_missing(user_test: AsyncConnection) -> None:
     """get_uploader_name returns None for a non-existent user."""
-    name = await database.runs.get_uploader_name(_MISSING_RUN_ID, user_test)
+    name = await database.runs.get_uploader_name(_MISSING_USER_ID, user_test)
     assert name is None
 
 
@@ -377,10 +406,10 @@ async def test_get_run_equal(
     py_normalized = _normalize_py_run(py_response.json())
     php_json = php_response.json()
 
-    # PHP duplicates evaluation entries natively for each fold, and also provides
-    # an aggregate with `repeat="0"` and `fold="0"`. The Python API correctly provides
-    # only the aggregate row (and array_data string).
-    # To match without complex deepdiff matchers, simply verify the base aggregate entries.
+    # PHP provides evaluation entries natively for each fold (with `repeat` and `fold` keys)
+    # as well as an aggregate entry (which might or might not have those keys depending on version).
+    # To match without complex deepdiff matchers, verify base entries without repeat/fold
+    # and drop the rest.
     if (
         "run" in php_json
         and "output_data" in php_json["run"]
@@ -391,11 +420,11 @@ async def test_get_run_equal(
             php_json["run"]["output_data"]["evaluation"] = [
                 ev for ev in php_evals if "repeat" not in ev and "fold" not in ev
             ]
-        elif isinstance(php_evals, dict) and ("repeat" in php_evals or "fold" in php_evals):
-            # nested_remove_single_element_list removes lists if there's only 1 element, but PHP
-            # original JSON might have had only 1 base evaluation if no others existed.
-            # But PHP returns a list anyway if duplicates exist. If they don't, it's a dict.
-            php_json["run"]["output_data"]["evaluation"] = []
+        elif isinstance(php_evals, dict):
+            if "repeat" in php_evals or "fold" in php_evals:
+                php_json["run"]["output_data"]["evaluation"] = []
+            else:
+                php_json["run"]["output_data"]["evaluation"] = [php_evals]
 
     # PHP sometimes includes empty `error` property instead of an empty list when no error occurred
     # DeepDiff takes care of it automatically because we didn't see error diffs.
@@ -422,6 +451,7 @@ def test_build_evaluations_coverage() -> None:
     rows = [
         MockRow("float_val", 1.0),
         MockRow("str_float", "2.0"),
+        MockRow("str_float_fraction", "1.5"),
         MockRow("str_text", "not_a_number"),
         MockRow("unhandled_type", ["list"]),
     ]
@@ -430,7 +460,9 @@ def test_build_evaluations_coverage() -> None:
     values = {e.name: e.value for e in evals}
     expected_one = 1
     expected_two = 2
+    expected_fraction = 1.5
     assert values["float_val"] == expected_one
     assert values["str_float"] == expected_two
+    assert values["str_float_fraction"] == expected_fraction
     assert values["str_text"] is None
     assert values["unhandled_type"] is None
