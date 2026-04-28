@@ -73,7 +73,7 @@ async def get(id_: int, expdb: AsyncConnection) -> Row | None:
     row = await expdb.execute(
         text(
             """
-            SELECT *, uploadDate as upload_date
+            SELECT *, uploadDate as upload_date, fullName AS full_name
             FROM implementation
             WHERE id = :flow_id
             """,

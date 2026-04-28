@@ -55,6 +55,11 @@ def load_routing_configuration(file: Path = _config_file) -> TomlTable:
 
 
 @functools.cache
+def load_run_configuration(file: Path = _config_file) -> TomlTable:
+    return typing.cast("TomlTable", _load_configuration(file).get("run", {}))
+
+
+@functools.cache
 def load_database_configuration(file: Path = _config_file) -> TomlTable:
     configuration = _load_configuration(file)
     database_configuration = _apply_defaults_to_siblings(
