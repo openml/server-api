@@ -3,6 +3,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Response
+from loguru import logger
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection
 
@@ -35,10 +36,11 @@ async def delete_user_account(
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
     userdb: Annotated[AsyncConnection, Depends(userdb_connection)],
 ) -> Response:
-    """Delete a user account when they have no uploaded resources (Phase 1).
+    """Delete the user account if they have no associated resources.
 
-    Callers may delete their own account. Administrators may delete any account
-    that satisfies the no-resources rule.
+    The account to be deleted must not have associated resources (such as
+    datasets, tasks, or tags). Users may only delete their own account.
+    Administrators may delete any account that satisfies the no-resources rule.
     """
     if current_user.user_id != user_id and not await current_user.is_admin():
         msg = "You may only delete your own user account."
@@ -54,8 +56,11 @@ async def delete_user_account(
     try:
         await database.users.delete_user_rows(user_id=user_id, userdb=userdb)
     except IntegrityError as exc:
-        # Safety net: a user-reference table was added without updating
-        # ``has_user_references``. Surface a clean 409 instead of a 500.
+        logger.error(
+            "Delete of user {user_id} failed with integrity error after pre-check.",
+            user_id=user_id,
+        )
         raise AccountHasResourcesError(_ACCOUNT_HAS_RESOURCES_MSG) from exc
 
+    logger.info("User account {user_id} was removed.", user_id=user_id)
     return Response(status_code=204)
