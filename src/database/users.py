@@ -76,3 +76,52 @@ class User:
 
     async def is_admin(self) -> bool:
         return UserGroup.ADMIN in await self.get_groups()
+
+
+async def exists_by_id(*, user_id: int, connection: AsyncConnection) -> bool:
+    row = await connection.execute(
+        text("SELECT 1 FROM users WHERE id = :user_id LIMIT 1"),
+        parameters={"user_id": user_id},
+    )
+    return row.one_or_none() is not None
+
+
+async def has_user_references(*, user_id: int, expdb: AsyncConnection) -> bool:
+    """Return ``True`` if any ``expdb`` row still references ``user_id``."""
+    row = await expdb.execute(
+        text(
+            """
+            SELECT EXISTS (
+                SELECT 1 FROM dataset              WHERE uploader = :uid
+                UNION ALL SELECT 1 FROM dataset_description WHERE uploader = :uid
+                UNION ALL SELECT 1 FROM dataset_status      WHERE user_id  = :uid
+                UNION ALL SELECT 1 FROM dataset_tag         WHERE uploader = :uid
+                UNION ALL SELECT 1 FROM dataset_topic       WHERE uploader = :uid
+                UNION ALL SELECT 1 FROM implementation      WHERE uploader = :uid
+                UNION ALL SELECT 1 FROM implementation_tag  WHERE uploader = :uid
+                UNION ALL SELECT 1 FROM `run`               WHERE uploader = :uid
+                UNION ALL SELECT 1 FROM run_study           WHERE uploader = :uid
+                UNION ALL SELECT 1 FROM run_tag             WHERE uploader = :uid
+                UNION ALL SELECT 1 FROM setup_tag           WHERE uploader = :uid
+                UNION ALL SELECT 1 FROM study               WHERE creator  = :uid
+                UNION ALL SELECT 1 FROM task                WHERE creator  = :uid
+                UNION ALL SELECT 1 FROM task_study          WHERE uploader = :uid
+                UNION ALL SELECT 1 FROM task_tag            WHERE uploader = :uid
+            ) AS has_refs
+            """,
+        ),
+        parameters={"uid": user_id},
+    )
+    return bool(row.scalar_one())
+
+
+async def delete_user_rows(*, user_id: int, userdb: AsyncConnection) -> None:
+    """Remove group memberships then the user row (openml user database)."""
+    await userdb.execute(
+        text("DELETE FROM users_groups WHERE user_id = :user_id"),
+        parameters={"user_id": user_id},
+    )
+    await userdb.execute(
+        text("DELETE FROM users WHERE id = :user_id"),
+        parameters={"user_id": user_id},
+    )
