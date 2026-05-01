@@ -4,7 +4,8 @@ The `openml_expdb` database contains all experiment-related data: datasets, task
 The "expdb" part stands for "experiment database", the name used in [Joaquin Vanschoren's thesis](https://research.kuleuven.be/portal/en/project/3E061119).
 
 Some remarks which apply generally:
- - `datetime` fields are in format (YYYY-MM-DD hh:mm:ss).
+
+ - `datetime` fields are in format (`YYYY-MM-DD hh:mm:ss`).
  - some `varchar` columns in production only have a very limited set of values. If the description says "one of.." it denotes only those values are present in the database in production.
 
 There are a few tables which never were or no longer are in use.
@@ -276,7 +277,7 @@ Defines the input and output specifications for each task type.
 | io | enum('input','output') | No | | | Whether this is an input or output. | input |
 | requirement | enum('required','optional','hidden') | No | | | Whether this parameter is required. | required |
 | description | varchar(256) | No | | | Description of the parameter. | "This input is required to foo the bar." |
-| order | int | No | | | Display order. | 29 |
+| order | int | No | | | Display order used by the frontend. | 29 |
 | api_constraints | text | Yes | NULL | | API-level constraints on this parameter as JSON. | See below. |
 | template_api | text | Yes | NULL | | Template for API representation. | See below. |
 | template_search | text | Yes | NULL | | Template for search representation. | See below. |
@@ -325,8 +326,7 @@ Finally, the `template_search` contains JSON again:
 }
 ```
 
-TODO: See how/if the `expdbDatasetVersion()` function is used. Is it a PHP function? => Looks like some old frontend code.
-TODO: Where is `order` used?
+The `expdbDatasetVersion()` function is no longer used.
 
 ### task_io_types
 
@@ -512,7 +512,7 @@ Stores the actual hyperparameter values for a specific setup.
 User-assigned tags on setups.
 Setups can not really be assigned by users, only admins. Runs should be tagged by users.
 
-TODO: When or where are these tags exposed? Look to be used in old style studies at least.
+These tags are only used in the filtering of `/setups/list`, they are not returned with a `setup` or `run`.
 
 | Column | Type | Optional | Default | References | Description | Example |
 |--------|------|----------|---------|------------|-------------|---------|
@@ -524,7 +524,7 @@ TODO: When or where are these tags exposed? Look to be used in old style studies
 ### setup_differences
 
 Precomputed pairwise differences between setups on specific tasks.
-TODO: Not really sure what this is for, `differences` number is in the 100s of thousands.
+Not entirely sure what this means, but seems to be out of use (last setup included is from a run in 2019).
 
 | Column | Type | Optional | Default | References | Description | Example |
 |--------|------|----------|---------|------------|-------------|---------|
@@ -532,7 +532,7 @@ TODO: Not really sure what this is for, `differences` number is in the 100s of t
 | sidB | int | No | | | Second setup ID. | 3 |
 | task_id | int | No | | | Task ID. | 1245 |
 | task_size | int | No | | | Size of the task dataset. | 100000 |
-| differences | int | No | | | Number of differing hyperparameters. | 812987 |
+| differences | int | No | | | ??? | 812987 |
 
 ---
 
@@ -595,7 +595,7 @@ User-assigned tags on runs.
 ### input_data
 
 Records the input datasets used by a run.
-TODO: Where is this used? This should be derived data from run->task->task_inputs->"source_data"
+Used by PHP, but arguably they could use the relationship run->task->task_inputs->"source_data" instead.
 
 | Column | Type | Optional | Default | References | Description | Example |
 |--------|------|----------|---------|------------|-------------|---------|
@@ -661,7 +661,7 @@ Stores per-fold evaluation results for a run.
 ### evaluation_sample
 
 Stores per-sample evaluation results (for learning curves).
-TODO: Who can upload this, how? I believe this is only used for one or two particular papers by Jan?
+Evaluation samples seem to be part of a run upload, but might not be able to be retrieved with the current PHP API.
 
 | Column | Type | Optional | Default | References | Description | Example |
 |--------|------|----------|---------|------------|-------------|---------|
@@ -678,7 +678,6 @@ TODO: Who can upload this, how? I believe this is only used for one or two parti
 ### trace
 
 Stores optimization traces (e.g., hyperparameter search iterations) for a run.
-TODO: Who can upload this, how? I believe the python sklearn extension should support this?
 
 | Column | Type | Optional | Default | References | Description | Example |
 |--------|------|----------|---------|------------|-------------|---------|
@@ -807,8 +806,6 @@ Defines the reasons for downvoting an entity.
 ### downloads
 
 Tracks download counts per user and entity.
-TODO: The last use was in 2025, and even then it only very sporadically.
-Not sure if/how this was used.
 
 | Column | Type | Optional | Default | References | Description | Example |
 |--------|------|----------|---------|------------|-------------|---------|
@@ -829,7 +826,7 @@ The `notebook` and `pdnresults` are no longer in use.
 ### schedule
 
 Defines scheduled experiment jobs to be executed.
-TODO: not clear that this table is still in use.
+Seems to be out of use since 2017.
 
 | Column | Type | Optional | Default | References | Description | Example |
 |--------|------|----------|---------|------------|-------------|---------|

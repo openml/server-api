@@ -7,8 +7,6 @@ The `openml` database contains core platform tables for user management, file st
 Stores registered user accounts and their authentication details.
 For a little while, the `username` and `email` were synonymous.
 
-TODO: How do the different selectors and codes interact?
-TODO: who populates last_login?
 
 | Column | Type | Optional | Default | References | Description | Example |
 |--------|------|----------|---------|------------|-------------|---------|
