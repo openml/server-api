@@ -1,5 +1,6 @@
 import asyncio
 import re
+from collections.abc import Callable
 from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal, NamedTuple
@@ -32,6 +33,7 @@ from core.formatting import (
     _format_dataset_url,
     _format_parquet_url,
 )
+from database.tags import DuplicatePrimaryKeyError, ForeignKeyConstraintError, tag_entity
 from database.users import User
 from routers.dependencies import (
     Pagination,
@@ -46,6 +48,22 @@ from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Feature, Fea
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 
 
+async def tag_entity_as_api(
+    tag_function: Callable,
+    entity_name: str,
+    identifier: int,
+    tag: str,
+) -> None:
+    try:
+        await tag_entity(tag_function)
+    except ForeignKeyConstraintError:
+        msg = "Not under test yet."
+        raise DatasetNotFoundError(msg) from None
+    except DuplicatePrimaryKeyError:
+        msg = f"{entity_name} {identifier} already tagged with {tag!r}."
+        raise TagAlreadyExistsError(msg) from None
+
+
 @router.post(
     path="/tag",
 )
@@ -53,18 +71,22 @@ async def tag_dataset(
     data_id: Annotated[int, Body()],
     tag: Annotated[str, SystemString64],
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
+    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[str, dict[str, Any]]:
-    assert expdb_db is not None  # noqa: S101
-    tags = await database.datasets.get_tags_for(data_id, expdb_db)
-    if tag.casefold() in [t.casefold() for t in tags]:
-        msg = f"Dataset {data_id} already tagged with {tag!r}."
-        raise TagAlreadyExistsError(msg)
+    if not isinstance(expdb_db, AsyncConnection):
+        msg = "`expdb_db` should be an AsyncConnection, is {type(expdb_db)}"
+        raise TypeError(msg)
 
-    await database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
+    async def tag_dataset() -> None:
+        await database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
+
+    await tag_entity_as_api(tag_dataset, "Dataset", data_id, tag)
+
+    tags = await database.datasets.get_tags_for(data_id, expdb_db)
+
     logger.info("Dataset {dataset_id} tagged '{tag}'.", dataset_id=data_id, tag=tag)
     return {
-        "data_tag": {"id": str(data_id), "tag": [*tags, tag]},
+        "data_tag": {"id": str(data_id), "tag": tags},
     }
 
 
