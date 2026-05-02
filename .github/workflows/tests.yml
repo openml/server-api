@@ -34,6 +34,7 @@ jobs:
         run: |
           services="python-api"
           if [ "${{ matrix.php_api }}" = "true" ]; then
+            sed -i 's/INDEX_ES_DURING_STARTUP=false/INDEX_ES_DURING_STARTUP=true/' docker/php/.env
             services="$services php-api"
           fi
           docker compose up $services --detach --wait --remove-orphans || exit $(docker compose ps -q | xargs docker inspect -f '{{.State.ExitCode}}' | grep -v '^0' | wc -l)
