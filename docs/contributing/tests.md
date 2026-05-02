@@ -28,6 +28,13 @@ In particular, running only the tests which do not use fuzzing or the PHP API ta
 docker compose exec python-api python -m pytest tests -m "not php_api and not slow"
 ```
 
+Some tests require elastic search indices to be constructed.
+These indices can be constructed by the PHP API container on startup,
+but by default this is turned off because it can be a time consuming process.
+If you see skipped tests indicating errors with elasticsearch, it is likely that
+indices still need to be created. To do so, set the `INDEX_ES_DURING_STARTUP` variable
+in the `docker/php/.env` file to `true` before starting the container.
+
 ## Writing Tests
 
 We use the ubiquitous [Pytest](https://docs.pytest.org) framework when writing tests.
