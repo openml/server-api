@@ -1,12 +1,12 @@
 import asyncio
 import re
-from collections.abc import Callable
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Any, Literal, NamedTuple
+from typing import Annotated, Any, Literal, NamedTuple, Protocol
 
 from fastapi import APIRouter, Body, Depends
 from loguru import logger
+from pydantic import Field
 from sqlalchemy import bindparam, text
 from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncConnection
@@ -47,28 +47,64 @@ from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Feature, Fea
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 
+Identifier = Annotated[int, Field(gt=0)]
+
+
+class TagFunction(Protocol):
+    def __call__(
+        self,
+        entity_identifier: Identifier,
+        tag: str,
+        *,
+        user_id: Identifier,
+        connection: AsyncConnection,
+    ) -> None: ...
+
+
+class GetTagsFunction(Protocol):
+    def __call__(self, entity_identifier: Identifier, connection: AsyncConnection) -> list[str]: ...
+
 
 async def tag_entity_as_api(
-    tag_function: Callable,
+    tag_function: TagFunction,
+    get_tags_function: GetTagsFunction,
     entity_name: str,
-    identifier: int,
+    user_identifier: Identifier,
+    entity_identifier: Identifier,
     tag: str,
+    connection: AsyncConnection,
 ) -> None:
+    async def tagger() -> None:
+        await tag_function(entity_identifier, tag, user_id=user_identifier, connection=connection)
+
     try:
-        await tag_entity(tag_function)
+        await tag_entity(tagger)
     except ForeignKeyConstraintError:
         msg = "Not under test yet."
         raise DatasetNotFoundError(msg) from None
     except DuplicatePrimaryKeyError:
-        msg = f"{entity_name} {identifier} already tagged with {tag!r}."
+        msg = f"{entity_name} {entity_identifier} already tagged with {tag!r}."
         raise TagAlreadyExistsError(msg) from None
+
+    logger.info(
+        "{entity_name} {entity_identifier} tagged '{tag}'.",
+        entity_name=entity_name,
+        entity_identifier=entity_identifier,
+        tag=tag,
+    )
+
+    tags = await get_tags_function(entity_identifier, connection)
+
+    return {
+        "data_tag": {"id": str(entity_identifier), "tag": tags},
+    }
 
 
 @router.post(
     path="/tag",
 )
 async def tag_dataset(
-    data_id: Annotated[int, Body()],
+    data_id: Annotated[Identifier, Body()],
     tag: Annotated[str, SystemString64],
     user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
@@ -77,17 +113,15 @@ async def tag_dataset(
         msg = "`expdb_db` should be an AsyncConnection, is {type(expdb_db)}"
         raise TypeError(msg)
 
-    async def tag_dataset() -> None:
-        await database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
-
-    await tag_entity_as_api(tag_dataset, "Dataset", data_id, tag)
-
-    tags = await database.datasets.get_tags_for(data_id, expdb_db)
-
-    logger.info("Dataset {dataset_id} tagged '{tag}'.", dataset_id=data_id, tag=tag)
-    return {
-        "data_tag": {"id": str(data_id), "tag": tags},
-    }
+    return await tag_entity_as_api(
+        database.datasets.tag,
+        database.datasets.get_tags_for,
+        "Dataset",
+        user.user_id,
+        data_id,
+        tag,
+        expdb_db,
+    )
 
 
 class DatasetStatusFilter(StrEnum):
