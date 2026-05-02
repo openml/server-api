@@ -66,9 +66,3 @@ services:
       OPENML_REST_API_CONFIG_DIRECTORY: "/config"
     depends_on:
       - database
-    healthcheck:
-      test: curl -f 127.0.0.1:8000 || exit 1
-      start_period: 20s
-      start_interval: 5s
-      timeout: 3s
-      interval: 1m
