@@ -116,7 +116,12 @@ async def test_dataset_tag_fails_if_dataset_does_not_exist(expdb_test: AsyncConn
 @pytest.mark.mut
 @pytest.mark.parametrize(
     "dataset_id",
-    [*range(1, 10), 101, 131],
+    [
+        *range(1, 10),
+        101,
+        constants.SOME_DEACTIVATED_DATASET_ID,
+        constants.DATASET_ID_THAT_DOES_NOT_EXIST,
+    ],
 )
 @pytest.mark.parametrize(
     "api_key",
@@ -156,6 +161,7 @@ async def test_dataset_tag_response_is_identical(
         and php_response.json()["error"]["message"] == "An Elastic Search Exception occured."
     ):
         pytest.skip("Encountered Elastic Search error.")
+
     py_response = await py_api.post(
         f"/datasets/tag?api_key={api_key}",
         json={"data_id": dataset_id, "tag": tag},
@@ -170,6 +176,15 @@ async def test_dataset_tag_response_is_identical(
             pattern=r"Dataset \d+ already tagged with " + f"'{tag}'.",
             string=py_response.json()["detail"],
         )
+        return
+
+    if py_response.status_code == HTTPStatus.NOT_FOUND:
+        assert php_response.status_code == HTTPStatus.PRECONDITION_FAILED
+        py_error = py_response.json()
+        php_error = php_response.json()["error"]
+        assert py_error["code"] == php_error["code"]
+        assert php_error["message"] == "Entity not found."
+        assert re.match(r"Dataset \d+ not found.", py_error["detail"])
         return
 
     assert py_response.status_code == php_response.status_code, php_response.json()
