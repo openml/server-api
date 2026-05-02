@@ -26,6 +26,7 @@ from core.errors import (
     DatasetStatusTransitionError,
     InternalError,
     NoResultsError,
+    ProblemDetailError,
     TagAlreadyExistsError,
 )
 from core.formatting import (
@@ -68,6 +69,7 @@ class GetTagsFunction(Protocol):
 async def tag_entity_as_api(
     tag_function: TagFunction,
     get_tags_function: GetTagsFunction,
+    not_found_error: type[ProblemDetailError],
     entity_name: str,
     user_identifier: Identifier,
     entity_identifier: Identifier,
@@ -80,8 +82,8 @@ async def tag_entity_as_api(
     try:
         await tag_entity(tagger)
     except ForeignKeyConstraintError:
-        msg = "Not under test yet."
-        raise DatasetNotFoundError(msg) from None
+        msg = f"{entity_name} {entity_identifier} not found."
+        raise not_found_error(msg, code=472) from None
     except DuplicatePrimaryKeyError:
         msg = f"{entity_name} {entity_identifier} already tagged with {tag!r}."
         raise TagAlreadyExistsError(msg) from None
@@ -116,6 +118,7 @@ async def tag_dataset(
     return await tag_entity_as_api(
         database.datasets.tag,
         database.datasets.get_tags_for,
+        DatasetNotFoundError,
         "Dataset",
         user.user_id,
         data_id,
