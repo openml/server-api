@@ -2,11 +2,10 @@ import asyncio
 import re
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Any, Literal, NamedTuple, Protocol
+from typing import Annotated, Any, Literal, NamedTuple
 
 from fastapi import APIRouter, Body, Depends
 from loguru import logger
-from pydantic import Field
 from sqlalchemy import bindparam, text
 from sqlalchemy.engine import Row
 from sqlalchemy.ext.asyncio import AsyncConnection
@@ -26,7 +25,6 @@ from core.errors import (
     DatasetStatusTransitionError,
     InternalError,
     NoResultsError,
-    ProblemDetailError,
     TagAlreadyExistsError,
 )
 from core.formatting import (
@@ -34,7 +32,7 @@ from core.formatting import (
     _format_dataset_url,
     _format_parquet_url,
 )
-from database.tags import DuplicatePrimaryKeyError, ForeignKeyConstraintError, tag_entity
+from database.exceptions import DuplicatePrimaryKeyError, ForeignKeyConstraintError
 from database.users import User
 from routers.dependencies import (
     Pagination,
@@ -43,63 +41,16 @@ from routers.dependencies import (
     fetch_user_or_raise,
     userdb_connection,
 )
-from routers.types import CasualString128, IntegerRange, SystemString64, integer_range_regex
+from routers.types import (
+    CasualString128,
+    Identifier,
+    IntegerRange,
+    SystemString64,
+    integer_range_regex,
+)
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Feature, FeatureType
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
-
-Identifier = Annotated[int, Field(gt=0)]
-
-
-class TagFunction(Protocol):
-    def __call__(
-        self,
-        entity_identifier: Identifier,
-        tag: str,
-        *,
-        user_id: Identifier,
-        connection: AsyncConnection,
-    ) -> None: ...
-
-
-class GetTagsFunction(Protocol):
-    def __call__(self, entity_identifier: Identifier, connection: AsyncConnection) -> list[str]: ...
-
-
-async def tag_entity_as_api(
-    tag_function: TagFunction,
-    get_tags_function: GetTagsFunction,
-    not_found_error: type[ProblemDetailError],
-    entity_name: str,
-    user_identifier: Identifier,
-    entity_identifier: Identifier,
-    tag: str,
-    connection: AsyncConnection,
-) -> None:
-    async def tagger() -> None:
-        await tag_function(entity_identifier, tag, user_id=user_identifier, connection=connection)
-
-    try:
-        await tag_entity(tagger)
-    except ForeignKeyConstraintError:
-        msg = f"{entity_name} {entity_identifier} not found."
-        raise not_found_error(msg, code=472) from None
-    except DuplicatePrimaryKeyError:
-        msg = f"{entity_name} {entity_identifier} already tagged with {tag!r}."
-        raise TagAlreadyExistsError(msg) from None
-
-    logger.info(
-        "{entity_name} {entity_identifier} tagged '{tag}'.",
-        entity_name=entity_name,
-        entity_identifier=entity_identifier,
-        tag=tag,
-    )
-
-    tags = await get_tags_function(entity_identifier, connection)
-
-    return {
-        "data_tag": {"id": str(entity_identifier), "tag": tags},
-    }
 
 
 @router.post(
@@ -115,16 +66,22 @@ async def tag_dataset(
         msg = "`expdb_db` should be an AsyncConnection, is {type(expdb_db)}"
         raise TypeError(msg)
 
-    return await tag_entity_as_api(
-        database.datasets.tag,
-        database.datasets.get_tags_for,
-        DatasetNotFoundError,
-        "Dataset",
-        user.user_id,
-        data_id,
-        tag,
-        expdb_db,
-    )
+    try:
+        await database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
+    except ForeignKeyConstraintError:
+        msg = f"Dataset {data_id} not found."
+        raise DatasetNotFoundError(msg, code=472) from None
+    except DuplicatePrimaryKeyError:
+        msg = f"Dataset {data_id} already tagged with {tag!r}."
+        raise TagAlreadyExistsError(msg) from None
+
+    logger.info("Dataset {data_id} tagged '{tag}'.", data_id=data_id, tag=tag)
+
+    tags = await database.datasets.get_tags_for(data_id, expdb_db)
+
+    return {
+        "data_tag": {"id": str(data_id), "tag": tags},
+    }
 
 
 class DatasetStatusFilter(StrEnum):

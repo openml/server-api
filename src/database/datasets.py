@@ -5,8 +5,15 @@ from collections import defaultdict
 
 from sqlalchemy import text
 from sqlalchemy.engine import Row
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection
 
+from database.exceptions import (
+    _DUPLICATE_ENTRY,
+    _FOREIGN_KEY_CONSTRAINT_FAILED,
+    DuplicatePrimaryKeyError,
+    ForeignKeyConstraintError,
+)
 from schemas.datasets.openml import Feature
 
 
@@ -54,19 +61,27 @@ async def get_tags_for(id_: int, connection: AsyncConnection) -> list[str]:
 
 
 async def tag(id_: int, tag_: str, *, user_id: int, connection: AsyncConnection) -> None:
-    await connection.execute(
-        text(
-            """
-    INSERT INTO dataset_tag(`id`, `tag`, `uploader`)
-    VALUES (:dataset_id, :tag, :user_id)
-    """,
-        ),
-        parameters={
-            "dataset_id": id_,
-            "user_id": user_id,
-            "tag": tag_,
-        },
-    )
+    try:
+        await connection.execute(
+            text(
+                """
+        INSERT INTO dataset_tag(`id`, `tag`, `uploader`)
+        VALUES (:dataset_id, :tag, :user_id)
+        """,
+            ),
+            parameters={
+                "dataset_id": id_,
+                "user_id": user_id,
+                "tag": tag_,
+            },
+        )
+    except IntegrityError as e:
+        code, msg = e.orig.args
+        if code == _FOREIGN_KEY_CONSTRAINT_FAILED:
+            raise ForeignKeyConstraintError(msg) from e
+        if code == _DUPLICATE_ENTRY:
+            raise DuplicatePrimaryKeyError(msg) from e
+        raise
 
 
 async def get_description(
