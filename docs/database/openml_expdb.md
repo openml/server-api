@@ -99,7 +99,7 @@ Note that historically, collections used tags (e.g., `study_14` indicates the da
 
 Assigns topic labels to datasets.
 Topics are displayed as tags on the web page.
-This is the result of an experiment in 2021 to try categorize datasets to better facilitate search.
+This is the result of an experiment in 2021 to try to categorize datasets to better facilitate search.
 Topics have been added by automated analysis.
 
 | Column | Type | Optional | Default | References | Description | Example |
@@ -155,13 +155,13 @@ The behavior with multiple target features that are nominal is unspecified.
 ### data_feature_description
 
 User-provided descriptions and ontology annotations for individual data features.
-The table is empty in production (as of 2026-04-29).
+The table is empty in production (as of 2026-04-29) and should be considered experimental.
 This feature was added recently (2025ish) should be considered experimental.
 
 | Column | Type | Optional | Default | References | Description | Example |
 |--------|------|----------|---------|------------|-------------|---------|
 | did | int unsigned | No | | [data_feature(did, index)](#data_feature) | Dataset ID. | 2 |
-| index | int unsigned | No | | [data_feature(did, index)](#data_feature) | Feature index (column position, 0 indexed). | 0 |
+| index | int unsigned | No | | [data_feature(did, index)](#data_feature) | Feature index (column position, 0-indexed). | 0 |
 | uploader | mediumint unsigned | No | | | User who added the description. | 1548 |
 | date | timestamp | No | CURRENT_TIMESTAMP | | When the description was added. | 2025-12-12 09:29:30 |
 | description_type | enum('plain','ontology') | No | | | Type of description. | 'ontology' |
@@ -248,7 +248,7 @@ For example, [task 59](https://www.openml.org/t/59) (10-fold Cross Validation on
  5. The estimation procedure required by the task type, and given a value in `task_inputs`, must correspond to an entry in the `estimation_procedure` table. E.g., if we find (`estimation_procedure`, `1`) as a task input, we know it is 10-fold Cross Validation (the row with `id=1` in `estimation_procedure`).
  6. `task_type_inout` further specifies that they expect `output` of experiments of the task may contain: evaluation measures, model, predictions. This is not directly used for tasks, but rather for runs.
 
-So there are contraints from the `task_inputs` table to multiple other tables (`dataset`, `estimation_procedure`, ...) that are not explicitly present in the database.
+So there are constraints from the `task_inputs` table to multiple other tables (`dataset`, `estimation_procedure`, ...) that are not explicitly present in the database.
 The `task_inputs` is also expected to be populated with entries for each task dependent on the respective input defined by the `task_type_inout` table.
 The `estimation_procedure_type` table provides general descriptions for procedures (such as Hold out), they are matched by name even though the relationship is not explicit in the database.
 
@@ -297,7 +297,7 @@ The `api_constraints` contains JSON with optionally some special instructions:
 Production uses the following directives:
 
  - `[INPUT:source_data]`: look up the value of `task_inputs.value` where `input="source_data"` and `task_id` matches the task.
- - `[TASK:ttid]`: look up the valud of `task.ttid` for that task.
+ - `[TASK:ttid]`: look up the value of `task.ttid` for that task.
 
 The `template_api` contains XML instead:
 ```xml
@@ -405,7 +405,7 @@ Defines specific estimation procedure configurations used in tasks.
 ---
 
 ## Flows (Implementations)
-The database uses historical names 'implementation' for a flow and 'algorithm' for ??.
+The database uses historical name 'implementation' for a flow.
 
 ### implementation
 
@@ -414,7 +414,7 @@ Stores machine learning flows (algorithms/pipelines) that can be executed on tas
 | Column | Type | Optional | Default | References | Description | Example |
 |--------|------|----------|---------|------------|-------------|---------|
 | id | int | No | auto_increment | | Primary key (flow ID). |  1 |
-| fullName | varchar(1024) | No | | | Full qualified name (name + version). | sklearn.tree.DecisionTreeClassifier(1) |
+| fullName | varchar(1024) | No | | | Fully qualified name (name + version). | sklearn.tree.DecisionTreeClassifier(1) |
 | uploader | mediumint unsigned | Yes | NULL | [openml.users.id](openml.md#users) | User who uploaded the flow. | 2 |
 | name | varchar(1024) | No | | | Flow name. | sklearn.tree.DecisionTreeClassifier |
 | custom_name | varchar(256) | Yes | NULL | | User-defined display name. | Tree |
@@ -622,7 +622,7 @@ Defines evaluation metrics (e.g., accuracy, AUC, RMSE) and their properties.
 |--------|------|----------|---------|------------|-------------|---------|
 | id | int | No | auto_increment | | Primary key. | 1 |
 | name | varchar(64) | No | | | Metric name (unique). | EuclidianDistance |
-| functionType | varchar(128) | No | 'EvaluationFunction' | | Type of function. One of Metric, KernelFuction, or EvaluationFuction | Metric |
+| functionType | varchar(128) | No | 'EvaluationFunction' | | Type of function. One of Metric, KernelFunction, or EvaluationFunction | Metric |
 | min | varchar(64) | No | | | Minimum possible value. | 0 |
 | max | varchar(64) | No | | | Maximum possible value. | '' |
 | unit | varchar(64) | No | | | Unit of measurement. | seconds, bytes |
@@ -695,12 +695,12 @@ Stores optimization traces (e.g., hyperparameter search iterations) for a run.
 ## Studies
 
 Studies have historically been in flux, but they are generally collections of objects (e.g., tasks).
-One mayor change during OpenML's lifetime was in how those collections were defined, which happened around 2019.
+One major change during OpenML's lifetime was in how those collections were defined, which happened around 2019.
 Nowadays there are dedicated tables (e.g., study_task) to make the connection between a study and its task.
 Historically, what is now referred to as a "legacy study", this association was achieved through tags.
 E.g., all tasks with tag `study_14` would be considered part of `study_14`.
-Some studies are still defined this way, and migration of these studies to new-style studies are planned.
-The Python-based REST API will not support legacy style studies (hence the data migration needs to occur to make the legacy studies usable with the new API).
+Some studies are still defined this way, and migration of these studies to new-style studies is planned.
+The Python-based REST API will not support legacy-style studies (hence the data migration needs to occur to make the legacy studies usable with the new API).
 
 The current use is that "benchmark suite" refers to a collection of tasks and a "benchmark study" refers to a collection of runs.
 Both are found in the "study" table. It is likely we drop this distinction in the future in favor of a more general "collection".

@@ -35,7 +35,7 @@ For a little while, the `username` and `email` were synonymous.
 | core | enum('true','false') | No | 'false' | | Whether the user is a core team member. | false |
 | external_source | varchar(50) | Yes | NULL | | External authentication provider (e.g., OAuth). not in use | 0000 |
 | external_id | varchar(50) | Yes | NULL | | User ID from external authentication provider. not in use |  0000 |
-| session_hash | varchar(40) | Yes | NULL | | Hash for API session authentication. 32 digit hexidecimal | - |
+| session_hash | varchar(40) | Yes | NULL | | Hash for API session authentication. 32 digit hexadecimal | - |
 | session_hash_date | timestamp | Yes | CURRENT_TIMESTAMP | | When the session hash was last generated. | 2024-10-20 20:18:54 |
 | gamification_visibility | varchar(32) | No | 'show' | | Visibility setting for gamification badges. One of 'show' or 'hidden' | hidden |
 

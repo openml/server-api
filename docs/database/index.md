@@ -12,7 +12,7 @@ The plan is to revise the database schema after we sunset the PHP API, to avoid 
 When launching the services as described in ["Installation"](../installation.md), you can access the mysql server with both databases using `docker compose exec database mysql -uroot -pok`.
 
 ## Why we use queries instead of an ORM tool
-There are a two main reasons why we do not use an ORM tool *yet*.
+There are two main reasons why we do not use an ORM tool *yet*.
 
 First, we want to keep queries close to the original PHP implementation.
 Not using an ORM makes it natural to stick with similar or identical queries that the PHP API uses.
