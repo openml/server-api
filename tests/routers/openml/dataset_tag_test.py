@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncConnection
 
 from core.conversions import nested_remove_single_element_list
-from core.errors import TagAlreadyExistsError
+from core.errors import DatasetNotFoundError, TagAlreadyExistsError
 from database.datasets import get_tags_for
 from database.users import User
 from routers.openml.datasets import tag_dataset
@@ -96,13 +96,32 @@ async def test_dataset_tag_fails_if_tag_exists(expdb_test: AsyncConnection) -> N
     assert tag in e.value.detail
 
 
+async def test_dataset_tag_fails_if_dataset_does_not_exist(expdb_test: AsyncConnection) -> None:
+    dataset_id = 1_000_000
+    with pytest.raises(DatasetNotFoundError) as e:
+        await tag_dataset(
+            data_id=dataset_id,
+            tag="foo",
+            user=ADMIN_USER,
+            expdb_db=expdb_test,
+        )
+    assert str(dataset_id) in e.value.detail
+    dataset_not_found_in_tag_endpoint = 472
+    assert e.value.code == dataset_not_found_in_tag_endpoint
+
+
 # -- migration tests --
 
 
 @pytest.mark.mut
 @pytest.mark.parametrize(
     "dataset_id",
-    [*range(1, 10), 101, 131],
+    [
+        *range(1, 10),
+        101,
+        constants.SOME_DEACTIVATED_DATASET_ID,
+        constants.DATASET_ID_THAT_DOES_NOT_EXIST,
+    ],
 )
 @pytest.mark.parametrize(
     "api_key",
@@ -142,6 +161,7 @@ async def test_dataset_tag_response_is_identical(
         and php_response.json()["error"]["message"] == "An Elastic Search Exception occured."
     ):
         pytest.skip("Encountered Elastic Search error.")
+
     py_response = await py_api.post(
         f"/datasets/tag?api_key={api_key}",
         json={"data_id": dataset_id, "tag": tag},
@@ -156,6 +176,15 @@ async def test_dataset_tag_response_is_identical(
             pattern=r"Dataset \d+ already tagged with " + f"'{tag}'.",
             string=py_response.json()["detail"],
         )
+        return
+
+    if py_response.status_code == HTTPStatus.NOT_FOUND:
+        assert php_response.status_code == HTTPStatus.PRECONDITION_FAILED
+        py_error = py_response.json()
+        php_error = php_response.json()["error"]
+        assert py_error["code"] == php_error["code"]
+        assert php_error["message"] == "Entity not found."
+        assert re.match(r"Dataset \d+ not found.", py_error["detail"])
         return
 
     assert py_response.status_code == php_response.status_code, php_response.json()

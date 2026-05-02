@@ -1,8 +1,13 @@
+from typing import Annotated
+
 from fastapi import Body
+from pydantic import Field
 
 SystemString64 = Body(pattern=r"^[\w\-\.]+$", min_length=1, max_length=64)
 
 CasualString128 = Body(pattern=r"^[\w\-\.\(\),]+$", min_length=1, max_length=128)
+
+Identifier = Annotated[int, Field(gt=0)]
 
 integer_range_regex = r"^(\d+)(\.\.\d+)?$"
 IntegerRange = Body(

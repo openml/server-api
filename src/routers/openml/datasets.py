@@ -32,6 +32,7 @@ from core.formatting import (
     _format_dataset_url,
     _format_parquet_url,
 )
+from database.exceptions import DuplicatePrimaryKeyError, ForeignKeyConstraintError
 from database.users import User
 from routers.dependencies import (
     Pagination,
@@ -40,7 +41,13 @@ from routers.dependencies import (
     fetch_user_or_raise,
     userdb_connection,
 )
-from routers.types import CasualString128, IntegerRange, SystemString64, integer_range_regex
+from routers.types import (
+    CasualString128,
+    Identifier,
+    IntegerRange,
+    SystemString64,
+    integer_range_regex,
+)
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Feature, FeatureType
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
@@ -50,21 +57,26 @@ router = APIRouter(prefix="/datasets", tags=["datasets"])
     path="/tag",
 )
 async def tag_dataset(
-    data_id: Annotated[int, Body()],
+    data_id: Annotated[Identifier, Body()],
     tag: Annotated[str, SystemString64],
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
+    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[str, dict[str, Any]]:
-    assert expdb_db is not None  # noqa: S101
-    tags = await database.datasets.get_tags_for(data_id, expdb_db)
-    if tag.casefold() in [t.casefold() for t in tags]:
+    try:
+        await database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
+    except ForeignKeyConstraintError:
+        msg = f"Dataset {data_id} not found."
+        raise DatasetNotFoundError(msg, code=472) from None
+    except DuplicatePrimaryKeyError:
         msg = f"Dataset {data_id} already tagged with {tag!r}."
-        raise TagAlreadyExistsError(msg)
+        raise TagAlreadyExistsError(msg) from None
 
-    await database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
-    logger.info("Dataset {dataset_id} tagged '{tag}'.", dataset_id=data_id, tag=tag)
+    logger.info("Dataset {data_id} tagged '{tag}'.", data_id=data_id, tag=tag)
+
+    tags = await database.datasets.get_tags_for(data_id, expdb_db)
+
     return {
-        "data_tag": {"id": str(data_id), "tag": [*tags, tag]},
+        "data_tag": {"id": str(data_id), "tag": tags},
     }
 
 
