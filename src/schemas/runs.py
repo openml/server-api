@@ -67,21 +67,11 @@ class EvaluationScore(BaseModel):
     Sourced from a JOIN of `evaluation` and `math_function`.
     `array_data` holds per-fold/per-class breakdowns when available;
     `value` holds the aggregate scalar.
-
-    Note: the `evaluation` table does NOT contain `repeat` or `fold` columns.
-    Only aggregate metrics are available. (Confirmed against the PHP query
-    in issue #37 which also only selects name, value, array_data.)
     """
 
     name: str
     value: float | int | None  # whole numbers returned as int to match PHP
     array_data: str | None
-
-
-class InputData(BaseModel):
-    """Wrapper for input datasets configuration."""
-
-    dataset: list[InputDataset]
 
 
 class OutputData(BaseModel):
@@ -92,31 +82,24 @@ class OutputData(BaseModel):
 
 
 class Run(BaseModel):
-    """Full metadata response for a single OpenML run.
-
-    Notes:
-    - `error_message` is serialized as "error".
-    - `error_message` is [] (empty list) when the DB column is NULL.
-    - `task_evaluation_measure` is omitted when null or empty.
-
-    """
+    """Full metadata response for a single OpenML run."""
 
     model_config = ConfigDict(populate_by_name=True)
 
     run_id: int
     uploader: int  # user ID of the uploader
-    uploader_name: str | None  # fetched from the separate openml DB (users table)
+    uploader_name: str | None
     task_id: int
     task_type: str | None  # e.g. "Supervised Classification"
-    task_evaluation_measure: str | None  # omitted when null/empty (not returned)
-    flow_id: int | None = None  # = algorithm_setup.implementation_id; None when no setup
-    flow_name: str | None  # = implementation.fullName
-    setup_id: int | None = None  # = algorithm_setup.sid; None when run has no setup
+    task_evaluation_measure: str | None
+    flow_id: int | None = None
+    flow_name: str | None
+    setup_id: int | None = None
     setup_string: str | None  # human-readable description of the setup
     parameter_setting: list[ParameterSetting]
     # Serialized as "error" in JSON to match the PHP response key.
     # At the Python level we keep the name error_message for clarity.
-    error_message: list[str] = Field(serialization_alias="error")  # [] when NULL in DB
+    error_message: list[str] = Field(serialization_alias="error")
     tag: list[str]
-    input_data: InputData
+    input_data: list[InputDataset]
     output_data: OutputData

@@ -1,4 +1,4 @@
-"""Tests for GET /run/{id} and POST /run/{id} endpoints."""
+"""Tests for GET /run/{id} endpoint"""
 
 import asyncio
 from http import HTTPStatus
@@ -38,29 +38,19 @@ async def test_get_run_status_ok(py_api: httpx.AsyncClient) -> None:
     """GET /run/{id} returns 200 for a known run."""
     response = await py_api.get(f"/run/{_RUN_ID}")
     assert response.status_code == HTTPStatus.OK
+    data = response.json()
+    assert isinstance(data, dict)
+    assert "run_id" in data
+    assert data["run_id"] == _RUN_ID
 
 
-async def test_post_run_status_ok(py_api: httpx.AsyncClient) -> None:
-    """POST /run/{id} returns 200 — convenience alias parity."""
-    response = await py_api.post(f"/run/{_RUN_ID}")
-    assert response.status_code == HTTPStatus.OK
-
-
-async def test_get_and_post_run_identical(py_api: httpx.AsyncClient) -> None:
-    """GET and POST /run/{id} return identical JSON bodies."""
-    get_resp, post_resp = await asyncio.gather(
-        py_api.get(f"/run/{_RUN_ID}"),
-        py_api.post(f"/run/{_RUN_ID}"),
-    )
-    assert get_resp.status_code == HTTPStatus.OK
-    assert post_resp.status_code == HTTPStatus.OK
-    assert get_resp.json() == post_resp.json()
-
-
-async def test_get_run_top_level_shape(py_api: httpx.AsyncClient) -> None:
-    """Response contains all expected top-level keys."""
+async def test_get_run_happy_path(py_api: httpx.AsyncClient) -> None:  # noqa: PLR0915
+    """Comprehensive check of run 24."""
     response = await py_api.get(f"/run/{_RUN_ID}")
+    assert response.status_code == HTTPStatus.OK
     run = response.json()
+
+    # 1. Top-level shape
     expected_keys = {
         "run_id",
         "uploader",
@@ -79,14 +69,7 @@ async def test_get_run_top_level_shape(py_api: httpx.AsyncClient) -> None:
     }
     assert expected_keys <= run.keys(), f"Missing keys: {expected_keys - run.keys()}"
 
-
-async def test_get_run_known_values(py_api: httpx.AsyncClient) -> None:
-    """Run 24 returns the exact values confirmed against the DB."""
-    response = await py_api.get(f"/run/{_RUN_ID}")
-    assert response.status_code == HTTPStatus.OK
-    run = response.json()
-
-    # Core identifiers
+    # 2. Known core values
     assert run["run_id"] == _RUN_ID
     assert run["uploader"] == _RUN_UPLOADER_ID
     assert run["uploader_name"] == "Cynthia Glover"
@@ -95,12 +78,58 @@ async def test_get_run_known_values(py_api: httpx.AsyncClient) -> None:
     assert run["flow_id"] == _RUN_FLOW_ID
     assert run["setup_id"] == _RUN_SETUP_ID
     assert "Python_3.10.5" in run["setup_string"]
-
-    # Tags
     assert "openml-python" in run["tag"]
-
-    # Error — NULL in DB -> empty list
     assert run["error"] == []
+
+    # 3. Input Data
+    datasets = run["input_data"]
+    assert isinstance(datasets, list)
+    assert len(datasets) > 0
+    dataset = datasets[0]
+    assert "did" in dataset
+    assert "name" in dataset
+    assert "url" in dataset
+    assert dataset["did"] == _RUN_DATASET_ID
+    assert dataset["name"] == "diabetes"
+
+    # 4. Output Data Shape
+    assert "file" in run["output_data"]
+    assert "evaluation" in run["output_data"]
+    files = run["output_data"]["file"]
+    assert isinstance(files, list)
+    assert len(files) > 0
+    file_ = files[0]
+    assert "file_id" in file_
+    assert "name" in file_
+    assert "did" not in file_
+
+    evaluations = run["output_data"]["evaluation"]
+    assert isinstance(evaluations, list)
+    assert len(evaluations) > 0
+    eval_ = evaluations[0]
+    assert "name" in eval_
+    assert "value" in eval_
+
+    # 5. Known output files & evaluations
+    file_map = {f["name"]: f["file_id"] for f in files}
+    assert file_map.get("description") == _DESCRIPTION_FILE_ID
+    assert file_map.get("predictions") == _PREDICTIONS_FILE_ID
+
+    eval_names = {e["name"] for e in evaluations}
+    assert "area_under_roc_curve" in eval_names
+
+    for ev in evaluations:
+        if ev["value"] is not None and isinstance(ev["value"], float):
+            assert ev["value"] != int(ev["value"]), "Expected whole-number floats to be int"
+
+    # 6. Parameter settings
+    params = run["parameter_setting"]
+    assert isinstance(params, list)
+    for p in params:
+        assert "name" in p
+        assert "value" in p
+        assert "component" in p
+        assert isinstance(p["component"], int)
 
 
 async def test_get_run_non_empty_error(py_api: httpx.AsyncClient) -> None:
@@ -131,89 +160,6 @@ async def test_get_run_non_empty_error(py_api: httpx.AsyncClient) -> None:
         assert run["error"] == ["Some error from the backend"]
 
 
-async def test_get_run_input_data_shape(py_api: httpx.AsyncClient) -> None:
-    """input_data has the PHP envelope structure {"dataset": [...]}."""
-    response = await py_api.get(f"/run/{_RUN_ID}")
-    run = response.json()
-    assert "dataset" in run["input_data"]
-    datasets = run["input_data"]["dataset"]
-    assert isinstance(datasets, list)
-    assert len(datasets) > 0
-    dataset = datasets[0]
-    assert "did" in dataset
-    assert "name" in dataset
-    assert "url" in dataset
-    # Run 24 uses diabetes dataset (did=20), confirmed in DB
-    assert dataset["did"] == _RUN_DATASET_ID
-    assert dataset["name"] == "diabetes"
-
-
-async def test_get_run_output_data_shape(py_api: httpx.AsyncClient) -> None:
-    """output_data has {"file": [...], "evaluation": [...]} structure."""
-    response = await py_api.get(f"/run/{_RUN_ID}")
-    run = response.json()
-    assert "file" in run["output_data"]
-    assert "evaluation" in run["output_data"]
-
-    files = run["output_data"]["file"]
-    assert isinstance(files, list)
-    assert len(files) > 0
-    file_ = files[0]
-    assert "file_id" in file_
-    assert "name" in file_
-    # Deprecated `did: "-1"` must NOT be present (intentionally omitted)
-    assert "did" not in file_
-
-    evaluations = run["output_data"]["evaluation"]
-    assert isinstance(evaluations, list)
-    assert len(evaluations) > 0
-    eval_ = evaluations[0]
-    assert "name" in eval_
-    assert "value" in eval_
-
-
-async def test_get_run_output_files_known(py_api: httpx.AsyncClient) -> None:
-    """Run 24 output files are description (182) and predictions (183)."""
-    response = await py_api.get(f"/run/{_RUN_ID}")
-    files = response.json()["output_data"]["file"]
-    file_map = {f["name"]: f["file_id"] for f in files}
-    assert file_map.get("description") == _DESCRIPTION_FILE_ID
-    assert file_map.get("predictions") == _PREDICTIONS_FILE_ID
-
-
-async def test_get_run_evaluation_known(py_api: httpx.AsyncClient) -> None:
-    """Run 24 evaluations include area_under_roc_curve."""
-    response = await py_api.get(f"/run/{_RUN_ID}")
-    evals = response.json()["output_data"]["evaluation"]
-    eval_names = {e["name"] for e in evals}
-    assert "area_under_roc_curve" in eval_names
-
-
-async def test_get_run_integer_evaluation_values(py_api: httpx.AsyncClient) -> None:
-    """Whole-number floats in evaluations are returned as int (PHP compat)."""
-    response = await py_api.get(f"/run/{_RUN_ID}")
-    evals = response.json()["output_data"]["evaluation"]
-    for ev in evals:
-        if ev["value"] is not None and isinstance(ev["value"], float):
-            # If it's a float in the JSON, it must NOT be a whole number
-            # (whole-number floats should have been cast to int already)
-            assert ev["value"] != int(ev["value"]), (
-                f"Expected {ev['name']} value {ev['value']} to be int, not float"
-            )
-
-
-async def test_get_run_parameter_setting_shape(py_api: httpx.AsyncClient) -> None:
-    """parameter_setting entries have name, value, component keys."""
-    response = await py_api.get(f"/run/{_RUN_ID}")
-    params = response.json()["parameter_setting"]
-    assert isinstance(params, list)
-    for p in params:
-        assert "name" in p
-        assert "value" in p
-        assert "component" in p
-        assert isinstance(p["component"], int)
-
-
 async def test_get_run_not_found(py_api: httpx.AsyncClient) -> None:
     """Non-existent run returns 404 with error code 236 (PHP compat)."""
     response = await py_api.get(f"/run/{_MISSING_RUN_ID}")
@@ -237,7 +183,7 @@ async def test_task_evaluation_measure_present_when_configured(
     """task_evaluation_measure is present and matches DB when a measure is configured."""
     # Since the test database does not have a run with an evaluation measure, we mock the DB fetch
     with patch(
-        "routers.openml.runs.database.runs.get_task_evaluation_measure", new_callable=AsyncMock
+        "routers.openml.runs.database.tasks.get_task_evaluation_measure", new_callable=AsyncMock
     ) as mock_get_measure:
         mock_get_measure.return_value = "predictive_accuracy"
         response = await py_api.get(f"/run/{_RUN_ID}")
@@ -325,26 +271,28 @@ async def test_db_get_evaluations_empty_engine_list(expdb_test: AsyncConnection)
 
 async def test_db_get_task_type(expdb_test: AsyncConnection) -> None:
     """database.runs.get_task_type returns 'Supervised Classification' for task 115."""
-    task_type = await database.runs.get_task_type(_RUN_TASK_ID, expdb_test)
+    task_type = await database.tasks.get_task_type_name(_RUN_TASK_ID, expdb_test)
     assert task_type == "Supervised Classification"
 
 
 async def test_db_get_task_evaluation_measure_missing(expdb_test: AsyncConnection) -> None:
     """get_task_evaluation_measure returns None (not '') when absent."""
-    measure = await database.runs.get_task_evaluation_measure(_RUN_TASK_ID, expdb_test)
+    measure = await database.tasks.get_task_evaluation_measure(_RUN_TASK_ID, expdb_test)
     assert measure is None
 
 
 async def test_db_get_uploader_name(user_test: AsyncConnection) -> None:
     """database.runs.get_uploader_name returns 'Cynthia Glover' for user 1159."""
-    name = await database.runs.get_uploader_name(_RUN_UPLOADER_ID, user_test)
-    assert name == "Cynthia Glover"
+    user = await database.users.get_user(user_id=_RUN_UPLOADER_ID, connection=user_test)
+    assert user is not None
+    assert user.full_name == "Cynthia Glover"
+    assert user.user_id == _RUN_UPLOADER_ID
 
 
 async def test_db_get_uploader_name_missing(user_test: AsyncConnection) -> None:
     """get_uploader_name returns None for a non-existent user."""
-    name = await database.runs.get_uploader_name(_MISSING_USER_ID, user_test)
-    assert name is None
+    user = await database.users.get_user(user_id=_MISSING_USER_ID, connection=user_test)
+    assert user is None
 
 
 # ════════════════════════════════════════════════════════════════════
@@ -367,6 +315,10 @@ def _normalize_py_run(py_run: dict[str, Any]) -> dict[str, Any]:
 
     # Collapse single-element lists to match PHP XML-to-JSON behaviour.
     run = nested_remove_single_element_list(run)
+
+    # Re-add PHP's "dataset" envelope for input_data parity
+    if "input_data" in run:
+        run["input_data"] = {"dataset": run["input_data"]}
 
     # PHP returns all numbers as strings — convert to match.
     run = nested_num_to_str(run)

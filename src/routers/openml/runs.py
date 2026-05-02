@@ -2,7 +2,7 @@
 
 import asyncio
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Annotated, cast
+from typing import TYPE_CHECKING, Annotated, Any, cast
 
 from fastapi import APIRouter, Depends
 
@@ -14,11 +14,12 @@ import config
 import database.flows
 import database.runs
 import database.setups
+import database.tasks
+import database.users
 from core.errors import RunNotFoundError, RunTraceNotFoundError
 from routers.dependencies import expdb_connection, userdb_connection
 from schemas.runs import (
     EvaluationScore,
-    InputData,
     InputDataset,
     OutputData,
     OutputFile,
@@ -85,7 +86,7 @@ async def _load_run_context(
     engine_ids: list[int],
 ) -> RunContext:
     (
-        uploader_name,
+        uploader_user,
         tags,
         input_data_rows,
         output_file_rows,
@@ -95,22 +96,22 @@ async def _load_run_context(
         setup,
         parameter_rows,
     ) = cast(
-        "tuple[str | None, list[str], list[Row], list[Row], list[Row], str | None, str |"
+        "tuple[Any, list[str], list[Row], list[Row], list[Row], str | None, str |"
         "None, Row | None, list[Row]]",
         await asyncio.gather(
-            database.runs.get_uploader_name(run.uploader, userdb),
+            database.users.get_user(user_id=run.uploader, connection=userdb),
             database.runs.get_tags(run_id, expdb),
             database.runs.get_input_data(run_id, expdb),
             database.runs.get_output_files(run_id, expdb),
             database.runs.get_evaluations(run_id, expdb, evaluation_engine_ids=engine_ids),
-            database.runs.get_task_type(run.task_id, expdb),
-            database.runs.get_task_evaluation_measure(run.task_id, expdb),
+            database.tasks.get_task_type_name(run.task_id, expdb),
+            database.tasks.get_task_evaluation_measure(run.task_id, expdb),
             database.setups.get(run.setup, expdb),
             database.setups.get_parameters(run.setup, expdb),
         ),
     )
     return RunContext(
-        uploader_name=uploader_name,
+        uploader_name=uploader_user.full_name if uploader_user else None,
         tags=tags,
         input_data_rows=input_data_rows,
         output_file_rows=output_file_rows,
@@ -138,6 +139,11 @@ def _build_input_datasets(rows: list["Row"]) -> list[InputDataset]:
 
 
 def _build_output_files(rows: list["Row"]) -> list[OutputFile]:
+    """Build output files list.
+
+    Note: the PHP response includes a deprecated `did` field hardcoded to "-1"
+    for each file. This implementation omits it entirely.
+    """
     return [OutputFile(file_id=row.file_id, name=row.field) for row in rows]
 
 
@@ -163,11 +169,6 @@ def _build_evaluations(rows: list["Row"]) -> list[EvaluationScore]:
     ]
 
 
-@router.post(
-    path="/{run_id}",
-    description="Provided for convenience, same as `GET` endpoint.",
-    response_model_exclude_none=True,
-)
 @router.get("/{run_id}", response_model_exclude_none=True)
 async def get_run(
     run_id: int,
@@ -211,6 +212,6 @@ async def get_run(
         parameter_setting=parameter_settings,
         error_message=error_messages,
         tag=ctx.tags,
-        input_data=InputData(dataset=input_datasets),
+        input_data=input_datasets,
         output_data=OutputData(file=output_files, evaluation=evaluations),
     )

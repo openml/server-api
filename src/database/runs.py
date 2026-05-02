@@ -41,26 +41,6 @@ async def get(run_id: int, expdb: AsyncConnection) -> Row | None:
     return row.one_or_none()
 
 
-async def get_uploader_name(uploader_id: int, userdb: AsyncConnection) -> str | None:
-    """Fetch the display name of a user from the openml database.
-
-    Queries the `users` table in the separate openml DB and concatenates
-    first_name + ' ' + last_name. Returns None if the user does not exist.
-    """
-    row = await userdb.execute(
-        text(
-            """
-            SELECT CONCAT_WS(' ', `first_name`, `last_name`) AS `name`
-            FROM `users`
-            WHERE `id` = :uploader_id
-            """,
-        ),
-        parameters={"uploader_id": uploader_id},
-    )
-    result = row.one_or_none()
-    return result.name if result else None
-
-
 async def get_tags(run_id: int, expdb: AsyncConnection) -> list[str]:
     """Fetch all tags associated with a run from the `run_tag` table.
 
@@ -103,9 +83,6 @@ async def get_output_files(run_id: int, expdb: AsyncConnection) -> list[Row]:
 
     Typical entries include the description XML and predictions ARFF.
     The `field` column holds the file label (e.g. "description", "predictions").
-
-    Note: the PHP response includes a deprecated `did` field hardcoded to "-1"
-    for each file. This implementation omits it entirely.
     """
     rows = await expdb.execute(
         text(
@@ -152,49 +129,6 @@ async def get_evaluations(
         parameters={"run_id": run_id, "engine_ids": evaluation_engine_ids},
     )
     return cast("list[Row]", rows.all())
-
-
-async def get_task_type(task_id: int, expdb: AsyncConnection) -> str | None:
-    """Fetch the human-readable task type name for the task associated with a run.
-
-    Joins `task` and `task_type` on `ttid` to resolve the name
-    (e.g. "Supervised Classification").
-    """
-    row = await expdb.execute(
-        text(
-            """
-            SELECT `tt`.`name`
-            FROM `task` `t`
-            JOIN `task_type` `tt` ON `t`.`ttid` = `tt`.`ttid`
-            WHERE `t`.`task_id` = :task_id
-            """,
-        ),
-        parameters={"task_id": task_id},
-    )
-    result = row.one_or_none()
-    return result.name if result else None
-
-
-async def get_task_evaluation_measure(task_id: int, expdb: AsyncConnection) -> str | None:
-    """Fetch the evaluation measure configured for a task, if any.
-
-    Queries `task_inputs` for the row where `input = 'evaluation_measures'`.
-    Returns None (not an empty string) when no such row exists, so callers
-    can treat a falsy result uniformly.
-    """
-    row = await expdb.execute(
-        text(
-            """
-            SELECT `value`
-            FROM `task_inputs`
-            WHERE `task_id` = :task_id
-              AND `input` = 'evaluation_measures'
-            """,
-        ),
-        parameters={"task_id": task_id},
-    )
-    result = row.one_or_none()
-    return result.value if result else None
 
 
 async def get_trace(run_id: int, expdb: AsyncConnection) -> Sequence[Row]:
