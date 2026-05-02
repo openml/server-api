@@ -4,6 +4,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any, Literal, NamedTuple
 
+from database.exceptions import DuplicatePrimaryKeyError, ForeignKeyConstraintError
 from fastapi import APIRouter, Body, Depends
 from loguru import logger
 from sqlalchemy import bindparam, text
@@ -32,7 +33,6 @@ from core.formatting import (
     _format_dataset_url,
     _format_parquet_url,
 )
-from database.exceptions import DuplicatePrimaryKeyError, ForeignKeyConstraintError
 from database.users import User
 from routers.dependencies import (
     Pagination,
