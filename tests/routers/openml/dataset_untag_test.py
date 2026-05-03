@@ -5,7 +5,7 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncConnection
 
-from core.errors import TagNotFoundError, TagNotOwnedError
+from core.errors import DatasetNotFoundError, TagNotFoundError, TagNotOwnedError
 from routers.openml.datasets import untag_dataset
 from tests.users import ADMIN_USER, SOME_USER, ApiKey
 
@@ -78,4 +78,13 @@ async def test_dataset_untag_admin_bypasses_ownership(expdb_test: AsyncConnectio
     assert tag_present.scalar() is None
 
 
-# Dataset doesn't exist
+async def test_dataset_untag_dataset_is_not_exist(expdb_test: AsyncConnection) -> None:
+    dataset_id = 9_999_999
+    tag = "foo"
+
+    with pytest.raises(DatasetNotFoundError) as e:
+        await untag_dataset(dataset_id, tag, SOME_USER, expdb_test)
+
+    assert e.value.status_code == HTTPStatus.NOT_FOUND
+    assert tag in e.value.detail
+    assert str(dataset_id) in e.value.detail
