@@ -2,6 +2,7 @@ import asyncio
 import re
 from datetime import datetime
 from enum import StrEnum
+from http import HTTPStatus
 from typing import Annotated, Any, Literal, NamedTuple
 
 from fastapi import APIRouter, Body, Depends
@@ -26,6 +27,8 @@ from core.errors import (
     InternalError,
     NoResultsError,
     TagAlreadyExistsError,
+    TagNotFoundError,
+    TagNotOwnedError,
 )
 from core.formatting import (
     _csv_as_list,
@@ -78,6 +81,23 @@ async def tag_dataset(
     return {
         "data_tag": {"id": str(data_id), "tag": tags},
     }
+
+
+@router.post(path="/untag", status_code=HTTPStatus.NO_CONTENT)
+async def untag_dataset(
+    data_id: Annotated[Identifier, Body()],
+    tag: Annotated[str, SystemString64],
+    user: Annotated[User, Depends(fetch_user_or_raise)],
+    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
+) -> None:
+    dataset_tag = await database.datasets.get_tag(data_id, tag, expdb_db)
+    if not dataset_tag:
+        msg = f"Tag {tag!r} for dataset {data_id} not found."
+        raise TagNotFoundError(msg)
+    if dataset_tag.creator != user.user_id and not (await user.is_admin()):
+        msg = f"You are not allowed to remove {tag!r} from dataset {data_id}."
+        raise TagNotOwnedError(msg)
+    await database.datasets.delete_tag(data_id, tag, expdb_db)
 
 
 class DatasetStatusFilter(StrEnum):
