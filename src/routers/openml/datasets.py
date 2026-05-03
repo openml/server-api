@@ -94,7 +94,7 @@ async def untag_dataset(
     if not dataset_tag:
         msg = f"Tag {tag!r} for dataset {data_id} not found."
         raise TagNotFoundError(msg)
-    if dataset_tag.creator != user.user_id and not (await user.is_admin()):
+    if dataset_tag.uploader != user.user_id and not (await user.is_admin()):
         msg = f"You are not allowed to remove {tag!r} from dataset {data_id}."
         raise TagNotOwnedError(msg)
     await database.datasets.delete_tag(data_id, tag, expdb_db)

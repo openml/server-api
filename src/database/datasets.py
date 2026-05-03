@@ -2,7 +2,6 @@
 
 import datetime
 from collections import defaultdict
-from typing import NamedTuple
 
 from sqlalchemy import text
 from sqlalchemy.engine import Row
@@ -46,13 +45,8 @@ async def get_file(*, file_id: int, connection: AsyncConnection) -> Row | None:
     return row.one_or_none()
 
 
-class Tag(NamedTuple):
-    content: str
-    creator: int
-
-
-async def get_tag(dataset_id: int, tag: str, connection: AsyncConnection) -> Tag | None:
-    row = (
+async def get_tag(dataset_id: int, tag: str, connection: AsyncConnection) -> Row | None:
+    return (
         await connection.execute(
             text(
                 """
@@ -64,7 +58,6 @@ async def get_tag(dataset_id: int, tag: str, connection: AsyncConnection) -> Tag
             parameters={"dataset_id": dataset_id, "tag": tag},
         )
     ).first()
-    return Tag(content=row.tag, creator=row.uploader) if row else None
 
 
 async def delete_tag(dataset_id: int, tag: str, connection: AsyncConnection) -> None:
