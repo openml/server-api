@@ -1,3 +1,5 @@
+from collections.abc import Callable
+from contextlib import AbstractAsyncContextManager
 from http import HTTPStatus
 
 import httpx
@@ -97,6 +99,23 @@ async def test_dataset_untag_dataset_is_not_exist(expdb_test: AsyncConnection) -
 
 
 @pytest.mark.mut
-async def test_dataset_untag_is_identical(
-    py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
-) -> None: ...
+async def test_dataset_untag_success_is_identical(
+    py_api: httpx.AsyncClient,
+    php_api: httpx.AsyncClient,
+    temporary_tags: Callable[..., AbstractAsyncContextManager[None]],
+) -> None:
+    dataset_id = 1
+    tag = "foo"
+
+    async with temporary_tags(table="dataset_tag", tags=[tag], identifier=dataset_id, persist=True):
+        php_response = await php_api.post(
+            f"/data/untag?api_key={ApiKey.OWNER_USER}", data={"tag": tag, "data_id": dataset_id}
+        )
+
+    async with temporary_tags(table="dataset_tag", tags=[tag], identifier=dataset_id):
+        py_response = await py_api.post(
+            f"/datasets/untag?api_key={ApiKey.OWNER_USER}", json={"tag": tag, "data_id": dataset_id}
+        )
+
+    assert py_response.status_code == php_response.status_code
+    assert py_response.json() == php_response.json()
