@@ -7,6 +7,8 @@ from typing import TYPE_CHECKING, Any, NamedTuple
 import _pytest.mark
 import httpx
 import pytest
+from _pytest.config import Config  # noqa: TC002 used during collection by Pytest
+from _pytest.nodes import Item  # noqa: TC002 used during collection by Pytest
 from asgi_lifespan import LifespanManager
 from sqlalchemy import text
 
@@ -16,8 +18,6 @@ from routers.dependencies import expdb_connection, userdb_connection
 from tests.users import OWNER_USER
 
 if TYPE_CHECKING:
-    from _pytest.config import Config
-    from _pytest.nodes import Item
     from fastapi import FastAPI
     from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
