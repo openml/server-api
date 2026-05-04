@@ -2,6 +2,7 @@ import asyncio
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Any
 
+import httpx  # noqa: TC002  is used in a function signature inspected at runtime
 import hypothesis
 import pytest
 from hypothesis import given
@@ -15,7 +16,6 @@ from tests import constants
 from tests.users import ADMIN_USER, DATASET_130_OWNER, SOME_USER, ApiKey
 
 if TYPE_CHECKING:
-    import httpx
     from sqlalchemy.ext.asyncio import AsyncConnection
 
 

@@ -249,14 +249,14 @@ async def test_dataset_not_found_is_identical(
     dataset_id = 9_999_999
     py_response, php_response = await asyncio.gather(
         py_api.get(f"/datasets/{dataset_id}"),
-        php_api.get(f"/datasets/{dataset_id}"),
+        php_api.get(f"/data/{dataset_id}"),
     )
 
     assert py_response.status_code == HTTPStatus.NOT_FOUND
     assert php_response.status_code == HTTPStatus.PRECONDITION_FAILED
     assert py_response.json()["code"] == php_response.json()["error"]["code"]
-    assert py_response.json()["detail"] == f"Dataset {dataset_id} not found."
-    assert php_response.json()["error"]["message"] == "Dataset not found."
+    assert py_response.json()["detail"] == f"No dataset with id {dataset_id} found."
+    assert php_response.json()["error"]["message"] == "Unknown dataset"
 
 
 async def test_private_dataset_no_user_no_access(
