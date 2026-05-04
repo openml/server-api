@@ -114,20 +114,26 @@ async def test_dataset_untag_dataset_does_not_exist(expdb_test: AsyncConnection)
 
 
 @pytest.mark.mut
+@pytest.mark.parametrize("existing_tags", [[], ["bar"], ["bar", "bazz"]])
 async def test_dataset_untag_success_is_identical(
+    existing_tags: list[str],
     py_api: httpx.AsyncClient,
     php_api: httpx.AsyncClient,
     temporary_tags: Callable[..., AbstractAsyncContextManager[None]],
 ) -> None:
-    dataset_id = 1
+    dataset_id = 101  # The first dataset without a pre-existing tag
     tag = "foo"
 
-    async with temporary_tags(table="dataset_tag", tags=[tag], identifier=dataset_id, persist=True):
+    async with temporary_tags(
+        table="dataset_tag", tags=[tag, *existing_tags], identifier=dataset_id, persist=True
+    ):
         php_response = await php_api.post(
             f"/data/untag?api_key={ApiKey.OWNER_USER}", data={"tag": tag, "data_id": dataset_id}
         )
 
-    async with temporary_tags(table="dataset_tag", tags=[tag], identifier=dataset_id):
+    async with temporary_tags(
+        table="dataset_tag", tags=[tag, *existing_tags], identifier=dataset_id
+    ):
         py_response = await py_api.post(
             f"/datasets/untag?api_key={ApiKey.OWNER_USER}", json={"tag": tag, "data_id": dataset_id}
         )

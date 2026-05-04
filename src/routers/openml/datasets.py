@@ -3,7 +3,7 @@ import re
 from datetime import datetime
 from enum import StrEnum
 from http import HTTPStatus
-from typing import TYPE_CHECKING, Annotated, Any, Literal, NamedTuple, TypedDict
+from typing import TYPE_CHECKING, Annotated, Any, Literal, NamedTuple, NotRequired, TypedDict
 
 from fastapi import APIRouter, Body, Depends, Query
 from loguru import logger
@@ -85,9 +85,9 @@ async def tag_dataset(
     }
 
 
-class UntagInfo(TypedDict):
+class TagInfo(TypedDict):
     id: str
-    tag: SystemString64 | list[SystemString64]
+    tag: NotRequired[SystemString64 | list[SystemString64]]
 
 
 @router.post(path="/untag", deprecated=True)
@@ -96,11 +96,15 @@ async def untag_dataset_like_php(
     tag: Annotated[SystemString64, Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
-) -> dict[Literal["data_untag"], UntagInfo]:
+) -> dict[Literal["data_untag"], TagInfo]:
     await untag_dataset(data_id, tag, user, expdb_db)
     tags = await database.datasets.get_tags_for(id_=data_id, connection=expdb_db)
-    return_tags = tags[0] if len(tags) == 1 else tags
-    return {"data_untag": {"id": str(data_id), "tag": return_tags}}
+    tag_info: TagInfo = {"id": str(data_id)}
+    if len(tags) == 1:
+        tag_info["tag"] = tags[0]
+    elif tags:
+        tag_info["tag"] = tags
+    return {"data_untag": tag_info}
 
 
 @router.delete(path="/{identifier}/tag", status_code=HTTPStatus.NO_CONTENT)
