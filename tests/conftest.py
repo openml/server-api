@@ -175,19 +175,28 @@ def temporary_tags(
 ) -> Callable[..., contextlib.AbstractAsyncContextManager[None]]:
     @contextlib.asynccontextmanager
     async def _temporary_tags(
-        tags: Iterable[str], setup_id: int, *, persist: bool = False
+        table: str,
+        tags: Iterable[str],
+        identifier: int,
+        *,
+        persist: bool = False,
     ) -> AsyncIterator[None]:
         insert_queries = [
             (
-                "INSERT INTO setup_tag(`id`,`tag`,`uploader`) VALUES (:setup_id, :tag, :user_id);",
-                {"setup_id": setup_id, "tag": tag, "user_id": OWNER_USER.user_id},
+                f"INSERT INTO {table}(`id`,`tag`,`uploader`) VALUES (:identifier, :tag, :user_id);",  # noqa: S608  # No user provided values
+                {
+                    "table": table,
+                    "identifier": identifier,
+                    "tag": tag,
+                    "user_id": OWNER_USER.user_id,
+                },
             )
             for tag in tags
         ]
         delete_queries = [
             (
-                "DELETE FROM setup_tag WHERE `id`=:setup_id AND `tag`=:tag",
-                {"setup_id": setup_id, "tag": tag},
+                f"DELETE FROM {table} WHERE `id`=:identifier AND `tag`=:tag",  # noqa: S608  # No user provided values
+                {"identifier": identifier, "tag": tag},
             )
             for tag in tags
         ]

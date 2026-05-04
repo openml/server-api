@@ -94,3 +94,9 @@ async def test_dataset_untag_dataset_is_not_exist(expdb_test: AsyncConnection) -
     assert e.value.status_code == HTTPStatus.NOT_FOUND
     assert tag in e.value.detail
     assert str(dataset_id) in e.value.detail
+
+
+@pytest.mark.mut
+async def test_dataset_untag_is_identical(
+    py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
+) -> None: ...
