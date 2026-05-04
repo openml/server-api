@@ -99,7 +99,7 @@ async def untag_dataset_like_php(
 ) -> dict[Literal["data_untag"], UntagInfo]:
     await untag_dataset(data_id, tag, user, expdb_db)
     tags = await database.datasets.get_tags_for(id_=data_id, connection=expdb_db)
-    return_tags = tags if len(tags) > 1 else tags[0]
+    return_tags = tags[0] if len(tags) == 1 else tags
     return {"data_untag": {"id": str(data_id), "tag": return_tags}}
 
 
