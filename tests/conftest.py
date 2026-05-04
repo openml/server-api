@@ -2,22 +2,24 @@ import contextlib
 import json
 from collections.abc import AsyncIterator, Callable, Iterable, Iterator
 from pathlib import Path
-from typing import Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import _pytest.mark
 import httpx
 import pytest
-from _pytest.config import Config
-from _pytest.nodes import Item
 from asgi_lifespan import LifespanManager
-from fastapi import FastAPI
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
 from database.setup import expdb_database, user_database
 from main import create_api
 from routers.dependencies import expdb_connection, userdb_connection
 from tests.users import OWNER_USER
+
+if TYPE_CHECKING:
+    from _pytest.config import Config
+    from _pytest.nodes import Item
+    from fastapi import FastAPI
+    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
 PHP_API_URL = "http://php-api:80/api/v1/json"
 

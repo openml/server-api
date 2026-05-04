@@ -1,11 +1,10 @@
 """All endpoints that relate to setups."""
 
 import asyncio
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Body, Depends, Path
 from loguru import logger
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 import database.setups
 from core.errors import (
@@ -18,6 +17,9 @@ from database.users import User
 from routers.dependencies import expdb_connection, fetch_user_or_raise
 from routers.types import Identifier, SystemString64
 from schemas.setups import SetupParameters, SetupResponse
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 router = APIRouter(prefix="/setup", tags=["setup"])
 

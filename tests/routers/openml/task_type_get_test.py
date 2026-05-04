@@ -1,11 +1,14 @@
 import asyncio
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
 import deepdiff.diff
-import httpx
 import pytest
 
 from core.errors import TaskTypeNotFoundError
+
+if TYPE_CHECKING:
+    import httpx
 
 
 @pytest.mark.parametrize(

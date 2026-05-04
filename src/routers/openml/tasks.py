@@ -2,13 +2,11 @@ import asyncio
 import json
 import re
 from enum import StrEnum
-from typing import Annotated, Any, cast
+from typing import TYPE_CHECKING, Annotated, Any, cast
 
 import xmltodict
 from fastapi import APIRouter, Body, Depends
 from sqlalchemy import bindparam, text
-from sqlalchemy.engine import RowMapping
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 import config
 import database.datasets
@@ -23,6 +21,10 @@ from routers.types import (
     integer_range_regex,
 )
 from schemas.datasets.openml import Task
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine import RowMapping
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 

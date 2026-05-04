@@ -1,7 +1,6 @@
-from typing import Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 import database.datasets
 import database.qualities
@@ -16,6 +15,9 @@ from database.users import User
 from routers.dependencies import expdb_connection, fetch_user
 from routers.types import Identifier
 from schemas.datasets.openml import Quality
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 

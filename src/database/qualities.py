@@ -1,10 +1,13 @@
 from collections import defaultdict
 from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 from schemas.datasets.openml import Quality
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def get_for_dataset(dataset_id: int, connection: AsyncConnection) -> list[Quality]:

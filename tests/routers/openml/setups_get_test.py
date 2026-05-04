@@ -1,11 +1,14 @@
 import asyncio
 import re
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
-import httpx
 import pytest
 
 from core.conversions import nested_remove_values, nested_str_to_num
+
+if TYPE_CHECKING:
+    import httpx
 
 
 async def test_get_setup_unknown(py_api: httpx.AsyncClient) -> None:

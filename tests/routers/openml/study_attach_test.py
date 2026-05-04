@@ -1,13 +1,16 @@
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
-import httpx
 import pytest
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 from core.errors import StudyConflictError
 from schemas.study import StudyType
 from tests.users import ApiKey
+
+if TYPE_CHECKING:
+    import httpx
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def _attach_tasks_to_study(

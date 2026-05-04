@@ -1,16 +1,18 @@
 import asyncio
 from http import HTTPStatus
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import deepdiff
-import httpx
 import pytest
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 from core.conversions import nested_remove_single_element_list
 from core.errors import NoResultsError
 from routers.dependencies import LIMIT_MAX, Pagination
 from routers.openml.tasks import TaskStatusFilter, list_tasks
+
+if TYPE_CHECKING:
+    import httpx
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def test_list_tasks_default(py_api: httpx.AsyncClient) -> None:

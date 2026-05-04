@@ -1,10 +1,8 @@
-from typing import Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 from fastapi import APIRouter, Body, Depends
 from loguru import logger
 from pydantic import BaseModel
-from sqlalchemy.engine import Row
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 import database.studies
 from core.errors import (
@@ -23,6 +21,10 @@ from routers.dependencies import expdb_connection, fetch_user, fetch_user_or_rai
 from routers.types import Identifier
 from schemas.core import Visibility
 from schemas.study import CreateStudy, Study, StudyStatus, StudyType
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine import Row
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 router = APIRouter(prefix="/studies", tags=["studies"])
 

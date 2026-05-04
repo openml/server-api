@@ -1,12 +1,15 @@
 from contextlib import aclosing
+from typing import TYPE_CHECKING
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 from core.errors import AuthenticationFailedError, AuthenticationRequiredError
 from database.users import User
 from routers.dependencies import fetch_user, fetch_user_or_raise
 from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 @pytest.mark.parametrize(

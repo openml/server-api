@@ -3,15 +3,18 @@ import re
 from collections.abc import Callable
 from contextlib import AbstractAsyncContextManager
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
-import httpx
 import pytest
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 from core.errors import SetupNotFoundError, TagNotFoundError, TagNotOwnedError
 from routers.openml.setups import untag_setup
 from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
+
+if TYPE_CHECKING:
+    import httpx
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def test_setup_untag_missing_auth(py_api: httpx.AsyncClient) -> None:

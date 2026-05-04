@@ -2,11 +2,10 @@
 
 import datetime
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
 from sqlalchemy import text
-from sqlalchemy.engine import Row
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 from database.exceptions import (
     _DUPLICATE_ENTRY,
@@ -15,6 +14,10 @@ from database.exceptions import (
     ForeignKeyConstraintError,
 )
 from schemas.datasets.openml import Feature
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine import Row
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def get(id_: int, connection: AsyncConnection) -> Row | None:

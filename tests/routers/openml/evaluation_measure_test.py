@@ -1,7 +1,9 @@
 import asyncio
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
-import httpx
+if TYPE_CHECKING:
+    import httpx
 
 
 async def test_evaluationmeasure_list(py_api: httpx.AsyncClient) -> None:

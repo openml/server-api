@@ -1,12 +1,14 @@
 import dataclasses
 from enum import IntEnum
-from typing import Annotated, Self
+from typing import TYPE_CHECKING, Annotated, Self
 
 from pydantic import StringConstraints
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 from config import load_configuration
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 # If `allow_test_api_keys` is set, the key may also be one of `normaluser`,
 # `normaluser2`, or `abc` (admin).

@@ -1,8 +1,7 @@
 import asyncio
-from typing import Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 import database.flows
 from core.conversions import _str_to_num
@@ -10,6 +9,9 @@ from core.errors import FlowNotFoundError
 from routers.dependencies import expdb_connection
 from routers.types import Identifier
 from schemas.flows import Flow, Parameter, Subflow
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 router = APIRouter(prefix="/flows", tags=["flows"])
 

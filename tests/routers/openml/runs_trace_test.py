@@ -2,14 +2,16 @@
 
 import asyncio
 from http import HTTPStatus
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import deepdiff
-import httpx
 import pytest
 
 from core.conversions import nested_num_to_str
 from core.errors import RunNotFoundError, RunTraceNotFoundError
+
+if TYPE_CHECKING:
+    import httpx
 
 
 @pytest.mark.parametrize("run_id", [34])

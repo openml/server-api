@@ -1,10 +1,13 @@
 import asyncio
 import re
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
 import deepdiff
-import httpx
 import pytest
+
+if TYPE_CHECKING:
+    import httpx
 
 
 async def test_get_quality(py_api: httpx.AsyncClient) -> None:

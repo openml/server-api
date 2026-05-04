@@ -1,10 +1,13 @@
 from datetime import UTC, datetime
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
-import httpx
 import pytest
 
 from tests.users import ApiKey
+
+if TYPE_CHECKING:
+    import httpx
 
 
 @pytest.mark.mut

@@ -1,9 +1,10 @@
-from typing import Any
-
-from sqlalchemy.engine import Row
+from typing import TYPE_CHECKING, Any
 
 from database.users import User
 from schemas.datasets.openml import Visibility
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine import Row
 
 
 async def _user_has_access(

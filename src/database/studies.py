@@ -1,13 +1,15 @@
 import re
 from collections.abc import Sequence
 from datetime import UTC, datetime
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import Row, text
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 from database.users import User
 from schemas.study import CreateStudy, StudyType
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def get_by_id(id_: int, connection: AsyncConnection) -> Row | None:

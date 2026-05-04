@@ -5,12 +5,15 @@ import time
 import uuid
 from collections.abc import Awaitable, Callable
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from loguru import logger
-from starlette.requests import Request
-from starlette.responses import Response
 
 from config import load_configuration
+
+if TYPE_CHECKING:
+    from starlette.requests import Request
+    from starlette.responses import Response
 
 
 def setup_log_sinks(configuration_file: Path | None = None) -> None:

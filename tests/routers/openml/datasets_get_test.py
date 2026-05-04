@@ -4,11 +4,10 @@ import asyncio
 import json
 import re
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
-import httpx
 import pytest
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 import tests.constants
 from core.errors import DatasetNoAccessError, DatasetNotFoundError
@@ -16,6 +15,10 @@ from database.users import User
 from routers.openml.datasets import get_dataset
 from schemas.datasets.openml import DatasetMetadata
 from tests.users import ADMIN_USER, DATASET_130_OWNER, NO_USER, SOME_USER, ApiKey
+
+if TYPE_CHECKING:
+    import httpx
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def test_get_dataset_via_api(py_api: httpx.AsyncClient) -> None:

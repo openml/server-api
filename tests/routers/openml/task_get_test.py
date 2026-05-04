@@ -1,8 +1,8 @@
 import asyncio
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
 import deepdiff
-import httpx
 import pytest
 
 from core.conversions import (
@@ -10,6 +10,9 @@ from core.conversions import (
     nested_remove_single_element_list,
     nested_remove_values,
 )
+
+if TYPE_CHECKING:
+    import httpx
 
 
 async def test_get_task(py_api: httpx.AsyncClient) -> None:

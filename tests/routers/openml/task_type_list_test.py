@@ -1,6 +1,8 @@
 import asyncio
+from typing import TYPE_CHECKING
 
-import httpx
+if TYPE_CHECKING:
+    import httpx
 
 
 async def test_list_task_type(py_api: httpx.AsyncClient, php_api: httpx.AsyncClient) -> None:
