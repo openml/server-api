@@ -1,15 +1,30 @@
+"""Tests for untagging a dataset.
+
+There are currently two endpoints for untagging a dataset:
+
+    POST /datasets/untag
+    DEL /datasets/{id}/tag
+
+The former is provided for compatibility with the old API, and is tested in the migration test.
+The latter is more semantically correct, and is used for the Python tests.
+They share most of the underlying logic anyway.
+"""
+
 from collections.abc import Callable
 from contextlib import AbstractAsyncContextManager
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
-import httpx
 import pytest
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 from core.errors import DatasetNotFoundError, TagNotFoundError, TagNotOwnedError
 from routers.openml.datasets import untag_dataset
 from tests.users import ADMIN_USER, SOME_USER, ApiKey
+
+if TYPE_CHECKING:
+    import httpx
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def test_dataset_untag_success(
@@ -22,9 +37,8 @@ async def test_dataset_untag_success(
         parameters={"dataset_id": dataset_id, "tag": tag},
     )
 
-    response = await py_api.post(
-        f"/datasets/untag?api_key={ApiKey.SOME_USER}",
-        json={"data_id": dataset_id, "tag": tag},
+    response = await py_api.delete(
+        f"/datasets/{dataset_id}/tag?api_key={ApiKey.SOME_USER}&tag={tag}",
     )
 
     assert response.status_code == HTTPStatus.NO_CONTENT
@@ -86,7 +100,7 @@ async def test_dataset_untag_admin_bypasses_ownership(expdb_test: AsyncConnectio
     assert tag_present.scalar() is None
 
 
-async def test_dataset_untag_dataset_is_not_exist(expdb_test: AsyncConnection) -> None:
+async def test_dataset_untag_dataset_does_not_exist(expdb_test: AsyncConnection) -> None:
     dataset_id = 9_999_999
     tag = "foo"
 

@@ -3,13 +3,11 @@ import re
 from datetime import datetime
 from enum import StrEnum
 from http import HTTPStatus
-from typing import Annotated, Any, Literal, NamedTuple
+from typing import TYPE_CHECKING, Annotated, Any, Literal, NamedTuple, TypedDict
 
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body, Depends, Query
 from loguru import logger
 from sqlalchemy import bindparam, text
-from sqlalchemy.engine import Row
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 import database.datasets
 import database.qualities
@@ -53,6 +51,10 @@ from routers.types import (
 )
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Feature, FeatureType
 
+if TYPE_CHECKING:
+    from sqlalchemy.engine import Row
+    from sqlalchemy.ext.asyncio import AsyncConnection
+
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 
 
@@ -83,25 +85,44 @@ async def tag_dataset(
     }
 
 
-@router.post(path="/untag", status_code=HTTPStatus.NO_CONTENT)
-async def untag_dataset(
+class UntagInfo(TypedDict):
+    id: str
+    tag: SystemString64 | list[SystemString64]
+
+
+@router.post(path="/untag", deprecated=True)
+async def untag_dataset_like_php(
     data_id: Annotated[Identifier, Body()],
     tag: Annotated[SystemString64, Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
+) -> dict[Literal["data_untag"], UntagInfo]:
+    await untag_dataset(data_id, tag, user, expdb_db)
+    tags = await database.datasets.get_tags_for(id_=data_id, connection=expdb_db)
+    return_tags = tags if len(tags) > 1 else tags[0]
+    return {"data_untag": {"id": str(data_id), "tag": return_tags}}
+
+
+@router.delete(path="/{identifier}/tag", status_code=HTTPStatus.NO_CONTENT)
+async def untag_dataset(
+    identifier: Identifier,
+    tag: Annotated[SystemString64, Query()],
+    user: Annotated[User, Depends(fetch_user_or_raise)],
+    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> None:
-    dataset_tag = await database.datasets.get_tag(data_id, tag, expdb_db)
+    dataset_tag = await database.datasets.get_tag(identifier, tag, expdb_db)
     if not dataset_tag:
-        dataset = await database.datasets.get(data_id, expdb_db)
-        if not dataset:
-            msg = f"Cannot remove {tag!r}, because dataset {data_id} is not found."
-            raise DatasetNotFoundError(msg, code=472)
-        msg = f"Tag {tag!r} for dataset {data_id} not found."
+        try:
+            await _get_dataset_raise_otherwise(identifier, user, expdb_db)
+        except DatasetNotFoundError, DatasetNoAccessError:
+            msg = f"Cannot remove {tag!r}, because dataset {identifier} is not found."
+            raise DatasetNotFoundError(msg, code=472) from None
+        msg = f"Tag {tag!r} for dataset {identifier} not found."
         raise TagNotFoundError(msg)
     if dataset_tag.uploader != user.user_id and not (await user.is_admin()):
-        msg = f"You are not allowed to remove {tag!r} from dataset {data_id}."
+        msg = f"You are not allowed to remove {tag!r} from dataset {identifier}."
         raise TagNotOwnedError(msg)
-    await database.datasets.delete_tag(data_id, tag, expdb_db)
+    await database.datasets.delete_tag(identifier, tag, expdb_db)
 
 
 class DatasetStatusFilter(StrEnum):
