@@ -8,6 +8,7 @@ import database.flows
 from core.conversions import _str_to_num
 from core.errors import FlowNotFoundError
 from routers.dependencies import expdb_connection
+from routers.types import Identifier
 from schemas.flows import Flow, Parameter, Subflow
 
 router = APIRouter(prefix="/flows", tags=["flows"])
@@ -33,7 +34,7 @@ async def flow_exists(
 
 @router.get("/{flow_id}")
 async def get_flow(
-    flow_id: int,
+    flow_id: Identifier,
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> Flow:
     flow = await database.flows.get(flow_id, expdb)

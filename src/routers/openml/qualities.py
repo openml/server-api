@@ -14,6 +14,7 @@ from core.errors import (
 )
 from database.users import User
 from routers.dependencies import expdb_connection, fetch_user
+from routers.types import Identifier
 from schemas.datasets.openml import Quality
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
@@ -33,7 +34,7 @@ async def list_qualities(
 
 @router.get("/qualities/{dataset_id}")
 async def get_qualities(
-    dataset_id: int,
+    dataset_id: Identifier,
     user: Annotated[User | None, Depends(fetch_user)],
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> list[Quality]:

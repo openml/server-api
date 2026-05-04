@@ -61,7 +61,7 @@ router = APIRouter(prefix="/datasets", tags=["datasets"])
 )
 async def tag_dataset(
     data_id: Annotated[Identifier, Body()],
-    tag: Annotated[str, SystemString64],
+    tag: Annotated[SystemString64, Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[str, dict[str, Any]]:
@@ -86,7 +86,7 @@ async def tag_dataset(
 @router.post(path="/untag", status_code=HTTPStatus.NO_CONTENT)
 async def untag_dataset(
     data_id: Annotated[Identifier, Body()],
-    tag: Annotated[str, SystemString64],
+    tag: Annotated[SystemString64, Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> None:
@@ -132,27 +132,27 @@ def _quality_clause(quality: str, range_: str | None) -> str:
 @router.get(path="/list")
 async def list_datasets(  # noqa: PLR0913, C901
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
-    data_name: Annotated[str | None, CasualString128] = None,
-    tag: Annotated[str | None, SystemString64] = None,
+    data_name: Annotated[CasualString128 | None, Body()] = None,
+    tag: Annotated[SystemString64 | None, Body()] = None,
     data_version: Annotated[
-        int | None,
+        Identifier | None,
         Body(description="The dataset version to include in the search."),
     ] = None,
     uploader: Annotated[
-        int | None,
+        Identifier | None,
         Body(description="User id of the uploader whose datasets to include in the search."),
     ] = None,
     data_id: Annotated[
-        list[int] | None,
+        list[Identifier] | None,
         Body(
             description="The dataset(s) to include in the search. "
             "If none are specified, all datasets are included.",
         ),
     ] = None,
-    number_instances: Annotated[str | None, IntegerRange] = None,
-    number_features: Annotated[str | None, IntegerRange] = None,
-    number_classes: Annotated[str | None, IntegerRange] = None,
-    number_missing_values: Annotated[str | None, IntegerRange] = None,
+    number_instances: Annotated[IntegerRange | None, Body()] = None,
+    number_features: Annotated[IntegerRange | None, Body()] = None,
+    number_classes: Annotated[IntegerRange | None, Body()] = None,
+    number_missing_values: Annotated[IntegerRange | None, Body()] = None,
     status: Annotated[DatasetStatusFilter, Body()] = DatasetStatusFilter.ACTIVE,
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
@@ -290,7 +290,7 @@ class ProcessingInformation(NamedTuple):
 
 
 async def _get_processing_information(
-    dataset_id: int,
+    dataset_id: Identifier,
     connection: AsyncConnection,
 ) -> ProcessingInformation:
     """Return processing information, if any. Otherwise, all fields `None`."""
@@ -309,7 +309,7 @@ async def _get_processing_information(
 
 
 async def _get_dataset_raise_otherwise(
-    dataset_id: int,
+    dataset_id: Identifier,
     user: User | None,
     expdb: AsyncConnection,
 ) -> Row[Any]:
@@ -330,7 +330,7 @@ async def _get_dataset_raise_otherwise(
 
 @router.get("/features/{dataset_id}", response_model_exclude_none=True)
 async def get_dataset_features(
-    dataset_id: int,
+    dataset_id: Identifier,
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> list[Feature]:
@@ -373,7 +373,7 @@ async def get_dataset_features(
     path="/status/update",
 )
 async def update_dataset_status(
-    dataset_id: Annotated[int, Body()],
+    dataset_id: Annotated[Identifier, Body()],
     status: Annotated[Literal[DatasetStatus.ACTIVE, DatasetStatus.DEACTIVATED], Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
@@ -427,7 +427,7 @@ async def update_dataset_status(
     description="Get meta-data for dataset with ID `dataset_id`.",
 )
 async def get_dataset(
-    dataset_id: int,
+    dataset_id: Identifier,
     user: Annotated[User | None, Depends(fetch_user)] = None,
     user_db: Annotated[AsyncConnection, Depends(userdb_connection)] = None,
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
