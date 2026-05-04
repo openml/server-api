@@ -60,6 +60,12 @@ async def test_dataset_untag_tag_not_owned(expdb_test: AsyncConnection) -> None:
     assert tag in e.value.detail
     assert str(dataset_id) in e.value.detail
 
+    tag_present = await expdb_test.execute(
+        text("SELECT 1 FROM dataset_tag WHERE id=:dataset_id AND tag=:tag"),
+        parameters={"dataset_id": dataset_id, "tag": tag},
+    )
+    assert tag_present.scalar() == 1
+
 
 async def test_dataset_untag_admin_bypasses_ownership(expdb_test: AsyncConnection) -> None:
     dataset_id = 1
