@@ -187,7 +187,6 @@ def temporary_tags(
             (
                 f"INSERT INTO {table}(`id`,`tag`,`uploader`) VALUES (:identifier, :tag, :user_id);",  # noqa: S608  # No user provided values
                 {
-                    "table": table,
                     "identifier": identifier,
                     "tag": tag,
                     "user_id": OWNER_USER.user_id,
