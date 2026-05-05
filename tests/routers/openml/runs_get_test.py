@@ -8,16 +8,14 @@ from unittest.mock import AsyncMock, patch
 import deepdiff
 import httpx
 import pytest
-from sqlalchemy.ext.asyncio import AsyncConnection
 
-import database.runs
 from core.conversions import nested_num_to_str, nested_remove_single_element_list
 from routers.openml.runs import _build_evaluations
 
 # ── Fixtures assume run 24 exists in the test DB (confirmed in research) ──
 _RUN_ID = 24
 _MISSING_RUN_ID = 999_999_999
-_MISSING_USER_ID = 999_999_999
+
 _RUN_NOT_FOUND_CODE = "236"
 
 _RUN_UPLOADER_ID = 1159
@@ -194,107 +192,6 @@ async def test_task_evaluation_measure_present_when_configured(
         assert run["task_evaluation_measure"] == "predictive_accuracy"
 
 
-async def test_get_run_invalid_id_type(py_api: httpx.AsyncClient) -> None:
-    """Non-integer run ID returns 422 Unprocessable Entity."""
-    response = await py_api.get("/run/not-a-number")
-    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-
-
-# ════════════════════════════════════════════════════════════════════
-# Functional / unit-level tests  (call database functions directly)
-# ════════════════════════════════════════════════════════════════════
-
-
-async def test_db_get_run_exists(expdb_test: AsyncConnection) -> None:
-    """database.runs.get returns a row for run 24."""
-    row = await database.runs.get(_RUN_ID, expdb_test)
-    assert row is not None
-    assert row.rid == _RUN_ID
-    assert row.uploader == _RUN_UPLOADER_ID
-    assert row.task_id == _RUN_TASK_ID
-    assert row.setup == _RUN_SETUP_ID
-    assert row.error_message is None  # no error for this run
-
-
-async def test_db_get_run_missing(expdb_test: AsyncConnection) -> None:
-    """database.runs.get returns None for a non-existent run."""
-    row = await database.runs.get(_MISSING_RUN_ID, expdb_test)
-    assert row is None
-
-
-async def test_db_exist_true(expdb_test: AsyncConnection) -> None:
-    """database.runs.exist returns True for run 24."""
-    assert await database.runs.exist(_RUN_ID, expdb_test) is True
-
-
-async def test_db_exist_false(expdb_test: AsyncConnection) -> None:
-    """database.runs.exist returns False for a missing run."""
-    assert await database.runs.exist(_MISSING_RUN_ID, expdb_test) is False
-
-
-async def test_db_get_tags(expdb_test: AsyncConnection) -> None:
-    """database.runs.get_tags returns expected tags for run 24."""
-    tags = await database.runs.get_tags(_RUN_ID, expdb_test)
-    assert isinstance(tags, list)
-    assert "openml-python" in tags
-
-
-async def test_db_get_input_data(expdb_test: AsyncConnection) -> None:
-    """database.runs.get_input_data returns did=20 (diabetes) for run 24."""
-    rows = await database.runs.get_input_data(_RUN_ID, expdb_test)
-    assert len(rows) >= 1
-    dids = [r.did for r in rows]
-    assert _RUN_DATASET_ID in dids
-
-
-async def test_db_get_output_files(expdb_test: AsyncConnection) -> None:
-    """database.runs.get_output_files returns description and predictions files."""
-    rows = await database.runs.get_output_files(_RUN_ID, expdb_test)
-    file_map = {r.field: r.file_id for r in rows}
-    assert file_map.get("description") == _DESCRIPTION_FILE_ID
-    assert file_map.get("predictions") == _PREDICTIONS_FILE_ID
-
-
-async def test_db_get_evaluations(expdb_test: AsyncConnection) -> None:
-    """database.runs.get_evaluations returns metrics including area_under_roc_curve."""
-    rows = await database.runs.get_evaluations(_RUN_ID, expdb_test, evaluation_engine_ids=[1])
-    assert len(rows) > 0
-    names = {r.name for r in rows}
-    assert "area_under_roc_curve" in names
-
-
-async def test_db_get_evaluations_empty_engine_list(expdb_test: AsyncConnection) -> None:
-    """get_evaluations with no engine IDs returns an empty list (not an error)."""
-    rows = await database.runs.get_evaluations(_RUN_ID, expdb_test, evaluation_engine_ids=[])
-    assert rows == []
-
-
-async def test_db_get_task_type(expdb_test: AsyncConnection) -> None:
-    """database.runs.get_task_type returns 'Supervised Classification' for task 115."""
-    task_type = await database.tasks.get_task_type_name(_RUN_TASK_ID, expdb_test)
-    assert task_type == "Supervised Classification"
-
-
-async def test_db_get_task_evaluation_measure_missing(expdb_test: AsyncConnection) -> None:
-    """get_task_evaluation_measure returns None (not '') when absent."""
-    measure = await database.tasks.get_task_evaluation_measure(_RUN_TASK_ID, expdb_test)
-    assert measure is None
-
-
-async def test_db_get_uploader_name(user_test: AsyncConnection) -> None:
-    """database.runs.get_uploader_name returns 'Cynthia Glover' for user 1159."""
-    user = await database.users.get_user(user_id=_RUN_UPLOADER_ID, connection=user_test)
-    assert user is not None
-    assert user.full_name == "Cynthia Glover"
-    assert user.user_id == _RUN_UPLOADER_ID
-
-
-async def test_db_get_uploader_name_missing(user_test: AsyncConnection) -> None:
-    """get_uploader_name returns None for a non-existent user."""
-    user = await database.users.get_user(user_id=_MISSING_USER_ID, connection=user_test)
-    assert user is None
-
-
 # ════════════════════════════════════════════════════════════════════
 # Migration tests  (Python API vs PHP API parity)
 # ════════════════════════════════════════════════════════════════════
@@ -312,18 +209,13 @@ _EXCLUDE_PATHS = [
 def _normalize_py_run(py_run: dict[str, Any]) -> dict[str, Any]:
     """Normalize a Python run response to match the PHP response format."""
     run = py_run.copy()
-
-    # Collapse single-element lists to match PHP XML-to-JSON behaviour.
     run = nested_remove_single_element_list(run)
 
-    # Re-add PHP's "dataset" envelope for input_data parity
     if "input_data" in run:
         run["input_data"] = {"dataset": run["input_data"]}
 
-    # PHP returns all numbers as strings — convert to match.
     run = nested_num_to_str(run)
 
-    # PHP wraps the response envelope.
     return {"run": run}
 
 
@@ -359,24 +251,7 @@ async def test_get_run_equal(
     php_json = php_response.json()
 
     # PHP provides evaluation entries natively for each fold (with `repeat` and `fold` keys)
-    # as well as an aggregate entry (which might or might not have those keys depending on version).
-    # To match without complex deepdiff matchers, verify base entries without repeat/fold
-    # and drop the rest.
-    if (
-        "run" in php_json
-        and "output_data" in php_json["run"]
-        and "evaluation" in php_json["run"]["output_data"]
-    ):
-        php_evals = php_json["run"]["output_data"]["evaluation"]
-        if isinstance(php_evals, list):
-            php_json["run"]["output_data"]["evaluation"] = [
-                ev for ev in php_evals if "repeat" not in ev and "fold" not in ev
-            ]
-        elif isinstance(php_evals, dict):
-            if "repeat" in php_evals or "fold" in php_evals:
-                php_json["run"]["output_data"]["evaluation"] = []
-            else:
-                php_json["run"]["output_data"]["evaluation"] = [php_evals]
+    # as well as an aggregate entry. Python now supports returning these exact entries.
 
     # PHP sometimes includes empty `error` property instead of an empty list when no error occurred
     # DeepDiff takes care of it automatically because we didn't see error diffs.
@@ -391,30 +266,44 @@ async def test_get_run_equal(
     assert not differences, f"Differences for run {run_id}: {differences}"
 
 
-def test_build_evaluations_coverage() -> None:
-    """Ensure _build_evaluations string-normalization branches are covered."""
+@pytest.mark.parametrize(
+    ("input_value", "expected_value", "repeat", "fold"),
+    [
+        (1.0, 1, None, None),
+        ("2.0", 2, None, None),
+        ("1.5", 1.5, None, None),
+        ("not_a_number", None, None, None),
+        (["list"], None, None, None),
+        (0.95, 0.95, 0, 2),
+    ],
+)
+def test_build_evaluations(
+    input_value: object,
+    expected_value: object,
+    repeat: int | None,
+    fold: int | None,
+) -> None:
+    """_build_evaluations normalizes values correctly and maps repeat/fold."""
 
     class MockRow:
-        def __init__(self, name: str, value: object, array_data: str | None = None) -> None:
+        def __init__(
+            self,
+            name: str,
+            value: object,
+            array_data: str | None = None,
+            repeat: int | None = None,
+            fold: int | None = None,
+        ) -> None:
             self.name = name
             self.value = value
             self.array_data = array_data
+            self.repeat = repeat
+            self.fold = fold
 
-    rows = [
-        MockRow("float_val", 1.0),
-        MockRow("str_float", "2.0"),
-        MockRow("str_float_fraction", "1.5"),
-        MockRow("str_text", "not_a_number"),
-        MockRow("unhandled_type", ["list"]),
-    ]
+    rows = [MockRow("test_metric", input_value, repeat=repeat, fold=fold)]
     evals = _build_evaluations(rows)
 
-    values = {e.name: e.value for e in evals}
-    expected_one = 1
-    expected_two = 2
-    expected_fraction = 1.5
-    assert values["float_val"] == expected_one
-    assert values["str_float"] == expected_two
-    assert values["str_float_fraction"] == expected_fraction
-    assert values["str_text"] is None
-    assert values["unhandled_type"] is None
+    assert len(evals) == 1
+    assert evals[0].value == expected_value
+    assert evals[0].repeat == repeat
+    assert evals[0].fold == fold

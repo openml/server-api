@@ -164,6 +164,8 @@ def _build_evaluations(rows: list["Row"]) -> list[EvaluationScore]:
             name=row.name,
             value=_normalise_value(row.value),
             array_data=row.array_data,
+            repeat=getattr(row, "repeat", None),
+            fold=getattr(row, "fold", None),
         )
         for row in rows
     ]

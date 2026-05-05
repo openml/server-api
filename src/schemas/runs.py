@@ -67,11 +67,14 @@ class EvaluationScore(BaseModel):
     Sourced from a JOIN of `evaluation` and `math_function`.
     `array_data` holds per-fold/per-class breakdowns when available;
     `value` holds the aggregate scalar.
+    `repeat` and `fold` are present for per-fold metrics.
     """
 
     name: str
     value: float | int | None  # whole numbers returned as int to match PHP
     array_data: str | None
+    repeat: int | None = None
+    fold: int | None = None
 
 
 class OutputData(BaseModel):

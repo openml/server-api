@@ -117,11 +117,17 @@ async def get_evaluations(
 
     query = text(
         """
-        SELECT `m`.`name`, `e`.`value`, `e`.`array_data`
+        SELECT `m`.`name`, `e`.`value`, `e`.`array_data`, NULL as `repeat`, NULL as `fold`
         FROM `evaluation` `e`
         JOIN `math_function` `m` ON `e`.`function_id` = `m`.`id`
         WHERE `e`.`source` = :run_id
           AND `e`.`evaluation_engine_id` IN :engine_ids
+        UNION ALL
+        SELECT `m`.`name`, `ef`.`value`, `ef`.`array_data`, `ef`.`repeat`, `ef`.`fold`
+        FROM `evaluation_fold` `ef`
+        JOIN `math_function` `m` ON `ef`.`function_id` = `m`.`id`
+        WHERE `ef`.`source` = :run_id
+          AND `ef`.`evaluation_engine_id` IN :engine_ids
         """,
     ).bindparams(bindparam("engine_ids", expanding=True))
     rows = await expdb.execute(
