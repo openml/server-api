@@ -33,15 +33,27 @@ async def get_user(
     user_id: int | None = None,
 ) -> "User | None":
     """Fetch the full user by either api_key or user_id."""
+    if (api_key is None) == (user_id is None):
+        msg = "Exactly one of api_key or user_id must be provided."
+        raise ValueError(msg)
+
+    if api_key is not None:
+        query = """
+        SELECT id, first_name, last_name
+        FROM users
+        WHERE session_hash = :api_key
+        LIMIT 1
+        """
+    else:
+        query = """
+        SELECT id, first_name, last_name
+        FROM users
+        WHERE id = :user_id
+        LIMIT 1
+        """
+
     result = await connection.execute(
-        text(
-            """
-    SELECT id, first_name, last_name
-    FROM users
-    WHERE session_hash = :api_key OR id = :user_id
-    LIMIT 1
-    """,
-        ),
+        text(query),
         parameters={"api_key": api_key, "user_id": user_id},
     )
     row = result.one_or_none()
@@ -81,7 +93,7 @@ class User:
     @property
     def full_name(self) -> str:
         """Return the combined first and last name."""
-        return f"{self.first_name} {self.last_name}"
+        return " ".join(part for part in [self.first_name, self.last_name] if part)
 
     @classmethod
     async def fetch(cls, api_key: APIKey, user_db: AsyncConnection) -> Self | None:
