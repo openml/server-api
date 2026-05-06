@@ -18,22 +18,7 @@ OPENML_DB_PASSWORD_ENV = "OPENML_DATABASES_OPENML_PASSWORD"  # noqa: S105  # not
 EXPDB_DB_USERNAME_ENV = "OPENML_DATABASES_EXPDB_USERNAME"
 EXPDB_DB_PASSWORD_ENV = "OPENML_DATABASES_EXPDB_PASSWORD"  # noqa: S105  # not a password
 
-_config_directory = Path(os.getenv(CONFIG_DIRECTORY_ENV, Path(__file__).parent))
-_config_directory = _config_directory.expanduser().absolute()
-_config_file = Path(os.getenv(CONFIG_FILE_ENV, _config_directory / "config.toml"))
-_config_file = _config_file.expanduser().absolute()
-_dotenv_file = Path(os.getenv(DOTENV_FILE_ENV, _config_directory / ".env"))
-_dotenv_file = _dotenv_file.expanduser().absolute()
-
-
-logger.info(
-    "Determined configuration sources.",
-    configuration_directory=_config_directory,
-    configuration_file=_config_file,
-    dotenv_file=_dotenv_file,
-)
-
-load_dotenv(dotenv_path=_dotenv_file)
+_config_file: Path | None = None
 
 
 def _apply_defaults_to_siblings(configuration: TomlTable) -> TomlTable:
@@ -51,12 +36,12 @@ def _load_configuration(file: Path) -> TomlTable:
 
 
 def load_routing_configuration(file: Path = _config_file) -> TomlTable:
-    return typing.cast("TomlTable", _load_configuration(file)["routing"])
+    return typing.cast("TomlTable", load_configuration(configuration_file=file)["routing"])
 
 
 @functools.cache
 def load_database_configuration(file: Path = _config_file) -> TomlTable:
-    configuration = _load_configuration(file)
+    configuration = load_configuration(configuration_file=file)
     database_configuration = _apply_defaults_to_siblings(
         configuration["databases"],
     )
@@ -79,6 +64,37 @@ def load_database_configuration(file: Path = _config_file) -> TomlTable:
     return database_configuration
 
 
-def load_configuration(file: Path | None = None) -> TomlTable:
-    file = file or _config_file
-    return tomllib.loads(file.read_text())
+def load_configuration(
+    dotenv_file: Path | None = None, configuration_file: Path | None = None
+) -> None:
+    """Load configuration from file and environment variables."""
+    _config_directory = Path(os.getenv(CONFIG_DIRECTORY_ENV, Path(__file__).parent))
+    _config_directory = _config_directory.expanduser().absolute()
+    logger.info(
+        "Determined configuration directory to be {configuration_directory}.",
+        configuration_directory=_config_directory,
+    )
+
+    if not dotenv_file:
+        dotenv_filepath = os.getenv(DOTENV_FILE_ENV, _config_directory / ".env")
+        dotenv_file = Path(dotenv_filepath).expanduser().absolute()
+
+    logger.info(
+        "Determined dotenv file path to be {dotenv_file}.",
+        dotenv_file=dotenv_file,
+    )
+    load_dotenv(dotenv_file)
+
+    if not configuration_file:
+        config_filepath = os.getenv(CONFIG_FILE_ENV, _config_directory / "config.toml")
+        configuration_file = Path(config_filepath).expanduser().absolute()
+
+    logger.info(
+        "Determined config file path to be {config_file}.",
+        config_file=configuration_file,
+    )
+
+    global _config_file
+    _config_file = configuration_file
+
+    return tomllib.loads(configuration_file.read_text())

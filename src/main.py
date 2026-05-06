@@ -80,7 +80,7 @@ def create_api(configuration_file: Path | None = None) -> FastAPI:
     setup_sink = logger.add(sys.stderr, serialize=True)
     setup_log_sinks(configuration_file)
 
-    fastapi_kwargs = load_configuration(configuration_file)["fastapi"]
+    fastapi_kwargs = load_configuration(configuration_file=configuration_file)["fastapi"]
     logger.info("Creating FastAPI App", lifespan=lifespan, **fastapi_kwargs)
     app = FastAPI(**fastapi_kwargs, lifespan=lifespan)
 
