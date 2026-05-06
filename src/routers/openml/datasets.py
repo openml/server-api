@@ -366,7 +366,7 @@ async def update_dataset_status(
         raise DatasetAdminOnlyError(msg)
 
     current_status = await database.datasets.get_status(dataset_id, expdb)
-    if current_status and current_status.status == status:
+    if current_status == status:
         msg = f"Illegal status transition, requested status {status} matches current status."
         raise DatasetStatusTransitionError(msg)
 
@@ -376,14 +376,14 @@ async def update_dataset_status(
     #  - in preparation => deactivated  (add a row)
     #  - active => deactivated  (add a row)
     #  - deactivated => active  (delete a row)
-    if current_status is None or status == DatasetStatus.DEACTIVATED:
+    if current_status == DatasetStatus.IN_PREPARATION or status == DatasetStatus.DEACTIVATED:
         await database.datasets.update_status(
             dataset_id,
             status,
             user_id=user.user_id,
             connection=expdb,
         )
-    elif current_status.status == DatasetStatus.DEACTIVATED:
+    elif current_status == DatasetStatus.DEACTIVATED:
         await database.datasets.remove_deactivated_status(dataset_id, expdb)
     else:
         msg = f"Unknown status transition: {current_status} -> {status}"
@@ -392,7 +392,7 @@ async def update_dataset_status(
     logger.info(
         "Dataset {dataset_id} changed from {previous} to {current}",
         dataset_id=dataset_id,
-        previous=current_status.status if current_status else DatasetStatus.IN_PREPARATION,
+        previous=current_status,
         current=status,
     )
     return {"dataset_id": dataset_id, "status": status}
@@ -427,8 +427,6 @@ async def get_dataset(
         database.datasets.get_status(dataset_id, expdb_db),
     )
 
-    status_ = DatasetStatus(status.status) if status else DatasetStatus.IN_PREPARATION
-
     description_ = ""
     if description:
         description_ = description.description.replace("\r", "").strip()
@@ -446,7 +444,7 @@ async def get_dataset(
     return DatasetMetadata(
         id=dataset.did,
         visibility=dataset.visibility,
-        status=status_,
+        status=status,
         name=dataset.name,
         licence=dataset.licence,
         version=dataset.version,
