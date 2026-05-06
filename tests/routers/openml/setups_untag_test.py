@@ -3,15 +3,18 @@ import re
 from collections.abc import Callable
 from contextlib import AbstractAsyncContextManager
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
-import httpx
 import pytest
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 from core.errors import SetupNotFoundError, TagNotFoundError, TagNotOwnedError
 from routers.openml.setups import untag_setup
 from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
+
+if TYPE_CHECKING:
+    import httpx
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def test_setup_untag_missing_auth(py_api: httpx.AsyncClient) -> None:
@@ -144,7 +147,7 @@ async def test_setup_untag_response_is_identical_when_tag_exists(
     tag = "totally_new_tag_for_migration_testing"
 
     all_tags = [tag, *other_tags]
-    async with temporary_tags(tags=all_tags, setup_id=setup_id, persist=True):
+    async with temporary_tags(table="setup_tag", tags=all_tags, identifier=setup_id, persist=True):
         php_response = await php_api.post(
             "/setup/untag",
             data={"api_key": api_key, "tag": tag, "setup_id": setup_id},
@@ -152,7 +155,7 @@ async def test_setup_untag_response_is_identical_when_tag_exists(
 
     # expdb_test transaction shared with Python API,
     # no commit needed and rolled back at the end of the test
-    async with temporary_tags(tags=all_tags, setup_id=setup_id):
+    async with temporary_tags(table="setup_tag", tags=all_tags, identifier=setup_id):
         py_response = await py_api.post(
             f"/setup/untag?api_key={api_key}",
             json={"setup_id": setup_id, "tag": tag},

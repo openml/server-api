@@ -2,21 +2,29 @@ import asyncio
 import json
 import re
 from enum import StrEnum
-from typing import Annotated, Any, cast
+from typing import TYPE_CHECKING, Annotated, Any, cast
 
 import xmltodict
 from fastapi import APIRouter, Body, Depends
 from sqlalchemy import bindparam, text
-from sqlalchemy.engine import RowMapping
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 import config
 import database.datasets
 import database.tasks
 from core.errors import InternalError, NoResultsError, TaskNotFoundError
 from routers.dependencies import Pagination, expdb_connection
-from routers.types import CasualString128, IntegerRange, SystemString64, integer_range_regex
+from routers.types import (
+    CasualString128,
+    Identifier,
+    IntegerRange,
+    SystemString64,
+    integer_range_regex,
+)
 from schemas.datasets.openml import Task
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine import RowMapping
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -221,23 +229,23 @@ def _quality_clause(quality: str, range_: str | None) -> str:
 @router.get(path="/list")
 async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
-    task_type_id: Annotated[int | None, Body(description="Filter by task type id.")] = None,
-    tag: Annotated[str | None, SystemString64] = None,
-    data_tag: Annotated[str | None, SystemString64] = None,
+    task_type_id: Annotated[Identifier | None, Body(description="Filter by task type id.")] = None,
+    tag: Annotated[SystemString64 | None, Body()] = None,
+    data_tag: Annotated[SystemString64 | None, Body()] = None,
     status: Annotated[TaskStatusFilter, Body()] = TaskStatusFilter.ACTIVE,
     task_id: Annotated[
-        list[int] | None,
+        list[Identifier] | None,
         Body(description="Filter by task id(s).", min_length=1),
     ] = None,
     data_id: Annotated[
-        list[int] | None,
+        list[Identifier] | None,
         Body(description="Filter by dataset id(s).", min_length=1),
     ] = None,
-    data_name: Annotated[str | None, CasualString128] = None,
-    number_instances: Annotated[str | None, IntegerRange] = None,
-    number_features: Annotated[str | None, IntegerRange] = None,
-    number_classes: Annotated[str | None, IntegerRange] = None,
-    number_missing_values: Annotated[str | None, IntegerRange] = None,
+    data_name: Annotated[CasualString128 | None, Body()] = None,
+    number_instances: Annotated[IntegerRange | None, Body()] = None,
+    number_features: Annotated[IntegerRange | None, Body()] = None,
+    number_classes: Annotated[IntegerRange | None, Body()] = None,
+    number_missing_values: Annotated[IntegerRange | None, Body()] = None,
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> list[dict[str, Any]]:
     """List tasks, optionally filtered by type, tag, status, dataset properties, and more."""

@@ -1,9 +1,8 @@
 import re
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
-import httpx
 import pytest
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 from core.conversions import nested_remove_single_element_list
 from core.errors import DatasetNotFoundError, TagAlreadyExistsError
@@ -12,6 +11,10 @@ from database.users import User
 from routers.openml.datasets import tag_dataset
 from tests import constants
 from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
+
+if TYPE_CHECKING:
+    import httpx
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 @pytest.mark.parametrize(

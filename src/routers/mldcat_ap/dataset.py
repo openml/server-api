@@ -5,10 +5,9 @@ Specific queries could be written to fetch e.g., a single feature or quality.
 """
 
 import asyncio
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 import config
 from core.errors import ServiceNotFoundError
@@ -27,6 +26,9 @@ from schemas.datasets.mldcat_ap import (
     MD5Checksum,
     Quality,
 )
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 router = APIRouter(prefix="/mldcat_ap", tags=["MLDCAT-AP"])
 _configuration = config.load_configuration()

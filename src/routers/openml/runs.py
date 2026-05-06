@@ -1,21 +1,24 @@
 """Endpoints for run-related data."""
 
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 import database.runs
 from core.errors import RunNotFoundError, RunTraceNotFoundError
 from routers.dependencies import expdb_connection
+from routers.types import Identifier
 from schemas.runs import RunTrace, TraceIteration
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 router = APIRouter(prefix="/run", tags=["run"])
 
 
 @router.get("/trace/{run_id}")
 async def get_run_trace(
-    run_id: int,
+    run_id: Identifier,
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> RunTrace:
     """Get trace data for a run by run ID."""

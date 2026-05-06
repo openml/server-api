@@ -2,11 +2,10 @@
 
 import datetime
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
 from sqlalchemy import text
-from sqlalchemy.engine import Row
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 from database.exceptions import (
     _DUPLICATE_ENTRY,
@@ -15,6 +14,10 @@ from database.exceptions import (
     ForeignKeyConstraintError,
 )
 from schemas.datasets.openml import Feature
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine import Row
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def get(id_: int, connection: AsyncConnection) -> Row | None:
@@ -43,6 +46,33 @@ async def get_file(*, file_id: int, connection: AsyncConnection) -> Row | None:
         parameters={"file_id": file_id},
     )
     return row.one_or_none()
+
+
+async def get_tag(dataset_id: int, tag: str, connection: AsyncConnection) -> Row | None:
+    return (
+        await connection.execute(
+            text(
+                """
+    SELECT *
+    FROM dataset_tag
+    WHERE id = :dataset_id AND tag = :tag
+    """,
+            ),
+            parameters={"dataset_id": dataset_id, "tag": tag},
+        )
+    ).first()
+
+
+async def delete_tag(dataset_id: int, tag: str, connection: AsyncConnection) -> None:
+    await connection.execute(
+        text(
+            """
+    DELETE FROM dataset_tag
+    WHERE id = :dataset_id AND tag = :tag
+    """,
+        ),
+        parameters={"dataset_id": dataset_id, "tag": tag},
+    )
 
 
 async def get_tags_for(id_: int, connection: AsyncConnection) -> list[str]:

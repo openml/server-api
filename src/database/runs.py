@@ -1,10 +1,12 @@
 """Database queries for run-related data."""
 
 from collections.abc import Sequence
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import Row, text
-from sqlalchemy.ext.asyncio import AsyncConnection
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def exist(id_: int, expdb: AsyncConnection) -> bool:

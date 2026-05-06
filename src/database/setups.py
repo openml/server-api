@@ -1,8 +1,12 @@
 """All database operations that directly operate on setups."""
 
+from typing import TYPE_CHECKING
+
 from sqlalchemy import text
-from sqlalchemy.engine import Row, RowMapping
-from sqlalchemy.ext.asyncio import AsyncConnection
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine import Row, RowMapping
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def get(setup_id: int, connection: AsyncConnection) -> Row | None:

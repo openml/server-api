@@ -1,15 +1,18 @@
 import asyncio
 import re
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
-import httpx
 import pytest
-from pytest_mock import MockerFixture
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 from core.errors import FlowNotFoundError
 from routers.openml.flows import flow_exists
 from tests.conftest import Flow
+
+if TYPE_CHECKING:
+    import httpx
+    from pytest_mock import MockerFixture
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def test_flow_exists(flow: Flow, py_api: httpx.AsyncClient) -> None:

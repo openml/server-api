@@ -3,15 +3,18 @@ import re
 from collections.abc import Callable
 from contextlib import AbstractAsyncContextManager
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
-import httpx
 import pytest
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 from core.errors import SetupNotFoundError, TagAlreadyExistsError
 from routers.openml.setups import tag_setup
 from tests.users import SOME_USER, ApiKey
+
+if TYPE_CHECKING:
+    import httpx
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def test_setup_tag_missing_auth(py_api: httpx.AsyncClient) -> None:
@@ -111,7 +114,9 @@ async def test_setup_tag_response_is_identical_when_tag_doesnt_exist(  # noqa: P
     setup_id = 1
     tag = "totally_new_tag_for_migration_testing"
 
-    async with temporary_tags(tags=other_tags, setup_id=setup_id, persist=True):
+    async with temporary_tags(
+        table="setup_tag", tags=other_tags, identifier=setup_id, persist=True
+    ):
         php_response = await php_api.post(
             "/setup/tag",
             data={"api_key": api_key, "tag": tag, "setup_id": setup_id},
@@ -123,7 +128,7 @@ async def test_setup_tag_response_is_identical_when_tag_doesnt_exist(  # noqa: P
         )
         await expdb_test.commit()
 
-    async with temporary_tags(tags=other_tags, setup_id=setup_id):
+    async with temporary_tags(table="setup_tag", tags=other_tags, identifier=setup_id):
         py_response = await py_api.post(
             f"/setup/tag?api_key={api_key}",
             json={"setup_id": setup_id, "tag": tag},
@@ -182,7 +187,7 @@ async def test_setup_tag_response_is_identical_tag_already_exists(
     tag = "totally_new_tag_for_migration_testing"
     api_key = ApiKey.SOME_USER
 
-    async with temporary_tags(tags=[tag], setup_id=setup_id, persist=True):
+    async with temporary_tags(table="setup_tag", tags=[tag], identifier=setup_id, persist=True):
         # Both APIs can be tested in parallel since the tag is already persisted
         php_response, py_response = await asyncio.gather(
             php_api.post(

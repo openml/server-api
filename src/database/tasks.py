@@ -1,8 +1,10 @@
 from collections.abc import Sequence
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import Row, text
-from sqlalchemy.ext.asyncio import AsyncConnection
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def get(id_: int, expdb: AsyncConnection) -> Row | None:

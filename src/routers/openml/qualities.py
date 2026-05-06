@@ -1,7 +1,6 @@
-from typing import Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 import database.datasets
 import database.qualities
@@ -14,7 +13,11 @@ from core.errors import (
 )
 from database.users import User
 from routers.dependencies import expdb_connection, fetch_user
+from routers.types import Identifier
 from schemas.datasets.openml import Quality
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 
@@ -33,7 +36,7 @@ async def list_qualities(
 
 @router.get("/qualities/{dataset_id}")
 async def get_qualities(
-    dataset_id: int,
+    dataset_id: Identifier,
     user: Annotated[User | None, Depends(fetch_user)],
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> list[Quality]:

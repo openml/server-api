@@ -1,9 +1,11 @@
 import html
-
-from sqlalchemy.engine import Row
+from typing import TYPE_CHECKING
 
 from config import load_routing_configuration
 from schemas.datasets.openml import DatasetFileFormat
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine import Row
 
 
 def _str_to_bool(string: str) -> bool:
