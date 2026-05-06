@@ -15,10 +15,6 @@ CONFIG_DIRECTORY_ENV = "OPENML_REST_API_CONFIG_DIRECTORY"
 CONFIG_FILE_ENV = "OPENML_REST_API_CONFIG_FILE"
 DOTENV_FILE_ENV = "OPENML_REST_API_DOTENV_FILE"
 
-OPENML_DB_USERNAME_ENV = "OPENML_DATABASES_OPENML_USERNAME"
-OPENML_DB_PASSWORD_ENV = "OPENML_DATABASES_OPENML_PASSWORD"  # noqa: S105  # not a password
-EXPDB_DB_USERNAME_ENV = "OPENML_DATABASES_EXPDB_USERNAME"
-EXPDB_DB_PASSWORD_ENV = "OPENML_DATABASES_EXPDB_PASSWORD"  # noqa: S105  # not a password
 
 _config_file: Path | None = None
 
@@ -29,9 +25,13 @@ class DatabaseConfiguration(BaseModel, frozen=True):
     host: str = Field(default="database", description="Database server host name")
     port: int = Field(default=3306, gt=0)
     database: str = Field(description="Database name")
-    user: str = Field(default="root")
+    username: str = Field(default="root")
     password: str = Field(default="ok")
-    driver_name: str = Field(
+    echo: bool = Field(
+        default=False,
+        description="https://docs.sqlalchemy.org/en/20/core/engines.html#sqlalchemy.create_engine.params.echo",
+    )
+    drivername: str = Field(
         default="mysql+aiomysql",
         description="SQLAlchemy `dialect` and `driver`: https://docs.sqlalchemy.org/en/20/dialects/index.html",
     )
@@ -66,15 +66,6 @@ class LoggingConfiguration(BaseModel, frozen=True):
     compression: str = Field(default="gz")
 
 
-def _apply_defaults_to_siblings(configuration: TomlTable) -> TomlTable:
-    defaults = configuration["defaults"]
-    return {
-        subtable: (defaults | overrides) if isinstance(overrides, dict) else overrides
-        for subtable, overrides in configuration.items()
-        if subtable != "defaults"
-    }
-
-
 @functools.cache
 def _load_configuration(file: Path) -> TomlTable:
     return tomllib.loads(file.read_text())
@@ -85,28 +76,24 @@ def load_routing_configuration(file: Path = _config_file) -> TomlTable:
 
 
 @functools.cache
-def load_database_configuration(file: Path = _config_file) -> TomlTable:
+def load_database_configuration(file: Path = _config_file) -> dict[str, DatabaseConfiguration]:
     configuration = load_configuration(configuration_file=file)
-    database_configuration = _apply_defaults_to_siblings(
-        configuration["databases"],
-    )
-    database_configuration["openml"]["username"] = os.environ.get(
-        OPENML_DB_USERNAME_ENV,
-        "root",
-    )
-    database_configuration["openml"]["password"] = os.environ.get(
-        OPENML_DB_PASSWORD_ENV,
-        "ok",
-    )
-    database_configuration["expdb"]["username"] = os.environ.get(
-        EXPDB_DB_USERNAME_ENV,
-        "root",
-    )
-    database_configuration["expdb"]["password"] = os.environ.get(
-        EXPDB_DB_PASSWORD_ENV,
-        "ok",
-    )
-    return database_configuration
+
+    database_configurations = {}
+    for db_alias, db_configuration in configuration["databases"].items():
+        credentials = {
+            "username": os.environ.get(
+                f"OPENML_DATABASES_{db_alias.upper()}_USERNAME",
+                "root",
+            ),
+            "password": os.environ.get(
+                f"OPENML_DATABASES_{db_alias.upper()}_PASSWORD",
+                "ok",
+            ),
+        }
+        database_configurations[db_alias] = DatabaseConfiguration(**db_configuration, **credentials)
+
+    return database_configurations
 
 
 def load_configuration(

@@ -9,13 +9,17 @@ _expdb_engine = None
 
 def _create_engine(database_name: str) -> AsyncEngine:
     database_configuration = load_database_configuration()
-    db_config = dict(database_configuration[database_name])
-    echo = db_config.pop("echo", False)
-
-    db_url = URL.create(**db_config)
+    db_config = database_configuration[database_name]
+    db_url = URL.create(
+        drivername=db_config.drivername,
+        username=db_config.username,
+        password=db_config.password,
+        host=db_config.host,
+        database=db_config.database,
+    )
     return create_async_engine(
         db_url,
-        echo=echo,
+        echo=db_config.echo,
         pool_recycle=3600,
     )
 

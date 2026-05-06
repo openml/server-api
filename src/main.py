@@ -80,9 +80,9 @@ def create_api(configuration_file: Path | None = None) -> FastAPI:
     setup_sink = logger.add(sys.stderr, serialize=True)
     setup_log_sinks(configuration_file)
 
-    fastapi_kwargs = load_configuration(configuration_file=configuration_file)["fastapi"]
-    logger.info("Creating FastAPI App", lifespan=lifespan, **fastapi_kwargs)
-    app = FastAPI(**fastapi_kwargs, lifespan=lifespan)
+    root_path = load_configuration(configuration_file=configuration_file)["routing"]["root_path"]
+    logger.info("Creating FastAPI App", lifespan=lifespan, root_path=root_path)
+    app = FastAPI(lifespan=lifespan, root_path=root_path)
 
     logger.info("Setting up middleware and exception handlers.")
     # Order matters! Each added middleware wraps the previous, creating a stack.

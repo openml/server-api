@@ -32,9 +32,7 @@ if TYPE_CHECKING:
 
 router = APIRouter(prefix="/mldcat_ap", tags=["MLDCAT-AP"])
 _configuration = config.load_configuration()
-_server_url = (
-    f"{_configuration['server_url']}{_configuration['fastapi']['root_path']}{router.prefix}"
-)
+_server_url = f"{_configuration['routing']['server_url']}{_configuration['routing']['root_path']}{router.prefix}"
 
 
 @router.get(
