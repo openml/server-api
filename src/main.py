@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from loguru import logger
 
-from config import load_configuration
+from config import get_config, load_set_configuration
 from core.errors import (
     ProblemDetailError,
     problem_detail_exception_handler,
@@ -78,9 +78,10 @@ def create_api(configuration_file: Path | None = None) -> FastAPI:
     # Default logging configuration so we have logs during setup
     logger.remove()
     setup_sink = logger.add(sys.stderr, serialize=True)
-    setup_log_sinks(configuration_file)
+    load_set_configuration(configuration_file=configuration_file)
+    setup_log_sinks(*get_config().logging)
 
-    root_path = load_configuration(configuration_file=configuration_file)["routing"]["root_path"]
+    root_path = get_config().routing.root_path
     logger.info("Creating FastAPI App", lifespan=lifespan, root_path=root_path)
     app = FastAPI(lifespan=lifespan, root_path=root_path)
 

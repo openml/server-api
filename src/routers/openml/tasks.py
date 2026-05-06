@@ -8,9 +8,9 @@ import xmltodict
 from fastapi import APIRouter, Body, Depends
 from sqlalchemy import bindparam, text
 
-import config
 import database.datasets
 import database.tasks
+from config import get_config
 from core.errors import InternalError, NoResultsError, TaskNotFoundError
 from routers.dependencies import Pagination, expdb_connection
 from routers.types import (
@@ -165,7 +165,8 @@ async def _fill_json_template(  # noqa: C901
     # I believe that the operations below are always part of string output, so
     # we don't need to be careful to avoid losing typedness
     template = template.replace("[TASK:id]", str(task.task_id))
-    server_url = config.load_routing_configuration()["server_url"]
+    url = get_config().routing.server_url
+    server_url = f"{url.scheme}://{url.host}:{url.port}/"
     return template.replace("[CONSTANT:base_url]", server_url)
 
 

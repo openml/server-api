@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Annotated, Self
 from pydantic import StringConstraints
 from sqlalchemy import text
 
-from config import load_configuration
+from config import get_config
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 # If `allow_test_api_keys` is set, the key may also be one of `normaluser`,
 # `normaluser2`, or `abc` (admin).
 api_key_pattern = r"^[0-9a-fA-F]{32}$"
-if load_configuration().get("development", {}).get("allow_test_api_keys"):
+if get_config().development.allow_test_api_keys:
     api_key_pattern = r"^([0-9a-fA-F]{32}|normaluser|normaluser2|abc)$"
 
 APIKey = Annotated[

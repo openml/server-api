@@ -1,15 +1,13 @@
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
-from config import load_database_configuration
+from config import DatabaseConfiguration, get_config
 
 _user_engine = None
 _expdb_engine = None
 
 
-def _create_engine(database_name: str) -> AsyncEngine:
-    database_configuration = load_database_configuration()
-    db_config = database_configuration[database_name]
+def _create_engine(db_config: DatabaseConfiguration) -> AsyncEngine:
     db_url = URL.create(
         drivername=db_config.drivername,
         username=db_config.username,
@@ -27,14 +25,14 @@ def _create_engine(database_name: str) -> AsyncEngine:
 def user_database() -> AsyncEngine:
     global _user_engine  # noqa: PLW0603
     if _user_engine is None:
-        _user_engine = _create_engine("openml")
+        _user_engine = _create_engine(get_config().openml_database)
     return _user_engine
 
 
 def expdb_database() -> AsyncEngine:
     global _expdb_engine  # noqa: PLW0603
     if _expdb_engine is None:
-        _expdb_engine = _create_engine("expdb")
+        _expdb_engine = _create_engine(get_config().expdb_database)
     return _expdb_engine
 
 

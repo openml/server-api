@@ -31,8 +31,10 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection
 
 router = APIRouter(prefix="/mldcat_ap", tags=["MLDCAT-AP"])
-_configuration = config.load_configuration()
-_server_url = f"{_configuration['routing']['server_url']}{_configuration['routing']['root_path']}{router.prefix}"
+_routing_configuration = config.get_config().routing
+_server_url = (
+    f"{_routing_configuration.server_url}{_routing_configuration.root_path}{router.prefix}"
+)
 
 
 @router.get(

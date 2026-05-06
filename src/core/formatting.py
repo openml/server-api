@@ -1,7 +1,7 @@
 import html
 from typing import TYPE_CHECKING
 
-from config import load_routing_configuration
+from config import get_config
 from schemas.datasets.openml import DatasetFileFormat
 
 if TYPE_CHECKING:
@@ -21,14 +21,14 @@ def _format_parquet_url(dataset: Row) -> str | None:
     if dataset.format.lower() != DatasetFileFormat.ARFF:
         return None
 
-    minio_base_url = load_routing_configuration()["minio_url"]
+    minio_base_url = get_config().routing.minio_url
     ten_thousands_prefix = f"{dataset.did // 10_000:04d}"
     padded_id = f"{dataset.did:04d}"
     return f"{minio_base_url}datasets/{ten_thousands_prefix}/{padded_id}/dataset_{dataset.did}.pq"
 
 
 def _format_dataset_url(dataset: Row) -> str:
-    base_url = load_routing_configuration()["server_url"]
+    base_url = get_config().routing.server_url
     filename = f"{html.escape(dataset.name)}.{dataset.format.lower()}"
     return f"{base_url}data/v1/download/{dataset.file_id}/{filename}"
 
