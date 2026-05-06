@@ -103,13 +103,13 @@ async def get_description(
     return row.first()
 
 
-async def get_status(id_: int, connection: AsyncConnection) -> Row | None:
+async def get_status(id_: int, connection: AsyncConnection) -> DatasetStatus:
     """Get most recent status for the dataset."""
     row = (
         await connection.execute(
             text(
                 """
-    SELECT *
+    SELECT status
     FROM dataset_status
     WHERE did = :dataset_id
     ORDER BY status_date DESC
