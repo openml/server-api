@@ -13,7 +13,7 @@ from database.exceptions import (
     DuplicatePrimaryKeyError,
     ForeignKeyConstraintError,
 )
-from schemas.datasets.openml import Feature
+from schemas.datasets.openml import DatasetStatus, Feature
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Row
@@ -133,20 +133,23 @@ async def get_description(
     return row.first()
 
 
-async def get_status(id_: int, connection: AsyncConnection) -> Row | None:
+async def get_status(id_: int, connection: AsyncConnection) -> DatasetStatus:
     """Get most recent status for the dataset."""
-    row = await connection.execute(
-        text(
-            """
-    SELECT *
+    row = (
+        await connection.execute(
+            text(
+                """
+    SELECT status
     FROM dataset_status
     WHERE did = :dataset_id
     ORDER BY status_date DESC
+    LIMIT 1
     """,
-        ),
-        parameters={"dataset_id": id_},
-    )
-    return row.first()
+            ),
+            parameters={"dataset_id": id_},
+        )
+    ).first()
+    return DatasetStatus(row.status) if row else DatasetStatus.IN_PREPARATION
 
 
 async def get_latest_processing_update(dataset_id: int, connection: AsyncConnection) -> Row | None:
