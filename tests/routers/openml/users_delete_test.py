@@ -4,12 +4,12 @@ import uuid
 from http import HTTPStatus
 from typing import NamedTuple
 
-import httpx
+import httpx  # noqa: TC002 used at runtime by pytest fixtures
 import pytest
-import pytest_mock
+import pytest_mock  # noqa: TC002 used at runtime by pytest fixtures
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.ext.asyncio import AsyncConnection  # noqa: TC002 used at runtime by pytest fixtures
 
 from core.errors import AccountHasResourcesError, ForbiddenError, UserNotFoundError
 from database.users import UserGroup

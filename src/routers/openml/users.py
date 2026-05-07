@@ -6,7 +6,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path, Response
 from loguru import logger
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.ext.asyncio import AsyncConnection  # noqa: TC002 used at runtime by FastAPI Depends
 
 import database.users
 from core.errors import AccountHasResourcesError, ForbiddenError, UserNotFoundError
