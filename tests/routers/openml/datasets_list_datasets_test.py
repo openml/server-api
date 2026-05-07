@@ -2,7 +2,7 @@ import asyncio
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Any
 
-import httpx
+import httpx  # noqa: TC002  is used in a function signature inspected at runtime
 import hypothesis
 import pytest
 from hypothesis import given
