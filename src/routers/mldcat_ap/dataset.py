@@ -5,6 +5,7 @@ Specific queries could be written to fetch e.g., a single feature or quality.
 """
 
 import asyncio
+import functools
 from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -31,10 +32,12 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection
 
 router = APIRouter(prefix="/mldcat_ap", tags=["MLDCAT-AP"])
-_routing_configuration = config.get_config().routing
-_server_url = (
-    f"{_routing_configuration.server_url}{_routing_configuration.root_path}{router.prefix}"
-)
+
+
+@functools.cache
+def _server_url() -> str:
+    _routing_configuration = config.get_config().routing
+    return f"{_routing_configuration.server_url}{_routing_configuration.root_path}{router.prefix}"
 
 
 @router.get(
