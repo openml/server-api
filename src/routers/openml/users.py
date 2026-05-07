@@ -1,5 +1,6 @@
 """User account HTTP endpoints."""
 
+from http import HTTPStatus
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path, Response
@@ -23,11 +24,13 @@ router = APIRouter(prefix="/users", tags=["users"])
 @router.delete(
     "/{user_id}",
     responses={
-        204: {"description": "User account deleted."},
-        401: {"description": "Authentication failed or missing."},
-        403: {"description": "Not allowed to delete this account."},
-        404: {"description": "User id not found."},
-        409: {"description": "User still has datasets, flows, runs, or studies."},
+        HTTPStatus.NO_CONTENT: {"description": "User account deleted."},
+        HTTPStatus.UNAUTHORIZED: {"description": "Authentication failed or missing."},
+        HTTPStatus.FORBIDDEN: {"description": "Not allowed to delete this account."},
+        HTTPStatus.NOT_FOUND: {"description": "User id not found."},
+        HTTPStatus.CONFLICT: {
+            "description": "User still has datasets, flows, runs, or studies.",
+        },
     },
 )
 async def delete_user_account(
@@ -42,6 +45,8 @@ async def delete_user_account(
     datasets, tasks, or tags). Users may only delete their own account.
     Administrators may delete any account that satisfies the no-resources rule.
     """
+    # How to handle users that do have associated resources is an ongoing discussion,
+    # see also: https://github.com/openml/server-api/issues/194
     if current_user.user_id != user_id and not await current_user.is_admin():
         msg = "You may only delete your own user account."
         raise ForbiddenError(msg)
@@ -63,4 +68,4 @@ async def delete_user_account(
         raise AccountHasResourcesError(_ACCOUNT_HAS_RESOURCES_MSG) from exc
 
     logger.info("User account {user_id} was removed.", user_id=user_id)
-    return Response(status_code=204)
+    return Response(status_code=HTTPStatus.NO_CONTENT)

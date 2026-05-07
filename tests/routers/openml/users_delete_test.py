@@ -1,7 +1,6 @@
-"""Tests for DELETE /users/{user_id} (Phase 1: no resources, self or admin)."""
+"""Tests for DELETE /users/{user_id}."""
 
 import uuid
-from collections.abc import AsyncGenerator
 from http import HTTPStatus
 from typing import NamedTuple
 
@@ -15,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection
 from core.errors import AccountHasResourcesError, ForbiddenError, UserNotFoundError
 from database.users import UserGroup
 from routers.openml.users import delete_user_account
-from tests.users import ADMIN_USER, SOME_USER, ApiKey
+from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
 
 
 async def test_delete_user_missing_auth(py_api: httpx.AsyncClient) -> None:
@@ -32,7 +31,7 @@ class DisposableUser(NamedTuple):
 
 
 @pytest.fixture
-async def disposable_user(user_test: AsyncConnection) -> AsyncGenerator[DisposableUser]:
+async def disposable_user(user_test: AsyncConnection) -> DisposableUser:
     api_key = uuid.uuid4().hex
     suffix = uuid.uuid4().hex[:10]
     username = f"tmp_user_{suffix}"
@@ -58,15 +57,9 @@ async def disposable_user(user_test: AsyncConnection) -> AsyncGenerator[Disposab
         text("INSERT INTO users_groups (user_id, group_id) VALUES (:uid, :gid)"),
         parameters={"uid": new_id, "gid": UserGroup.READ_WRITE.value},
     )
-    yield DisposableUser(user_id=new_id, api_key=api_key)
-    await user_test.execute(
-        text("DELETE FROM users_groups WHERE user_id = :uid"),
-        parameters={"uid": new_id},
-    )
-    await user_test.execute(
-        text("DELETE FROM users WHERE id = :uid"),
-        parameters={"uid": new_id},
-    )
+    return DisposableUser(user_id=new_id, api_key=api_key)
+    # No explicit teardown: the ``user_test`` fixture rolls back at the end
+    # of the test, which removes the rows inserted above.
 
 
 @pytest.mark.mut
@@ -74,7 +67,10 @@ async def test_delete_user_api_success_self_delete(
     py_api: httpx.AsyncClient,
     user_test: AsyncConnection,
     disposable_user: DisposableUser,
+    mocker: pytest_mock.MockerFixture,
 ) -> None:
+    log_info = mocker.patch("routers.openml.users.logger.info")
+
     response = await py_api.delete(
         f"/users/{disposable_user.user_id}",
         params={"api_key": disposable_user.api_key},
@@ -87,6 +83,11 @@ async def test_delete_user_api_success_self_delete(
         parameters={"id": disposable_user.user_id},
     )
     assert exists.one_or_none() is None
+
+    log_info.assert_any_call(
+        "User account {user_id} was removed.",
+        user_id=disposable_user.user_id,
+    )
 
 
 @pytest.mark.mut
@@ -143,6 +144,12 @@ async def test_delete_user_direct_forbidden(
     assert exc_info.value.status_code == HTTPStatus.FORBIDDEN
     assert exc_info.value.uri == ForbiddenError.uri
 
+    admin_row = await user_test.execute(
+        text("SELECT 1 FROM users WHERE id = :id LIMIT 1"),
+        parameters={"id": ADMIN_USER.user_id},
+    )
+    assert admin_row.one_or_none() is not None
+
 
 async def test_delete_user_direct_conflict_has_resources(
     user_test: AsyncConnection,
@@ -150,7 +157,7 @@ async def test_delete_user_direct_conflict_has_resources(
 ) -> None:
     with pytest.raises(AccountHasResourcesError, match="Cannot delete this account") as exc_info:
         await delete_user_account(
-            user_id=16,
+            user_id=OWNER_USER.user_id,
             current_user=ADMIN_USER,
             expdb=expdb_test,
             userdb=user_test,
@@ -158,28 +165,11 @@ async def test_delete_user_direct_conflict_has_resources(
     assert exc_info.value.status_code == HTTPStatus.CONFLICT
     assert exc_info.value.uri == AccountHasResourcesError.uri
 
-
-@pytest.mark.mut
-async def test_delete_user_direct_success_logs_info(
-    user_test: AsyncConnection,
-    expdb_test: AsyncConnection,
-    disposable_user: DisposableUser,
-    mocker: pytest_mock.MockerFixture,
-) -> None:
-    log_info = mocker.patch("routers.openml.users.logger.info")
-
-    response = await delete_user_account(
-        user_id=disposable_user.user_id,
-        current_user=ADMIN_USER,
-        expdb=expdb_test,
-        userdb=user_test,
+    owner_row = await user_test.execute(
+        text("SELECT 1 FROM users WHERE id = :id LIMIT 1"),
+        parameters={"id": OWNER_USER.user_id},
     )
-
-    assert response.status_code == HTTPStatus.NO_CONTENT
-    log_info.assert_called_once_with(
-        "User account {user_id} was removed.",
-        user_id=disposable_user.user_id,
-    )
+    assert owner_row.one_or_none() is not None
 
 
 @pytest.mark.mut
