@@ -17,7 +17,6 @@ set_config(config)
 and then consequent calls to `get_config` will return that configuration.
 """
 
-import functools
 import os
 import tomllib
 import typing
@@ -38,7 +37,6 @@ DOTENV_FILE_ENV = "OPENML_REST_API_DOTENV_FILE"
 _config: Configuration | None = None
 
 
-@functools.cache
 def get_config() -> Configuration:
     if _config is None:
         config = parse_config()
