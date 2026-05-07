@@ -117,24 +117,17 @@ class LoggingConfiguration(BaseModel, frozen=True):
     enqueue: bool = Field(default=True)
 
 
-def _load_database_configuration(
-    configurations: dict[str, dict[str, str]],
-) -> dict[str, DatabaseConfiguration]:
-    database_configurations = {}
-    for db_alias, db_configuration in configurations.items():
-        credentials = {
-            "username": os.environ.get(
-                f"OPENML_DATABASES_{db_alias.upper()}_USERNAME",
-                "root",
-            ),
-            "password": os.environ.get(
-                f"OPENML_DATABASES_{db_alias.upper()}_PASSWORD",
-                "ok",
-            ),
-        }
-        database_configurations[db_alias] = DatabaseConfiguration(**db_configuration, **credentials)
-
-    return database_configurations
+def _db_env_credentials(alias: str) -> dict[str, str]:
+    return {
+        "username": os.environ.get(
+            f"OPENML_DATABASES_{alias.upper()}_USERNAME",
+            "root",
+        ),
+        "password": os.environ.get(
+            f"OPENML_DATABASES_{alias.upper()}_PASSWORD",
+            "ok",
+        ),
+    }
 
 
 def parse_config(
@@ -172,14 +165,17 @@ def parse_config(
     )
 
     config = tomllib.loads(configuration_file.read_text())
-    db_configurations = _load_database_configuration(config["databases"])
+    db_section = config["databases"]
+    openml_db = DatabaseConfiguration(**db_section["openml"], **_db_env_credentials("openml"))
+    expdb_db = DatabaseConfiguration(**db_section["expdb"], **_db_env_credentials("expdb"))
+
     return Configuration(
         routing=RoutingConfiguration(**config["routing"]),
         logging=[
             LoggingConfiguration(**sink_configuration)
             for sink_configuration in config["logging"].values()
         ],
-        openml_database=db_configurations["openml"],
-        expdb_database=db_configurations["expdb"],
+        openml_database=openml_db,
+        expdb_database=expdb_db,
         development=DevelopmentConfiguration(**config["development"]),
     )
