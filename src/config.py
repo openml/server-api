@@ -37,6 +37,9 @@ DOTENV_FILE_ENV = "OPENML_REST_API_DOTENV_FILE"
 _config: Configuration | None = None
 
 
+# The reason we use a module variable instead of functools.cache
+# is that this method allows a custom configuration to be set
+# through `set_config` and subsequently loaded through `get_config`.
 def get_config() -> Configuration:
     if _config is None:
         config = parse_config()
