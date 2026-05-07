@@ -27,7 +27,6 @@ from core.logging import (
     setup_log_sinks,
 )
 from database.setup import close_databases
-from routers.mldcat_ap.dataset import router as mldcat_ap_router
 from routers.openml.datasets import router as datasets_router
 from routers.openml.estimation_procedure import router as estimationprocedure_router
 from routers.openml.evaluations import router as evaluationmeasures_router
@@ -103,7 +102,6 @@ def create_api(configuration: Configuration | None = None) -> FastAPI:
     logger.info("Adding routers to app")
     app.include_router(datasets_router)
     app.include_router(qualities_router)
-    app.include_router(mldcat_ap_router)
     app.include_router(ttype_router)
     app.include_router(evaluationmeasures_router)
     app.include_router(estimationprocedure_router)
