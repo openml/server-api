@@ -13,6 +13,7 @@ def _create_engine(db_config: DatabaseConfiguration) -> AsyncEngine:
         username=db_config.username,
         password=db_config.password,
         host=db_config.host,
+        port=db_config.port,
         database=db_config.database,
     )
     return create_async_engine(
