@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Any, NamedTuple
 import _pytest.mark
 import httpx
 import pytest
-from _pytest.config import Config  # noqa: TC002 used during collection by Pytest
-from _pytest.nodes import Item  # noqa: TC002 used during collection by Pytest
+from _pytest.config import Config
+from _pytest.nodes import Item
 from asgi_lifespan import LifespanManager
 from sqlalchemy import text
 
