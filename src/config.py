@@ -1,10 +1,20 @@
 """Configuration logic and schema definitions.
 
-If the configuration should use a non-default configuration file path
-or environment variable file path, then `load_set_configuration` should be
-called explicitly to provide those.
+The `get_config` function provides access to the most recently loaded configuration.
+A default configuration is loaded if none is explicitly set.
 
-Otherwise, access the configuration with the `get_config` method.
+Use `set_config` to use a different configuration.
+To parse a configuration from a file and environment variables, use `parse_configuration`.
+Example of loading a configuration with a custom TOML and .env file:
+
+```
+config = parse_config(
+    dotenv_file=Path("path/to/.env"),
+    configuration_file=Path("path/to/config.toml")
+)
+set_config(config)
+```
+and then consequent calls to `get_config` will return that configuration.
 """
 
 import functools
@@ -31,9 +41,14 @@ _config: Configuration | None = None
 @functools.cache
 def get_config() -> Configuration:
     if _config is None:
-        load_set_configuration()
-    # load_set_configuration sets the `_config` variable
+        config = parse_config()
+        set_config(config)
     return cast("Configuration", _config)
+
+
+def set_config(configuration: Configuration) -> None:
+    global _config  # noqa: PLW0603
+    _config = configuration
 
 
 class Configuration(BaseModel, frozen=True):
@@ -65,7 +80,7 @@ class DatabaseConfiguration(BaseModel, frozen=True):
 class DevelopmentConfiguration(BaseModel, frozen=True):
     """Settings for development or test specific features."""
 
-    allow_test_api_keys: bool = Field(frozen=True)
+    allow_test_api_keys: bool = Field(default=False)
 
 
 class RoutingConfiguration(BaseModel, frozen=True):
@@ -121,16 +136,7 @@ def _load_database_configuration(
     return database_configurations
 
 
-def load_set_configuration(
-    dotenv_file: Path | None = None,
-    configuration_file: Path | None = None,
-) -> None:
-    """Load the configuration from provided paths and use it as default for future lookups."""
-    global _config  # noqa: PLW0603
-    _config = parse_configuration(dotenv_file, configuration_file)
-
-
-def parse_configuration(
+def parse_config(
     dotenv_file: Path | None = None,
     configuration_file: Path | None = None,
 ) -> Configuration:

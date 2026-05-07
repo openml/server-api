@@ -12,6 +12,13 @@ from _pytest.nodes import Item  # noqa: TC002 used during collection by Pytest
 from asgi_lifespan import LifespanManager
 from sqlalchemy import text
 
+from config import (
+    Configuration,
+    DatabaseConfiguration,
+    DevelopmentConfiguration,
+    LoggingConfiguration,
+    RoutingConfiguration,
+)
 from database.setup import expdb_database, user_database
 from main import create_api
 from routers.dependencies import expdb_connection, userdb_connection
@@ -78,7 +85,16 @@ async def php_api() -> AsyncIterator[httpx.AsyncClient]:
 
 @pytest.fixture(scope="session")
 async def app() -> AsyncIterator[FastAPI]:
-    _app = create_api(Path(__file__).parent / "config.test.toml")
+    config = Configuration(
+        openml_database=DatabaseConfiguration(database="openml"),
+        expdb_database=DatabaseConfiguration(database="openml_expdb"),
+        development=DevelopmentConfiguration(allow_test_api_keys=True),
+        routing=RoutingConfiguration(
+            minio_url="http://minio:9000", server_url="http://php-api:80/"
+        ),
+        logging=[LoggingConfiguration(sink="sys.stderr", level="DEBUG")],
+    )
+    _app = create_api(config)
     async with LifespanManager(_app):
         yield _app
 
@@ -121,11 +137,6 @@ def dataset_130() -> Iterator[dict[str, Any]]:
     json_path = Path(__file__).parent / "resources" / "datasets" / "dataset_130.json"
     with json_path.open("r") as dataset_file:
         yield json.load(dataset_file)
-
-
-@pytest.fixture
-def default_configuration_file() -> Path:
-    return Path().parent.parent / "src" / "config.toml"
 
 
 class Flow(NamedTuple):
