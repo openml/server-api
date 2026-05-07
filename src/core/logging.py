@@ -23,6 +23,11 @@ def setup_log_sinks(*configurations: LoggingConfiguration) -> None:
         sink = conf.pop("sink")
         if sink == "sys.stderr":
             sink = sys.stderr
+            # defaults may be provided for rotation and retention,
+            # but they are not valid options for stderr logging.
+            conf.pop("rotation", None)
+            conf.pop("retention", None)
+            conf.pop("compression", None)
         logger.add(sink, **conf)
 
 
