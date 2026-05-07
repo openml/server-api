@@ -1,10 +1,13 @@
 import asyncio
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
-import httpx
 import pytest
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncConnection
+
+if TYPE_CHECKING:
+    import httpx
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def _remove_quality_from_database(quality_name: str, expdb_test: AsyncConnection) -> None:

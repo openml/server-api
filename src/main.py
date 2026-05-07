@@ -3,14 +3,18 @@ import asyncio
 import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from loguru import logger
 
-from config import load_configuration
+from config import (
+    Configuration,
+    get_config,
+    parse_config,
+    set_config,
+)
 from core.errors import (
     ProblemDetailError,
     problem_detail_exception_handler,
@@ -23,7 +27,6 @@ from core.logging import (
     setup_log_sinks,
 )
 from database.setup import close_databases
-from routers.mldcat_ap.dataset import router as mldcat_ap_router
 from routers.openml.datasets import router as datasets_router
 from routers.openml.estimation_procedure import router as estimationprocedure_router
 from routers.openml.evaluations import router as evaluationmeasures_router
@@ -75,15 +78,17 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def create_api(configuration_file: Path | None = None) -> FastAPI:
+def create_api(configuration: Configuration | None = None) -> FastAPI:
     # Default logging configuration so we have logs during setup
     logger.remove()
     setup_sink = logger.add(sys.stderr, serialize=True)
-    setup_log_sinks(configuration_file)
+    config = configuration or parse_config()
+    set_config(config)
+    setup_log_sinks(*get_config().logging)
 
-    fastapi_kwargs = load_configuration(configuration_file)["fastapi"]
-    logger.info("Creating FastAPI App", lifespan=lifespan, **fastapi_kwargs)
-    app = FastAPI(**fastapi_kwargs, lifespan=lifespan)
+    root_path = get_config().routing.root_path
+    logger.info("Creating FastAPI App", lifespan=lifespan, root_path=root_path)
+    app = FastAPI(lifespan=lifespan, root_path=root_path)
 
     logger.info("Setting up middleware and exception handlers.")
     # Order matters! Each added middleware wraps the previous, creating a stack.
@@ -98,7 +103,6 @@ def create_api(configuration_file: Path | None = None) -> FastAPI:
     logger.info("Adding routers to app")
     app.include_router(datasets_router)
     app.include_router(qualities_router)
-    app.include_router(mldcat_ap_router)
     app.include_router(ttype_router)
     app.include_router(evaluationmeasures_router)
     app.include_router(estimationprocedure_router)

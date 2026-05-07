@@ -4,11 +4,10 @@ import asyncio
 import json
 import re
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
-import httpx
 import pytest
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 import tests.constants
 from core.errors import DatasetNoAccessError, DatasetNotFoundError
@@ -16,6 +15,10 @@ from database.users import User
 from routers.openml.datasets import get_dataset
 from schemas.datasets.openml import DatasetMetadata
 from tests.users import ADMIN_USER, DATASET_130_OWNER, NO_USER, SOME_USER, ApiKey
+
+if TYPE_CHECKING:
+    import httpx
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def test_get_dataset_via_api(py_api: httpx.AsyncClient) -> None:
@@ -89,20 +92,24 @@ async def test_dataset_no_500_with_multiple_processing_entries(
 
 @pytest.mark.parametrize(
     "dataset_id",
-    [-1, 138, 100_000],
+    [138, 100_000],
 )
 async def test_get_dataset_not_found(
     dataset_id: int,
     expdb_test: AsyncConnection,
     user_test: AsyncConnection,
 ) -> None:
-    with pytest.raises(DatasetNotFoundError):
+    with pytest.raises(DatasetNotFoundError) as exc_info:
         await get_dataset(
             dataset_id=dataset_id,
             user=None,
             user_db=user_test,
             expdb_db=expdb_test,
         )
+    assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
+    _dataset_get_not_found_code = 111
+    assert exc_info.value.code == _dataset_get_not_found_code
+    assert exc_info.value.detail.startswith("No dataset")
 
 
 @pytest.mark.parametrize(
@@ -235,24 +242,21 @@ async def test_dataset_response_is_identical(  # noqa: C901, PLR0912
     assert py_json == php_json
 
 
-@pytest.mark.parametrize(
-    "dataset_id",
-    [-1, 138, 100_000],
-)
-async def test_error_unknown_dataset(
-    dataset_id: int,
+async def test_dataset_not_found_is_identical(
     py_api: httpx.AsyncClient,
+    php_api: httpx.AsyncClient,
 ) -> None:
-    response = await py_api.get(f"/datasets/{dataset_id}")
+    dataset_id = 9_999_999
+    py_response, php_response = await asyncio.gather(
+        py_api.get(f"/datasets/{dataset_id}"),
+        php_api.get(f"/data/{dataset_id}"),
+    )
 
-    # The new API has "404 Not Found" instead of "412 PRECONDITION_FAILED"
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    # RFC 9457: Python API now returns problem+json format
-    assert response.headers["content-type"] == "application/problem+json"
-    error = response.json()
-    assert error["code"] == "111"
-    # instead of 'Unknown dataset'
-    assert error["detail"].startswith("No dataset")
+    assert py_response.status_code == HTTPStatus.NOT_FOUND
+    assert php_response.status_code == HTTPStatus.PRECONDITION_FAILED
+    assert py_response.json()["code"] == php_response.json()["error"]["code"]
+    assert py_response.json()["detail"] == f"No dataset with id {dataset_id} found."
+    assert php_response.json()["error"]["message"] == "Unknown dataset"
 
 
 async def test_private_dataset_no_user_no_access(

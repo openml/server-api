@@ -1,10 +1,8 @@
-from typing import Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 from fastapi import APIRouter, Body, Depends
 from loguru import logger
 from pydantic import BaseModel
-from sqlalchemy.engine import Row
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 import database.studies
 from core.errors import (
@@ -20,14 +18,19 @@ from core.errors import (
 from core.formatting import _str_to_bool
 from database.users import User
 from routers.dependencies import expdb_connection, fetch_user, fetch_user_or_raise
+from routers.types import Identifier
 from schemas.core import Visibility
 from schemas.study import CreateStudy, Study, StudyStatus, StudyType
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine import Row
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 router = APIRouter(prefix="/studies", tags=["studies"])
 
 
 async def _get_study_raise_otherwise(
-    id_or_alias: int | str,
+    id_or_alias: Identifier | str,
     user: User | None,
     expdb: AsyncConnection,
 ) -> Row:
@@ -61,8 +64,8 @@ class AttachDetachResponse(BaseModel):
 
 @router.post("/attach")
 async def attach_to_study(
-    study_id: Annotated[int, Body()],
-    entity_ids: Annotated[list[int], Body()],
+    study_id: Annotated[Identifier, Body()],
+    entity_ids: Annotated[list[Identifier], Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> AttachDetachResponse:
@@ -148,7 +151,7 @@ async def create_study(
 
 @router.get("/{alias_or_id}")
 async def get_study(
-    alias_or_id: int | str,
+    alias_or_id: Identifier | str,
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> Study:

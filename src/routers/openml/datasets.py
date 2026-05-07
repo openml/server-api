@@ -2,13 +2,12 @@ import asyncio
 import re
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Any, Literal, NamedTuple
+from http import HTTPStatus
+from typing import TYPE_CHECKING, Annotated, Any, Literal, NamedTuple, NotRequired, TypedDict
 
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Body, Depends, Query
 from loguru import logger
 from sqlalchemy import bindparam, text
-from sqlalchemy.engine import Row
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 import database.datasets
 import database.qualities
@@ -26,12 +25,15 @@ from core.errors import (
     InternalError,
     NoResultsError,
     TagAlreadyExistsError,
+    TagNotFoundError,
+    TagNotOwnedError,
 )
 from core.formatting import (
     _csv_as_list,
     _format_dataset_url,
     _format_parquet_url,
 )
+from database.exceptions import DuplicatePrimaryKeyError, ForeignKeyConstraintError
 from database.users import User
 from routers.dependencies import (
     Pagination,
@@ -40,8 +42,18 @@ from routers.dependencies import (
     fetch_user_or_raise,
     userdb_connection,
 )
-from routers.types import CasualString128, IntegerRange, SystemString64, integer_range_regex
+from routers.types import (
+    CasualString128,
+    Identifier,
+    IntegerRange,
+    SystemString64,
+    integer_range_regex,
+)
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Feature, FeatureType
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine import Row
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 
@@ -50,22 +62,71 @@ router = APIRouter(prefix="/datasets", tags=["datasets"])
     path="/tag",
 )
 async def tag_dataset(
-    data_id: Annotated[int, Body()],
-    tag: Annotated[str, SystemString64],
+    data_id: Annotated[Identifier, Body()],
+    tag: Annotated[SystemString64, Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
+    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[str, dict[str, Any]]:
-    assert expdb_db is not None  # noqa: S101
-    tags = await database.datasets.get_tags_for(data_id, expdb_db)
-    if tag.casefold() in [t.casefold() for t in tags]:
+    try:
+        await database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
+    except ForeignKeyConstraintError:
+        msg = f"Dataset {data_id} not found."
+        raise DatasetNotFoundError(msg, code=472) from None
+    except DuplicatePrimaryKeyError:
         msg = f"Dataset {data_id} already tagged with {tag!r}."
-        raise TagAlreadyExistsError(msg)
+        raise TagAlreadyExistsError(msg) from None
 
-    await database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
-    logger.info("Dataset {dataset_id} tagged '{tag}'.", dataset_id=data_id, tag=tag)
+    logger.info("Dataset {data_id} tagged '{tag}'.", data_id=data_id, tag=tag)
+
+    tags = await database.datasets.get_tags_for(data_id, expdb_db)
+
     return {
-        "data_tag": {"id": str(data_id), "tag": [*tags, tag]},
+        "data_tag": {"id": str(data_id), "tag": tags},
     }
+
+
+class TagInfo(TypedDict):
+    id: str
+    tag: NotRequired[SystemString64 | list[SystemString64]]
+
+
+@router.post(path="/untag", deprecated=True)
+async def untag_dataset_like_php(
+    data_id: Annotated[Identifier, Body()],
+    tag: Annotated[SystemString64, Body()],
+    user: Annotated[User, Depends(fetch_user_or_raise)],
+    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
+) -> dict[Literal["data_untag"], TagInfo]:
+    await untag_dataset(data_id, tag, user, expdb_db)
+    tags = await database.datasets.get_tags_for(id_=data_id, connection=expdb_db)
+    tag_info: TagInfo = {"id": str(data_id)}
+    if len(tags) == 1:
+        tag_info["tag"] = tags[0]
+    elif tags:
+        tag_info["tag"] = tags
+    return {"data_untag": tag_info}
+
+
+@router.delete(path="/{identifier}/tag", status_code=HTTPStatus.NO_CONTENT)
+async def untag_dataset(
+    identifier: Identifier,
+    tag: Annotated[SystemString64, Query()],
+    user: Annotated[User, Depends(fetch_user_or_raise)],
+    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
+) -> None:
+    dataset_tag = await database.datasets.get_tag(identifier, tag, expdb_db)
+    if not dataset_tag:
+        try:
+            await _get_dataset_raise_otherwise(identifier, user, expdb_db)
+        except DatasetNotFoundError, DatasetNoAccessError:
+            msg = f"Cannot remove {tag!r}, because dataset {identifier} is not found."
+            raise DatasetNotFoundError(msg, code=472) from None
+        msg = f"Tag {tag!r} for dataset {identifier} not found."
+        raise TagNotFoundError(msg)
+    if dataset_tag.uploader != user.user_id and not (await user.is_admin()):
+        msg = f"You are not allowed to remove {tag!r} from dataset {identifier}."
+        raise TagNotOwnedError(msg)
+    await database.datasets.delete_tag(identifier, tag, expdb_db)
 
 
 class DatasetStatusFilter(StrEnum):
@@ -96,27 +157,27 @@ def _quality_clause(quality: str, range_: str | None) -> str:
 @router.get(path="/list")
 async def list_datasets(  # noqa: PLR0913, C901
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
-    data_name: Annotated[str | None, CasualString128] = None,
-    tag: Annotated[str | None, SystemString64] = None,
+    data_name: Annotated[CasualString128 | None, Body()] = None,
+    tag: Annotated[SystemString64 | None, Body()] = None,
     data_version: Annotated[
-        int | None,
+        Identifier | None,
         Body(description="The dataset version to include in the search."),
     ] = None,
     uploader: Annotated[
-        int | None,
+        Identifier | None,
         Body(description="User id of the uploader whose datasets to include in the search."),
     ] = None,
     data_id: Annotated[
-        list[int] | None,
+        list[Identifier] | None,
         Body(
             description="The dataset(s) to include in the search. "
             "If none are specified, all datasets are included.",
         ),
     ] = None,
-    number_instances: Annotated[str | None, IntegerRange] = None,
-    number_features: Annotated[str | None, IntegerRange] = None,
-    number_classes: Annotated[str | None, IntegerRange] = None,
-    number_missing_values: Annotated[str | None, IntegerRange] = None,
+    number_instances: Annotated[IntegerRange | None, Body()] = None,
+    number_features: Annotated[IntegerRange | None, Body()] = None,
+    number_classes: Annotated[IntegerRange | None, Body()] = None,
+    number_missing_values: Annotated[IntegerRange | None, Body()] = None,
     status: Annotated[DatasetStatusFilter, Body()] = DatasetStatusFilter.ACTIVE,
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
@@ -254,7 +315,7 @@ class ProcessingInformation(NamedTuple):
 
 
 async def _get_processing_information(
-    dataset_id: int,
+    dataset_id: Identifier,
     connection: AsyncConnection,
 ) -> ProcessingInformation:
     """Return processing information, if any. Otherwise, all fields `None`."""
@@ -273,7 +334,7 @@ async def _get_processing_information(
 
 
 async def _get_dataset_raise_otherwise(
-    dataset_id: int,
+    dataset_id: Identifier,
     user: User | None,
     expdb: AsyncConnection,
 ) -> Row[Any]:
@@ -294,7 +355,7 @@ async def _get_dataset_raise_otherwise(
 
 @router.get("/features/{dataset_id}", response_model_exclude_none=True)
 async def get_dataset_features(
-    dataset_id: int,
+    dataset_id: Identifier,
     user: Annotated[User | None, Depends(fetch_user)] = None,
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> list[Feature]:
@@ -337,7 +398,7 @@ async def get_dataset_features(
     path="/status/update",
 )
 async def update_dataset_status(
-    dataset_id: Annotated[int, Body()],
+    dataset_id: Annotated[Identifier, Body()],
     status: Annotated[Literal[DatasetStatus.ACTIVE, DatasetStatus.DEACTIVATED], Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
@@ -354,7 +415,7 @@ async def update_dataset_status(
         raise DatasetAdminOnlyError(msg)
 
     current_status = await database.datasets.get_status(dataset_id, expdb)
-    if current_status and current_status.status == status:
+    if current_status == status:
         msg = f"Illegal status transition, requested status {status} matches current status."
         raise DatasetStatusTransitionError(msg)
 
@@ -364,14 +425,14 @@ async def update_dataset_status(
     #  - in preparation => deactivated  (add a row)
     #  - active => deactivated  (add a row)
     #  - deactivated => active  (delete a row)
-    if current_status is None or status == DatasetStatus.DEACTIVATED:
+    if current_status == DatasetStatus.IN_PREPARATION or status == DatasetStatus.DEACTIVATED:
         await database.datasets.update_status(
             dataset_id,
             status,
             user_id=user.user_id,
             connection=expdb,
         )
-    elif current_status.status == DatasetStatus.DEACTIVATED:
+    elif current_status == DatasetStatus.DEACTIVATED:
         await database.datasets.remove_deactivated_status(dataset_id, expdb)
     else:
         msg = f"Unknown status transition: {current_status} -> {status}"
@@ -380,7 +441,7 @@ async def update_dataset_status(
     logger.info(
         "Dataset {dataset_id} changed from {previous} to {current}",
         dataset_id=dataset_id,
-        previous=current_status.status if current_status else DatasetStatus.IN_PREPARATION,
+        previous=current_status,
         current=status,
     )
     return {"dataset_id": dataset_id, "status": status}
@@ -391,7 +452,7 @@ async def update_dataset_status(
     description="Get meta-data for dataset with ID `dataset_id`.",
 )
 async def get_dataset(
-    dataset_id: int,
+    dataset_id: Identifier,
     user: Annotated[User | None, Depends(fetch_user)] = None,
     user_db: Annotated[AsyncConnection, Depends(userdb_connection)] = None,
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
@@ -415,8 +476,6 @@ async def get_dataset(
         database.datasets.get_status(dataset_id, expdb_db),
     )
 
-    status_ = DatasetStatus(status.status) if status else DatasetStatus.IN_PREPARATION
-
     description_ = ""
     if description:
         description_ = description.description.replace("\r", "").strip()
@@ -434,7 +493,7 @@ async def get_dataset(
     return DatasetMetadata(
         id=dataset.did,
         visibility=dataset.visibility,
-        status=status_,
+        status=status,
         name=dataset.name,
         licence=dataset.licence,
         version=dataset.version,

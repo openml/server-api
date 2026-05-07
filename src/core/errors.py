@@ -5,10 +5,13 @@ See: https://www.rfc-editor.org/rfc/rfc9457.html
 """
 
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
-from fastapi import Request
-from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+
+if TYPE_CHECKING:
+    from fastapi import Request
+    from fastapi.exceptions import RequestValidationError
 
 # =============================================================================
 # Base Exception

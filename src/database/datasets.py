@@ -2,12 +2,22 @@
 
 import datetime
 from collections import defaultdict
+from typing import TYPE_CHECKING
 
 from sqlalchemy import text
-from sqlalchemy.engine import Row
-from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.exc import IntegrityError
 
-from schemas.datasets.openml import Feature
+from database.exceptions import (
+    _DUPLICATE_ENTRY,
+    _FOREIGN_KEY_CONSTRAINT_FAILED,
+    DuplicatePrimaryKeyError,
+    ForeignKeyConstraintError,
+)
+from schemas.datasets.openml import DatasetStatus, Feature
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine import Row
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def get(id_: int, connection: AsyncConnection) -> Row | None:
@@ -38,6 +48,33 @@ async def get_file(*, file_id: int, connection: AsyncConnection) -> Row | None:
     return row.one_or_none()
 
 
+async def get_tag(dataset_id: int, tag: str, connection: AsyncConnection) -> Row | None:
+    return (
+        await connection.execute(
+            text(
+                """
+    SELECT *
+    FROM dataset_tag
+    WHERE id = :dataset_id AND tag = :tag
+    """,
+            ),
+            parameters={"dataset_id": dataset_id, "tag": tag},
+        )
+    ).first()
+
+
+async def delete_tag(dataset_id: int, tag: str, connection: AsyncConnection) -> None:
+    await connection.execute(
+        text(
+            """
+    DELETE FROM dataset_tag
+    WHERE id = :dataset_id AND tag = :tag
+    """,
+        ),
+        parameters={"dataset_id": dataset_id, "tag": tag},
+    )
+
+
 async def get_tags_for(id_: int, connection: AsyncConnection) -> list[str]:
     row = await connection.execute(
         text(
@@ -54,19 +91,27 @@ async def get_tags_for(id_: int, connection: AsyncConnection) -> list[str]:
 
 
 async def tag(id_: int, tag_: str, *, user_id: int, connection: AsyncConnection) -> None:
-    await connection.execute(
-        text(
-            """
-    INSERT INTO dataset_tag(`id`, `tag`, `uploader`)
-    VALUES (:dataset_id, :tag, :user_id)
-    """,
-        ),
-        parameters={
-            "dataset_id": id_,
-            "user_id": user_id,
-            "tag": tag_,
-        },
-    )
+    try:
+        await connection.execute(
+            text(
+                """
+        INSERT INTO dataset_tag(`id`, `tag`, `uploader`)
+        VALUES (:dataset_id, :tag, :user_id)
+        """,
+            ),
+            parameters={
+                "dataset_id": id_,
+                "user_id": user_id,
+                "tag": tag_,
+            },
+        )
+    except IntegrityError as e:
+        code, msg = e.orig.args
+        if code == _FOREIGN_KEY_CONSTRAINT_FAILED:
+            raise ForeignKeyConstraintError(msg) from e
+        if code == _DUPLICATE_ENTRY:
+            raise DuplicatePrimaryKeyError(msg) from e
+        raise
 
 
 async def get_description(
@@ -88,20 +133,23 @@ async def get_description(
     return row.first()
 
 
-async def get_status(id_: int, connection: AsyncConnection) -> Row | None:
+async def get_status(id_: int, connection: AsyncConnection) -> DatasetStatus:
     """Get most recent status for the dataset."""
-    row = await connection.execute(
-        text(
-            """
-    SELECT *
+    row = (
+        await connection.execute(
+            text(
+                """
+    SELECT status
     FROM dataset_status
     WHERE did = :dataset_id
     ORDER BY status_date DESC
+    LIMIT 1
     """,
-        ),
-        parameters={"dataset_id": id_},
-    )
-    return row.first()
+            ),
+            parameters={"dataset_id": id_},
+        )
+    ).first()
+    return DatasetStatus(row.status) if row else DatasetStatus.IN_PREPARATION
 
 
 async def get_latest_processing_update(dataset_id: int, connection: AsyncConnection) -> Row | None:

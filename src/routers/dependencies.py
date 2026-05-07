@@ -1,14 +1,16 @@
 from collections.abc import AsyncGenerator, AsyncIterator
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import Depends
 from loguru import logger
 from pydantic import BaseModel, Field
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 from core.errors import AuthenticationFailedError, AuthenticationRequiredError
 from database.setup import expdb_database, user_database
 from database.users import APIKey, User
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def expdb_connection() -> AsyncIterator[AsyncConnection]:

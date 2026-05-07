@@ -19,6 +19,10 @@ nav:
       - index.md
       - Getting Started: installation.md
       - Changes: migration.md
+  - Database:
+      - database/index.md
+      - openml: database/openml.md
+      - openml_expdb: database/openml_expdb.md
   - Contributing:
       - contributing/index.md
       - Setup: contributing/setup.md

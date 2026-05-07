@@ -1,15 +1,17 @@
 import asyncio
 from http import HTTPStatus
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import deepdiff.diff
-import httpx
 import pytest
 
 from core.conversions import (
     nested_remove_single_element_list,
     nested_str_to_num,
 )
+
+if TYPE_CHECKING:
+    import httpx
 
 
 async def test_get_flow_no_subflow(py_api: httpx.AsyncClient) -> None:
