@@ -5,6 +5,7 @@ Specific queries could be written to fetch e.g., a single feature or quality.
 """
 
 import asyncio
+import functools
 from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -31,10 +32,12 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection
 
 router = APIRouter(prefix="/mldcat_ap", tags=["MLDCAT-AP"])
-_configuration = config.load_configuration()
-_server_url = (
-    f"{_configuration['arff_base_url']}{_configuration['fastapi']['root_path']}{router.prefix}"
-)
+
+
+@functools.cache
+def server_url() -> str:
+    _routing_configuration = config.get_config().routing
+    return f"{_routing_configuration.server_url}{_routing_configuration.root_path}{router.prefix}"
 
 
 @router.get(
@@ -59,6 +62,7 @@ async def get_mldcat_ap_distribution(
         get_dataset_features(distribution_id, user, expdb),
         get_qualities(distribution_id, user, expdb),
     )
+    _server_url = server_url()
     features = [
         Feature(
             id_=f"{_server_url}/feature/{distribution_id}/{feature.index}",
@@ -131,6 +135,7 @@ def get_dataservice(service_id: int) -> JsonLDGraph:
     if service_id != 1:
         msg = f"Service with id {service_id} not found."
         raise ServiceNotFoundError(msg)
+    _server_url = server_url()
     return JsonLDGraph(
         context="https://semiceu.github.io/MLDCAT-AP/releases/1.0.0/context.jsonld",
         graph=[
@@ -161,6 +166,7 @@ async def get_distribution_quality(
             status_code=404,
             detail=f"Quality '{quality_name}' not found for distribution {distribution_id}.",
         )
+    _server_url = server_url()
     example_quality = Quality(
         id_=f"{_server_url}/quality/{quality_name}/{distribution_id}",
         quality_type=f"{_server_url}/quality/{quality_name}",
@@ -192,6 +198,7 @@ async def get_distribution_feature(
         expdb=expdb,
     )
     feature = features[feature_no]
+    _server_url = server_url()
     mldcat_feature = Feature(
         id_=f"{_server_url}/feature/{distribution_id}/{feature.index}",
         name=feature.name,

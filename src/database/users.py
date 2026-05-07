@@ -1,24 +1,38 @@
 import dataclasses
+import functools
+import re
 from enum import IntEnum
 from typing import TYPE_CHECKING, Annotated, Self
 
-from pydantic import StringConstraints
+from pydantic import AfterValidator
 from sqlalchemy import text
 
-from config import load_configuration
+from config import get_config
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection
 
-# If `allow_test_api_keys` is set, the key may also be one of `normaluser`,
-# `normaluser2`, or `abc` (admin).
-api_key_pattern = r"^[0-9a-fA-F]{32}$"
-if load_configuration().get("development", {}).get("allow_test_api_keys"):
-    api_key_pattern = r"^([0-9a-fA-F]{32}|normaluser|normaluser2|abc)$"
+
+api_key_pattern = re.compile(r"^[0-9a-fA-F]{32}$")
+# The test database currently contains some non-standard API keys
+api_key_pattern_with_test = re.compile(r"^([0-9a-fA-F]{32}|normaluser|normaluser2|abc)$")
+
+
+@functools.cache
+def is_valid_api_key(key: str) -> str:
+    """Raise ValueError if key is not valid, return key otherwise."""
+    pattern = api_key_pattern
+    if get_config().development.allow_test_api_keys:
+        pattern = api_key_pattern_with_test
+    if not pattern.match(key):
+        msg = f"API key {key!r} format is not valid."
+        raise ValueError(msg)
+    return key
+
 
 APIKey = Annotated[
     str,
-    StringConstraints(pattern=api_key_pattern),
+    AfterValidator(is_valid_api_key),
 ]
 
 

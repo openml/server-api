@@ -1,36 +1,19 @@
 import os
-from pathlib import Path
 from unittest import mock
 
-from config import _apply_defaults_to_siblings, load_database_configuration
+from config import _db_env_credentials
 
 
-def test_apply_defaults_to_siblings_applies_defaults() -> None:
-    input_ = {"defaults": {1: 1}, "other": {}}
-    expected = {"other": {1: 1}}
-    output = _apply_defaults_to_siblings(input_)
-    assert output == expected
+def test__db_env_credentials() -> None:
+    db_alias = "openml"
+    credentials = _db_env_credentials(db_alias)
+    assert credentials["username"] == "root"
+    assert credentials["password"] == "ok"  # noqa: S105
 
+    env_var_name = f"OPENML_DATABASES_{db_alias.upper()}_USERNAME"
+    env_var_pass = f"OPENML_DATABASES_{db_alias.upper()}_PASSWORD"
+    with mock.patch.dict(os.environ, {env_var_name: "foo", env_var_pass: "bar"}):
+        credentials = _db_env_credentials(db_alias)
 
-def test_apply_defaults_to_siblings_does_not_override() -> None:
-    input_ = {"defaults": {1: 1}, "other": {1: 2}}
-    expected = {"other": {1: 2}}
-    output = _apply_defaults_to_siblings(input_)
-    assert output == expected
-
-
-def test_apply_defaults_to_siblings_ignores_nontables() -> None:
-    input_ = {"defaults": {1: 1}, "other": {1: 2}, "not-a-table": 3}
-    expected = {"other": {1: 2}, "not-a-table": 3}
-    output = _apply_defaults_to_siblings(input_)
-    assert output == expected
-
-
-def test_load_configuration_adds_environment_variables(default_configuration_file: Path) -> None:
-    database_configuration = load_database_configuration(default_configuration_file)
-    assert database_configuration["openml"]["username"] == "root"
-
-    load_database_configuration.cache_clear()
-    with mock.patch.dict(os.environ, {"OPENML_DATABASES_OPENML_USERNAME": "foo"}):
-        database_configuration = load_database_configuration(default_configuration_file)
-    assert database_configuration["openml"]["username"] == "foo"
+    assert credentials["username"] == "foo"
+    assert credentials["password"] == "bar"  # noqa: S105
