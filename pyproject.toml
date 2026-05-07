@@ -67,6 +67,7 @@ ignore = [
     "D213",
     # Linter does not detect when types are used for Pydantic
     "TC001",
+    "TC002",
     "TC003",
 ]
 
