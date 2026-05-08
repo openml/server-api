@@ -15,7 +15,7 @@ from core.errors import (
 )
 from database.users import User
 from routers.dependencies import expdb_connection, fetch_user_or_raise
-from routers.types import Identifier, SystemString64
+from routers.types import Identifier, TagString
 from schemas.setups import SetupParameters, SetupResponse
 
 if TYPE_CHECKING:
@@ -49,7 +49,7 @@ async def get_setup(
 @router.post(path="/tag")
 async def tag_setup(
     setup_id: Annotated[Identifier, Body()],
-    tag: Annotated[SystemString64, Body()],
+    tag: Annotated[TagString, Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[str, dict[str, str | list[str]]]:
@@ -76,7 +76,7 @@ async def tag_setup(
 @router.post(path="/untag")
 async def untag_setup(
     setup_id: Annotated[Identifier, Body()],
-    tag: Annotated[SystemString64, Body()],
+    tag: Annotated[TagString, Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[str, dict[str, str | list[str]]]:

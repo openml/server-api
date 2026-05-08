@@ -17,7 +17,7 @@ from routers.types import (
     CasualString128,
     Identifier,
     IntegerRange,
-    SystemString64,
+    TagString,
     integer_range_regex,
 )
 from schemas.datasets.openml import Task
@@ -231,8 +231,8 @@ def _quality_clause(quality: str, range_: str | None) -> str:
 async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     task_type_id: Annotated[Identifier | None, Body(description="Filter by task type id.")] = None,
-    tag: Annotated[SystemString64 | None, Body()] = None,
-    data_tag: Annotated[SystemString64 | None, Body()] = None,
+    tag: Annotated[TagString | None, Body()] = None,
+    data_tag: Annotated[TagString | None, Body()] = None,
     status: Annotated[TaskStatusFilter, Body()] = TaskStatusFilter.ACTIVE,
     task_id: Annotated[
         list[Identifier] | None,

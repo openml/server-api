@@ -2,7 +2,9 @@ from typing import Annotated
 
 from pydantic import Field
 
-SystemString64 = Annotated[str, Field(pattern=r"^[\w\-\.]+$", min_length=1, max_length=64)]
+# Known as SystemString64 in the XSD
+TagString = Annotated[str, Field(pattern=r"^[\w\-\.]+$", min_length=1, max_length=64)]
+
 CasualString128 = Annotated[str, Field(pattern=r"^[\w\-\.\(\),]+$", min_length=1, max_length=128)]
 Identifier = Annotated[int, Field(gt=0)]
 
