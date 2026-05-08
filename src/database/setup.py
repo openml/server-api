@@ -1,5 +1,6 @@
 import functools
 
+from loguru import logger
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
@@ -15,6 +16,8 @@ def _create_engine(db_config: DatabaseConfiguration) -> AsyncEngine:
         port=db_config.port,
         database=db_config.database,
     )
+
+    logger.info("Creating database engine for {db_url}", db_url=db_url)
     return create_async_engine(
         db_url,
         echo=db_config.echo,
@@ -34,9 +37,8 @@ def expdb_database() -> AsyncEngine:
 
 async def close_databases() -> None:
     """Close all database connections."""
-    if user_database.cache_info().currsize == 1:
-        await user_database().dispose()
-        user_database.cache_clear()
-    if expdb_database.cache_info().currsize == 1:
-        await expdb_database().dispose()
-        expdb_database.cache_clear()
+    for db in (user_database, expdb_database):
+        if db.cache_info().currsize == 1:
+            logger.info("Disposing of engine connected to {db_url}", db_url=db().url)
+            await db().dispose()
+            db.cache_clear()
