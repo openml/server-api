@@ -30,7 +30,7 @@ def test_identifier_rejects_non_integer() -> None:
 
 def test_identifier_rejects_negative() -> None:
     with pytest.raises(ValidationError):
-        _identifier.validate_strings("0")
+        _identifier.validate_strings("-1")
 
 
 def test_identifier_rejects_zero() -> None:
@@ -52,7 +52,9 @@ def test_tag_string_accepts_valid(tag: str) -> None:
     assert _tag_string.validate_strings(tag) == tag
 
 
-@pytest.mark.parametrize("tag", ["", " ", "c" * 65, *_invalid_punctuation_tag])
+@pytest.mark.parametrize(
+    "tag", ["", " ", "a ", " a", "a b", "a\t", "c" * 65, *_invalid_punctuation_tag]
+)
 def test_tag_string_rejects_invalid(tag: str) -> None:
     with pytest.raises(ValidationError):
         _tag_string.validate_strings(tag)
@@ -74,7 +76,9 @@ def test_casual_string_accepts_valid(string: str) -> None:
     assert _casual_string.validate_strings(string)
 
 
-@pytest.mark.parametrize("string", ["", *_invalid_punctuation_casual_string])
+@pytest.mark.parametrize(
+    "string", ["", " ", "a ", " a", "a b", "a\t", *_invalid_punctuation_casual_string]
+)
 def test_casual_string_rejects_invalid(string: str) -> None:
     with pytest.raises(ValidationError):
         _casual_string.validate_strings(string)
