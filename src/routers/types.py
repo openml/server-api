@@ -5,7 +5,10 @@ from pydantic import Field
 # Known as SystemString64 in the XSD
 TagString = Annotated[str, Field(pattern=r"^[\w\-\.]+$", min_length=1, max_length=64)]
 
-CasualString128 = Annotated[str, Field(pattern=r"^[\w\-\.\(\),]+$", min_length=1, max_length=128)]
+# Currently used for a variety of fields, like `name` or `feature`.
+CasualString = Annotated[str, Field(pattern=r"^[\w\-\.\(\),]+$", min_length=1)]
+CasualString128 = Annotated[CasualString, Field(max_length=128)]
+
 Identifier = Annotated[int, Field(gt=0)]
 
 integer_range_regex = r"^(\d+)(\.\.\d+)?$"

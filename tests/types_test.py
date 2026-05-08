@@ -3,7 +3,7 @@ import string
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
-from routers.types import Identifier, TagString
+from routers.types import CasualString, Identifier, TagString
 
 _identifier = TypeAdapter(Identifier)
 
@@ -31,7 +31,7 @@ def test_identifier_rejects_zero() -> None:
 
 
 _tag_string = TypeAdapter(TagString)
-_valid_punctuation_tag = {"-", ".", "_"}
+_valid_punctuation_tag = set("_-.")
 _invalid_punctuation_tag = set(string.punctuation) - _valid_punctuation_tag
 
 
@@ -44,7 +44,27 @@ def test_tag_string_accepts_valid(tag: str) -> None:
     assert _tag_string.validate_strings(tag) == tag
 
 
-@pytest.mark.parametrize("tag", ["", "c" * 65, *_invalid_punctuation_tag])
+@pytest.mark.parametrize("tag", ["", " ", "c" * 65, *_invalid_punctuation_tag])
 def test_tag_string_rejects_invalid(tag: str) -> None:
     with pytest.raises(ValidationError):
         _tag_string.validate_strings(tag)
+
+
+_casual_string = TypeAdapter(CasualString)
+_valid_punctuation_casual_string = set("_-.(),")
+_invalid_punctuation_casual_string = set(string.punctuation) - _valid_punctuation_casual_string
+
+
+def test_casual_string_pattern() -> None:
+    assert _casual_string.json_schema()["pattern"] == r"^[\w\-\.\(\),]+$"
+
+
+@pytest.mark.parametrize("string", ["a", "a" * 1000, "_-.(),"])
+def test_casual_string_accepts_valid(string: str) -> None:
+    assert _casual_string.validate_strings(string)
+
+
+@pytest.mark.parametrize("string", ["", *_invalid_punctuation_casual_string])
+def test_casual_string_rejects_invalid(string: str) -> None:
+    with pytest.raises(ValidationError):
+        _casual_string.validate_strings(string)
