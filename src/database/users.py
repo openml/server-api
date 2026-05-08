@@ -8,6 +8,7 @@ from pydantic import AfterValidator
 from sqlalchemy import text
 
 from config import get_config
+from routers.types import Identifier
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection
@@ -57,7 +58,11 @@ async def get_user_id_for(*, api_key: APIKey, connection: AsyncConnection) -> in
     return user.id if user else None
 
 
-async def get_user_groups_for(*, user_id: int, connection: AsyncConnection) -> list[int]:
+async def get_user_groups_for(
+    *,
+    user_id: Identifier,
+    connection: AsyncConnection,
+) -> list[UserGroup]:
     row = await connection.execute(
         text(
             """
@@ -69,12 +74,12 @@ async def get_user_groups_for(*, user_id: int, connection: AsyncConnection) -> l
         parameters={"user_id": user_id},
     )
     rows = row.all()
-    return [group for (group,) in rows]
+    return [UserGroup(group) for (group,) in rows]
 
 
 @dataclasses.dataclass
 class User:
-    user_id: int
+    user_id: Identifier
     _database: AsyncConnection
     _groups: list[UserGroup] | None = None
 
@@ -86,8 +91,10 @@ class User:
 
     async def get_groups(self) -> list[UserGroup]:
         if self._groups is None:
-            group_ids = await get_user_groups_for(user_id=self.user_id, connection=self._database)
-            self._groups = [UserGroup(group_id) for group_id in group_ids]
+            self._groups = await get_user_groups_for(
+                user_id=self.user_id,
+                connection=self._database,
+            )
         return self._groups
 
     async def is_admin(self) -> bool:

@@ -5,11 +5,13 @@ from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import Row, text
 
+from routers.types import Identifier
+
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection
 
 
-async def exist(id_: int, expdb: AsyncConnection) -> bool:
+async def exist(id_: Identifier, expdb: AsyncConnection) -> bool:
     """Check if a run exists by ID."""
     row = await expdb.execute(
         text(
@@ -24,7 +26,7 @@ async def exist(id_: int, expdb: AsyncConnection) -> bool:
     return bool(row.one_or_none())
 
 
-async def get_trace(run_id: int, expdb: AsyncConnection) -> Sequence[Row]:
+async def get_trace(run_id: Identifier, expdb: AsyncConnection) -> Sequence[Row]:
     """Get trace rows for a run from the trace table."""
     rows = await expdb.execute(
         text(
