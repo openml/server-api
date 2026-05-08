@@ -2,7 +2,7 @@
 
 import datetime
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
@@ -13,6 +13,7 @@ from database.exceptions import (
     DuplicatePrimaryKeyError,
     ForeignKeyConstraintError,
 )
+from routers.types import Identifier, TagString
 from schemas.datasets.openml import DatasetStatus, Feature
 
 if TYPE_CHECKING:
@@ -20,7 +21,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection
 
 
-async def get(id_: int, connection: AsyncConnection) -> Row | None:
+async def get(id_: Identifier, connection: AsyncConnection) -> Row | None:
     row = await connection.execute(
         text(
             """
@@ -34,7 +35,7 @@ async def get(id_: int, connection: AsyncConnection) -> Row | None:
     return row.one_or_none()
 
 
-async def get_file(*, file_id: int, connection: AsyncConnection) -> Row | None:
+async def get_file(*, file_id: Identifier, connection: AsyncConnection) -> Row | None:
     row = await connection.execute(
         text(
             """
@@ -48,7 +49,11 @@ async def get_file(*, file_id: int, connection: AsyncConnection) -> Row | None:
     return row.one_or_none()
 
 
-async def get_tag(dataset_id: int, tag: str, connection: AsyncConnection) -> Row | None:
+async def get_tag(
+    dataset_id: Identifier,
+    tag: TagString,
+    connection: AsyncConnection,
+) -> Row | None:
     return (
         await connection.execute(
             text(
@@ -63,7 +68,7 @@ async def get_tag(dataset_id: int, tag: str, connection: AsyncConnection) -> Row
     ).first()
 
 
-async def delete_tag(dataset_id: int, tag: str, connection: AsyncConnection) -> None:
+async def delete_tag(dataset_id: Identifier, tag: TagString, connection: AsyncConnection) -> None:
     await connection.execute(
         text(
             """
@@ -75,7 +80,7 @@ async def delete_tag(dataset_id: int, tag: str, connection: AsyncConnection) -> 
     )
 
 
-async def get_tags_for(id_: int, connection: AsyncConnection) -> list[str]:
+async def get_tags_for(id_: Identifier, connection: AsyncConnection) -> list[str]:
     row = await connection.execute(
         text(
             """
@@ -115,7 +120,7 @@ async def tag(id_: int, tag_: str, *, user_id: int, connection: AsyncConnection)
 
 
 async def get_description(
-    id_: int,
+    id_: Identifier,
     connection: AsyncConnection,
 ) -> Row | None:
     """Get the most recent description for the dataset."""
@@ -133,7 +138,7 @@ async def get_description(
     return row.first()
 
 
-async def get_status(id_: int, connection: AsyncConnection) -> DatasetStatus:
+async def get_status(id_: Identifier, connection: AsyncConnection) -> DatasetStatus:
     """Get most recent status for the dataset."""
     row = (
         await connection.execute(
@@ -152,7 +157,10 @@ async def get_status(id_: int, connection: AsyncConnection) -> DatasetStatus:
     return DatasetStatus(row.status) if row else DatasetStatus.IN_PREPARATION
 
 
-async def get_latest_processing_update(dataset_id: int, connection: AsyncConnection) -> Row | None:
+async def get_latest_processing_update(
+    dataset_id: Identifier,
+    connection: AsyncConnection,
+) -> Row | None:
     row = await connection.execute(
         text(
             """
@@ -167,7 +175,7 @@ async def get_latest_processing_update(dataset_id: int, connection: AsyncConnect
     return row.first()
 
 
-async def get_features(dataset_id: int, connection: AsyncConnection) -> list[Feature]:
+async def get_features(dataset_id: Identifier, connection: AsyncConnection) -> list[Feature]:
     row = await connection.execute(
         text(
             """
@@ -184,7 +192,7 @@ async def get_features(dataset_id: int, connection: AsyncConnection) -> list[Fea
 
 
 async def get_feature_ontologies(
-    dataset_id: int,
+    dataset_id: Identifier,
     connection: AsyncConnection,
 ) -> dict[int, list[str]]:
     rows = await connection.execute(
@@ -204,7 +212,7 @@ async def get_feature_ontologies(
 
 
 async def get_feature_values(
-    dataset_id: int,
+    dataset_id: Identifier,
     *,
     feature_index: int,
     connection: AsyncConnection,
@@ -224,10 +232,10 @@ async def get_feature_values(
 
 
 async def update_status(
-    dataset_id: int,
-    status: str,
+    dataset_id: Identifier,
+    status: Literal[DatasetStatus.ACTIVE, DatasetStatus.DEACTIVATED],
     *,
-    user_id: int,
+    user_id: Identifier,
     connection: AsyncConnection,
 ) -> None:
     await connection.execute(
@@ -246,7 +254,7 @@ async def update_status(
     )
 
 
-async def remove_deactivated_status(dataset_id: int, connection: AsyncConnection) -> None:
+async def remove_deactivated_status(dataset_id: Identifier, connection: AsyncConnection) -> None:
     await connection.execute(
         text(
             """
