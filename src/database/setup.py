@@ -1,10 +1,9 @@
+import functools
+
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
 from config import DatabaseConfiguration, get_config
-
-_user_engine = None
-_expdb_engine = None
 
 
 def _create_engine(db_config: DatabaseConfiguration) -> AsyncEngine:
@@ -23,26 +22,21 @@ def _create_engine(db_config: DatabaseConfiguration) -> AsyncEngine:
     )
 
 
+@functools.cache
 def user_database() -> AsyncEngine:
-    global _user_engine  # noqa: PLW0603
-    if _user_engine is None:
-        _user_engine = _create_engine(get_config().openml_database)
-    return _user_engine
+    return _create_engine(get_config().openml_database)
 
 
+@functools.cache
 def expdb_database() -> AsyncEngine:
-    global _expdb_engine  # noqa: PLW0603
-    if _expdb_engine is None:
-        _expdb_engine = _create_engine(get_config().expdb_database)
-    return _expdb_engine
+    return _create_engine(get_config().expdb_database)
 
 
 async def close_databases() -> None:
     """Close all database connections."""
-    global _user_engine, _expdb_engine  # noqa: PLW0603
-    if _user_engine is not None:
-        await _user_engine.dispose()
-        _user_engine = None
-    if _expdb_engine is not None:
-        await _expdb_engine.dispose()
-        _expdb_engine = None
+    if user_database.cache_info().currsize == 1:
+        await user_database().dispose()
+        user_database.cache_clear()
+    if expdb_database.cache_info().currsize == 1:
+        await expdb_database().dispose()
+        expdb_database.cache_clear()
