@@ -46,7 +46,7 @@ from routers.types import (
     CasualString128,
     Identifier,
     IntegerRange,
-    SystemString64,
+    TagString,
     integer_range_regex,
 )
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Feature, FeatureType
@@ -63,7 +63,7 @@ router = APIRouter(prefix="/datasets", tags=["datasets"])
 )
 async def tag_dataset(
     data_id: Annotated[Identifier, Body()],
-    tag: Annotated[SystemString64, Body()],
+    tag: Annotated[TagString, Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[str, dict[str, Any]]:
@@ -87,13 +87,13 @@ async def tag_dataset(
 
 class TagInfo(TypedDict):
     id: str
-    tag: NotRequired[SystemString64 | list[SystemString64]]
+    tag: NotRequired[TagString | list[TagString]]
 
 
 @router.post(path="/untag", deprecated=True)
 async def untag_dataset_like_php(
     data_id: Annotated[Identifier, Body()],
-    tag: Annotated[SystemString64, Body()],
+    tag: Annotated[TagString, Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[Literal["data_untag"], TagInfo]:
@@ -110,7 +110,7 @@ async def untag_dataset_like_php(
 @router.delete(path="/{identifier}/tag", status_code=HTTPStatus.NO_CONTENT)
 async def untag_dataset(
     identifier: Identifier,
-    tag: Annotated[SystemString64, Query()],
+    tag: Annotated[TagString, Query()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> None:
@@ -158,7 +158,7 @@ def _quality_clause(quality: str, range_: str | None) -> str:
 async def list_datasets(  # noqa: PLR0913, C901
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     data_name: Annotated[CasualString128 | None, Body()] = None,
-    tag: Annotated[SystemString64 | None, Body()] = None,
+    tag: Annotated[TagString | None, Body()] = None,
     data_version: Annotated[
         Identifier | None,
         Body(description="The dataset version to include in the search."),

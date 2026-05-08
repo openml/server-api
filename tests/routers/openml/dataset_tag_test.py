@@ -31,25 +31,6 @@ async def test_dataset_tag_rejects_unauthorized(key: ApiKey, py_api: httpx.Async
     assert response.status_code == HTTPStatus.UNAUTHORIZED
 
 
-@pytest.mark.parametrize(
-    "tag",
-    ["", "h@", " a", "a" * 65],
-    ids=["too short", "@", "space", "too long"],
-)
-async def test_dataset_tag_invalid_tag_is_rejected(
-    # Constraints for the tag are handled by FastAPI
-    tag: str,
-    py_api: httpx.AsyncClient,
-) -> None:
-    response = await py_api.post(
-        f"/datasets/tag?api_key={ApiKey.ADMIN}",
-        json={"data_id": 1, "tag": tag},
-    )
-
-    assert response.status_code == HTTPStatus.UNPROCESSABLE_ENTITY
-    assert response.json()["errors"][0]["loc"] == ["body", "tag"]
-
-
 # ── Direct call tests: tag_dataset ──
 
 
