@@ -1,3 +1,11 @@
+"""Tests validation of custom types.
+
+Note that for parametrized tests, it is important that the value order and
+amount must be consistent to allow distribution with pytest-xdist:
+https://pytest-xdist.readthedocs.io/en/latest/known-limitations.html#order-and-amount-of-test-must-be-consistent
+
+"""
+
 import string
 
 import pytest
@@ -31,8 +39,8 @@ def test_identifier_rejects_zero() -> None:
 
 
 _tag_string = TypeAdapter(TagString)
-_valid_punctuation_tag = set("_-.")
-_invalid_punctuation_tag = set(string.punctuation) - _valid_punctuation_tag
+_valid_punctuation_tag = list("_-.")
+_invalid_punctuation_tag = sorted(set(string.punctuation) - set(_valid_punctuation_tag))
 
 
 def test_tag_string_pattern() -> None:
@@ -51,8 +59,10 @@ def test_tag_string_rejects_invalid(tag: str) -> None:
 
 
 _casual_string = TypeAdapter(CasualString)
-_valid_punctuation_casual_string = set("_-.(),")
-_invalid_punctuation_casual_string = set(string.punctuation) - _valid_punctuation_casual_string
+_valid_punctuation_casual_string = list(set("_-.(),"))
+_invalid_punctuation_casual_string = sorted(
+    set(string.punctuation) - set(_valid_punctuation_casual_string)
+)
 
 
 def test_casual_string_pattern() -> None:
