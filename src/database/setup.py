@@ -39,6 +39,13 @@ async def close_databases() -> None:
     """Close all database connections."""
     for db in (user_database, expdb_database):
         if db.cache_info().currsize == 1:
-            logger.info("Disposing of engine connected to {db_url}", db_url=db().url)
-            await db().dispose()
+            engine = db()
+            logger.info("Disposing of engine connected to {db_url}", db_url=engine.url)
+            try:
+                await engine.dispose()
+            except Exception:  # noqa: BLE001
+                logger.exception(
+                    "Issue disposing of database engine for {db_url}",
+                    db_url=engine.url,
+                )
             db.cache_clear()
