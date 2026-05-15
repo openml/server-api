@@ -1,45 +1,51 @@
+import functools
+
+from loguru import logger
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
-from config import load_database_configuration
-
-_user_engine = None
-_expdb_engine = None
+from config import DatabaseConfiguration, get_config
 
 
-def _create_engine(database_name: str) -> AsyncEngine:
-    database_configuration = load_database_configuration()
-    db_config = dict(database_configuration[database_name])
-    echo = db_config.pop("echo", False)
+def _create_engine(db_config: DatabaseConfiguration) -> AsyncEngine:
+    db_url = URL.create(
+        drivername=db_config.drivername,
+        username=db_config.username,
+        password=db_config.password,
+        host=db_config.host,
+        port=db_config.port,
+        database=db_config.database,
+    )
 
-    db_url = URL.create(**db_config)
+    logger.info("Creating database engine for {db_url}", db_url=db_url)
     return create_async_engine(
         db_url,
-        echo=echo,
+        echo=db_config.echo,
         pool_recycle=3600,
     )
 
 
+@functools.cache
 def user_database() -> AsyncEngine:
-    global _user_engine  # noqa: PLW0603
-    if _user_engine is None:
-        _user_engine = _create_engine("openml")
-    return _user_engine
+    return _create_engine(get_config().openml_database)
 
 
+@functools.cache
 def expdb_database() -> AsyncEngine:
-    global _expdb_engine  # noqa: PLW0603
-    if _expdb_engine is None:
-        _expdb_engine = _create_engine("expdb")
-    return _expdb_engine
+    return _create_engine(get_config().expdb_database)
 
 
 async def close_databases() -> None:
     """Close all database connections."""
-    global _user_engine, _expdb_engine  # noqa: PLW0603
-    if _user_engine is not None:
-        await _user_engine.dispose()
-        _user_engine = None
-    if _expdb_engine is not None:
-        await _expdb_engine.dispose()
-        _expdb_engine = None
+    for db in (user_database, expdb_database):
+        if db.cache_info().currsize == 1:
+            engine = db()
+            logger.info("Disposing of engine connected to {db_url}", db_url=engine.url)
+            try:
+                await engine.dispose()
+            except Exception:  # noqa: BLE001
+                logger.exception(
+                    "Issue disposing of database engine for {db_url}",
+                    db_url=engine.url,
+                )
+            db.cache_clear()

@@ -6,7 +6,7 @@ from typing import Any, NamedTuple
 from unittest.mock import AsyncMock, patch
 
 import deepdiff
-import httpx
+import httpx  # noqa: TC002
 import pytest
 
 from core.conversions import nested_num_to_str, nested_remove_single_element_list
@@ -270,10 +270,8 @@ async def test_get_run_equal(
     ("input_value", "expected_value", "repeat", "fold"),
     [
         (1.0, 1, None, None),
-        ("2.0", 2, None, None),
-        ("1.5", 1.5, None, None),
-        ("not_a_number", None, None, None),
-        (["list"], None, None, None),
+        (1.5, 1.5, None, None),
+        (None, None, None, None),
         (0.95, 0.95, 0, 2),
     ],
 )

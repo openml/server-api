@@ -1,13 +1,17 @@
 from collections import defaultdict
 from collections.abc import Iterable
+from typing import TYPE_CHECKING
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncConnection
 
+from routers.types import Identifier
 from schemas.datasets.openml import Quality
 
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
-async def get_for_dataset(dataset_id: int, connection: AsyncConnection) -> list[Quality]:
+
+async def get_for_dataset(dataset_id: Identifier, connection: AsyncConnection) -> list[Quality]:
     row = await connection.execute(
         text(
             """
@@ -23,7 +27,7 @@ async def get_for_dataset(dataset_id: int, connection: AsyncConnection) -> list[
 
 
 async def get_for_datasets(
-    dataset_ids: Iterable[int],
+    dataset_ids: Iterable[Identifier],
     quality_names: Iterable[str],
     connection: AsyncConnection,
 ) -> dict[int, list[Quality]]:

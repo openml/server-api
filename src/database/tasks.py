@@ -1,11 +1,15 @@
 from collections.abc import Sequence
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import Row, text
-from sqlalchemy.ext.asyncio import AsyncConnection
+
+from routers.types import Identifier
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
-async def get(id_: int, expdb: AsyncConnection) -> Row | None:
+async def get(id_: Identifier, expdb: AsyncConnection) -> Row | None:
     row = await expdb.execute(
         text(
             """
@@ -34,7 +38,7 @@ async def get_task_types(expdb: AsyncConnection) -> Sequence[Row]:
     )
 
 
-async def get_task_type(task_type_id: int, expdb: AsyncConnection) -> Row | None:
+async def get_task_type(task_type_id: Identifier, expdb: AsyncConnection) -> Row | None:
     row = await expdb.execute(
         text(
             """
@@ -108,7 +112,7 @@ async def get_input_for_task_type(task_type_id: int, expdb: AsyncConnection) -> 
     )
 
 
-async def get_input_for_task(id_: int, expdb: AsyncConnection) -> Sequence[Row]:
+async def get_input_for_task(id_: Identifier, expdb: AsyncConnection) -> Sequence[Row]:
     rows = await expdb.execute(
         text(
             """
@@ -126,7 +130,7 @@ async def get_input_for_task(id_: int, expdb: AsyncConnection) -> Sequence[Row]:
 
 
 async def get_task_type_inout_with_template(
-    task_type: int,
+    task_type: Identifier,
     expdb: AsyncConnection,
 ) -> Sequence[Row]:
     rows = await expdb.execute(
@@ -145,7 +149,7 @@ async def get_task_type_inout_with_template(
     )
 
 
-async def get_tags(id_: int, expdb: AsyncConnection) -> list[str]:
+async def get_tags(id_: Identifier, expdb: AsyncConnection) -> list[str]:
     rows = await expdb.execute(
         text(
             """

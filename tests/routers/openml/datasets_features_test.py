@@ -3,15 +3,18 @@
 import asyncio
 import re
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
-import httpx
 import pytest
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 from core.errors import DatasetNoAccessError, DatasetNotFoundError, DatasetProcessingError
 from database.users import User
 from routers.openml.datasets import get_dataset_features
 from tests.users import ADMIN_USER, DATASET_130_OWNER
+
+if TYPE_CHECKING:
+    import httpx
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def test_get_features_via_api(py_api: httpx.AsyncClient) -> None:

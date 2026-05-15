@@ -4,28 +4,31 @@ import sys
 import time
 import uuid
 from collections.abc import Awaitable, Callable
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from loguru import logger
-from starlette.requests import Request
-from starlette.responses import Response
 
-from config import load_configuration
+from config import LoggingConfiguration
+
+if TYPE_CHECKING:
+    from starlette.requests import Request
+    from starlette.responses import Response
 
 
-def setup_log_sinks(configuration_file: Path | None = None) -> None:
+def setup_log_sinks(*configurations: LoggingConfiguration) -> None:
     """Configure loguru based on app configuration."""
-    configuration = load_configuration(configuration_file)
-    for nickname, sink_configuration in configuration.get("logging", {}).items():
-        logger.info("Configuring sink", nickname=nickname, **sink_configuration)
-        sink = sink_configuration.pop("sink")
+    for sink_configuration in configurations:
+        conf = sink_configuration.model_dump()
+        logger.info("Configuring sink", **conf)
+        sink = conf.pop("sink")
         if sink == "sys.stderr":
             sink = sys.stderr
-        # Logs the additionally provided data as JSON.
-        sink_configuration.setdefault("serialize", True)
-        # Decouples log calls from I/O and makes it multiprocessing safe.
-        sink_configuration.setdefault("enqueue", True)
-        logger.add(sink, **sink_configuration)
+            # defaults may be provided for rotation and retention,
+            # but they are not valid options for stderr logging.
+            conf.pop("rotation", None)
+            conf.pop("retention", None)
+            conf.pop("compression", None)
+        logger.add(sink, **conf)
 
 
 async def add_request_context_to_log(

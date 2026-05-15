@@ -8,7 +8,6 @@ from fastapi import APIRouter, Depends
 
 if TYPE_CHECKING:
     from sqlalchemy import Row
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 import config
 import database.flows
@@ -18,6 +17,7 @@ import database.tasks
 import database.users
 from core.errors import RunNotFoundError, RunTraceNotFoundError
 from routers.dependencies import expdb_connection, userdb_connection
+from routers.types import Identifier
 from schemas.runs import (
     EvaluationScore,
     InputDataset,
@@ -29,12 +29,15 @@ from schemas.runs import (
     TraceIteration,
 )
 
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncConnection
+
 router = APIRouter(prefix="/run", tags=["run"])
 
 
 @router.get("/trace/{run_id}")
 async def get_run_trace(
-    run_id: int,
+    run_id: Identifier,
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> RunTrace:
     """Get trace data for a run by run ID."""
@@ -69,17 +72,17 @@ class RunContext:
 
     uploader_name: str | None
     tags: list[str]
-    input_data_rows: list["Row"]
-    output_file_rows: list["Row"]
-    evaluation_rows: list["Row"]
+    input_data_rows: list[Row]
+    output_file_rows: list[Row]
+    evaluation_rows: list[Row]
     task_type: str | None
     task_evaluation_measure: str | None
-    setup: "Row | None"
-    parameter_rows: list["Row"]
+    setup: Row | None
+    parameter_rows: list[Row]
 
 
 async def _load_run_context(
-    run: "Row",
+    run: Row,
     run_id: int,
     expdb: AsyncConnection,
     userdb: AsyncConnection,
@@ -123,41 +126,11 @@ async def _load_run_context(
     )
 
 
-def _build_parameter_settings(parameter_rows: list["Row"]) -> list[ParameterSetting]:
-    return [
-        ParameterSetting(
-            name=p["name"],
-            value=p["value"],
-            component=p["flow_id"],
-        )
-        for p in parameter_rows
-    ]
-
-
-def _build_input_datasets(rows: list["Row"]) -> list[InputDataset]:
-    return [InputDataset(did=row.did, name=row.name, url=row.url) for row in rows]
-
-
-def _build_output_files(rows: list["Row"]) -> list[OutputFile]:
-    """Build output files list.
-
-    Note: the PHP response includes a deprecated `did` field hardcoded to "-1"
-    for each file. This implementation omits it entirely.
-    """
-    return [OutputFile(file_id=row.file_id, name=row.field) for row in rows]
-
-
-def _build_evaluations(rows: list["Row"]) -> list[EvaluationScore]:
+def _build_evaluations(rows: list[Row]) -> list[EvaluationScore]:
     def _normalise_value(v: object) -> object:
         if isinstance(v, (int, float)):
-            return int(v) if float(v).is_integer() else v
-        if isinstance(v, str):
-            try:
-                f = float(v)
-                return int(f) if f.is_integer() else f
-            except ValueError:
-                return None
-        return None
+            return int(v) if float(v).is_integer() else float(v)
+        return v
 
     return [
         EvaluationScore(
@@ -187,14 +160,10 @@ async def get_run(
         msg = f"Run {run_id} not found."
         raise RunNotFoundError(msg, code=236)
 
-    engine_ids: list[int] = config.load_run_configuration().get("evaluation_engine_ids", [1])
+    engine_ids: list[int] = config.get_config().development.run_evaluation_engine_ids
     ctx = await _load_run_context(run, run_id, expdb, userdb, engine_ids)
 
     flow = await database.flows.get(ctx.setup.implementation_id, expdb) if ctx.setup else None
-
-    parameter_settings = _build_parameter_settings(ctx.parameter_rows)
-    input_datasets = _build_input_datasets(ctx.input_data_rows)
-    output_files = _build_output_files(ctx.output_file_rows)
     evaluations = _build_evaluations(ctx.evaluation_rows)
 
     normalised_measure = ctx.task_evaluation_measure or None
@@ -211,9 +180,15 @@ async def get_run(
         flow_name=flow.full_name if flow else None,
         setup_id=run.setup,
         setup_string=ctx.setup.setup_string if ctx.setup else None,
-        parameter_setting=parameter_settings,
+        parameter_setting=[
+            ParameterSetting(name=p["name"], value=p["value"], component=p["flow_id"])
+            for p in ctx.parameter_rows
+        ],
         error_message=error_messages,
         tag=ctx.tags,
-        input_data=input_datasets,
-        output_data=OutputData(file=output_files, evaluation=evaluations),
+        input_data=[InputDataset(did=r.did, name=r.name, url=r.url) for r in ctx.input_data_rows],
+        output_data=OutputData(
+            file=[OutputFile(file_id=r.file_id, name=r.field) for r in ctx.output_file_rows],
+            evaluation=evaluations,
+        ),
     )

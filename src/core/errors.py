@@ -5,10 +5,13 @@ See: https://www.rfc-editor.org/rfc/rfc9457.html
 """
 
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
-from fastapi import Request
-from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+
+if TYPE_CHECKING:
+    from fastapi import Request
+    from fastapi.exceptions import RequestValidationError
 
 # =============================================================================
 # Base Exception
@@ -226,6 +229,22 @@ class ForbiddenError(ProblemDetailError):
     uri = "https://openml.org/problems/forbidden"
     title = "Forbidden"
     _default_status_code = HTTPStatus.FORBIDDEN
+
+
+class UserNotFoundError(ProblemDetailError):
+    """Raised when a user id does not exist in the user database."""
+
+    uri = "https://openml.org/problems/user-not-found"
+    title = "User Not Found"
+    _default_status_code = HTTPStatus.NOT_FOUND
+
+
+class AccountHasResourcesError(ProblemDetailError):
+    """Raised when account deletion is blocked because the user still owns resources."""
+
+    uri = "https://openml.org/problems/account-has-resources"
+    title = "Account Has Active Resources"
+    _default_status_code = HTTPStatus.CONFLICT
 
 
 # =============================================================================

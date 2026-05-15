@@ -1,7 +1,10 @@
-from sqlalchemy.ext.asyncio import AsyncConnection
+from typing import TYPE_CHECKING
 
 import database.flows
 from tests.conftest import Flow
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def test_database_flow_exists(flow: Flow, expdb_test: AsyncConnection) -> None:

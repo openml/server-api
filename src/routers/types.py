@@ -1,13 +1,23 @@
-from fastapi import Body
+from typing import Annotated
 
-SystemString64 = Body(pattern=r"^[\w\-\.]+$", min_length=1, max_length=64)
+from pydantic import Field
 
-CasualString128 = Body(pattern=r"^[\w\-\.\(\),]+$", min_length=1, max_length=128)
+# Known as SystemString64 in the XSD
+TagString = Annotated[str, Field(pattern=r"^[\w\-\.]+$", min_length=1, max_length=64)]
+
+# Currently used for a variety of fields, like `name` or `feature`.
+CasualString = Annotated[str, Field(pattern=r"^[\w\-\.\(\),]+$", min_length=1)]
+CasualString128 = Annotated[CasualString, Field(max_length=128)]
+
+Identifier = Annotated[int, Field(gt=0)]
 
 integer_range_regex = r"^(\d+)(\.\.\d+)?$"
-IntegerRange = Body(
-    pattern=integer_range_regex,
-    description="Either a single integer, or a range defined as `low..high`, where"
-    "`low` and `high` are inclusive integer bounds of the range.",
-    examples=["12", "3..150"],
-)
+IntegerRange = Annotated[
+    str,
+    Field(
+        pattern=integer_range_regex,
+        description="Either a single integer, or a range defined as `low..high`, where"
+        "`low` and `high` are inclusive integer bounds of the range.",
+        examples=["12", "3..150"],
+    ),
+]

@@ -1,16 +1,19 @@
 """Tests for the POST /datasets/status/update endpoint."""
 
 from http import HTTPStatus
+from typing import TYPE_CHECKING
 
-import httpx
 import pytest
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 from core.errors import DatasetAdminOnlyError, DatasetNotOwnedError
 from routers.openml.datasets import update_dataset_status
 from schemas.datasets.openml import DatasetStatus
 from tests import constants
 from tests.users import ADMIN_USER, SOME_USER
+
+if TYPE_CHECKING:
+    import httpx
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def test_update_status_via_api(py_api: httpx.AsyncClient) -> None:

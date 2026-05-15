@@ -1,11 +1,13 @@
 from collections.abc import Sequence
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import Row, text
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 from core.formatting import _str_to_bool
 from schemas.datasets.openml import EstimationProcedure
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
 async def get_math_functions(function_type: str, connection: AsyncConnection) -> Sequence[Row]:

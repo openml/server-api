@@ -1,11 +1,17 @@
 """All database operations that directly operate on setups."""
 
+from typing import TYPE_CHECKING
+
 from sqlalchemy import text
-from sqlalchemy.engine import Row, RowMapping
-from sqlalchemy.ext.asyncio import AsyncConnection
+
+from routers.types import Identifier, TagString
+
+if TYPE_CHECKING:
+    from sqlalchemy.engine import Row, RowMapping
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
-async def get(setup_id: int, connection: AsyncConnection) -> Row | None:
+async def get(setup_id: Identifier, connection: AsyncConnection) -> Row | None:
     """Get the setup with id `setup_id` from the database."""
     row = await connection.execute(
         text(
@@ -20,7 +26,7 @@ async def get(setup_id: int, connection: AsyncConnection) -> Row | None:
     return row.first()
 
 
-async def get_parameters(setup_id: int, connection: AsyncConnection) -> list[RowMapping]:
+async def get_parameters(setup_id: Identifier, connection: AsyncConnection) -> list[RowMapping]:
     """Get all parameters for setup with `setup_id` from the database."""
     rows = await connection.execute(
         text(
@@ -47,7 +53,7 @@ async def get_parameters(setup_id: int, connection: AsyncConnection) -> list[Row
     return list(rows.mappings().all())
 
 
-async def get_tags(setup_id: int, connection: AsyncConnection) -> list[Row]:
+async def get_tags(setup_id: Identifier, connection: AsyncConnection) -> list[Row]:
     """Get all tags for setup with `setup_id` from the database."""
     rows = await connection.execute(
         text(
@@ -62,7 +68,7 @@ async def get_tags(setup_id: int, connection: AsyncConnection) -> list[Row]:
     return list(rows.all())
 
 
-async def untag(setup_id: int, tag: str, connection: AsyncConnection) -> None:
+async def untag(setup_id: Identifier, tag: TagString, connection: AsyncConnection) -> None:
     """Remove tag `tag` from setup with id `setup_id`."""
     await connection.execute(
         text(
@@ -75,7 +81,12 @@ async def untag(setup_id: int, tag: str, connection: AsyncConnection) -> None:
     )
 
 
-async def tag(setup_id: int, tag: str, user_id: int, connection: AsyncConnection) -> None:
+async def tag(
+    setup_id: Identifier,
+    tag: TagString,
+    user_id: Identifier,
+    connection: AsyncConnection,
+) -> None:
     """Add tag `tag` to setup with id `setup_id`."""
     await connection.execute(
         text(

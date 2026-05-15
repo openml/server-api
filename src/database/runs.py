@@ -1,13 +1,17 @@
 """Database queries for run-related data."""
 
 from collections.abc import Sequence
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import Row, bindparam, text
-from sqlalchemy.ext.asyncio import AsyncConnection
+
+from routers.types import Identifier
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
-async def exist(id_: int, expdb: AsyncConnection) -> bool:
+async def exist(id_: Identifier, expdb: AsyncConnection) -> bool:
     """Check if a run exists by ID."""
     row = await expdb.execute(
         text(
@@ -22,7 +26,7 @@ async def exist(id_: int, expdb: AsyncConnection) -> bool:
     return bool(row.one_or_none())
 
 
-async def get(run_id: int, expdb: AsyncConnection) -> Row | None:
+async def get(run_id: Identifier, expdb: AsyncConnection) -> Row | None:
     """Fetch the core run row from the `run` table.
 
     Returns the row if found, or None if no run with `run_id` exists.

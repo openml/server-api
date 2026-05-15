@@ -1,16 +1,19 @@
 import re
 from collections.abc import Sequence
 from datetime import UTC, datetime
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import Row, text
-from sqlalchemy.ext.asyncio import AsyncConnection
 
 from database.users import User
+from routers.types import Identifier
 from schemas.study import CreateStudy, StudyType
 
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
-async def get_by_id(id_: int, connection: AsyncConnection) -> Row | None:
+
+async def get_by_id(id_: Identifier, connection: AsyncConnection) -> Row | None:
     row = await connection.execute(
         text(
             """
@@ -112,7 +115,12 @@ async def create(study: CreateStudy, user: User, expdb: AsyncConnection) -> int:
     return cast("int", study_id)
 
 
-async def attach_task(task_id: int, study_id: int, user: User, expdb: AsyncConnection) -> None:
+async def attach_task(
+    task_id: Identifier,
+    study_id: Identifier,
+    user: User,
+    expdb: AsyncConnection,
+) -> None:
     await expdb.execute(
         text(
             """
@@ -124,7 +132,13 @@ async def attach_task(task_id: int, study_id: int, user: User, expdb: AsyncConne
     )
 
 
-async def attach_run(*, run_id: int, study_id: int, user: User, expdb: AsyncConnection) -> None:
+async def attach_run(
+    *,
+    run_id: Identifier,
+    study_id: Identifier,
+    user: User,
+    expdb: AsyncConnection,
+) -> None:
     await expdb.execute(
         text(
             """
@@ -169,8 +183,8 @@ async def attach_tasks(
 
 
 async def attach_runs(
-    study_id: int,
-    run_ids: list[int],
+    study_id: Identifier,
+    run_ids: list[Identifier],
     user: User,
     connection: AsyncConnection,
 ) -> None:

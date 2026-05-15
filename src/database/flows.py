@@ -1,11 +1,15 @@
 from collections.abc import Sequence
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import Row, text
-from sqlalchemy.ext.asyncio import AsyncConnection
+
+from routers.types import Identifier
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncConnection
 
 
-async def get_subflows(for_flow: int, expdb: AsyncConnection) -> Sequence[Row]:
+async def get_subflows(for_flow: Identifier, expdb: AsyncConnection) -> Sequence[Row]:
     rows = await expdb.execute(
         text(
             """
@@ -22,7 +26,7 @@ async def get_subflows(for_flow: int, expdb: AsyncConnection) -> Sequence[Row]:
     )
 
 
-async def get_tags(flow_id: int, expdb: AsyncConnection) -> list[str]:
+async def get_tags(flow_id: Identifier, expdb: AsyncConnection) -> list[str]:
     rows = await expdb.execute(
         text(
             """
@@ -37,7 +41,7 @@ async def get_tags(flow_id: int, expdb: AsyncConnection) -> list[str]:
     return [tag.tag for tag in tag_rows]
 
 
-async def get_parameters(flow_id: int, expdb: AsyncConnection) -> Sequence[Row]:
+async def get_parameters(flow_id: Identifier, expdb: AsyncConnection) -> Sequence[Row]:
     rows = await expdb.execute(
         text(
             """
@@ -69,7 +73,7 @@ async def get_by_name(name: str, external_version: str, expdb: AsyncConnection) 
     return row.one_or_none()
 
 
-async def get(id_: int, expdb: AsyncConnection) -> Row | None:
+async def get(id_: Identifier, expdb: AsyncConnection) -> Row | None:
     row = await expdb.execute(
         text(
             """
