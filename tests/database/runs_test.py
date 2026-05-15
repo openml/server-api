@@ -1,6 +1,6 @@
 """Tests for database layer of runs."""
 
-from sqlalchemy.ext.asyncio import AsyncConnection
+from sqlalchemy.ext.asyncio import AsyncConnection  # noqa: TC002
 
 import database.runs
 import database.tasks
