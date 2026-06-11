@@ -33,7 +33,7 @@ async def test_get_run_trace_success(run_id: int, py_api: httpx.AsyncClient) -> 
 
 @pytest.mark.parametrize("run_id", [24])
 async def test_get_run_trace_no_trace(run_id: int, py_api: httpx.AsyncClient) -> None:
-    """Test that 412 is returned for a run that exists but has no trace."""
+    """Test that 404 is returned for a run that exists but has no trace."""
     response = await py_api.get(f"/run/trace/{run_id}")
     assert response.status_code == HTTPStatus.NOT_FOUND
     body = response.json()
@@ -45,7 +45,7 @@ async def test_get_run_trace_no_trace(run_id: int, py_api: httpx.AsyncClient) ->
 
 @pytest.mark.parametrize("run_id", [999999])
 async def test_get_run_trace_run_not_found(run_id: int, py_api: httpx.AsyncClient) -> None:
-    """Test that 412 is returned when the run does not exist."""
+    """Test that 404 is returned when the run does not exist."""
     response = await py_api.get(f"/run/trace/{run_id}")
     assert response.status_code == HTTPStatus.NOT_FOUND
     body = response.json()
