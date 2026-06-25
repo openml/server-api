@@ -24,9 +24,10 @@ if TYPE_CHECKING:
 )
 async def test_dataset_tag_rejects_unauthorized(key: ApiKey, py_api: httpx.AsyncClient) -> None:
     apikey = "" if key is None else f"?api_key={key}"
+    any_dataset_identifier = 1
     response = await py_api.post(
         f"/datasets/tag{apikey}",
-        json={"data_id": next(iter(constants.PRIVATE_DATASET_ID)), "tag": "test"},
+        json={"data_id": any_dataset_identifier, "tag": "test"},
     )
     assert response.status_code == HTTPStatus.UNAUTHORIZED
 

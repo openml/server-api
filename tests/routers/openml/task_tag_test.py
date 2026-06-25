@@ -24,9 +24,10 @@ if TYPE_CHECKING:
 )
 async def test_task_tag_rejects_unauthorized(key: ApiKey, py_api: httpx.AsyncClient) -> None:
     apikey = "" if key is None else f"?api_key={key}"
+    any_task_id = 1
     response = await py_api.post(
         f"/tasks/tag{apikey}",
-        json={"task_id": next(iter(constants.PRIVATE_DATASET_ID)), "tag": "test"},
+        json={"task_id": any_task_id, "tag": "test"},
     )
     assert response.status_code == HTTPStatus.UNAUTHORIZED
 
