@@ -1,15 +1,14 @@
-import re
 from http import HTTPStatus
 from typing import TYPE_CHECKING
 
 import pytest
 
-from core.conversions import nested_remove_single_element_list
 from core.errors import TagAlreadyExistsError, TaskNotFoundError
 from database.tasks import get_tags
 from database.users import User
 from routers.openml.tasks import tag_task
 from tests import constants
+from tests.routers.openml.tag_test_helper import assert_tag_response_is_identical
 from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
 
 if TYPE_CHECKING:
@@ -114,7 +113,7 @@ async def test_task_tag_fails_if_task_does_not_exist(expdb_test: AsyncConnection
 )
 @pytest.mark.parametrize(
     "tag",
-    ["study_14", "totally_new_tag_for_migration_testing"],
+    ["OpenML100", "totally_new_tag_for_migration_testing"],
     ids=["typically existing tag", "new tag"],
 )
 async def test_task_tag_response_is_identical(
@@ -124,60 +123,4 @@ async def test_task_tag_response_is_identical(
     py_api: httpx.AsyncClient,
     php_api: httpx.AsyncClient,
 ) -> None:
-    # PHP request must happen first to check state, can't parallelize
-    php_response = await php_api.post(
-        "/task/tag",
-        data={"api_key": api_key, "tag": tag, "task_id": task_id},
-    )
-    already_tagged = (
-        php_response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-        and "already tagged" in php_response.json()["error"]["message"]
-    )
-    if not already_tagged:
-        # undo the tag, because we don't want to persist this change to the taskbase
-        # Sometimes a change is already committed to the taskbase even if an error occurs.
-        await php_api.post(
-            "/task/untag",
-            data={"api_key": api_key, "tag": tag, "task_id": task_id},
-        )
-    if (
-        php_response.status_code != HTTPStatus.OK
-        and php_response.json()["error"]["message"] == "An Elastic Search Exception occured."
-    ):
-        pytest.skip("Encountered Elastic Search error.")
-
-    py_response = await py_api.post(
-        f"/tasks/tag?api_key={api_key}",
-        json={"task_id": task_id, "tag": tag},
-    )
-
-    # RFC 9457: Tag conflict now returns 409 instead of 500
-    if php_response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR and already_tagged:
-        assert py_response.status_code == HTTPStatus.CONFLICT
-        assert py_response.json()["code"] == php_response.json()["error"]["code"]
-        assert php_response.json()["error"]["message"] == "Entity already tagged by this tag."
-        assert re.match(
-            pattern=r"Task \d+ already tagged with " + f"'{tag}'.",
-            string=py_response.json()["detail"],
-        )
-        return
-
-    if py_response.status_code == HTTPStatus.NOT_FOUND:
-        assert php_response.status_code == HTTPStatus.PRECONDITION_FAILED
-        py_error = py_response.json()
-        php_error = php_response.json()["error"]
-        assert py_error["code"] == php_error["code"]
-        assert php_error["message"] == "Entity not found."
-        assert re.match(r"Task \d+ not found.", py_error["detail"])
-        return
-
-    assert py_response.status_code == php_response.status_code, php_response.json()
-    if py_response.status_code != HTTPStatus.OK:
-        assert py_response.json()["code"] == php_response.json()["error"]["code"]
-        assert py_response.json()["detail"] == php_response.json()["error"]["message"]
-        return
-
-    php_json = php_response.json()
-    py_json = py_response.json()
-    py_json = nested_remove_single_element_list(py_json)
-    assert py_json == php_json
+    await assert_tag_response_is_identical(task_id, tag, api_key, "task", py_api, php_api)
