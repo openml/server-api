@@ -43,19 +43,45 @@ class UserGroup(IntEnum):
     READ_ONLY = (3,)
 
 
-async def get_user_id_for(*, api_key: APIKey, connection: AsyncConnection) -> int | None:
-    row = await connection.execute(
-        text(
-            """
-    SELECT *
-    FROM users
-    WHERE session_hash = :api_key
-    """,
-        ),
-        parameters={"api_key": api_key},
+async def get_user(
+    *,
+    connection: AsyncConnection,
+    api_key: APIKey | None = None,
+    user_id: int | None = None,
+) -> User | None:
+    """Fetch the full user by either api_key or user_id."""
+    if (api_key is None) == (user_id is None):
+        msg = "Exactly one of api_key or user_id must be provided."
+        raise ValueError(msg)
+
+    if api_key is not None:
+        query = """
+        SELECT id, first_name, last_name
+        FROM users
+        WHERE session_hash = :api_key
+        LIMIT 1
+        """
+    else:
+        query = """
+        SELECT id, first_name, last_name
+        FROM users
+        WHERE id = :user_id
+        LIMIT 1
+        """
+
+    result = await connection.execute(
+        text(query),
+        parameters={"api_key": api_key, "user_id": user_id},
     )
-    user = row.one_or_none()
-    return user.id if user else None
+    row = result.one_or_none()
+    if row:
+        return User(
+            user_id=row.id,
+            first_name=row.first_name,
+            last_name=row.last_name,
+            _database=connection,
+        )
+    return None
 
 
 async def get_user_groups_for(
@@ -81,12 +107,32 @@ async def get_user_groups_for(
 class User:
     user_id: Identifier
     _database: AsyncConnection
+    first_name: str = ""
+    last_name: str = ""
     _groups: list[UserGroup] | None = None
+
+    def __post_init__(self) -> None:
+        """Convert None names to empty strings to satisfy str type."""
+        if self.first_name is None:
+            self.first_name = ""
+        if self.last_name is None:
+            self.last_name = ""
+
+    @property
+    def full_name(self) -> str:
+        """Return the combined first and last name."""
+        return f"{self.first_name} {self.last_name}".strip()
 
     @classmethod
     async def fetch(cls, api_key: APIKey, user_db: AsyncConnection) -> Self | None:
-        if (user_id := await get_user_id_for(api_key=api_key, connection=user_db)) is not None:
-            return cls(user_id, _database=user_db)
+        user = await get_user(api_key=api_key, connection=user_db)
+        if user is not None:
+            return cls(
+                user_id=user.user_id,
+                first_name=user.first_name,
+                last_name=user.last_name,
+                _database=user_db,
+            )
         return None
 
     async def get_groups(self) -> list[UserGroup]:

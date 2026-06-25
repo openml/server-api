@@ -82,6 +82,7 @@ class DevelopmentConfiguration(BaseModel, frozen=True):
     """Settings for development or test specific features."""
 
     allow_test_api_keys: bool = Field(default=False)
+    run_evaluation_engine_ids: list[int] = Field(default_factory=lambda: [1])
 
 
 class RoutingConfiguration(BaseModel, frozen=True):
