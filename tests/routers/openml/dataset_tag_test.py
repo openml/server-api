@@ -8,6 +8,7 @@ from database.datasets import get_tags_for
 from database.users import User
 from routers.openml.datasets import tag_dataset
 from tests import constants
+from tests.conftest import DatasetFactory
 from tests.routers.openml.tag_test_helper import assert_tag_response_is_identical
 from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
 
@@ -39,14 +40,12 @@ async def test_dataset_tag_rejects_unauthorized(key: ApiKey, py_api: httpx.Async
     [ADMIN_USER, SOME_USER, OWNER_USER],
     ids=["administrator", "non-owner", "owner"],
 )
-async def test_dataset_tag(user: User, expdb_test: AsyncConnection) -> None:
-    dataset_id, tag = next(iter(constants.PRIVATE_DATASET_ID)), "test"
-    result = await tag_dataset(
-        data_id=dataset_id,
-        tag=tag,
-        user=user,
-        expdb_db=expdb_test,
-    )
+async def test_dataset_tag(
+    user: User, expdb_test: AsyncConnection, dataset_factory: DatasetFactory
+) -> None:
+    dataset_id = await dataset_factory()
+    tag = "test_tag"
+    result = await tag_dataset(data_id=dataset_id, tag=tag, user=user, expdb_db=expdb_test)
     assert result == {"data_tag": {"id": str(dataset_id), "tag": [tag]}}
 
     tags = await get_tags_for(id_=dataset_id, connection=expdb_test)
@@ -54,27 +53,27 @@ async def test_dataset_tag(user: User, expdb_test: AsyncConnection) -> None:
 
 
 @pytest.mark.mut
-async def test_dataset_tag_returns_existing_tags(expdb_test: AsyncConnection) -> None:
-    dataset_id, tag = 1, "test"  # Dataset 1 already is tagged with 'study_14'
+async def test_dataset_tag_returns_existing_tags(
+    expdb_test: AsyncConnection, dataset_factory: DatasetFactory
+) -> None:
+    dataset_id = await dataset_factory()
+    await tag_dataset(data_id=dataset_id, tag="first", user=OWNER_USER, expdb_db=expdb_test)
     result = await tag_dataset(
-        data_id=dataset_id,
-        tag=tag,
-        user=ADMIN_USER,
-        expdb_db=expdb_test,
+        data_id=dataset_id, tag="second", user=ADMIN_USER, expdb_db=expdb_test
     )
-    assert result == {"data_tag": {"id": str(dataset_id), "tag": ["study_14", tag]}}
+    assert result == {"data_tag": {"id": str(dataset_id), "tag": ["first", "second"]}}
 
 
 @pytest.mark.mut
-async def test_dataset_tag_fails_if_tag_exists(expdb_test: AsyncConnection) -> None:
-    dataset_id, tag = 1, "study_14"  # Dataset 1 already is tagged with 'study_14'
+async def test_dataset_tag_fails_if_tag_exists(
+    expdb_test: AsyncConnection, dataset_factory: DatasetFactory
+) -> None:
+    tag = "repeated_tag"
+    dataset_id = await dataset_factory()
+    await tag_dataset(data_id=dataset_id, tag=tag, user=OWNER_USER, expdb_db=expdb_test)
+
     with pytest.raises(TagAlreadyExistsError) as e:
-        await tag_dataset(
-            data_id=dataset_id,
-            tag=tag,
-            user=ADMIN_USER,
-            expdb_db=expdb_test,
-        )
+        await tag_dataset(data_id=dataset_id, tag=tag, user=ADMIN_USER, expdb_db=expdb_test)
     assert str(dataset_id) in e.value.detail
     assert tag in e.value.detail
 

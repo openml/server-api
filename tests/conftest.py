@@ -1,4 +1,5 @@
 import contextlib
+import datetime
 import json
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterable, Iterator
 from pathlib import Path
@@ -150,7 +151,11 @@ class Task(NamedTuple):
 
 class TaskFactory(Protocol):
     def __call__(
-        self, *, task_id: Identifier = 42_000, task_type: Identifier = 1, creator: Identifier = 1
+        self,
+        *,
+        task_id: Identifier = 42_000,
+        task_type: Identifier = 1,
+        creator: Identifier = OWNER_USER.user_id,
     ) -> Awaitable[Task]: ...
 
 
@@ -159,7 +164,10 @@ async def task_factory(
     expdb_test: AsyncConnection,
 ) -> TaskFactory:
     async def create_task(
-        *, task_id: Identifier = 42_000, task_type: Identifier = 1, creator: Identifier = 1
+        *,
+        task_id: Identifier = 42_000,
+        task_type: Identifier = 1,
+        creator: Identifier = OWNER_USER.user_id,
     ) -> Task:
         await expdb_test.execute(
             text("""
@@ -170,6 +178,38 @@ async def task_factory(
         return Task(task_id, task_type, creator)
 
     return create_task
+
+
+class DatasetFactory(Protocol):
+    def __call__(
+        self, *, dataset_id: Identifier = 42_000, creator: Identifier = OWNER_USER.user_id
+    ) -> Awaitable[Identifier]: ...
+
+
+@pytest.fixture
+async def dataset_factory(
+    expdb_test: AsyncConnection,
+) -> DatasetFactory:
+    async def create_dataset(
+        *, dataset_id: Identifier = 42_000, creator: Identifier = OWNER_USER.user_id
+    ) -> Identifier:
+        await expdb_test.execute(
+            text("""
+                INSERT INTO dataset
+                (did, uploader, name, version, format, upload_date, licence, url, visibility)
+                VALUES
+                (:dataset_id, :creator, 'dataset-name', 'dataset-version', 'dataset-format',
+                :now, 'public', 'dataset-url', 'public');
+            """),
+            parameters={
+                "dataset_id": dataset_id,
+                "creator": creator,
+                "now": datetime.datetime.now(tz=datetime.UTC),
+            },
+        )
+        return dataset_id
+
+    return create_dataset
 
 
 class Flow(NamedTuple):
