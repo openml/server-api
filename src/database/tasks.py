@@ -156,8 +156,8 @@ async def get_task_type_inout_with_template(
     )
 
 
-async def get_tags(id_: Identifier, expdb: AsyncConnection) -> list[str]:
-    rows = await expdb.execute(
+async def get_tags(id_: Identifier, connection: AsyncConnection) -> list[str]:
+    rows = await connection.execute(
         text(
             """
             SELECT `tag`
