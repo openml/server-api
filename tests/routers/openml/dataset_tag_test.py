@@ -103,7 +103,7 @@ async def test_dataset_tag_fails_if_dataset_does_not_exist(expdb_test: AsyncConn
         *range(1, 10),
         101,
         constants.SOME_DEACTIVATED_DATASET_ID,
-        constants.DATASET_ID_THAT_DOES_NOT_EXIST,
+        constants.ENTITY_ID_THAT_DOES_NOT_EXIST,
     ],
 )
 @pytest.mark.parametrize(
