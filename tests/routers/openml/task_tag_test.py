@@ -8,6 +8,7 @@ from database.tasks import get_tags
 from database.users import User
 from routers.openml.tasks import tag_task
 from tests import constants
+from tests.conftest import TaskFactory
 from tests.routers.openml.tag_test_helper import assert_tag_response_is_identical
 from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
 
@@ -39,55 +40,44 @@ async def test_task_tag_rejects_unauthorized(key: ApiKey, py_api: httpx.AsyncCli
     [ADMIN_USER, SOME_USER, OWNER_USER],
     ids=["administrator", "non-owner", "owner"],
 )
-async def test_task_tag(user: User, expdb_test: AsyncConnection) -> None:
-    task_id, tag = 2, "test"
-    result = await tag_task(
-        task_id=task_id,
-        tag=tag,
-        user=user,
-        expdb_db=expdb_test,
-    )
-    assert result == {"task_tag": {"id": str(task_id), "tag": [tag]}}
+async def test_task_tag(user: User, expdb_test: AsyncConnection, task_factory: TaskFactory) -> None:
+    tag = "test_task_tag"
+    task = await task_factory()
+    result = await tag_task(task_id=task.id, tag=tag, user=user, expdb_db=expdb_test)
+    assert result == {"task_tag": {"id": str(task.id), "tag": [tag]}}
 
-    tags = await get_tags(id_=task_id, connection=expdb_test)
+    tags = await get_tags(id_=task.id, connection=expdb_test)
     assert tag in tags
 
 
 @pytest.mark.mut
-async def test_task_tag_returns_existing_tags(expdb_test: AsyncConnection) -> None:
-    task_id, tag = 1, "test"  # Task 1 already is tagged with 'OpenML100'
-    result = await tag_task(
-        task_id=task_id,
-        tag=tag,
-        user=ADMIN_USER,
-        expdb_db=expdb_test,
-    )
-    assert result == {"task_tag": {"id": str(task_id), "tag": ["OpenML100", tag]}}
+async def test_task_tag_returns_existing_tags(
+    task_factory: TaskFactory, expdb_test: AsyncConnection
+) -> None:
+    task = await task_factory()
+    await tag_task(task_id=task.id, tag="first", user=ADMIN_USER, expdb_db=expdb_test)
+    result = await tag_task(task_id=task.id, tag="second", user=ADMIN_USER, expdb_db=expdb_test)
+    assert result == {"task_tag": {"id": str(task.id), "tag": ["first", "second"]}}
 
 
 @pytest.mark.mut
-async def test_task_tag_fails_if_tag_exists(expdb_test: AsyncConnection) -> None:
-    task_id, tag = 1, "OpenML100"  # Task 1 already is tagged with 'OpenML100'
+async def test_task_tag_fails_if_tag_exists(
+    expdb_test: AsyncConnection, task_factory: TaskFactory
+) -> None:
+    tag = "fails_if_exist"
+    task = await task_factory()
+    await tag_task(task_id=task.id, tag=tag, user=ADMIN_USER, expdb_db=expdb_test)
+
     with pytest.raises(TagAlreadyExistsError) as e:
-        await tag_task(
-            task_id=task_id,
-            tag=tag,
-            user=ADMIN_USER,
-            expdb_db=expdb_test,
-        )
-    assert str(task_id) in e.value.detail
+        await tag_task(task_id=task.id, tag=tag, user=ADMIN_USER, expdb_db=expdb_test)
+    assert str(task.id) in e.value.detail
     assert tag in e.value.detail
 
 
 async def test_task_tag_fails_if_task_does_not_exist(expdb_test: AsyncConnection) -> None:
     task_id = 1_000_000
     with pytest.raises(TaskNotFoundError) as e:
-        await tag_task(
-            task_id=task_id,
-            tag="foo",
-            user=ADMIN_USER,
-            expdb_db=expdb_test,
-        )
+        await tag_task(task_id=task_id, tag="foo", user=ADMIN_USER, expdb_db=expdb_test)
     assert str(task_id) in e.value.detail
     task_not_found_in_tag_endpoint = 472
     assert e.value.code == task_not_found_in_tag_endpoint

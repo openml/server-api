@@ -1,8 +1,8 @@
 import contextlib
 import json
-from collections.abc import AsyncIterator, Callable, Iterable, Iterator
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterable, Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple, Protocol
 
 import _pytest.mark
 import httpx
@@ -22,6 +22,7 @@ from config import (
 from database.setup import expdb_database, user_database
 from main import create_api
 from routers.dependencies import expdb_connection, userdb_connection
+from routers.types import Identifier
 from tests.users import OWNER_USER
 
 if TYPE_CHECKING:
@@ -137,6 +138,38 @@ def dataset_130() -> Iterator[dict[str, Any]]:
     json_path = Path(__file__).parent / "resources" / "datasets" / "dataset_130.json"
     with json_path.open("r") as dataset_file:
         yield json.load(dataset_file)
+
+
+class Task(NamedTuple):
+    """To be replaced by an actual ORM class."""
+
+    id: Identifier
+    task_type: Identifier
+    creator: Identifier
+
+
+class TaskFactory(Protocol):
+    def __call__(
+        self, *, task_id: Identifier = 42_000, task_type: Identifier = 1, creator: Identifier = 1
+    ) -> Awaitable[Task]: ...
+
+
+@pytest.fixture
+async def task_factory(
+    expdb_test: AsyncConnection,
+) -> TaskFactory:
+    async def create_task(
+        *, task_id: Identifier = 42_000, task_type: Identifier = 1, creator: Identifier = 1
+    ) -> Task:
+        await expdb_test.execute(
+            text("""
+                INSERT INTO task (task_id, ttid, creator) VALUES (:task_id, :ttid, :creator);
+            """),
+            parameters={"task_id": task_id, "ttid": task_type, "creator": creator},
+        )
+        return Task(task_id, task_type, creator)
+
+    return create_task
 
 
 class Flow(NamedTuple):
