@@ -68,10 +68,6 @@ async def assert_tag_response_is_identical(  # noqa: PLR0913
         return
 
     assert py_response.status_code == php_response.status_code, php_response.json()
-    if py_response.status_code != HTTPStatus.OK:
-        assert py_response.json()["code"] == php_response.json()["error"]["code"]
-        assert py_response.json()["detail"] == php_response.json()["error"]["message"]
-        return
 
     php_json = php_response.json()
     py_json = py_response.json()
