@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from core.errors import TagAlreadyExistsError, TaskNotFoundError
+from core.errors import TASK_NOT_FOUND_DURING_TAG, TagAlreadyExistsError, TaskNotFoundError
 from database.tasks import get_tags
 from database.users import User
 from routers.openml.tasks import tag_task
@@ -80,7 +80,7 @@ async def test_task_tag_fails_if_task_does_not_exist(expdb_test: AsyncConnection
     with pytest.raises(TaskNotFoundError) as e:
         await tag_task(task_id=task_id, tag="foo", user=ADMIN_USER, expdb_db=expdb_test)
     assert str(task_id) in e.value.detail
-    task_not_found_in_tag_endpoint = 472
+    task_not_found_in_tag_endpoint = TASK_NOT_FOUND_DURING_TAG
     assert e.value.code == task_not_found_in_tag_endpoint
 
 
