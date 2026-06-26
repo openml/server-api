@@ -2,8 +2,11 @@ from http import HTTPStatus
 from typing import TYPE_CHECKING
 
 import pytest
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.errors import TASK_NOT_FOUND_DURING_TAG, TagAlreadyExistsError, TaskNotFoundError
+from database.setup import TaskTag, UserR
 from database.tasks import get_tags
 from database.users import User
 from routers.openml.tasks import tag_task
@@ -82,6 +85,22 @@ async def test_task_tag_fails_if_task_does_not_exist(expdb_test: AsyncConnection
     assert str(task_id) in e.value.detail
     task_not_found_in_tag_endpoint = TASK_NOT_FOUND_DURING_TAG
     assert e.value.code == task_not_found_in_tag_endpoint
+
+
+async def test_if_reflection_works(
+    py_api: httpx.Client, expdb_test: AsyncConnection, user_test: AsyncConnection
+) -> None:
+    _ = py_api
+    user_stmt = select(UserR).where(UserR.id == 1)
+    async with AsyncSession(bind=user_test) as session:
+        user = (await session.scalars(user_stmt)).first()
+    assert user.username == "emily12"
+
+    tag_stmt = select(TaskTag).where(TaskTag.tag == "OpenML100")
+    async with AsyncSession(bind=expdb_test) as session:
+        tags = (await session.scalars(tag_stmt)).all()
+    tag_count = 100
+    assert len(tags) == tag_count
 
 
 # -- migration tests --

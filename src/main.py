@@ -26,7 +26,7 @@ from core.logging import (
     request_response_logger,
     setup_log_sinks,
 )
-from database.setup import close_databases
+from database.setup import close_databases, reflect_db_schemas
 from routers.openml.datasets import router as datasets_router
 from routers.openml.estimation_procedure import router as estimationprocedure_router
 from routers.openml.evaluations import router as evaluationmeasures_router
@@ -45,6 +45,8 @@ async def lifespan(
     app: FastAPI | None,  # noqa: ARG001 # parameter required by FastAPI/Starlette
 ) -> AsyncIterator[None]:
     """Manage application lifespan - startup and shutdown events."""
+    logger.info("Reflecting database schemas")
+    await reflect_db_schemas()
     yield
     await asyncio.gather(
         logger.complete(),
