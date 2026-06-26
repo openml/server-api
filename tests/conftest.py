@@ -1,8 +1,9 @@
 import contextlib
+import datetime
 import json
-from collections.abc import AsyncIterator, Callable, Iterable, Iterator
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterable, Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple, Protocol
 
 import _pytest.mark
 import httpx
@@ -22,6 +23,7 @@ from config import (
 from database.setup import expdb_database, user_database
 from main import create_api
 from routers.dependencies import expdb_connection, userdb_connection
+from routers.types import Identifier
 from tests.users import OWNER_USER
 
 if TYPE_CHECKING:
@@ -137,6 +139,95 @@ def dataset_130() -> Iterator[dict[str, Any]]:
     json_path = Path(__file__).parent / "resources" / "datasets" / "dataset_130.json"
     with json_path.open("r") as dataset_file:
         yield json.load(dataset_file)
+
+
+class Task(NamedTuple):
+    """To be replaced by an actual ORM class."""
+
+    id: Identifier
+    task_type: Identifier
+    creator: Identifier
+
+
+class TaskFactory(Protocol):
+    def __call__(
+        self,
+        *,
+        task_id: Identifier = 42_000,
+        task_type: Identifier = 1,
+        creator: Identifier = OWNER_USER.user_id,
+    ) -> Awaitable[Task]: ...
+
+
+def _create_identifier_factory() -> Callable[[], Identifier]:
+    _identifier_counter: Identifier = 10_000_000
+
+    def _get() -> Identifier:
+        nonlocal _identifier_counter
+        _identifier_counter += 1
+        return _identifier_counter
+
+    return _get
+
+
+_identifier_factory = _create_identifier_factory()
+
+
+@pytest.fixture
+async def task_factory(
+    expdb_test: AsyncConnection,
+) -> TaskFactory:
+    async def create_task(
+        *,
+        task_id: Identifier | None = None,
+        task_type: Identifier = 1,
+        creator: Identifier = OWNER_USER.user_id,
+    ) -> Task:
+        task_id = task_id or _identifier_factory()
+
+        await expdb_test.execute(
+            text("""
+                INSERT INTO task (task_id, ttid, creator) VALUES (:task_id, :ttid, :creator);
+            """),
+            parameters={"task_id": task_id, "ttid": task_type, "creator": creator},
+        )
+        return Task(task_id, task_type, creator)
+
+    return create_task
+
+
+class DatasetFactory(Protocol):
+    def __call__(
+        self, *, dataset_id: Identifier = 42_000, creator: Identifier = OWNER_USER.user_id
+    ) -> Awaitable[Identifier]: ...
+
+
+@pytest.fixture
+async def dataset_factory(
+    expdb_test: AsyncConnection,
+) -> DatasetFactory:
+    async def create_dataset(
+        *, dataset_id: Identifier | None = None, creator: Identifier = OWNER_USER.user_id
+    ) -> Identifier:
+        dataset_id = dataset_id or _identifier_factory()
+        await expdb_test.execute(
+            text("""
+                INSERT INTO dataset
+                (did, uploader, name, version, format, upload_date, licence, url, visibility)
+                VALUES
+                (:dataset_id, :creator, :name, 'dataset-version', 'dataset-format',
+                :now, 'public', 'dataset-url', 'public');
+            """),
+            parameters={
+                "dataset_id": dataset_id,
+                "creator": creator,
+                "now": datetime.datetime.now(tz=datetime.UTC),
+                "name": f"dataset-name-{dataset_id}",
+            },
+        )
+        return dataset_id
+
+    return create_dataset
 
 
 class Flow(NamedTuple):

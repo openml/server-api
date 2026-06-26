@@ -251,6 +251,8 @@ class AccountHasResourcesError(ProblemDetailError):
 # Tag Errors
 # =============================================================================
 
+TASK_NOT_FOUND_DURING_TAG = 472
+
 
 class TagAlreadyExistsError(ProblemDetailError):
     """Raised when trying to add a tag that already exists."""

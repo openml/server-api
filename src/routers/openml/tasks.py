@@ -6,13 +6,16 @@ from typing import TYPE_CHECKING, Annotated, Any, cast
 
 import xmltodict
 from fastapi import APIRouter, Body, Depends
+from loguru import logger
 from sqlalchemy import bindparam, text
 
 import database.datasets
 import database.tasks
 from config import get_config
-from core.errors import InternalError, NoResultsError, TaskNotFoundError
-from routers.dependencies import Pagination, expdb_connection
+from core.errors import InternalError, NoResultsError, TagAlreadyExistsError, TaskNotFoundError
+from database.exceptions import DuplicatePrimaryKeyError, ForeignKeyConstraintError
+from database.users import User
+from routers.dependencies import Pagination, expdb_connection, fetch_user_or_raise
 from routers.types import (
     CasualString128,
     Identifier,
@@ -29,6 +32,31 @@ if TYPE_CHECKING:
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 type JSON = dict[str, "JSON"] | list["JSON"] | str | int | float | bool | None
+
+
+@router.post(path="/tag")
+async def tag_task(
+    task_id: Annotated[Identifier, Body()],
+    tag: Annotated[TagString, Body()],
+    user: Annotated[User, Depends(fetch_user_or_raise)],
+    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
+) -> dict[str, dict[str, Any]]:
+    try:
+        await database.tasks.tag(task_id, tag, user_id=user.user_id, connection=expdb_db)
+    except ForeignKeyConstraintError:
+        msg = f"Task {task_id} not found."
+        raise TaskNotFoundError(msg, code=472) from None
+    except DuplicatePrimaryKeyError:
+        msg = f"Task {task_id} already tagged with {tag!r}."
+        raise TagAlreadyExistsError(msg) from None
+
+    logger.info("Task {task_id} tagged '{tag}'.", task_id=task_id, tag=tag)
+
+    tags = await database.tasks.get_tags(task_id, expdb_db)
+
+    return {
+        "task_tag": {"id": str(task_id), "tag": tags},
+    }
 
 
 def convert_template_xml_to_json(xml_template: str) -> dict[str, JSON]:

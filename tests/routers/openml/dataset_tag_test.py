@@ -1,15 +1,15 @@
-import re
 from http import HTTPStatus
 from typing import TYPE_CHECKING
 
 import pytest
 
-from core.conversions import nested_remove_single_element_list
 from core.errors import DatasetNotFoundError, TagAlreadyExistsError
 from database.datasets import get_tags_for
 from database.users import User
 from routers.openml.datasets import tag_dataset
 from tests import constants
+from tests.conftest import DatasetFactory
+from tests.routers.openml.tag_test_helper import assert_tag_response_is_identical
 from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
 
 if TYPE_CHECKING:
@@ -24,9 +24,10 @@ if TYPE_CHECKING:
 )
 async def test_dataset_tag_rejects_unauthorized(key: ApiKey, py_api: httpx.AsyncClient) -> None:
     apikey = "" if key is None else f"?api_key={key}"
+    any_dataset_identifier = 1
     response = await py_api.post(
         f"/datasets/tag{apikey}",
-        json={"data_id": next(iter(constants.PRIVATE_DATASET_ID)), "tag": "test"},
+        json={"data_id": any_dataset_identifier, "tag": "test"},
     )
     assert response.status_code == HTTPStatus.UNAUTHORIZED
 
@@ -40,14 +41,12 @@ async def test_dataset_tag_rejects_unauthorized(key: ApiKey, py_api: httpx.Async
     [ADMIN_USER, SOME_USER, OWNER_USER],
     ids=["administrator", "non-owner", "owner"],
 )
-async def test_dataset_tag(user: User, expdb_test: AsyncConnection) -> None:
-    dataset_id, tag = next(iter(constants.PRIVATE_DATASET_ID)), "test"
-    result = await tag_dataset(
-        data_id=dataset_id,
-        tag=tag,
-        user=user,
-        expdb_db=expdb_test,
-    )
+async def test_dataset_tag(
+    user: User, expdb_test: AsyncConnection, dataset_factory: DatasetFactory
+) -> None:
+    dataset_id = await dataset_factory()
+    tag = "test_tag"
+    result = await tag_dataset(data_id=dataset_id, tag=tag, user=user, expdb_db=expdb_test)
     assert result == {"data_tag": {"id": str(dataset_id), "tag": [tag]}}
 
     tags = await get_tags_for(id_=dataset_id, connection=expdb_test)
@@ -55,27 +54,27 @@ async def test_dataset_tag(user: User, expdb_test: AsyncConnection) -> None:
 
 
 @pytest.mark.mut
-async def test_dataset_tag_returns_existing_tags(expdb_test: AsyncConnection) -> None:
-    dataset_id, tag = 1, "test"  # Dataset 1 already is tagged with 'study_14'
+async def test_dataset_tag_returns_existing_tags(
+    expdb_test: AsyncConnection, dataset_factory: DatasetFactory
+) -> None:
+    dataset_id = await dataset_factory()
+    await tag_dataset(data_id=dataset_id, tag="first", user=OWNER_USER, expdb_db=expdb_test)
     result = await tag_dataset(
-        data_id=dataset_id,
-        tag=tag,
-        user=ADMIN_USER,
-        expdb_db=expdb_test,
+        data_id=dataset_id, tag="second", user=ADMIN_USER, expdb_db=expdb_test
     )
-    assert result == {"data_tag": {"id": str(dataset_id), "tag": ["study_14", tag]}}
+    assert result == {"data_tag": {"id": str(dataset_id), "tag": ["first", "second"]}}
 
 
 @pytest.mark.mut
-async def test_dataset_tag_fails_if_tag_exists(expdb_test: AsyncConnection) -> None:
-    dataset_id, tag = 1, "study_14"  # Dataset 1 already is tagged with 'study_14'
+async def test_dataset_tag_fails_if_tag_exists(
+    expdb_test: AsyncConnection, dataset_factory: DatasetFactory
+) -> None:
+    tag = "repeated_tag"
+    dataset_id = await dataset_factory()
+    await tag_dataset(data_id=dataset_id, tag=tag, user=OWNER_USER, expdb_db=expdb_test)
+
     with pytest.raises(TagAlreadyExistsError) as e:
-        await tag_dataset(
-            data_id=dataset_id,
-            tag=tag,
-            user=ADMIN_USER,
-            expdb_db=expdb_test,
-        )
+        await tag_dataset(data_id=dataset_id, tag=tag, user=ADMIN_USER, expdb_db=expdb_test)
     assert str(dataset_id) in e.value.detail
     assert tag in e.value.detail
 
@@ -104,7 +103,7 @@ async def test_dataset_tag_fails_if_dataset_does_not_exist(expdb_test: AsyncConn
         *range(1, 10),
         101,
         constants.SOME_DEACTIVATED_DATASET_ID,
-        constants.DATASET_ID_THAT_DOES_NOT_EXIST,
+        constants.ENTITY_ID_THAT_DOES_NOT_EXIST,
     ],
 )
 @pytest.mark.parametrize(
@@ -124,60 +123,4 @@ async def test_dataset_tag_response_is_identical(
     py_api: httpx.AsyncClient,
     php_api: httpx.AsyncClient,
 ) -> None:
-    # PHP request must happen first to check state, can't parallelize
-    php_response = await php_api.post(
-        "/data/tag",
-        data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
-    )
-    already_tagged = (
-        php_response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
-        and "already tagged" in php_response.json()["error"]["message"]
-    )
-    if not already_tagged:
-        # undo the tag, because we don't want to persist this change to the database
-        # Sometimes a change is already committed to the database even if an error occurs.
-        await php_api.post(
-            "/data/untag",
-            data={"api_key": api_key, "tag": tag, "data_id": dataset_id},
-        )
-    if (
-        php_response.status_code != HTTPStatus.OK
-        and php_response.json()["error"]["message"] == "An Elastic Search Exception occured."
-    ):
-        pytest.skip("Encountered Elastic Search error.")
-
-    py_response = await py_api.post(
-        f"/datasets/tag?api_key={api_key}",
-        json={"data_id": dataset_id, "tag": tag},
-    )
-
-    # RFC 9457: Tag conflict now returns 409 instead of 500
-    if php_response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR and already_tagged:
-        assert py_response.status_code == HTTPStatus.CONFLICT
-        assert py_response.json()["code"] == php_response.json()["error"]["code"]
-        assert php_response.json()["error"]["message"] == "Entity already tagged by this tag."
-        assert re.match(
-            pattern=r"Dataset \d+ already tagged with " + f"'{tag}'.",
-            string=py_response.json()["detail"],
-        )
-        return
-
-    if py_response.status_code == HTTPStatus.NOT_FOUND:
-        assert php_response.status_code == HTTPStatus.PRECONDITION_FAILED
-        py_error = py_response.json()
-        php_error = php_response.json()["error"]
-        assert py_error["code"] == php_error["code"]
-        assert php_error["message"] == "Entity not found."
-        assert re.match(r"Dataset \d+ not found.", py_error["detail"])
-        return
-
-    assert py_response.status_code == php_response.status_code, php_response.json()
-    if py_response.status_code != HTTPStatus.OK:
-        assert py_response.json()["code"] == php_response.json()["error"]["code"]
-        assert py_response.json()["detail"] == php_response.json()["error"]["message"]
-        return
-
-    php_json = php_response.json()
-    py_json = py_response.json()
-    py_json = nested_remove_single_element_list(py_json)
-    assert py_json == php_json
+    await assert_tag_response_is_identical(dataset_id, tag, api_key, "dataset", py_api, php_api)

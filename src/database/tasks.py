@@ -2,8 +2,15 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import Row, text
+from sqlalchemy.exc import IntegrityError
 
-from routers.types import Identifier
+from database.exceptions import (
+    _DUPLICATE_ENTRY,
+    _FOREIGN_KEY_CONSTRAINT_FAILED,
+    DuplicatePrimaryKeyError,
+    ForeignKeyConstraintError,
+)
+from routers.types import Identifier, TagString
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection
@@ -149,8 +156,8 @@ async def get_task_type_inout_with_template(
     )
 
 
-async def get_tags(id_: Identifier, expdb: AsyncConnection) -> list[str]:
-    rows = await expdb.execute(
+async def get_tags(id_: Identifier, connection: AsyncConnection) -> list[str]:
+    rows = await connection.execute(
         text(
             """
             SELECT `tag`
@@ -162,3 +169,33 @@ async def get_tags(id_: Identifier, expdb: AsyncConnection) -> list[str]:
     )
     tag_rows = rows.all()
     return [row.tag for row in tag_rows]
+
+
+async def tag(
+    id_: Identifier,
+    tag_: TagString,
+    *,
+    user_id: Identifier,
+    connection: AsyncConnection,
+) -> None:
+    try:
+        await connection.execute(
+            text(
+                """
+        INSERT INTO task_tag(`id`, `tag`, `uploader`)
+        VALUES (:task_id, :tag, :user_id)
+        """,
+            ),
+            parameters={
+                "task_id": id_,
+                "user_id": user_id,
+                "tag": tag_,
+            },
+        )
+    except IntegrityError as e:
+        code, msg = e.orig.args
+        if code == _FOREIGN_KEY_CONSTRAINT_FAILED:
+            raise ForeignKeyConstraintError(msg) from e
+        if code == _DUPLICATE_ENTRY:
+            raise DuplicatePrimaryKeyError(msg) from e
+        raise
