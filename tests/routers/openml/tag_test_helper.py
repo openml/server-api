@@ -29,8 +29,8 @@ async def assert_tag_response_is_identical(  # noqa: PLR0913
         and "already tagged" in php_response.json()["error"]["message"]
     )
     if not already_tagged:
-        # undo the tag, because we don't want to persist this change to the taskbase
-        # Sometimes a change is already committed to the taskbase even if an error occurs.
+        # undo the tag, because we don't want to persist this change to the database
+        # Sometimes a change is already committed to the database even if an error occurs.
         await php_api.post(
             f"/{php_alias}/untag",
             data={"api_key": api_key, "tag": tag, f"{php_alias}_id": identifier},
@@ -47,8 +47,8 @@ async def assert_tag_response_is_identical(  # noqa: PLR0913
         json={f"{php_alias}_id": identifier, "tag": tag},
     )
 
-    # RFC 9457: Tag conflict now returns 409 instead of 500
-    if php_response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR and already_tagged:
+    # RFC 9457: Tag conflict now returns 409 (CONFLICT) instead of 500 (INTERNAL SERVER ERROR)
+    if already_tagged:
         assert py_response.status_code == HTTPStatus.CONFLICT
         assert py_response.json()["code"] == php_response.json()["error"]["code"]
         assert php_response.json()["error"]["message"] == "Entity already tagged by this tag."
