@@ -159,16 +159,32 @@ class TaskFactory(Protocol):
     ) -> Awaitable[Task]: ...
 
 
+def _create_identifier_factory() -> Callable[[], Identifier]:
+    _identifier_counter: Identifier = 10_000_000
+
+    def _get() -> Identifier:
+        nonlocal _identifier_counter
+        _identifier_counter += 1
+        return _identifier_counter
+
+    return _get
+
+
+_identifier_factory = _create_identifier_factory()
+
+
 @pytest.fixture
 async def task_factory(
     expdb_test: AsyncConnection,
 ) -> TaskFactory:
     async def create_task(
         *,
-        task_id: Identifier = 42_000,
+        task_id: Identifier | None = None,
         task_type: Identifier = 1,
         creator: Identifier = OWNER_USER.user_id,
     ) -> Task:
+        task_id = task_id or _identifier_factory()
+
         await expdb_test.execute(
             text("""
                 INSERT INTO task (task_id, ttid, creator) VALUES (:task_id, :ttid, :creator);
@@ -191,20 +207,22 @@ async def dataset_factory(
     expdb_test: AsyncConnection,
 ) -> DatasetFactory:
     async def create_dataset(
-        *, dataset_id: Identifier = 42_000, creator: Identifier = OWNER_USER.user_id
+        *, dataset_id: Identifier | None = None, creator: Identifier = OWNER_USER.user_id
     ) -> Identifier:
+        dataset_id = dataset_id or _identifier_factory()
         await expdb_test.execute(
             text("""
                 INSERT INTO dataset
                 (did, uploader, name, version, format, upload_date, licence, url, visibility)
                 VALUES
-                (:dataset_id, :creator, 'dataset-name', 'dataset-version', 'dataset-format',
+                (:dataset_id, :creator, :name, 'dataset-version', 'dataset-format',
                 :now, 'public', 'dataset-url', 'public');
             """),
             parameters={
                 "dataset_id": dataset_id,
                 "creator": creator,
                 "now": datetime.datetime.now(tz=datetime.UTC),
+                "name": f"dataset-name-{dataset_id}",
             },
         )
         return dataset_id
