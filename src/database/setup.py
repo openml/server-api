@@ -3,31 +3,8 @@ import functools
 from loguru import logger
 from sqlalchemy.engine import URL
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
-from sqlalchemy.ext.declarative import DeferredReflection
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from config import DatabaseConfiguration, get_config
-
-
-class Base(DeclarativeBase):
-    pass
-
-
-class ExpDBReflected(DeferredReflection):
-    __abstract__ = True
-
-
-class UserDBReflected(DeferredReflection):
-    __abstract__ = True
-
-
-class UserR(UserDBReflected, Base):
-    __tablename__ = "users"
-    id: Mapped[int] = mapped_column(primary_key=True)
-
-
-class TaskTag(ExpDBReflected, Base):
-    __tablename__ = "task_tag"
 
 
 def _create_engine(db_config: DatabaseConfiguration) -> AsyncEngine:
@@ -56,13 +33,6 @@ def user_database() -> AsyncEngine:
 @functools.cache
 def expdb_database() -> AsyncEngine:
     return _create_engine(get_config().expdb_database)
-
-
-async def reflect_db_schemas() -> None:
-    async with user_database().connect() as connection:
-        await connection.run_sync(UserDBReflected.prepare)  # type: ignore[arg-type]  # run_sync expects positional-only arg but `prepare` does not have it.
-    async with expdb_database().connect() as connection:
-        await connection.run_sync(ExpDBReflected.prepare)  # type: ignore[arg-type]  # as above.
 
 
 async def close_databases() -> None:
