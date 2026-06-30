@@ -1,0 +1,6110 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://openml.github.io/server-api/database/openml_expdb/">
+      
+      
+        <link rel="prev" href="../openml/">
+      
+      
+        <link rel="next" href="../../contributing/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>openml_expdb - OpenML Server</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#openml_expdb-database" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="OpenML Server" class="md-header__button md-logo" aria-label="OpenML Server" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            OpenML Server
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              openml_expdb
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/openml/server-api" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    openml/server-api
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../.." class="md-tabs__link">
+          
+  
+  
+    
+  
+  OpenML Server
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Database
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../contributing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Contributing
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="OpenML Server" class="md-nav__button md-logo" aria-label="OpenML Server" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    OpenML Server
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/openml/server-api" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    openml/server-api
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../.." class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OpenML Server
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_1" id="__nav_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    OpenML Server
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Database
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../openml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    openml
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    openml_expdb
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    openml_expdb
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#datasets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Datasets
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Datasets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataset
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dataset_description" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataset_description
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dataset_status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataset_status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dataset_tag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataset_tag
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dataset_topic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataset_topic
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-features-and-qualities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Features and Qualities
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Features and Qualities">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#data_feature" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        data_feature
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data_feature_description" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        data_feature_description
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data_feature_value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        data_feature_value
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data_quality" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        data_quality
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data_processed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        data_processed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quality" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        quality
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tasks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tasks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task_type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        task_type
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task_type_inout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        task_type_inout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task_io_types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        task_io_types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        task
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task_inputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        task_inputs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task_tag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        task_tag
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#estimation_procedure_type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        estimation_procedure_type
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#estimation_procedure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        estimation_procedure
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flows-implementations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flows (Implementations)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Flows (Implementations)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        implementation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#implementation_component" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        implementation_component
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#implementation_tag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        implementation_tag
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#input" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        input
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setups
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Setups">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#algorithm_setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        algorithm_setup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#input_setting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        input_setting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#setup_tag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        setup_tag
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#setup_differences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        setup_differences
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runs-and-evaluations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runs and Evaluations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Runs and Evaluations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_evaluated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_evaluated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#runfile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        runfile
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_tag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_tag
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#input_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        input_data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#evaluation_engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        evaluation_engine
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#math_function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        math_function
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#evaluation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        evaluation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#evaluation_fold" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        evaluation_fold
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#evaluation_sample" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        evaluation_sample
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#trace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        trace
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#studies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Studies
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Studies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#study" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        study
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#study_tag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        study_tag
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_study" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_study
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task_study" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        task_study
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#community" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Community
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Community">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#likes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        likes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#downvotes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        downvotes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#downvote_reasons" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        downvote_reasons
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#downloads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        downloads
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#miscellaneous" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Miscellaneous
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Miscellaneous">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schedule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        schedule
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kaggle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kaggle
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../contributing/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Contributing
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/tests/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tests
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/documentation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/project_overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#datasets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Datasets
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Datasets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataset
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dataset_description" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataset_description
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dataset_status" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataset_status
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dataset_tag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataset_tag
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dataset_topic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dataset_topic
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-features-and-qualities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Features and Qualities
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Features and Qualities">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#data_feature" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        data_feature
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data_feature_description" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        data_feature_description
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data_feature_value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        data_feature_value
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data_quality" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        data_quality
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data_processed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        data_processed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quality" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        quality
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tasks
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tasks">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task_type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        task_type
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task_type_inout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        task_type_inout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task_io_types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        task_io_types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        task
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task_inputs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        task_inputs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task_tag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        task_tag
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#estimation_procedure_type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        estimation_procedure_type
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#estimation_procedure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        estimation_procedure
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#flows-implementations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Flows (Implementations)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Flows (Implementations)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        implementation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#implementation_component" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        implementation_component
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#implementation_tag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        implementation_tag
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#input" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        input
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#setups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setups
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Setups">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#algorithm_setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        algorithm_setup
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#input_setting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        input_setting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#setup_tag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        setup_tag
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#setup_differences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        setup_differences
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runs-and-evaluations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runs and Evaluations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Runs and Evaluations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#run" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_evaluated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_evaluated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#runfile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        runfile
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_tag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_tag
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#input_data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        input_data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#evaluation_engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        evaluation_engine
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#math_function" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        math_function
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#evaluation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        evaluation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#evaluation_fold" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        evaluation_fold
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#evaluation_sample" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        evaluation_sample
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#trace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        trace
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#studies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Studies
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Studies">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#study" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        study
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#study_tag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        study_tag
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#run_study" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_study
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task_study" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        task_study
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#community" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Community
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Community">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#likes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        likes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#downvotes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        downvotes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#downvote_reasons" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        downvote_reasons
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#downloads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        downloads
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#miscellaneous" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Miscellaneous
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Miscellaneous">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#schedule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        schedule
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kaggle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        kaggle
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="openml_expdb-database">openml_expdb Database</h1>
+<p>The <code>openml_expdb</code> database contains all experiment-related data: datasets, tasks, flows (implementations), runs, evaluations, and studies.
+The "expdb" part stands for "experiment database", the name used in <a href="https://research.kuleuven.be/portal/en/project/3E061119">Joaquin Vanschoren's thesis</a>.</p>
+<p>Some remarks which apply generally:</p>
+<ul>
+<li><code>datetime</code> fields are in format (<code>YYYY-MM-DD hh:mm:ss</code>).</li>
+<li>some <code>varchar</code> columns in production only have a very limited set of values. If the description says "one of.." it denotes only those values are present in the database in production.</li>
+</ul>
+<p>There are a few tables which never were or no longer are in use.
+They will be removed and so are not documented here. They are: <code>data_quality_interval</code>, <code>feature_quality</code>, <code>output_data</code> (only present on the test server), <code>algorithm</code> and <code>algorithm_quality</code>.
+For more information, see <a href="https://github.com/openml/server-api/issues/165">server-api#165</a>.</p>
+<hr />
+<h2 id="datasets">Datasets</h2>
+<h3 id="dataset">dataset</h3>
+<p>Stores dataset metadata including source, format, licensing, and upload information.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>did</td>
+<td>int unsigned</td>
+<td>No</td>
+<td>auto_increment</td>
+<td></td>
+<td>Primary key (dataset ID).</td>
+<td>42</td>
+</tr>
+<tr>
+<td>uploader</td>
+<td>mediumint unsigned</td>
+<td>Yes</td>
+<td>NULL</td>
+<td><a href="../openml/#users">openml.users.id</a></td>
+<td>User who uploaded the dataset.</td>
+<td>2</td>
+</tr>
+<tr>
+<td>source</td>
+<td>int unsigned</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>ID of the original source dataset if derived. Used only rarely.</td>
+<td>3</td>
+</tr>
+<tr>
+<td>name</td>
+<td>varchar(128)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Dataset name.</td>
+<td>iris</td>
+</tr>
+<tr>
+<td>version</td>
+<td>varchar(64)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Version string, displayed on the dataset page.</td>
+<td>3</td>
+</tr>
+<tr>
+<td>version_label</td>
+<td>varchar(128)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Human-readable label.</td>
+<td>tabular-ml-iid-study-0.0.1</td>
+</tr>
+<tr>
+<td>format</td>
+<td>varchar(64)</td>
+<td>No</td>
+<td>'arff'</td>
+<td></td>
+<td>File format, one of: ARFF, Sparse_ARFF, CSV, "CSV, MAT", txt, Rimage</td>
+<td>ARFF</td>
+</tr>
+<tr>
+<td>creator</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Original creator(s) of the dataset.</td>
+<td>"Jason", "G. Davies, A. Horne"</td>
+</tr>
+<tr>
+<td>contributor</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>People who contributed to the current version (e.g., formatting).</td>
+<td>"A. Dent", "The Data Institute"</td>
+</tr>
+<tr>
+<td>collection_date</td>
+<td>varchar(128)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>When the data was originally collected, in any format.</td>
+<td>"1980", "2024-10-30", "2022, 5 May"</td>
+</tr>
+<tr>
+<td>upload_date</td>
+<td>datetime</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>When the dataset was uploaded to OpenML.</td>
+<td>2014-04-06 23:19:20</td>
+</tr>
+<tr>
+<td>language</td>
+<td>varchar(128)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Language of the dataset content.</td>
+<td>"En", "Dutch"</td>
+</tr>
+<tr>
+<td>licence</td>
+<td>varchar(64)</td>
+<td>No</td>
+<td>'Public'</td>
+<td></td>
+<td>License under which the dataset is shared.</td>
+<td>Public</td>
+</tr>
+<tr>
+<td>citation</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>How to cite this dataset, sometimes a link to the policy.</td>
+<td>Bareiss, E. Ray, &amp; [...] Proceedings of [...]</td>
+</tr>
+<tr>
+<td>collection</td>
+<td>varchar(64)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Collection the dataset belongs to. Not used.</td>
+<td>NULL</td>
+</tr>
+<tr>
+<td>url</td>
+<td>mediumtext</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>URL to download the dataset file. Most often links to OpenML, but not always.</td>
+<td>https://openml.org/data/download/22126628/test.arff</td>
+</tr>
+<tr>
+<td>parquet_url</td>
+<td>mediumtext</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td><em>NOT IN PRODUCTION</em> URL to Parquet version of the dataset.</td>
+<td></td>
+</tr>
+<tr>
+<td>isOriginal</td>
+<td>enum('true','false')</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Whether this is an original dataset (not derived).</td>
+<td>true</td>
+</tr>
+<tr>
+<td>file_id</td>
+<td>int</td>
+<td>Yes</td>
+<td>NULL</td>
+<td><a href="../openml/#file">openml.file.id</a></td>
+<td>Reference to the uploaded file.</td>
+<td>60</td>
+</tr>
+<tr>
+<td>default_target_attribute</td>
+<td>varchar(1024)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Name of the default target column. Allows csv.</td>
+<td>class</td>
+</tr>
+<tr>
+<td>row_id_attribute</td>
+<td>varchar(128)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Name of the row identifier column. Allows csv.</td>
+<td>id</td>
+</tr>
+<tr>
+<td>ignore_attribute</td>
+<td>varchar(128)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Columns to ignore during modeling. Allows csv.</td>
+<td>"animal", "'url_hash', 'query_id'"</td>
+</tr>
+<tr>
+<td>paper_url</td>
+<td>mediumtext</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>URL to an associated publication.</td>
+<td>https://arxiv.org/html/2402.55618v3</td>
+</tr>
+<tr>
+<td>visibility</td>
+<td>varchar(128)</td>
+<td>No</td>
+<td>'public'</td>
+<td></td>
+<td>Visibility level (public, private, or friends). Note non-public visibility are currently not supported.</td>
+<td>public</td>
+</tr>
+<tr>
+<td>original_data_id</td>
+<td>int</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>ID of the original dataset this was derived from.</td>
+<td>23</td>
+</tr>
+<tr>
+<td>original_data_url</td>
+<td>mediumtext</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>URL to the original data source.</td>
+<td>https://zenodo.org/record/322475/files/bike.arff</td>
+</tr>
+<tr>
+<td>update_comment</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Comment explaining the latest update.</td>
+<td>fixed features</td>
+</tr>
+<tr>
+<td>last_update</td>
+<td>datetime</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Timestamp of the last update.</td>
+<td>2017-10-28 23:42:18</td>
+</tr>
+</tbody>
+</table>
+<h3 id="dataset_description">dataset_description</h3>
+<p>Stores versioned descriptions for datasets.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>did</td>
+<td>int unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="#dataset">dataset.did</a></td>
+<td>Dataset this description belongs to.</td>
+<td>42</td>
+</tr>
+<tr>
+<td>version</td>
+<td>int unsigned</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Description version number.</td>
+<td>2</td>
+</tr>
+<tr>
+<td>description</td>
+<td>text</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>The dataset description text.</td>
+<td>This dataset describes...</td>
+</tr>
+<tr>
+<td>uploader</td>
+<td>mediumint unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="../openml/#users">openml.users.id</a></td>
+<td>User who wrote this description.</td>
+<td>3</td>
+</tr>
+</tbody>
+</table>
+<h3 id="dataset_status">dataset_status</h3>
+<p>Tracks the current status of the dataset.
+The absence of an entry in this table for a dataset denotes that the dataset is "in preparation".
+Rows are removed from this table to indicate transitions (deactivated -&gt; activate)!
+It does <em>not</em> provide a historical record of the dataset status.</p>
+<p>Allowed transitions are (as defined by the PHP implementation):</p>
+<ul>
+<li>in preparation -&gt; activate</li>
+<li>in preparation -&gt; deactivated</li>
+<li>deactivated -&gt; activate</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>did</td>
+<td>int unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="#dataset">dataset.did</a></td>
+<td>Dataset ID.</td>
+<td>42</td>
+</tr>
+<tr>
+<td>status</td>
+<td>enum('active','deactivated')</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Status value.</td>
+<td>active</td>
+</tr>
+<tr>
+<td>status_date</td>
+<td>datetime</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>When the status was set.</td>
+<td>2022-04-10 11:10:42</td>
+</tr>
+<tr>
+<td>user_id</td>
+<td>mediumint unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="../openml/#users">openml.users.id</a></td>
+<td>User who changed the status.</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<h3 id="dataset_tag">dataset_tag</h3>
+<p>User-assigned tags on datasets for categorization and search.
+Note that historically, collections used tags (e.g., <code>study_14</code> indicates the dataset is linked to study 14).</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>int unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="#dataset">dataset.did</a></td>
+<td>Dataset ID.</td>
+<td>3</td>
+</tr>
+<tr>
+<td>tag</td>
+<td>varchar(255)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Tag string.</td>
+<td>Medicine, study_14</td>
+</tr>
+<tr>
+<td>uploader</td>
+<td>mediumint unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="../openml/#users">openml.users.id</a></td>
+<td>User who added the tag.</td>
+<td>4</td>
+</tr>
+<tr>
+<td>date</td>
+<td>timestamp</td>
+<td>No</td>
+<td>CURRENT_TIMESTAMP</td>
+<td></td>
+<td>When the tag was added.</td>
+<td>2018-11-04 08:57:17</td>
+</tr>
+</tbody>
+</table>
+<h3 id="dataset_topic">dataset_topic</h3>
+<p>Assigns topic labels to datasets.
+Topics are displayed as tags on the web page.
+This is the result of an experiment in 2021 to try to categorize datasets to better facilitate search.
+Topics have been added by automated analysis.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>int unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="#dataset">dataset.did</a></td>
+<td>Dataset ID.</td>
+<td>5</td>
+</tr>
+<tr>
+<td>topic</td>
+<td>varchar(255)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Topic label.</td>
+<td>Health</td>
+</tr>
+<tr>
+<td>uploader</td>
+<td>mediumint unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="../openml/#users">openml.users.id</a></td>
+<td>User who assigned the topic.</td>
+<td>8111</td>
+</tr>
+<tr>
+<td>date</td>
+<td>timestamp</td>
+<td>No</td>
+<td>CURRENT_TIMESTAMP</td>
+<td></td>
+<td>When the topic was assigned.</td>
+<td>2021-06-01 12:32:45</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="data-features-and-qualities">Data Features and Qualities</h2>
+<h3 id="data_feature">data_feature</h3>
+<p>Stores metadata and statistics for each feature (column) of a dataset, as computed by an evaluation engine.</p>
+<div class="admonition bug">
+<p class="admonition-title">What's going on?</p>
+<p>We need more documentation for the computed columns <code>NumberOf*</code> and <code>ClassDistribution</code>.
+From just the database values, it's unclear what's going on.
+For example, 'nominal' features have their <code>NumberOfIntegerValues</code> column populated.</p>
+</div>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>did</td>
+<td>int unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="#dataset">dataset.did</a></td>
+<td>Dataset ID.</td>
+<td>2</td>
+</tr>
+<tr>
+<td>index</td>
+<td>int unsigned</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Feature index (column position), 0-indexed.</td>
+<td>0</td>
+</tr>
+<tr>
+<td>evaluation_engine_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#evaluation_engine">evaluation_engine.id</a></td>
+<td>Engine that computed the feature metadata.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>name</td>
+<td>varchar(64)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Feature name.</td>
+<td>petal-width</td>
+</tr>
+<tr>
+<td>data_type</td>
+<td>varchar(64)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Data type (numeric, nominal, string, date, unknown).</td>
+<td>numeric</td>
+</tr>
+<tr>
+<td>is_target</td>
+<td>enum('true','false')</td>
+<td>No</td>
+<td>'false'</td>
+<td></td>
+<td>Whether this is the default target feature.</td>
+<td>true</td>
+</tr>
+<tr>
+<td>is_row_identifier</td>
+<td>enum('true','false')</td>
+<td>No</td>
+<td>'false'</td>
+<td></td>
+<td>Whether this feature is a row ID.</td>
+<td>false</td>
+</tr>
+<tr>
+<td>is_ignore</td>
+<td>enum('true','false')</td>
+<td>No</td>
+<td>'false'</td>
+<td></td>
+<td>Whether this feature should be ignored.</td>
+<td>false</td>
+</tr>
+<tr>
+<td>NumberOfDistinctValues</td>
+<td>int</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Number of distinct values.</td>
+<td>14972</td>
+</tr>
+<tr>
+<td>NumberOfUniqueValues</td>
+<td>int</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Number of values that appear exactly once.</td>
+<td>0</td>
+</tr>
+<tr>
+<td>NumberOfMissingValues</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Count of missing values.</td>
+<td>124</td>
+</tr>
+<tr>
+<td>NumberOfIntegerValues</td>
+<td>int</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Count of integer values.</td>
+<td></td>
+</tr>
+<tr>
+<td>NumberOfRealValues</td>
+<td>int</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Count of real-valued entries.</td>
+<td></td>
+</tr>
+<tr>
+<td>NumberOfNominalValues</td>
+<td>varchar(512)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Number of nominal categories (or distribution).</td>
+<td></td>
+</tr>
+<tr>
+<td>NumberOfValues</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Total number of values.</td>
+<td></td>
+</tr>
+<tr>
+<td>MaximumValue</td>
+<td>int</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Maximum value (for numeric features).</td>
+<td></td>
+</tr>
+<tr>
+<td>MinimumValue</td>
+<td>int</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Minimum value (for numeric features).</td>
+<td></td>
+</tr>
+<tr>
+<td>MeanValue</td>
+<td>int</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Mean value (for numeric features).</td>
+<td></td>
+</tr>
+<tr>
+<td>StandardDeviation</td>
+<td>int</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Standard deviation (for numeric features).</td>
+<td></td>
+</tr>
+<tr>
+<td>ClassDistribution</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Only for nominal features, otherwise '[]'. See below.</td>
+<td>[["?","T"],[[7, 99, 586, 0, 67, 2],[1, 0, 98, 0, 0, 38]]]</td>
+</tr>
+</tbody>
+</table>
+<p>ClassDistribution is <code>[]</code> for all features except nominal ones, and only populated if the dataset has a target feature that is also nominal (note that a dataset can have multiple target features).
+For nominal features, it is a U x C matrix where U is the number of unique values in the feature and C is the number of classes of the target feature of the dataset.
+Each cell specifies how often the feature value occurs for the specific target value.
+The behavior with multiple target features that are nominal is unspecified.</p>
+<h3 id="data_feature_description">data_feature_description</h3>
+<p>User-provided descriptions and ontology annotations for individual data features.
+The table is empty in production (as of 2026-04-29) and should be considered experimental.
+This feature was added recently (2025ish) should be considered experimental.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>did</td>
+<td>int unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="#data_feature">data_feature(did, index)</a></td>
+<td>Dataset ID.</td>
+<td>2</td>
+</tr>
+<tr>
+<td>index</td>
+<td>int unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="#data_feature">data_feature(did, index)</a></td>
+<td>Feature index (column position, 0-indexed).</td>
+<td>0</td>
+</tr>
+<tr>
+<td>uploader</td>
+<td>mediumint unsigned</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>User who added the description.</td>
+<td>1548</td>
+</tr>
+<tr>
+<td>date</td>
+<td>timestamp</td>
+<td>No</td>
+<td>CURRENT_TIMESTAMP</td>
+<td></td>
+<td>When the description was added.</td>
+<td>2025-12-12 09:29:30</td>
+</tr>
+<tr>
+<td>description_type</td>
+<td>enum('plain','ontology')</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Type of description.</td>
+<td>'ontology'</td>
+</tr>
+<tr>
+<td>value</td>
+<td>varchar(256)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>The description or ontology URI.</td>
+<td>http://xmlns.com/foaf/0.1/#name</td>
+</tr>
+</tbody>
+</table>
+<h3 id="data_feature_value">data_feature_value</h3>
+<p>Enumerates the distinct values of a feature (only for nominal features).</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>did</td>
+<td>int unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="#data_feature">data_feature(did, index)</a></td>
+<td>Dataset ID.</td>
+<td>2</td>
+</tr>
+<tr>
+<td>index</td>
+<td>int unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="#data_feature">data_feature(did, index)</a></td>
+<td>Feature index.</td>
+<td>3</td>
+</tr>
+<tr>
+<td>value</td>
+<td>varchar(256)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>A distinct value of the feature.</td>
+<td>'tulip'</td>
+</tr>
+</tbody>
+</table>
+<h3 id="data_quality">data_quality</h3>
+<p>Stores computed quality measures (meta-features) for datasets, such as number of instances or entropy.
+Measures are computed by an evaluation engine.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>data</td>
+<td>int unsigned</td>
+<td>No</td>
+<td>0</td>
+<td><a href="#dataset">dataset.did</a></td>
+<td>Dataset ID.</td>
+<td>2</td>
+</tr>
+<tr>
+<td>quality</td>
+<td>varchar(128)</td>
+<td>No</td>
+<td></td>
+<td><a href="#quality">quality.name</a></td>
+<td>Name of the quality measure.</td>
+<td>'AutoCorrelation'</td>
+</tr>
+<tr>
+<td>evaluation_engine_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#evaluation_engine">evaluation_engine.id</a></td>
+<td>Engine that computed the quality.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>value</td>
+<td>varchar(128)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Computed value.</td>
+<td>0.5</td>
+</tr>
+<tr>
+<td>description</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Additional description or notes.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="data_processed">data_processed</h3>
+<p>Tracks whether a dataset has been processed by an evaluation engine (feature extraction, quality computation).
+Note that this table is used with in-place edits. Retrying a failed will increment <code>num_tries</code>, not add a new row.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>did</td>
+<td>int unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="#dataset">dataset.did</a></td>
+<td>Dataset ID.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>evaluation_engine_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#evaluation_engine">evaluation_engine.id</a></td>
+<td>Engine that processed the dataset.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>user_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>User who triggered processing.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>processing_date</td>
+<td>datetime</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>When processing completed.</td>
+<td>2020-02-04 12:45:01</td>
+</tr>
+<tr>
+<td>error</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Error message if processing failed.</td>
+<td>"keyword @relation expected, read Token[Id], line 1"</td>
+</tr>
+<tr>
+<td>warning</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Warning messages from processing. Always NULL on prod.</td>
+<td>NULL</td>
+</tr>
+<tr>
+<td>num_tries</td>
+<td>int</td>
+<td>No</td>
+<td>1</td>
+<td></td>
+<td>Number of processing attempts.</td>
+<td>3</td>
+</tr>
+</tbody>
+</table>
+<h3 id="quality">quality</h3>
+<p>Defines the available dataset quality measures (meta-features) and their properties.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>name</td>
+<td>varchar(128)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Primary key. Name of the quality measure.</td>
+<td>AutoCorrelation</td>
+</tr>
+<tr>
+<td>type</td>
+<td>varchar(128)</td>
+<td>No</td>
+<td>'DataProperty'</td>
+<td></td>
+<td>Category, one of DataQuality, FeatureQuality, AlgorithmQuality.</td>
+<td>FeatureQuality</td>
+</tr>
+<tr>
+<td>formula</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Formula or computation method. Always NULL except for 1 row.</td>
+<td>Calculated using...</td>
+</tr>
+<tr>
+<td>description</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Human-readable description.</td>
+<td>Average class difference between consecutive instances.</td>
+</tr>
+<tr>
+<td>datatype</td>
+<td>varchar(128)</td>
+<td>No</td>
+<td>'undefined'</td>
+<td></td>
+<td>Expected data type of the value. One of 'double', 'integer', 'undefined'.</td>
+<td></td>
+</tr>
+<tr>
+<td>min</td>
+<td>float</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Minimum possible value.</td>
+<td>0</td>
+</tr>
+<tr>
+<td>max</td>
+<td>float</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Maximum possible value.</td>
+<td>1.0</td>
+</tr>
+<tr>
+<td>unit</td>
+<td>varchar(32)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Unit of measurement.</td>
+<td>NULL</td>
+</tr>
+<tr>
+<td>priority</td>
+<td>int</td>
+<td>No</td>
+<td>9999</td>
+<td></td>
+<td>Display priority (lower is higher priority).</td>
+<td>2</td>
+</tr>
+<tr>
+<td>showonline</td>
+<td>enum('true','false')</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Whether to show on the website.</td>
+<td>true</td>
+</tr>
+<tr>
+<td>date</td>
+<td>timestamp</td>
+<td>No</td>
+<td>CURRENT_TIMESTAMP</td>
+<td></td>
+<td>When the quality was defined.</td>
+<td>2014-12-31 23:00:00</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="tasks">Tasks</h2>
+<p>To more easily understand the way tasks are structured, we break down tasks into three components:</p>
+<ul>
+<li>the task type: concept of what the task is (e.g., Supervised Classification) and the <code>task_type_inout</code> specifies the required and optional inputs and outputs for such a task. For example, a Supervised Classification task must have (among others) a target feature specified.</li>
+<li>the estimation procedure: the experimental setup to evaluate model quality for the task (e.g., 10-fold Cross Validation)</li>
+<li>the <code>task</code> together with its <code>task_inputs</code> specify concrete values for the task (e.g., 10-fold Cross Validation on Iris predicting Class).</li>
+</ul>
+<p>For example, <a href="https://www.openml.org/t/59">task 59</a> (10-fold Cross Validation on Iris) has the <code>task</code> row in the database (<code>task_id=59, ttid=1, ...</code>):</p>
+<ol>
+<li>It is of task type 1, Supervised Classification (from resolving its <code>ttid</code> column against the <code>task_type</code> table).</li>
+<li>When the task was created, the creator had to specify the following input since they are <code>required</code> for the task type as dictated by <code>task_type_inout</code>:<ul>
+<li>source data: to which dataset is the task linked?</li>
+<li>estimation procedure: what is the experimental setup for the runs?</li>
+<li>target feature: what is the target to predict?</li>
+</ul>
+</li>
+<li>It could have optionally also specified the following properties, as indicated by the <code>task_type_inout</code> table: cost matrix, custom testset, evaluation measures.</li>
+<li>The <code>task_inputs</code> table is to specify what the corresponding values are for this task. E.g., the row with input "source_data" has value "61" specifying that dataset 61 is used. It similarly defines the estimation procedure, target feature, and also the optional input of "evaluation measure". That is to say, <code>task_inputs</code> primarily references other tables.</li>
+<li>The estimation procedure required by the task type, and given a value in <code>task_inputs</code>, must correspond to an entry in the <code>estimation_procedure</code> table. E.g., if we find (<code>estimation_procedure</code>, <code>1</code>) as a task input, we know it is 10-fold Cross Validation (the row with <code>id=1</code> in <code>estimation_procedure</code>).</li>
+<li><code>task_type_inout</code> further specifies that they expect <code>output</code> of experiments of the task may contain: evaluation measures, model, predictions. This is not directly used for tasks, but rather for runs.</li>
+</ol>
+<p>So there are constraints from the <code>task_inputs</code> table to multiple other tables (<code>dataset</code>, <code>estimation_procedure</code>, ...) that are not explicitly present in the database.
+The <code>task_inputs</code> is also expected to be populated with entries for each task dependent on the respective input defined by the <code>task_type_inout</code> table.
+The <code>estimation_procedure_type</code> table provides general descriptions for procedures (such as Hold out), they are matched by name even though the relationship is not explicit in the database.</p>
+<h3 id="task_type">task_type</h3>
+<p>Defines the types of machine learning tasks available (e.g., classification, regression).</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ttid</td>
+<td>int</td>
+<td>No</td>
+<td>auto_increment</td>
+<td></td>
+<td>Primary key (task type ID).</td>
+<td>1</td>
+</tr>
+<tr>
+<td>name</td>
+<td>varchar(128)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Task type name.</td>
+<td>Supervised Classification</td>
+</tr>
+<tr>
+<td>description</td>
+<td>text</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Description of the task type.</td>
+<td>Predict the value of a nominal feature given the other features.</td>
+</tr>
+<tr>
+<td>creator</td>
+<td>varchar(128)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Who defined this task type.</td>
+<td>"Alice Smith, John Hickey"</td>
+</tr>
+<tr>
+<td>contributors</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Additional contributors.</td>
+<td>"Piet Houten, Betty Boss"</td>
+</tr>
+<tr>
+<td>creationDate</td>
+<td>datetime</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>When the task type was created.</td>
+<td>2017-09-28 11:23:09</td>
+</tr>
+</tbody>
+</table>
+<h3 id="task_type_inout">task_type_inout</h3>
+<p>Defines the input and output specifications for each task type.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ttid</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#task_type">task_type.ttid</a></td>
+<td>Task type ID.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>name</td>
+<td>varchar(64)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Name of the input/output parameter. See note.</td>
+<td>source_data</td>
+</tr>
+<tr>
+<td>type</td>
+<td>varchar(64)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Data type of the parameter, from <a href="#task_io_types">task_io_types</a>.</td>
+<td>String, "Estimation Procedure"</td>
+</tr>
+<tr>
+<td>io</td>
+<td>enum('input','output')</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Whether this is an input or output.</td>
+<td>input</td>
+</tr>
+<tr>
+<td>requirement</td>
+<td>enum('required','optional','hidden')</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Whether this parameter is required.</td>
+<td>required</td>
+</tr>
+<tr>
+<td>description</td>
+<td>varchar(256)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Description of the parameter.</td>
+<td>"This input is required to foo the bar."</td>
+</tr>
+<tr>
+<td>order</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Display order used by the frontend.</td>
+<td>29</td>
+</tr>
+<tr>
+<td>api_constraints</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>API-level constraints on this parameter as JSON.</td>
+<td>See below.</td>
+</tr>
+<tr>
+<td>template_api</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Template for API representation.</td>
+<td>See below.</td>
+</tr>
+<tr>
+<td>template_search</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Template for search representation.</td>
+<td>See below.</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>api_constraints</code>, <code>template_api</code> and <code>template_search</code> columns contain values that are used by PHP to help format responses.</p>
+<p>The <code>api_constraints</code> contains JSON with optionally some special instructions:
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="nt">&quot;data_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;string&quot;</span><span class="p">,</span>
+<span class="nt">&quot;select&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;name&quot;</span><span class="p">,</span>
+<span class="nt">&quot;from&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;data_feature&quot;</span><span class="p">,</span>
+<span class="nt">&quot;where&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;did = &#39;[INPUT:source_data]&#39; AND data_type = &#39;nominal&#39;&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+Production uses the following directives:</p>
+<ul>
+<li><code>[INPUT:source_data]</code>: look up the value of <code>task_inputs.value</code> where <code>input="source_data"</code> and <code>task_id</code> matches the task.</li>
+<li><code>[TASK:ttid]</code>: look up the value of <code>task.ttid</code> for that task.</li>
+</ul>
+<p>The <code>template_api</code> contains XML instead:
+<div class="highlight"><pre><span></span><code><span class="w"> </span><span class="nt">&lt;oml:estimation_procedure&gt;</span>
+<span class="nt">&lt;oml:id&gt;</span>[INPUT:estimation_procedure]<span class="nt">&lt;/oml:id&gt;</span>
+<span class="nt">&lt;oml:type&gt;</span>[LOOKUP:estimation_procedure.type]<span class="nt">&lt;/oml:type&gt;</span>
+<span class="nt">&lt;oml:data_splits_url&gt;</span>[CONSTANT:base_url]api_splits/get/[TASK:id]/Task_[TASK:id]_splits.arff<span class="nt">&lt;/oml:data_splits_url&gt;</span>
+<span class="nt">&lt;oml:parameter</span><span class="w"> </span><span class="na">name=</span><span class="s">&quot;number_repeats&quot;</span><span class="nt">&gt;</span>[LOOKUP:estimation_procedure.repeats]<span class="nt">&lt;/oml:parameter&gt;</span>
+<span class="nt">&lt;oml:parameter</span><span class="w"> </span><span class="na">name=</span><span class="s">&quot;number_folds&quot;</span><span class="nt">&gt;</span>[LOOKUP:estimation_procedure.folds]<span class="nt">&lt;/oml:parameter&gt;</span>
+<span class="nt">&lt;oml:parameter</span><span class="w"> </span><span class="na">name=</span><span class="s">&quot;percentage&quot;</span><span class="nt">&gt;</span>[LOOKUP:estimation_procedure.percentage]<span class="nt">&lt;/oml:parameter&gt;</span>
+<span class="nt">&lt;oml:parameter</span><span class="w"> </span><span class="na">name=</span><span class="s">&quot;stratified_sampling&quot;</span><span class="nt">&gt;</span>[LOOKUP:estimation_procedure.stratified_sampling]<span class="nt">&lt;/oml:parameter&gt;</span>
+<span class="nt">&lt;/oml:estimation_procedure&gt;</span>
+</code></pre></div>
+Additionally contains the directives:</p>
+<ul>
+<li><code>[LOOKUP:*]</code>: looks up the <code>TABLE.row</code> value that are associated with the task.</li>
+<li><code>[CONSTANT:*]</code>: look up constants configured in PHP, not in the database.</li>
+</ul>
+<p>Finally, the <code>template_search</code> contains JSON again:
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Dataset(s)&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;autocomplete&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;commaSeparated&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;datasource&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;expdbDatasetVersion()&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;placeholder&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;(*) include all datasets&quot;</span>
+<span class="p">}</span>
+</code></pre></div></p>
+<p>The <code>expdbDatasetVersion()</code> function is no longer used.</p>
+<h3 id="task_io_types">task_io_types</h3>
+<p>Defines the valid types for task inputs and outputs.
+Used in the <code>task_type_inout</code> table.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>name</td>
+<td>varchar(64)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Primary key. Type name.</td>
+<td>String</td>
+</tr>
+<tr>
+<td>description</td>
+<td>text</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Description of this I/O type.</td>
+<td>A string, possibly contains csv values.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="task">task</h3>
+<p>Represents a specific machine learning task.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>task_id</td>
+<td>int</td>
+<td>No</td>
+<td>auto_increment</td>
+<td></td>
+<td>Primary key.</td>
+<td>59</td>
+</tr>
+<tr>
+<td>ttid</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#task_type">task_type.ttid</a></td>
+<td>Task type.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>creator</td>
+<td>mediumint unsigned</td>
+<td>Yes</td>
+<td>NULL</td>
+<td><a href="../openml/#users">openml.users.id</a></td>
+<td>User who created the task.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>creation_date</td>
+<td>datetime</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>When the task was created.</td>
+<td>2014-11-02 03:12:15</td>
+</tr>
+<tr>
+<td>embargo_end_date</td>
+<td>datetime</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>End date of any data embargo.</td>
+<td>2025-10-30 23:52:28</td>
+</tr>
+</tbody>
+</table>
+<h3 id="task_inputs">task_inputs</h3>
+<p>Stores the input parameter values for a specific task instance.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>task_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#task">task.task_id</a></td>
+<td>Task ID.</td>
+<td>59</td>
+</tr>
+<tr>
+<td>input</td>
+<td>varchar(64)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Input parameter name.</td>
+<td>source_data</td>
+</tr>
+<tr>
+<td>value</td>
+<td>text</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Input parameter value.</td>
+<td>61</td>
+</tr>
+</tbody>
+</table>
+<p>Valid <code>input</code> values depend on the <code>task_type_inout</code> for the <code>task_type</code> that's specified in the <code>task</code>.</p>
+<h3 id="task_tag">task_tag</h3>
+<p>User-assigned tags on tasks.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#task">task.task_id</a></td>
+<td>Task ID.</td>
+<td>59</td>
+</tr>
+<tr>
+<td>tag</td>
+<td>varchar(255)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Tag string.</td>
+<td>uci</td>
+</tr>
+<tr>
+<td>uploader</td>
+<td>mediumint unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="../openml/#users">openml.users.id</a></td>
+<td>User who added the tag.</td>
+<td>2</td>
+</tr>
+<tr>
+<td>date</td>
+<td>timestamp</td>
+<td>No</td>
+<td>CURRENT_TIMESTAMP</td>
+<td></td>
+<td>When the tag was added.</td>
+<td>2022-10-09 17:18:19</td>
+</tr>
+</tbody>
+</table>
+<h3 id="estimation_procedure_type">estimation_procedure_type</h3>
+<p>Defines the types of estimation procedures (e.g., cross-validation, holdout).
+Variations are defined in the <code>estimation_procedure</code> table.
+E.g., this table describes "cross validation" and <code>estimation_procedure</code> describes <code>10-fold cross validation</code>, <code>5-fold cross validation</code>, and so on.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>name</td>
+<td>varchar(64)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Primary key. Procedure type name.</td>
+<td>crossvalidation</td>
+</tr>
+<tr>
+<td>description</td>
+<td>text</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Description of the procedure type.</td>
+<td>a process where the dataset is divided into folds, ...</td>
+</tr>
+</tbody>
+</table>
+<h3 id="estimation_procedure">estimation_procedure</h3>
+<p>Defines specific estimation procedure configurations used in tasks.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>int</td>
+<td>No</td>
+<td>auto_increment</td>
+<td></td>
+<td>Primary key.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>ttid</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#task_type">task_type.ttid</a></td>
+<td>Task type this procedure applies to.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>name</td>
+<td>varchar(128)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Procedure name.</td>
+<td>10-fold cross validation</td>
+</tr>
+<tr>
+<td>type</td>
+<td>enum('crossvalidation','leaveoneout','holdout','holdout_ordered','bootstrapping','subsampling','testthentrain','holdoutunlabeled','customholdout','testontrainingdata')</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Procedure type.</td>
+<td>crossvalidation</td>
+</tr>
+<tr>
+<td>repeats</td>
+<td>int</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Number of repetitions.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>folds</td>
+<td>int</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Number of folds.</td>
+<td>10</td>
+</tr>
+<tr>
+<td>samples</td>
+<td>enum('false','true')</td>
+<td>No</td>
+<td>'false'</td>
+<td></td>
+<td>Whether learning curve samples are used.</td>
+<td>false</td>
+</tr>
+<tr>
+<td>percentage</td>
+<td>int</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Train/test split percentage.</td>
+<td>NULL</td>
+</tr>
+<tr>
+<td>stratified_sampling</td>
+<td>enum('true','false')</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Whether stratified sampling is used.</td>
+<td>true</td>
+</tr>
+<tr>
+<td>custom_testset</td>
+<td>enum('true','false')</td>
+<td>No</td>
+<td>'false'</td>
+<td></td>
+<td>Whether a custom test set is provided.</td>
+<td>false</td>
+</tr>
+<tr>
+<td>date</td>
+<td>timestamp</td>
+<td>No</td>
+<td>CURRENT_TIMESTAMP</td>
+<td></td>
+<td>When the procedure was created.</td>
+<td>2020-02-20 20:02:20</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="flows-implementations">Flows (Implementations)</h2>
+<p>The database uses historical name 'implementation' for a flow.</p>
+<h3 id="implementation">implementation</h3>
+<p>Stores machine learning flows (algorithms/pipelines) that can be executed on tasks.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>int</td>
+<td>No</td>
+<td>auto_increment</td>
+<td></td>
+<td>Primary key (flow ID).</td>
+<td>1</td>
+</tr>
+<tr>
+<td>fullName</td>
+<td>varchar(1024)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Fully qualified name (name + version).</td>
+<td>sklearn.tree.DecisionTreeClassifier(1)</td>
+</tr>
+<tr>
+<td>uploader</td>
+<td>mediumint unsigned</td>
+<td>Yes</td>
+<td>NULL</td>
+<td><a href="../openml/#users">openml.users.id</a></td>
+<td>User who uploaded the flow.</td>
+<td>2</td>
+</tr>
+<tr>
+<td>name</td>
+<td>varchar(1024)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Flow name.</td>
+<td>sklearn.tree.DecisionTreeClassifier</td>
+</tr>
+<tr>
+<td>custom_name</td>
+<td>varchar(256)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>User-defined display name.</td>
+<td>Tree</td>
+</tr>
+<tr>
+<td>class_name</td>
+<td>varchar(256)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Class name in the source library.</td>
+<td>nl.liacs.subdisc.SubgroupDiscovery</td>
+</tr>
+<tr>
+<td>version</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Internal version number.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>external_version</td>
+<td>varchar(128)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Version string from the source library.</td>
+<td>"sklearn=0.12.3,numpy=0.22.1"</td>
+</tr>
+<tr>
+<td>creator</td>
+<td>varchar(128)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Original creator of the algorithm.</td>
+<td>Arlo Knoppen</td>
+</tr>
+<tr>
+<td>contributor</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Additional contributors.</td>
+<td>"Marcel Alder"</td>
+</tr>
+<tr>
+<td>uploadDate</td>
+<td>datetime</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>When the flow was uploaded.</td>
+<td>2015-12-21 18:28:38</td>
+</tr>
+<tr>
+<td>licence</td>
+<td>varchar(64)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>License.</td>
+<td>public domain</td>
+</tr>
+<tr>
+<td>language</td>
+<td>varchar(128)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Language the description is written in. Sometimes used to specify programming language instead.</td>
+<td>English</td>
+</tr>
+<tr>
+<td>description</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Short description.</td>
+<td>Common Decision Tree algorithm</td>
+</tr>
+<tr>
+<td>fullDescription</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Full description.</td>
+<td>This algorithm partitions the data...</td>
+</tr>
+<tr>
+<td>installationNotes</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Installation instructions. Not really used.</td>
+<td>Runs on OpenML</td>
+</tr>
+<tr>
+<td>dependencies</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Required dependencies.</td>
+<td>mlr_2.3</td>
+</tr>
+<tr>
+<td>implements</td>
+<td>varchar(128)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Algorithm or standard this flow implements. Seems to be legacy</td>
+<td>build_cpu_time</td>
+</tr>
+<tr>
+<td>binary_file_id</td>
+<td>int</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>File ID of the compiled binary.</td>
+<td>32</td>
+</tr>
+<tr>
+<td>source_file_id</td>
+<td>int</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>File ID of the source code.</td>
+<td>33</td>
+</tr>
+<tr>
+<td>visibility</td>
+<td>varchar(128)</td>
+<td>No</td>
+<td>'public'</td>
+<td></td>
+<td>Visibility level. One of 'public' or 'private'</td>
+<td>public</td>
+</tr>
+<tr>
+<td>citation</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>How to cite this flow. Only used once.</td>
+<td>"A. Boo et al., Journal of ..."</td>
+</tr>
+</tbody>
+</table>
+<h3 id="implementation_component">implementation_component</h3>
+<p>Defines parent-child relationships between flows (e.g., a pipeline containing sub-flows).</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>parent</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#implementation">implementation.id</a></td>
+<td>Parent flow ID.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>child</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#implementation">implementation.id</a></td>
+<td>Child (component) flow ID.</td>
+<td>2</td>
+</tr>
+<tr>
+<td>identifier</td>
+<td>varchar(1024)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Role or name of the component within the parent.</td>
+<td>PCA, scaler</td>
+</tr>
+</tbody>
+</table>
+<h3 id="implementation_tag">implementation_tag</h3>
+<p>User-assigned tags on flows.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#implementation">implementation.id</a></td>
+<td>Flow ID.</td>
+<td>2</td>
+</tr>
+<tr>
+<td>tag</td>
+<td>varchar(255)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Tag string.</td>
+<td>Verified_Supervised_Classification</td>
+</tr>
+<tr>
+<td>uploader</td>
+<td>mediumint unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="../openml/#users">openml.users.id</a></td>
+<td>User who added the tag.</td>
+<td>2</td>
+</tr>
+<tr>
+<td>date</td>
+<td>timestamp</td>
+<td>No</td>
+<td>CURRENT_TIMESTAMP</td>
+<td></td>
+<td>When the tag was added.</td>
+<td>2020-06-08 09:20:28</td>
+</tr>
+</tbody>
+</table>
+<h3 id="input">input</h3>
+<p>Defines the hyperparameters (input parameters) of a flow.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>int</td>
+<td>No</td>
+<td>auto_increment</td>
+<td></td>
+<td>Primary key.</td>
+<td>2</td>
+</tr>
+<tr>
+<td>implementation_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#implementation">implementation.id</a></td>
+<td>Flow this parameter belongs to.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>name</td>
+<td>varchar(512)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Parameter name.</td>
+<td>C</td>
+</tr>
+<tr>
+<td>description</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Parameter description.</td>
+<td>Regularization parameter.</td>
+</tr>
+<tr>
+<td>dataType</td>
+<td>varchar(255)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Expected data type.</td>
+<td>float</td>
+</tr>
+<tr>
+<td>defaultValue</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Default value.</td>
+<td>1.0</td>
+</tr>
+<tr>
+<td>recommendedRange</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Recommended value range.</td>
+<td>10e-3 to 10e3</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="setups">Setups</h2>
+<p>Setups are really part of a run, they specifically describe the algorithm (flow) configuration used in the run.
+They are not a separate entity. Each row in the <code>run</code> table refers to a setup. A setup may be shared by multiple runs.</p>
+<h3 id="algorithm_setup">algorithm_setup</h3>
+<p>Represents a specific configuration (hyperparameter setting) of a flow, including nested component setups.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>sid</td>
+<td>int unsigned</td>
+<td>No</td>
+<td>auto_increment</td>
+<td></td>
+<td>Primary key (setup ID).</td>
+<td>1</td>
+</tr>
+<tr>
+<td>parent</td>
+<td>int unsigned</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Parent setup ID (for nested components).</td>
+<td>NULL</td>
+</tr>
+<tr>
+<td>implementation_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#implementation">implementation.id</a></td>
+<td>Flow this setup configures.</td>
+<td>3</td>
+</tr>
+<tr>
+<td>algorithm</td>
+<td>varchar(128)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Algorithm name. Always NULL is prod!</td>
+<td>NULL</td>
+</tr>
+<tr>
+<td>role</td>
+<td>varchar(64)</td>
+<td>No</td>
+<td>'Learner'</td>
+<td></td>
+<td>Role of this component (e.g., Learner, Preprocessor).</td>
+<td>learner</td>
+</tr>
+<tr>
+<td>isDefault</td>
+<td>enum('true','false')</td>
+<td>Yes</td>
+<td>'false'</td>
+<td></td>
+<td>Whether this is the default setup.</td>
+<td>true</td>
+</tr>
+<tr>
+<td>algorithm_structure</td>
+<td>varchar(64)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Not sure. Always NULL in prod.</td>
+<td>NULL</td>
+</tr>
+<tr>
+<td>setup_string</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Serialized setup string. Can aid reproducing the run.</td>
+<td>"weka.classifiers.trees.J48 -- -C 0.25 -M 2"</td>
+</tr>
+</tbody>
+</table>
+<h3 id="input_setting">input_setting</h3>
+<p>Stores the actual hyperparameter values for a specific setup.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>setup</td>
+<td>int unsigned</td>
+<td>No</td>
+<td>0</td>
+<td><a href="#algorithm_setup">algorithm_setup.sid</a></td>
+<td>Setup ID.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>input</td>
+<td>varchar(128)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Parameter name. Only old setups have this.</td>
+<td>428_I</td>
+</tr>
+<tr>
+<td>input_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#input">input.id</a></td>
+<td>Reference to the parameter definition.</td>
+<td>4124</td>
+</tr>
+<tr>
+<td>value</td>
+<td>varchar(2048)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Parameter value.</td>
+<td>1000, gini</td>
+</tr>
+</tbody>
+</table>
+<h3 id="setup_tag">setup_tag</h3>
+<p>User-assigned tags on setups.
+Setups can not really be assigned by users, only admins. Runs should be tagged by users.</p>
+<p>These tags are only used in the filtering of <code>/setups/list</code>, they are not returned with a <code>setup</code> or <code>run</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>int unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="#algorithm_setup">algorithm_setup.sid</a></td>
+<td>Setup ID.</td>
+<td>42</td>
+</tr>
+<tr>
+<td>tag</td>
+<td>varchar(255)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Tag string.</td>
+<td>test_setup</td>
+</tr>
+<tr>
+<td>uploader</td>
+<td>mediumint unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="../openml/#users">openml.users.id</a></td>
+<td>User who added the tag.</td>
+<td>2</td>
+</tr>
+<tr>
+<td>date</td>
+<td>timestamp</td>
+<td>No</td>
+<td>CURRENT_TIMESTAMP</td>
+<td></td>
+<td>When the tag was added.</td>
+<td>2024-12-01 23:04:57</td>
+</tr>
+</tbody>
+</table>
+<h3 id="setup_differences">setup_differences</h3>
+<p>Precomputed pairwise differences between setups on specific tasks.
+Not entirely sure what this means, but seems to be out of use (last setup included is from a run in 2019).</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>sidA</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>First setup ID.</td>
+<td>2</td>
+</tr>
+<tr>
+<td>sidB</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Second setup ID.</td>
+<td>3</td>
+</tr>
+<tr>
+<td>task_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Task ID.</td>
+<td>1245</td>
+</tr>
+<tr>
+<td>task_size</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Size of the task dataset.</td>
+<td>100000</td>
+</tr>
+<tr>
+<td>differences</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>???</td>
+<td>812987</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="runs-and-evaluations">Runs and Evaluations</h2>
+<h3 id="run">run</h3>
+<p>Represents the execution of a flow setup on a task.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>rid</td>
+<td>int unsigned</td>
+<td>No</td>
+<td>auto_increment</td>
+<td></td>
+<td>Primary key (run ID).</td>
+<td>2</td>
+</tr>
+<tr>
+<td>uploader</td>
+<td>mediumint unsigned</td>
+<td>Yes</td>
+<td>NULL</td>
+<td><a href="../openml/#users">openml.users.id</a></td>
+<td>User who uploaded the run.</td>
+<td>16</td>
+</tr>
+<tr>
+<td>setup</td>
+<td>int unsigned</td>
+<td>No</td>
+<td>0</td>
+<td><a href="#algorithm_setup">algorithm_setup.sid</a></td>
+<td>Setup (hyperparameter configuration) used.</td>
+<td>2894</td>
+</tr>
+<tr>
+<td>task_id</td>
+<td>int</td>
+<td>Yes</td>
+<td>NULL</td>
+<td><a href="#task">task.task_id</a></td>
+<td>Task the run was executed on.</td>
+<td>284</td>
+</tr>
+<tr>
+<td>start_time</td>
+<td>datetime</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>When the run started.</td>
+<td>2018-07-31 10:57:42</td>
+</tr>
+<tr>
+<td>error_message</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Error message if the run failed.</td>
+<td>"weka.classifiers.bayes.HNB: Cannot handle numeric attributes!"</td>
+</tr>
+<tr>
+<td>run_details</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Additional run details or logs. Not really used.</td>
+<td>"Custom:Hyperparameter"</td>
+</tr>
+<tr>
+<td>visibility</td>
+<td>varchar(128)</td>
+<td>No</td>
+<td>'public'</td>
+<td></td>
+<td>Visibility level, 'public' or 'private'.</td>
+<td>public</td>
+</tr>
+</tbody>
+</table>
+<h3 id="run_evaluated">run_evaluated</h3>
+<p>Tracks whether a run has been evaluated by an evaluation engine.
+Currently only one evaluation engine is evaluating runs.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>run_id</td>
+<td>int unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="#run">run.rid</a></td>
+<td>Run ID.</td>
+<td>24</td>
+</tr>
+<tr>
+<td>evaluation_engine_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#evaluation_engine">evaluation_engine.id</a></td>
+<td>Engine that evaluated the run.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>user_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>User who triggered evaluation.</td>
+<td>381</td>
+</tr>
+<tr>
+<td>evaluation_date</td>
+<td>datetime</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>When evaluation completed.</td>
+<td>2024-02-04 08:09:27</td>
+</tr>
+<tr>
+<td>error</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Error message if evaluation failed.</td>
+<td>"Index 1 out of bounds for length 1"</td>
+</tr>
+<tr>
+<td>warning</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Warning messages from evaluation.</td>
+<td>"Inconsistent Evaluation score: ..."</td>
+</tr>
+<tr>
+<td>num_tries</td>
+<td>int</td>
+<td>No</td>
+<td>1</td>
+<td></td>
+<td>Number of evaluation attempts.</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<h3 id="runfile">runfile</h3>
+<p>Stores metadata about files associated with a run (e.g., predictions, model files).</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>source</td>
+<td>int unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="#run">run.rid</a></td>
+<td>Run ID.</td>
+<td>28</td>
+</tr>
+<tr>
+<td>field</td>
+<td>varchar(128)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>File field name (e.g., predictions, model serialized).</td>
+<td>predictions</td>
+</tr>
+<tr>
+<td>name</td>
+<td>varchar(128)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Original filename.</td>
+<td>weka_generated_run5258986433356798974.xml</td>
+</tr>
+<tr>
+<td>format</td>
+<td>varchar(128)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>File format.</td>
+<td>xml</td>
+</tr>
+<tr>
+<td>upload_time</td>
+<td>datetime</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>When the file was uploaded.</td>
+<td>2017-05-29 19:28:56</td>
+</tr>
+<tr>
+<td>file_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="../openml/#file">openml.file.id</a></td>
+<td>Reference to the file record.</td>
+<td>152</td>
+</tr>
+</tbody>
+</table>
+<h3 id="run_tag">run_tag</h3>
+<p>User-assigned tags on runs.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>int unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="#run">run.rid</a></td>
+<td>Run ID.</td>
+<td>1521</td>
+</tr>
+<tr>
+<td>tag</td>
+<td>varchar(255)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Tag string.</td>
+<td>micro_benchmark</td>
+</tr>
+<tr>
+<td>uploader</td>
+<td>mediumint unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="../openml/#users">openml.users.id</a></td>
+<td>User who added the tag.</td>
+<td>124</td>
+</tr>
+<tr>
+<td>date</td>
+<td>timestamp</td>
+<td>No</td>
+<td>CURRENT_TIMESTAMP</td>
+<td></td>
+<td>When the tag was added.</td>
+<td>2024-10-24 22:58:18</td>
+</tr>
+</tbody>
+</table>
+<h3 id="input_data">input_data</h3>
+<p>Records the input datasets used by a run.
+Used by PHP, but arguably they could use the relationship run-&gt;task-&gt;task_inputs-&gt;"source_data" instead.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>run</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Run ID.</td>
+<td>21</td>
+</tr>
+<tr>
+<td>data</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Dataset ID.</td>
+<td>42</td>
+</tr>
+<tr>
+<td>name</td>
+<td>varchar(128)</td>
+<td>No</td>
+<td>'inputdata'</td>
+<td></td>
+<td>Always 'dataset'</td>
+<td>dataset</td>
+</tr>
+</tbody>
+</table>
+<h3 id="evaluation_engine">evaluation_engine</h3>
+<p>Defines the evaluation engines that compute metrics on runs and datasets.
+Currently only has one row, as we only ever used on engine in production.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>int</td>
+<td>No</td>
+<td>auto_increment</td>
+<td></td>
+<td>Primary key.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>name</td>
+<td>varchar(256)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Engine name.</td>
+<td>weka_engine</td>
+</tr>
+<tr>
+<td>description</td>
+<td>text</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Engine description.</td>
+<td>"Default OpenML evaluation engine"</td>
+</tr>
+</tbody>
+</table>
+<h3 id="math_function">math_function</h3>
+<p>Defines evaluation metrics (e.g., accuracy, AUC, RMSE) and their properties.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>int</td>
+<td>No</td>
+<td>auto_increment</td>
+<td></td>
+<td>Primary key.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>name</td>
+<td>varchar(64)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Metric name (unique).</td>
+<td>EuclidianDistance</td>
+</tr>
+<tr>
+<td>functionType</td>
+<td>varchar(128)</td>
+<td>No</td>
+<td>'EvaluationFunction'</td>
+<td></td>
+<td>Type of function. One of Metric, KernelFunction, or EvaluationFunction</td>
+<td>Metric</td>
+</tr>
+<tr>
+<td>min</td>
+<td>varchar(64)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Minimum possible value.</td>
+<td>0</td>
+</tr>
+<tr>
+<td>max</td>
+<td>varchar(64)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Maximum possible value.</td>
+<td>''</td>
+</tr>
+<tr>
+<td>unit</td>
+<td>varchar(64)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Unit of measurement.</td>
+<td>seconds, bytes</td>
+</tr>
+<tr>
+<td>higherIsBetter</td>
+<td>varchar(16)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Whether higher values indicate better performance.</td>
+<td>true, Yes, 1, False</td>
+</tr>
+<tr>
+<td>description</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Description of the metric.</td>
+<td>"The area under the ROC..."</td>
+</tr>
+<tr>
+<td>source_code</td>
+<td>text</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Source code or formula.</td>
+<td>"public double truePositiveRate(..."</td>
+</tr>
+<tr>
+<td>date</td>
+<td>timestamp</td>
+<td>No</td>
+<td>CURRENT_TIMESTAMP</td>
+<td></td>
+<td>When the function was defined.</td>
+<td>2024-04-19 23:51:52</td>
+</tr>
+</tbody>
+</table>
+<h3 id="evaluation">evaluation</h3>
+<p>Stores aggregated evaluation results for a run (one value per metric).</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>source</td>
+<td>int unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="#run">run.rid</a></td>
+<td>Run ID.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>function_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#math_function">math_function.id</a></td>
+<td>Evaluation metric.</td>
+<td>4</td>
+</tr>
+<tr>
+<td>evaluation_engine_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#evaluation_engine">evaluation_engine.id</a></td>
+<td>Engine that computed the evaluation.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>value</td>
+<td>double</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Aggregated metric value.</td>
+<td>0.839</td>
+</tr>
+<tr>
+<td>stdev</td>
+<td>double</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Standard deviation across folds/repeats.</td>
+<td>0.06</td>
+</tr>
+<tr>
+<td>array_data</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Per-class or detailed results as array.</td>
+<td>"[0.0,0.99113,0.898048,0.874862,0.791282,0.807343,0.820674]"</td>
+</tr>
+</tbody>
+</table>
+<h3 id="evaluation_fold">evaluation_fold</h3>
+<p>Stores per-fold evaluation results for a run.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>source</td>
+<td>int unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="#run">run.rid</a></td>
+<td>Run ID.</td>
+<td>12</td>
+</tr>
+<tr>
+<td>function_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#math_function">math_function.id</a></td>
+<td>Evaluation metric.</td>
+<td>4</td>
+</tr>
+<tr>
+<td>evaluation_engine_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#evaluation_engine">evaluation_engine.id</a></td>
+<td>Engine that computed the evaluation.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>fold</td>
+<td>int unsigned</td>
+<td>No</td>
+<td>0</td>
+<td></td>
+<td>Fold number.</td>
+<td>0</td>
+</tr>
+<tr>
+<td>repeat</td>
+<td>int unsigned</td>
+<td>No</td>
+<td>0</td>
+<td></td>
+<td>Repeat number.</td>
+<td>0</td>
+</tr>
+<tr>
+<td>value</td>
+<td>double</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Metric value for this fold/repeat.</td>
+<td>0.5</td>
+</tr>
+<tr>
+<td>array_data</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Per-class or detailed results as array.</td>
+<td>"[0.4, 0.6]"</td>
+</tr>
+</tbody>
+</table>
+<h3 id="evaluation_sample">evaluation_sample</h3>
+<p>Stores per-sample evaluation results (for learning curves).
+Evaluation samples seem to be part of a run upload, but might not be able to be retrieved with the current PHP API.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>source</td>
+<td>int unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="#run">run.rid</a></td>
+<td>Run ID.</td>
+<td>12</td>
+</tr>
+<tr>
+<td>function_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#math_function">math_function.id</a></td>
+<td>Evaluation metric.</td>
+<td>4</td>
+</tr>
+<tr>
+<td>evaluation_engine_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#evaluation_engine">evaluation_engine.id</a></td>
+<td>Engine that computed the evaluation.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>repeat</td>
+<td>int unsigned</td>
+<td>No</td>
+<td>0</td>
+<td></td>
+<td>Repeat number.</td>
+<td>0</td>
+</tr>
+<tr>
+<td>fold</td>
+<td>int unsigned</td>
+<td>No</td>
+<td>0</td>
+<td></td>
+<td>Fold number.</td>
+<td>0</td>
+</tr>
+<tr>
+<td>sample</td>
+<td>int unsigned</td>
+<td>No</td>
+<td>0</td>
+<td></td>
+<td>Sample index.</td>
+<td>0</td>
+</tr>
+<tr>
+<td>sample_size</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Number of training instances in this sample.</td>
+<td>100</td>
+</tr>
+<tr>
+<td>value</td>
+<td>double</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Metric value for this sample.</td>
+<td>0.5</td>
+</tr>
+<tr>
+<td>array_data</td>
+<td>text</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Per-class or detailed results as array.</td>
+<td>"[0.4,0.6]"</td>
+</tr>
+</tbody>
+</table>
+<h3 id="trace">trace</h3>
+<p>Stores optimization traces (e.g., hyperparameter search iterations) for a run.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>run_id</td>
+<td>int unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="#run">run.rid</a></td>
+<td>Run ID.</td>
+<td>2</td>
+</tr>
+<tr>
+<td>evaluation_engine_id</td>
+<td>int</td>
+<td>No</td>
+<td>1</td>
+<td><a href="#evaluation_engine">evaluation_engine.id</a></td>
+<td>Engine that evaluated the trace.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>repeat</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Repeat number.</td>
+<td>0</td>
+</tr>
+<tr>
+<td>fold</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Fold number.</td>
+<td>0</td>
+</tr>
+<tr>
+<td>iteration</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Iteration number in the optimization.</td>
+<td>0</td>
+</tr>
+<tr>
+<td>setup_string</td>
+<td>text</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Hyperparameter configuration tried.</td>
+<td>'{"parameter_minNumObj":"1","parameter_confidenceFactor":"0.1"}'</td>
+</tr>
+<tr>
+<td>evaluation</td>
+<td>varchar(265)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Evaluation result for this iteration.</td>
+<td>94.12</td>
+</tr>
+<tr>
+<td>selected</td>
+<td>enum('true','false')</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Whether this was the selected configuration.</td>
+<td>true</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="studies">Studies</h2>
+<p>Studies have historically been in flux, but they are generally collections of objects (e.g., tasks).
+One major change during OpenML's lifetime was in how those collections were defined, which happened around 2019.
+Nowadays there are dedicated tables (e.g., study_task) to make the connection between a study and its task.
+Historically, what is now referred to as a "legacy study", this association was achieved through tags.
+E.g., all tasks with tag <code>study_14</code> would be considered part of <code>study_14</code>.
+Some studies are still defined this way, and migration of these studies to new-style studies is planned.
+The Python-based REST API will not support legacy-style studies (hence the data migration needs to occur to make the legacy studies usable with the new API).</p>
+<p>The current use is that "benchmark suite" refers to a collection of tasks and a "benchmark study" refers to a collection of runs.
+Both are found in the "study" table. It is likely we drop this distinction in the future in favor of a more general "collection".</p>
+<h3 id="study">study</h3>
+<p>Represents a collection of runs or tasks, used for benchmarking and reproducibility.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>int</td>
+<td>No</td>
+<td>auto_increment</td>
+<td></td>
+<td>Primary key (study ID).</td>
+<td>2</td>
+</tr>
+<tr>
+<td>alias</td>
+<td>varchar(32)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Short unique alias for the study.</td>
+<td>automl_benchmark</td>
+</tr>
+<tr>
+<td>main_entity_type</td>
+<td>enum('run','task')</td>
+<td>No</td>
+<td>'run'</td>
+<td></td>
+<td>Whether the study collects runs or tasks.</td>
+<td>tasks</td>
+</tr>
+<tr>
+<td>benchmark_suite</td>
+<td>int</td>
+<td>Yes</td>
+<td>NULL</td>
+<td><a href="#study">study.id</a></td>
+<td>Reference to a task study used as benchmark suite.</td>
+<td>2</td>
+</tr>
+<tr>
+<td>name</td>
+<td>varchar(256)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Study name.</td>
+<td>"A friendly benchmarking suite for AutoML systems"</td>
+</tr>
+<tr>
+<td>description</td>
+<td>text</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Study description.</td>
+<td>"See also JMLR..."</td>
+</tr>
+<tr>
+<td>visibility</td>
+<td>varchar(64)</td>
+<td>No</td>
+<td>'public'</td>
+<td></td>
+<td>Visibility level. Only ever 'public'</td>
+<td>public</td>
+</tr>
+<tr>
+<td>status</td>
+<td>enum('in_preparation','active','deactivated')</td>
+<td>No</td>
+<td>'in_preparation'</td>
+<td></td>
+<td>Current status.</td>
+<td>active</td>
+</tr>
+<tr>
+<td>creation_date</td>
+<td>datetime</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>When the study was created.</td>
+<td>2021-02-04 20:48:58</td>
+</tr>
+<tr>
+<td>creator</td>
+<td>mediumint unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="../openml/#users">openml.users.id</a></td>
+<td>User who created the study.</td>
+<td>3</td>
+</tr>
+<tr>
+<td>legacy</td>
+<td>enum('y','n')</td>
+<td>No</td>
+<td>'y'</td>
+<td></td>
+<td>Whether this is a legacy study.</td>
+<td>y</td>
+</tr>
+</tbody>
+</table>
+<h3 id="study_tag">study_tag</h3>
+<p>Tags applied to studies, with optional time windows and access control.
+It is unclear why this table has a different design than the other tag tables, but it likely has to do with the "legacy" study setup.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>study_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#study">study.id</a></td>
+<td>Study ID.</td>
+<td>28</td>
+</tr>
+<tr>
+<td>tag</td>
+<td>varchar(255)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Tag string.</td>
+<td>published, jmlr</td>
+</tr>
+<tr>
+<td>window_start</td>
+<td>datetime</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>Start of the tag's validity window.</td>
+<td>2020-01-01 12:23:42</td>
+</tr>
+<tr>
+<td>window_end</td>
+<td>datetime</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>End of the tag's validity window.</td>
+<td>2021-04-11 19:54:24</td>
+</tr>
+<tr>
+<td>write_access</td>
+<td>enum('private','public')</td>
+<td>No</td>
+<td>'private'</td>
+<td></td>
+<td>Who can add this tag.</td>
+<td>private</td>
+</tr>
+</tbody>
+</table>
+<h3 id="run_study">run_study</h3>
+<p>A join table for the "new" style studies.
+Associates runs with studies (many-to-many).</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>study_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#study">study.id</a></td>
+<td>Study ID.</td>
+<td>2</td>
+</tr>
+<tr>
+<td>run_id</td>
+<td>int unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="#run">run.rid</a></td>
+<td>Run ID.</td>
+<td>102984</td>
+</tr>
+<tr>
+<td>uploader</td>
+<td>mediumint unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="../openml/#users">openml.users.id</a></td>
+<td>User who added the run to the study.</td>
+<td>1815</td>
+</tr>
+<tr>
+<td>date</td>
+<td>timestamp</td>
+<td>No</td>
+<td>CURRENT_TIMESTAMP</td>
+<td></td>
+<td>When the run was added.</td>
+<td>2024-05-12 23:10:54</td>
+</tr>
+</tbody>
+</table>
+<h3 id="task_study">task_study</h3>
+<p>A join table for the "new" style studies.
+Associates tasks with studies (many-to-many).</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>study_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#study">study.id</a></td>
+<td>Study ID.</td>
+<td>5</td>
+</tr>
+<tr>
+<td>task_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td><a href="#task">task.task_id</a></td>
+<td>Task ID.</td>
+<td>18257</td>
+</tr>
+<tr>
+<td>uploader</td>
+<td>mediumint unsigned</td>
+<td>No</td>
+<td></td>
+<td><a href="../openml/#users">openml.users.id</a></td>
+<td>User who added the task to the study.</td>
+<td>12</td>
+</tr>
+<tr>
+<td>date</td>
+<td>timestamp</td>
+<td>No</td>
+<td>CURRENT_TIMESTAMP</td>
+<td></td>
+<td>When the task was added.</td>
+<td>2022-04-28 08:28:49</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="community">Community</h2>
+<p>The <code>awarded_badges</code>, <code>likes</code>, <code>downvotes</code> and <code>downvote_reasons</code> tables are not currently in use.
+They may be added back with the new frontend (except for <code>awarded_badges</code>).</p>
+<h3 id="likes">likes</h3>
+<p>Records user likes on datasets, flows, runs, or other entities.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>lid</td>
+<td>int</td>
+<td>No</td>
+<td>auto_increment</td>
+<td></td>
+<td>Unique ID.</td>
+<td>1</td>
+</tr>
+<tr>
+<td>knowledge_type</td>
+<td>varchar(1)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Entity type code (e.g., 'd' for dataset).</td>
+<td>d, f, r, t</td>
+</tr>
+<tr>
+<td>knowledge_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Entity ID.</td>
+<td>20248</td>
+</tr>
+<tr>
+<td>user_id</td>
+<td>mediumint</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>User who liked the entity.</td>
+<td>241</td>
+</tr>
+<tr>
+<td>time</td>
+<td>timestamp</td>
+<td>No</td>
+<td>CURRENT_TIMESTAMP</td>
+<td></td>
+<td>When the like was recorded.</td>
+<td>2019-09-08 17:47:57</td>
+</tr>
+</tbody>
+</table>
+<h3 id="downvotes">downvotes</h3>
+<p>Records user downvotes on entities with a reason.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>did</td>
+<td>int</td>
+<td>No</td>
+<td>auto_increment</td>
+<td></td>
+<td>Unique ID.</td>
+<td></td>
+</tr>
+<tr>
+<td>knowledge_type</td>
+<td>varchar(1)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Entity type code.</td>
+<td></td>
+</tr>
+<tr>
+<td>knowledge_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Entity ID.</td>
+<td></td>
+</tr>
+<tr>
+<td>user_id</td>
+<td>mediumint</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>User who downvoted.</td>
+<td></td>
+</tr>
+<tr>
+<td>reason</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Reason for the downvote (references downvote_reasons).</td>
+<td></td>
+</tr>
+<tr>
+<td>time</td>
+<td>timestamp</td>
+<td>No</td>
+<td>CURRENT_TIMESTAMP</td>
+<td></td>
+<td>When the downvote was recorded.</td>
+<td></td>
+</tr>
+<tr>
+<td>original</td>
+<td>tinyint</td>
+<td>No</td>
+<td>0</td>
+<td></td>
+<td>Whether this is the original downvote (vs. an update).</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="downvote_reasons">downvote_reasons</h3>
+<p>Defines the reasons for downvoting an entity.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>reason_id</td>
+<td>int</td>
+<td>No</td>
+<td>auto_increment</td>
+<td></td>
+<td>Primary key.</td>
+<td></td>
+</tr>
+<tr>
+<td>description</td>
+<td>varchar(256)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Description of the reason.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="downloads">downloads</h3>
+<p>Tracks download counts per user and entity.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>did</td>
+<td>int</td>
+<td>No</td>
+<td>auto_increment</td>
+<td></td>
+<td>Unique ID.</td>
+<td></td>
+</tr>
+<tr>
+<td>knowledge_type</td>
+<td>varchar(1)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Entity type code.</td>
+<td></td>
+</tr>
+<tr>
+<td>knowledge_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Entity ID.</td>
+<td></td>
+</tr>
+<tr>
+<td>user_id</td>
+<td>mediumint</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>User who downloaded.</td>
+<td></td>
+</tr>
+<tr>
+<td>count</td>
+<td>smallint</td>
+<td>No</td>
+<td>1</td>
+<td></td>
+<td>Number of downloads.</td>
+<td></td>
+</tr>
+<tr>
+<td>time</td>
+<td>timestamp</td>
+<td>No</td>
+<td>CURRENT_TIMESTAMP</td>
+<td></td>
+<td>Last download time.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="miscellaneous">Miscellaneous</h2>
+<p>The <code>notebook</code> and <code>pdnresults</code> are no longer in use.</p>
+<h3 id="schedule">schedule</h3>
+<p>Defines scheduled experiment jobs to be executed.
+Seems to be out of use since 2017.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>sid</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Setup ID.</td>
+<td></td>
+</tr>
+<tr>
+<td>task_id</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Task ID to run.</td>
+<td></td>
+</tr>
+<tr>
+<td>experiment</td>
+<td>varchar(128)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Experiment identifier.</td>
+<td></td>
+</tr>
+<tr>
+<td>active</td>
+<td>enum('true','false')</td>
+<td>No</td>
+<td>'true'</td>
+<td></td>
+<td>Whether the schedule is active.</td>
+<td></td>
+</tr>
+<tr>
+<td>last_assigned</td>
+<td>datetime</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>When this job was last assigned to a worker.</td>
+<td></td>
+</tr>
+<tr>
+<td>ttid</td>
+<td>int</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Task type ID.</td>
+<td></td>
+</tr>
+<tr>
+<td>dependencies</td>
+<td>varchar(128)</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Dependency identifiers.</td>
+<td></td>
+</tr>
+<tr>
+<td>setup_string</td>
+<td>text</td>
+<td>No</td>
+<td></td>
+<td></td>
+<td>Serialized setup configuration.</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="kaggle">kaggle</h3>
+<p>Maps OpenML datasets to Kaggle competitions or datasets.
+Defined by hand in collaboration with Kaggle.
+Only used by the frontend.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Optional</th>
+<th>Default</th>
+<th>References</th>
+<th>Description</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>dataset_id</td>
+<td>int</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>OpenML dataset ID.</td>
+<td>6</td>
+</tr>
+<tr>
+<td>kaggle_link</td>
+<td>varchar(500)</td>
+<td>Yes</td>
+<td>NULL</td>
+<td></td>
+<td>URL to the Kaggle page.</td>
+<td>https://www.kaggle.com/datasets/nishan192/letterrecognition-using-svm</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "navigation.indexes", "navigation.sections", "navigation.tabs"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
