@@ -65,7 +65,7 @@ async def test_setup_tag_already_exists(expdb_test: AsyncConnection) -> None:
         text("INSERT INTO setup_tag (id, tag, uploader) VALUES (1, :tag, 2);"),
         parameters={"tag": tag},
     )
-    with pytest.raises(TagAlreadyExistsError, match=rf"Setup 1 already has tag '{tag}'\."):
+    with pytest.raises(TagAlreadyExistsError, match=rf"Setup 1 already tagged with '{tag}'\."):
         await tag_setup(
             setup_id=1,
             tag=tag,
@@ -203,4 +203,4 @@ async def test_setup_tag_response_is_identical_tag_already_exists(
     assert php_response.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
     assert py_response.status_code == HTTPStatus.CONFLICT
     assert php_response.json()["error"]["message"] == "Entity already tagged by this tag."
-    assert py_response.json()["detail"] == f"Setup {setup_id} already has tag {tag!r}."
+    assert py_response.json()["detail"] == f"Setup {setup_id} already tagged with {tag!r}."

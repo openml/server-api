@@ -3,7 +3,14 @@
 from typing import TYPE_CHECKING
 
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
+from database.exceptions import (
+    _DUPLICATE_ENTRY,
+    _FOREIGN_KEY_CONSTRAINT_FAILED,
+    DuplicatePrimaryKeyError,
+    ForeignKeyConstraintError,
+)
 from routers.types import Identifier, TagString
 
 if TYPE_CHECKING:
@@ -88,12 +95,20 @@ async def tag(
     connection: AsyncConnection,
 ) -> None:
     """Add tag `tag` to setup with id `setup_id`."""
-    await connection.execute(
-        text(
-            """
-            INSERT INTO setup_tag (id, tag, uploader)
-            VALUES (:setup_id, :tag, :user_id)
-            """,
-        ),
-        parameters={"setup_id": setup_id, "tag": tag, "user_id": user_id},
-    )
+    try:
+        await connection.execute(
+            text(
+                """
+                INSERT INTO setup_tag (id, tag, uploader)
+                VALUES (:setup_id, :tag, :user_id)
+                """,
+            ),
+            parameters={"setup_id": setup_id, "tag": tag, "user_id": user_id},
+        )
+    except IntegrityError as e:
+        code, msg = e.orig.args
+        if code == _FOREIGN_KEY_CONSTRAINT_FAILED:
+            raise ForeignKeyConstraintError(msg) from e
+        if code == _DUPLICATE_ENTRY:
+            raise DuplicatePrimaryKeyError(msg) from e
+        raise
