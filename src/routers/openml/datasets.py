@@ -156,6 +156,7 @@ def _quality_clause(quality: str, range_: str | None) -> str:
 @router.post(path="/list", description="Provided for convenience, same as `GET` endpoint.")
 @router.get(path="/list")
 async def list_datasets(  # noqa: PLR0913, C901
+    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     data_name: Annotated[CasualString128 | None, Body()] = None,
     tag: Annotated[TagString | None, Body()] = None,
@@ -180,9 +181,7 @@ async def list_datasets(  # noqa: PLR0913, C901
     number_missing_values: Annotated[IntegerRange | None, Body()] = None,
     status: Annotated[DatasetStatusFilter, Body()] = DatasetStatusFilter.ACTIVE,
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> list[dict[str, Any]]:
-    assert expdb_db is not None  # noqa: S101
     status_subquery = text(
         """
         SELECT ds1.`did`, ds1.`status`
@@ -356,8 +355,8 @@ async def _get_dataset_raise_otherwise(
 @router.get("/features/{dataset_id}", response_model_exclude_none=True)
 async def get_dataset_features(
     dataset_id: Identifier,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> list[Feature]:
     assert expdb is not None  # noqa: S101
     await _get_dataset_raise_otherwise(dataset_id, user, expdb)
@@ -453,9 +452,9 @@ async def update_dataset_status(
 )
 async def get_dataset(
     dataset_id: Identifier,
+    user_db: Annotated[AsyncConnection, Depends(userdb_connection)],
+    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    user_db: Annotated[AsyncConnection, Depends(userdb_connection)] = None,
-    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> DatasetMetadata:
     assert user_db is not None  # noqa: S101
     assert expdb_db is not None  # noqa: S101

@@ -1,11 +1,8 @@
 import html
-from typing import TYPE_CHECKING
 
 from config import get_config
+from database.schema.base import UntypedRow
 from schemas.datasets.openml import DatasetFileFormat
-
-if TYPE_CHECKING:
-    from sqlalchemy.engine import Row
 
 
 def _str_to_bool(string: str) -> bool:
@@ -17,7 +14,7 @@ def _str_to_bool(string: str) -> bool:
     raise ValueError(msg)
 
 
-def _format_parquet_url(dataset: Row) -> str | None:
+def _format_parquet_url(dataset: UntypedRow) -> str | None:
     if dataset.format.lower() != DatasetFileFormat.ARFF:
         return None
 
@@ -27,7 +24,7 @@ def _format_parquet_url(dataset: Row) -> str | None:
     return f"{minio_base_url}datasets/{ten_thousands_prefix}/{padded_id}/dataset_{dataset.did}.pq"
 
 
-def _format_dataset_url(dataset: Row) -> str:
+def _format_dataset_url(dataset: UntypedRow) -> str:
     base_url = get_config().routing.server_url
     filename = f"{html.escape(dataset.name)}.{dataset.format.lower()}"
     return f"{base_url}data/v1/download/{dataset.file_id}/{filename}"

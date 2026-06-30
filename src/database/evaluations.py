@@ -1,16 +1,20 @@
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
-from sqlalchemy import Row, text
+from sqlalchemy import text
 
 from core.formatting import _str_to_bool
+from database.schema.base import UntypedRow
 from schemas.datasets.openml import EstimationProcedure
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection
 
 
-async def get_math_functions(function_type: str, connection: AsyncConnection) -> Sequence[Row]:
+async def get_math_functions(
+    function_type: str,
+    connection: AsyncConnection,
+) -> Sequence[UntypedRow]:
     rows = await connection.execute(
         text(
             """
@@ -21,10 +25,7 @@ async def get_math_functions(function_type: str, connection: AsyncConnection) ->
         ),
         parameters={"function_type": function_type},
     )
-    return cast(
-        "Sequence[Row]",
-        rows.all(),
-    )
+    return rows.all()
 
 
 async def get_estimation_procedures(connection: AsyncConnection) -> list[EstimationProcedure]:

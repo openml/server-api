@@ -13,15 +13,15 @@ from database.exceptions import (
     DuplicatePrimaryKeyError,
     ForeignKeyConstraintError,
 )
+from database.schema.base import UntypedRow
 from routers.types import Identifier, TagString
 from schemas.datasets.openml import DatasetStatus, Feature
 
 if TYPE_CHECKING:
-    from sqlalchemy.engine import Row
     from sqlalchemy.ext.asyncio import AsyncConnection
 
 
-async def get(id_: Identifier, connection: AsyncConnection) -> Row | None:
+async def get(id_: Identifier, connection: AsyncConnection) -> UntypedRow | None:
     row = await connection.execute(
         text(
             """
@@ -35,7 +35,7 @@ async def get(id_: Identifier, connection: AsyncConnection) -> Row | None:
     return row.one_or_none()
 
 
-async def get_file(*, file_id: Identifier, connection: AsyncConnection) -> Row | None:
+async def get_file(*, file_id: Identifier, connection: AsyncConnection) -> UntypedRow | None:
     row = await connection.execute(
         text(
             """
@@ -53,7 +53,7 @@ async def get_tag(
     dataset_id: Identifier,
     tag: TagString,
     connection: AsyncConnection,
-) -> Row | None:
+) -> UntypedRow | None:
     return (
         await connection.execute(
             text(
@@ -111,6 +111,8 @@ async def tag(id_: int, tag_: str, *, user_id: int, connection: AsyncConnection)
             },
         )
     except IntegrityError as e:
+        if e.orig is None:
+            raise
         code, msg = e.orig.args
         if code == _FOREIGN_KEY_CONSTRAINT_FAILED:
             raise ForeignKeyConstraintError(msg) from e
@@ -122,7 +124,7 @@ async def tag(id_: int, tag_: str, *, user_id: int, connection: AsyncConnection)
 async def get_description(
     id_: Identifier,
     connection: AsyncConnection,
-) -> Row | None:
+) -> UntypedRow | None:
     """Get the most recent description for the dataset."""
     row = await connection.execute(
         text(
@@ -160,7 +162,7 @@ async def get_status(id_: Identifier, connection: AsyncConnection) -> DatasetSta
 async def get_latest_processing_update(
     dataset_id: Identifier,
     connection: AsyncConnection,
-) -> Row | None:
+) -> UntypedRow | None:
     row = await connection.execute(
         text(
             """

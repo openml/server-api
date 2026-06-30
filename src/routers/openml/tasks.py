@@ -26,7 +26,8 @@ from routers.types import (
 from schemas.datasets.openml import Task
 
 if TYPE_CHECKING:
-    from sqlalchemy.engine import RowMapping
+    from collections.abc import Mapping
+
     from sqlalchemy.ext.asyncio import AsyncConnection
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
@@ -70,7 +71,7 @@ def convert_template_xml_to_json(xml_template: str) -> dict[str, JSON]:
 
 async def fill_template(
     template: str,
-    task: RowMapping,
+    task: Mapping[str, Any],
     task_inputs: dict[str, str | int],
     connection: AsyncConnection,
 ) -> dict[str, JSON]:
@@ -137,7 +138,7 @@ async def fill_template(
 
 async def _fill_json_template(  # noqa: C901
     template: JSON,
-    task: RowMapping,
+    task: Mapping[str, Any],
     task_inputs: dict[str, str | int],
     fetched_data: dict[str, str],
     connection: AsyncConnection,
@@ -192,7 +193,7 @@ async def _fill_json_template(  # noqa: C901
         template = template.replace(match.group(), fetched_data[field])
     # I believe that the operations below are always part of string output, so
     # we don't need to be careful to avoid losing typedness
-    template = template.replace("[TASK:id]", str(task.task_id))
+    template = template.replace("[TASK:id]", str(task["task_id"]))
     url = get_config().routing.server_url
     server_url = f"{url.scheme}://{url.host}:{url.port}/"
     return template.replace("[CONSTANT:base_url]", server_url)
@@ -257,6 +258,7 @@ def _quality_clause(quality: str, range_: str | None) -> str:
 @router.post(path="/list", description="Provided for convenience, same as `GET` endpoint.")
 @router.get(path="/list")
 async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     task_type_id: Annotated[Identifier | None, Body(description="Filter by task type id.")] = None,
     tag: Annotated[TagString | None, Body()] = None,
@@ -275,7 +277,6 @@ async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
     number_features: Annotated[IntegerRange | None, Body()] = None,
     number_classes: Annotated[IntegerRange | None, Body()] = None,
     number_missing_values: Annotated[IntegerRange | None, Body()] = None,
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> list[dict[str, Any]]:
     """List tasks, optionally filtered by type, tag, status, dataset properties, and more."""
     assert expdb is not None  # noqa: S101
@@ -472,7 +473,10 @@ async def get_task(
         (name, template) for name, io, required, template in templates if io == "input"
     ]
     filled_templates = await asyncio.gather(
-        *[fill_template(template, task, task_inputs, expdb) for name, template in input_templates],
+        *[
+            fill_template(template, dict(task), task_inputs, expdb)
+            for name, template in input_templates
+        ],
     )
     inputs = [
         filled | {"name": name}

@@ -4,14 +4,15 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import text
 
+from database.schema.base import UntypedRow
 from routers.types import Identifier, TagString
 
 if TYPE_CHECKING:
-    from sqlalchemy.engine import Row, RowMapping
+    from sqlalchemy.engine import RowMapping
     from sqlalchemy.ext.asyncio import AsyncConnection
 
 
-async def get(setup_id: Identifier, connection: AsyncConnection) -> Row | None:
+async def get(setup_id: Identifier, connection: AsyncConnection) -> UntypedRow | None:
     """Get the setup with id `setup_id` from the database."""
     row = await connection.execute(
         text(
@@ -53,7 +54,7 @@ async def get_parameters(setup_id: Identifier, connection: AsyncConnection) -> l
     return list(rows.mappings().all())
 
 
-async def get_tags(setup_id: Identifier, connection: AsyncConnection) -> list[Row]:
+async def get_tags(setup_id: Identifier, connection: AsyncConnection) -> list[UntypedRow]:
     """Get all tags for setup with `setup_id` from the database."""
     rows = await connection.execute(
         text(

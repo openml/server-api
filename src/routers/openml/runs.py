@@ -6,9 +6,6 @@ from typing import TYPE_CHECKING, Annotated, Any, cast
 
 from fastapi import APIRouter, Depends
 
-if TYPE_CHECKING:
-    from sqlalchemy import Row
-
 import config
 import database.flows
 import database.runs
@@ -16,6 +13,7 @@ import database.setups
 import database.tasks
 import database.users
 from core.errors import RunNotFoundError, RunTraceNotFoundError
+from database.schema.base import UntypedRow
 from routers.dependencies import expdb_connection, userdb_connection
 from routers.types import Identifier
 from schemas.runs import (
@@ -72,17 +70,17 @@ class RunContext:
 
     uploader_name: str | None
     tags: list[str]
-    input_data_rows: list[Row]
-    output_file_rows: list[Row]
-    evaluation_rows: list[Row]
+    input_data_rows: list[UntypedRow]
+    output_file_rows: list[UntypedRow]
+    evaluation_rows: list[UntypedRow]
     task_type: str | None
     task_evaluation_measure: str | None
-    setup: Row | None
-    parameter_rows: list[Row]
+    setup: UntypedRow | None
+    parameter_rows: list[UntypedRow]
 
 
 async def _load_run_context(
-    run: Row,
+    run: UntypedRow,
     run_id: int,
     expdb: AsyncConnection,
     userdb: AsyncConnection,
@@ -99,8 +97,7 @@ async def _load_run_context(
         setup,
         parameter_rows,
     ) = cast(
-        "tuple[Any, list[str], list[Row], list[Row], list[Row], str | None, str |"
-        "None, Row | None, list[Row]]",
+        "tuple[Any, list[str], list[UntypedRow], list[UntypedRow], list[UntypedRow], str | None, str | None, UntypedRow | None, list[UntypedRow]]",  # noqa: E501
         await asyncio.gather(
             database.users.get_user(user_id=run.uploader, connection=userdb),
             database.runs.get_tags(run_id, expdb),
@@ -126,7 +123,7 @@ async def _load_run_context(
     )
 
 
-def _build_evaluations(rows: list[Row]) -> list[EvaluationScore]:
+def _build_evaluations(rows: list[UntypedRow]) -> list[EvaluationScore]:
     def _normalise_value(v: object) -> object:
         if isinstance(v, (int, float)):
             return int(v) if float(v).is_integer() else float(v)
@@ -181,7 +178,7 @@ async def get_run(
         setup_id=run.setup,
         setup_string=ctx.setup.setup_string if ctx.setup else None,
         parameter_setting=[
-            ParameterSetting(name=p["name"], value=p["value"], component=p["flow_id"])
+            ParameterSetting(name=p.name, value=p.value, component=p.flow_id)
             for p in ctx.parameter_rows
         ],
         error_message=error_messages,

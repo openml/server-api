@@ -136,14 +136,17 @@ class User:
         return None
 
     async def get_groups(self) -> list[UserGroup]:
+        if self._groups:
+            return self._groups
+
         if self._database is None:
             msg = "`get_groups` can only be used when `connection` is provided on instantiation."
             raise RuntimeError(msg)
-        if self._groups is None:
-            self._groups = await get_user_groups_for(
-                user_id=self.user_id,
-                connection=self._database,
-            )
+
+        self._groups = await get_user_groups_for(
+            user_id=self.user_id,
+            connection=self._database,
+        )
         return self._groups
 
     async def is_admin(self) -> bool:
