@@ -14,7 +14,6 @@ from asgi_lifespan import LifespanManager
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-import routers.dependencies
 from config import (
     Configuration,
     DatabaseConfiguration,
@@ -136,8 +135,6 @@ async def py_api(
 
     app.dependency_overrides[expdb_connection] = override_expdb
     app.dependency_overrides[userdb_connection] = override_userdb
-
-    routers.dependencies.expdb_connection = override_expdb
 
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),

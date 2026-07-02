@@ -1,4 +1,3 @@
-import contextlib
 from collections.abc import AsyncGenerator, AsyncIterator
 from typing import TYPE_CHECKING, Annotated
 
@@ -27,9 +26,10 @@ async def userdb_connection() -> AsyncIterator[AsyncConnection]:
         yield connection
 
 
-async def expdb_session() -> AsyncIterator[AsyncSession]:
-    conn = contextlib.asynccontextmanager(expdb_connection)
-    async with conn() as connection, AsyncSession(connection) as session, session.begin():
+async def expdb_session(
+    connection: Annotated[AsyncConnection, Depends(expdb_connection)],
+) -> AsyncIterator[AsyncSession]:
+    async with AsyncSession(connection) as session, session.begin():
         yield session
 
 

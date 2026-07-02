@@ -107,6 +107,8 @@ async def tag(
             parameters={"setup_id": setup_id, "tag": tag, "user_id": user_id},
         )
     except IntegrityError as e:
+        if e.orig is None:
+            raise
         code, msg = e.orig.args
         if code == _FOREIGN_KEY_CONSTRAINT_FAILED:
             raise ForeignKeyConstraintError(msg) from e
