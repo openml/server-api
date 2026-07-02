@@ -16,6 +16,7 @@ from core.errors import (
     StudyPrivateError,
 )
 from core.formatting import _str_to_bool
+from database.schema.base import UntypedRow
 from database.users import User
 from routers.dependencies import expdb_connection, fetch_user, fetch_user_or_raise
 from routers.types import Identifier
@@ -23,7 +24,6 @@ from schemas.core import Visibility
 from schemas.study import CreateStudy, Study, StudyStatus, StudyType
 
 if TYPE_CHECKING:
-    from sqlalchemy.engine import Row
     from sqlalchemy.ext.asyncio import AsyncConnection
 
 router = APIRouter(prefix="/studies", tags=["studies"])
@@ -33,7 +33,7 @@ async def _get_study_raise_otherwise(
     id_or_alias: Identifier | str,
     user: User | None,
     expdb: AsyncConnection,
-) -> Row:
+) -> UntypedRow:
     search_by_id = isinstance(id_or_alias, int) or id_or_alias.isdigit()
     if search_by_id:
         study = await database.studies.get_by_id(int(id_or_alias), expdb)
@@ -67,7 +67,7 @@ async def attach_to_study(
     study_id: Annotated[Identifier, Body()],
     entity_ids: Annotated[list[Identifier], Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> AttachDetachResponse:
     assert expdb is not None  # noqa: S101
     if user is None:
@@ -90,16 +90,21 @@ async def attach_to_study(
 
     # We let the database handle the constraints on whether
     # the entity is already attached or if it even exists.
-    attach_kwargs = {
-        "study_id": study_id,
-        "user": user,
-        "connection": expdb,
-    }
     try:
         if study.type_ == StudyType.TASK:
-            await database.studies.attach_tasks(task_ids=entity_ids, **attach_kwargs)
+            await database.studies.attach_tasks(
+                task_ids=entity_ids,
+                study_id=study_id,
+                user=user,
+                connection=expdb,
+            )
         else:
-            await database.studies.attach_runs(run_ids=entity_ids, **attach_kwargs)
+            await database.studies.attach_runs(
+                run_ids=entity_ids,
+                study_id=study_id,
+                user=user,
+                connection=expdb,
+            )
     except ValueError as e:
         msg = str(e)
         raise StudyConflictError(msg) from e
@@ -116,7 +121,7 @@ async def attach_to_study(
 async def create_study(
     study: CreateStudy,
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[Literal["study_id"], int]:
     assert expdb is not None  # noqa: S101
     if study.main_entity_type == StudyType.RUN and study.tasks:
@@ -152,8 +157,8 @@ async def create_study(
 @router.get("/{alias_or_id}")
 async def get_study(
     alias_or_id: Identifier | str,
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
     user: Annotated[User | None, Depends(fetch_user)] = None,
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)] = None,
 ) -> Study:
     assert expdb is not None  # noqa: S101
     study = await _get_study_raise_otherwise(alias_or_id, user, expdb)

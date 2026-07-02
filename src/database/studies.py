@@ -3,8 +3,9 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, cast
 
-from sqlalchemy import Row, text
+from sqlalchemy import text
 
+from database.schema.base import UntypedRow
 from database.users import User
 from routers.types import Identifier
 from schemas.study import CreateStudy, StudyType
@@ -13,7 +14,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection
 
 
-async def get_by_id(id_: Identifier, connection: AsyncConnection) -> Row | None:
+async def get_by_id(id_: Identifier, connection: AsyncConnection) -> UntypedRow | None:
     row = await connection.execute(
         text(
             """
@@ -27,7 +28,7 @@ async def get_by_id(id_: Identifier, connection: AsyncConnection) -> Row | None:
     return row.one_or_none()
 
 
-async def get_by_alias(alias: str, connection: AsyncConnection) -> Row | None:
+async def get_by_alias(alias: str, connection: AsyncConnection) -> UntypedRow | None:
     row = await connection.execute(
         text(
             """
@@ -41,7 +42,7 @@ async def get_by_alias(alias: str, connection: AsyncConnection) -> Row | None:
     return row.one_or_none()
 
 
-async def get_study_data(study: Row, expdb: AsyncConnection) -> Sequence[Row]:
+async def get_study_data(study: UntypedRow, expdb: AsyncConnection) -> Sequence[UntypedRow]:
     """Return data related to the study, content depends on the study type.
 
     For task studies: (task id, dataset id)
@@ -58,10 +59,8 @@ async def get_study_data(study: Row, expdb: AsyncConnection) -> Sequence[Row]:
             ),
             parameters={"study_id": study.id},
         )
-        return cast(
-            "Sequence[Row]",
-            rows.all(),
-        )
+        return rows.all()
+
     rows = await expdb.execute(
         text(
             """
@@ -80,10 +79,7 @@ async def get_study_data(study: Row, expdb: AsyncConnection) -> Sequence[Row]:
         ),
         parameters={"study_id": study.id},
     )
-    return cast(
-        "Sequence[Row]",
-        rows.all(),
-    )
+    return rows.all()
 
 
 async def create(study: CreateStudy, user: User, expdb: AsyncConnection) -> int:

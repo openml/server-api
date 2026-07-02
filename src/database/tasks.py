@@ -1,7 +1,7 @@
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
-from sqlalchemy import Row, text
+from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 
 from database.exceptions import (
@@ -10,13 +10,15 @@ from database.exceptions import (
     DuplicatePrimaryKeyError,
     ForeignKeyConstraintError,
 )
+from database.schema.base import UntypedRow
+from database.schema.tags import TaskTag
 from routers.types import Identifier, TagString
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 
-async def get(id_: Identifier, expdb: AsyncConnection) -> Row | None:
+async def get(id_: Identifier, expdb: AsyncConnection) -> UntypedRow | None:
     row = await expdb.execute(
         text(
             """
@@ -30,7 +32,7 @@ async def get(id_: Identifier, expdb: AsyncConnection) -> Row | None:
     return row.one_or_none()
 
 
-async def get_task_types(expdb: AsyncConnection) -> Sequence[Row]:
+async def get_task_types(expdb: AsyncConnection) -> Sequence[UntypedRow]:
     rows = await expdb.execute(
         text(
             """
@@ -39,13 +41,10 @@ async def get_task_types(expdb: AsyncConnection) -> Sequence[Row]:
        """,
         ),
     )
-    return cast(
-        "Sequence[Row]",
-        rows.all(),
-    )
+    return rows.all()
 
 
-async def get_task_type(task_type_id: Identifier, expdb: AsyncConnection) -> Row | None:
+async def get_task_type(task_type_id: Identifier, expdb: AsyncConnection) -> UntypedRow | None:
     row = await expdb.execute(
         text(
             """
@@ -102,7 +101,10 @@ async def get_task_evaluation_measure(task_id: int, expdb: AsyncConnection) -> s
     return result.value if result else None
 
 
-async def get_input_for_task_type(task_type_id: int, expdb: AsyncConnection) -> Sequence[Row]:
+async def get_input_for_task_type(
+    task_type_id: int,
+    expdb: AsyncConnection,
+) -> Sequence[UntypedRow]:
     rows = await expdb.execute(
         text(
             """
@@ -113,13 +115,10 @@ async def get_input_for_task_type(task_type_id: int, expdb: AsyncConnection) -> 
         ),
         parameters={"ttid": task_type_id},
     )
-    return cast(
-        "Sequence[Row]",
-        rows.all(),
-    )
+    return rows.all()
 
 
-async def get_input_for_task(id_: Identifier, expdb: AsyncConnection) -> Sequence[Row]:
+async def get_input_for_task(id_: Identifier, expdb: AsyncConnection) -> Sequence[UntypedRow]:
     rows = await expdb.execute(
         text(
             """
@@ -130,16 +129,13 @@ async def get_input_for_task(id_: Identifier, expdb: AsyncConnection) -> Sequenc
         ),
         parameters={"task_id": id_},
     )
-    return cast(
-        "Sequence[Row]",
-        rows.all(),
-    )
+    return rows.all()
 
 
 async def get_task_type_inout_with_template(
     task_type: Identifier,
     expdb: AsyncConnection,
-) -> Sequence[Row]:
+) -> Sequence[UntypedRow]:
     rows = await expdb.execute(
         text(
             """
@@ -150,25 +146,12 @@ async def get_task_type_inout_with_template(
         ),
         parameters={"ttid": task_type},
     )
-    return cast(
-        "Sequence[Row]",
-        rows.all(),
-    )
+    return rows.all()
 
 
-async def get_tags(id_: Identifier, connection: AsyncConnection) -> list[str]:
-    rows = await connection.execute(
-        text(
-            """
-            SELECT `tag`
-            FROM task_tag
-            WHERE `id` = :task_id
-            """,
-        ),
-        parameters={"task_id": id_},
-    )
-    tag_rows = rows.all()
-    return [row.tag for row in tag_rows]
+async def get_tags(task_id: Identifier, session: AsyncSession) -> Sequence[TaskTag]:
+    stmt = select(TaskTag).where(TaskTag.entity_id == task_id)
+    return (await session.scalars(stmt)).all()
 
 
 async def tag(
@@ -176,23 +159,15 @@ async def tag(
     tag_: TagString,
     *,
     user_id: Identifier,
-    connection: AsyncConnection,
+    session: AsyncSession,
 ) -> None:
     try:
-        await connection.execute(
-            text(
-                """
-        INSERT INTO task_tag(`id`, `tag`, `uploader`)
-        VALUES (:task_id, :tag, :user_id)
-        """,
-            ),
-            parameters={
-                "task_id": id_,
-                "user_id": user_id,
-                "tag": tag_,
-            },
-        )
+        tag = TaskTag(entity_id=id_, uploader_id=user_id, tag=tag_)
+        session.add(tag)
+        await session.flush()
     except IntegrityError as e:
+        if e.orig is None:
+            raise
         code, msg = e.orig.args
         if code == _FOREIGN_KEY_CONSTRAINT_FAILED:
             raise ForeignKeyConstraintError(msg) from e

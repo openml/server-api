@@ -3,10 +3,10 @@ from enum import StrEnum
 from database.users import User, UserGroup
 
 NO_USER = None
-SOME_USER = User(user_id=2, _database=None, _groups=[UserGroup.READ_WRITE])
-OWNER_USER = User(user_id=3229, _database=None, _groups=[UserGroup.READ_WRITE])
-DATASET_130_OWNER = User(user_id=16, _database=None, _groups=[UserGroup.READ_WRITE])
-ADMIN_USER = User(user_id=1159, _database=None, _groups=[UserGroup.ADMIN, UserGroup.READ_WRITE])
+SOME_USER = User(user_id=2, _groups=[UserGroup.READ_WRITE])
+OWNER_USER = User(user_id=3229, _groups=[UserGroup.READ_WRITE])
+DATASET_130_OWNER = User(user_id=16, _groups=[UserGroup.READ_WRITE])
+ADMIN_USER = User(user_id=1159, _groups=[UserGroup.ADMIN, UserGroup.READ_WRITE])
 
 
 class ApiKey(StrEnum):

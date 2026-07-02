@@ -106,9 +106,9 @@ async def get_user_groups_for(
 @dataclasses.dataclass
 class User:
     user_id: Identifier
-    _database: AsyncConnection
     first_name: str = ""
     last_name: str = ""
+    _database: AsyncConnection | None = None
     _groups: list[UserGroup] | None = None
 
     def __post_init__(self) -> None:
@@ -136,11 +136,17 @@ class User:
         return None
 
     async def get_groups(self) -> list[UserGroup]:
-        if self._groups is None:
-            self._groups = await get_user_groups_for(
-                user_id=self.user_id,
-                connection=self._database,
-            )
+        if self._groups:
+            return self._groups
+
+        if self._database is None:
+            msg = "`get_groups` can only be used when `connection` is provided on instantiation."
+            raise RuntimeError(msg)
+
+        self._groups = await get_user_groups_for(
+            user_id=self.user_id,
+            connection=self._database,
+        )
         return self._groups
 
     async def is_admin(self) -> bool:

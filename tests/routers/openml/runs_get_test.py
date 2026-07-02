@@ -299,7 +299,7 @@ def test_build_evaluations(
             self.fold = fold
 
     rows = [MockRow("test_metric", input_value, repeat=repeat, fold=fold)]
-    evals = _build_evaluations(rows)
+    evals = _build_evaluations(rows)  # type: ignore[arg-type]
 
     assert len(evals) == 1
     assert evals[0].value == expected_value

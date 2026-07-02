@@ -24,6 +24,7 @@ repos:
         additional_dependencies:
             - fastapi
             - pytest
+            - sqlalchemy
 
 -   repo: https://github.com/astral-sh/ruff-pre-commit
     rev: 'v0.15.18'

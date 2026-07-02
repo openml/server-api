@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Annotated
 from fastapi import Depends
 from loguru import logger
 from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.errors import AuthenticationFailedError, AuthenticationRequiredError
 from database.setup import expdb_database, user_database
@@ -23,6 +24,13 @@ async def userdb_connection() -> AsyncIterator[AsyncConnection]:
     engine = user_database()
     async with engine.connect() as connection, connection.begin():
         yield connection
+
+
+async def expdb_session(
+    connection: Annotated[AsyncConnection, Depends(expdb_connection)],
+) -> AsyncIterator[AsyncSession]:
+    async with AsyncSession(connection) as session, session.begin():
+        yield session
 
 
 async def fetch_user(
