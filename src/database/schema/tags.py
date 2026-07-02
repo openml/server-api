@@ -28,3 +28,14 @@ class TaskTag(ExpDBReflected, Tag, Base):
     def task_id(self) -> Identifier:
         """Identifier of the task which is tagged by this tag."""
         return self.entity_id
+
+
+class SetupTag(ExpDBReflected, Tag, Base):
+    """Tags belonging to a setup."""
+
+    __tablename__ = "setup_tag"
+
+    @property
+    def setup_id(self) -> Identifier:
+        """Identifier of the setup which is tagged by this tag."""
+        return self.entity_id
