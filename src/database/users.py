@@ -136,7 +136,7 @@ class User:
         return None
 
     async def get_groups(self) -> list[UserGroup]:
-        if self._groups:
+        if self._groups is not None:
             return self._groups
 
         if self._database is None:
