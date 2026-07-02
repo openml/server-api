@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 
 from database.exceptions import (
@@ -11,10 +11,11 @@ from database.exceptions import (
     ForeignKeyConstraintError,
 )
 from database.schema.base import UntypedRow
+from database.schema.tags import TaskTag
 from routers.types import Identifier, TagString
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 
 async def get(id_: Identifier, expdb: AsyncConnection) -> UntypedRow | None:
@@ -148,19 +149,10 @@ async def get_task_type_inout_with_template(
     return rows.all()
 
 
-async def get_tags(id_: Identifier, connection: AsyncConnection) -> list[str]:
-    rows = await connection.execute(
-        text(
-            """
-            SELECT `tag`
-            FROM task_tag
-            WHERE `id` = :task_id
-            """,
-        ),
-        parameters={"task_id": id_},
-    )
-    tag_rows = rows.all()
-    return [row.tag for row in tag_rows]
+async def get_tags(task_id: Identifier, session: AsyncSession) -> list[TagString]:
+    stmt = select(TaskTag).where(TaskTag.entity_id == task_id)
+    tags = (await session.scalars(stmt)).all()
+    return [t.tag for t in tags]
 
 
 async def tag(
@@ -168,22 +160,12 @@ async def tag(
     tag_: TagString,
     *,
     user_id: Identifier,
-    connection: AsyncConnection,
+    session: AsyncSession,
 ) -> None:
     try:
-        await connection.execute(
-            text(
-                """
-        INSERT INTO task_tag(`id`, `tag`, `uploader`)
-        VALUES (:task_id, :tag, :user_id)
-        """,
-            ),
-            parameters={
-                "task_id": id_,
-                "user_id": user_id,
-                "tag": tag_,
-            },
-        )
+        tag = TaskTag(entity_id=id_, uploader_id=user_id, tag=tag_)
+        session.add(tag)
+        await session.flush()
     except IntegrityError as e:
         if e.orig is None:
             raise

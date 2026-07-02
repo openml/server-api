@@ -2,11 +2,8 @@ from http import HTTPStatus
 from typing import TYPE_CHECKING
 
 import pytest
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.errors import TASK_NOT_FOUND_DURING_TAG, TagAlreadyExistsError, TaskNotFoundError
-from database.schema.tags import TaskTag
 from database.tasks import get_tags
 from database.users import User
 from routers.openml.tasks import tag_task
@@ -17,7 +14,7 @@ from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
 
 if TYPE_CHECKING:
     import httpx
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.mark.parametrize(
@@ -44,57 +41,49 @@ async def test_task_tag_rejects_unauthorized(key: ApiKey, py_api: httpx.AsyncCli
     [ADMIN_USER, SOME_USER, OWNER_USER],
     ids=["administrator", "non-owner", "owner"],
 )
-async def test_task_tag(user: User, expdb_test: AsyncConnection, task_factory: TaskFactory) -> None:
+async def test_task_tag(user: User, expdb_session: AsyncSession, task_factory: TaskFactory) -> None:
     tag = "test_task_tag"
     task = await task_factory()
-    result = await tag_task(task_id=task.id, tag=tag, user=user, expdb_db=expdb_test)
+    result = await tag_task(task_id=task.id, tag=tag, user=user, expdb_session=expdb_session)
     assert result == {"task_tag": {"id": str(task.id), "tag": [tag]}}
 
-    tags = await get_tags(id_=task.id, connection=expdb_test)
+    tags = await get_tags(task_id=task.id, session=expdb_session)
     assert tag in tags
 
 
 @pytest.mark.mut
 async def test_task_tag_returns_existing_tags(
-    task_factory: TaskFactory, expdb_test: AsyncConnection
+    task_factory: TaskFactory, expdb_session: AsyncSession
 ) -> None:
     task = await task_factory()
-    await tag_task(task_id=task.id, tag="first", user=ADMIN_USER, expdb_db=expdb_test)
-    result = await tag_task(task_id=task.id, tag="second", user=ADMIN_USER, expdb_db=expdb_test)
+    await tag_task(task_id=task.id, tag="first", user=ADMIN_USER, expdb_session=expdb_session)
+    result = await tag_task(
+        task_id=task.id, tag="second", user=ADMIN_USER, expdb_session=expdb_session
+    )
     assert result == {"task_tag": {"id": str(task.id), "tag": ["first", "second"]}}
 
 
 @pytest.mark.mut
 async def test_task_tag_fails_if_tag_exists(
-    expdb_test: AsyncConnection, task_factory: TaskFactory
+    expdb_session: AsyncSession, task_factory: TaskFactory
 ) -> None:
     tag = "fails_if_exist"
     task = await task_factory()
-    await tag_task(task_id=task.id, tag=tag, user=ADMIN_USER, expdb_db=expdb_test)
+    await tag_task(task_id=task.id, tag=tag, user=ADMIN_USER, expdb_session=expdb_session)
 
     with pytest.raises(TagAlreadyExistsError) as e:
-        await tag_task(task_id=task.id, tag=tag, user=ADMIN_USER, expdb_db=expdb_test)
+        await tag_task(task_id=task.id, tag=tag, user=ADMIN_USER, expdb_session=expdb_session)
     assert str(task.id) in e.value.detail
     assert tag in e.value.detail
 
 
-async def test_task_tag_fails_if_task_does_not_exist(expdb_test: AsyncConnection) -> None:
+async def test_task_tag_fails_if_task_does_not_exist(expdb_session: AsyncSession) -> None:
     task_id = 1_000_000
     with pytest.raises(TaskNotFoundError) as e:
-        await tag_task(task_id=task_id, tag="foo", user=ADMIN_USER, expdb_db=expdb_test)
+        await tag_task(task_id=task_id, tag="foo", user=ADMIN_USER, expdb_session=expdb_session)
     assert str(task_id) in e.value.detail
     task_not_found_in_tag_endpoint = TASK_NOT_FOUND_DURING_TAG
     assert e.value.code == task_not_found_in_tag_endpoint
-
-
-async def test_if_reflection_works(py_api: httpx.Client, expdb_test: AsyncConnection) -> None:
-    _ = py_api
-
-    tag_stmt = select(TaskTag).where(TaskTag.tag == "OpenML100")
-    async with AsyncSession(bind=expdb_test) as session:
-        tags = (await session.scalars(tag_stmt)).all()
-    tag_count = 100
-    assert len(tags) == tag_count
 
 
 # -- migration tests --

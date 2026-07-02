@@ -9,10 +9,11 @@ import _pytest.mark
 import httpx
 import pytest
 from _pytest.config import Config  # noqa: TC002 used during collection by Pytest
-from _pytest.nodes import Item  # noqa: TC002 used during collection by Pytest
 from asgi_lifespan import LifespanManager
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
 
+import routers.dependencies
 from config import (
     Configuration,
     DatabaseConfiguration,
@@ -27,6 +28,7 @@ from routers.types import Identifier
 from tests.users import OWNER_USER
 
 if TYPE_CHECKING:
+    from _pytest.nodes import Item
     from fastapi import FastAPI
     from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
 
@@ -72,6 +74,16 @@ async def expdb_test() -> AsyncIterator[AsyncConnection]:
 
 
 @pytest.fixture
+async def expdb_session(expdb_test: AsyncConnection) -> AsyncIterator[AsyncSession]:
+    # It is possible that this session `commits`, does the connection
+    # rollback then still take effect? Probably not.
+    async with AsyncSession(expdb_test) as session:
+        yield session
+        # Do we here again need to do some check on whether there is an active transation?
+        await session.rollback()
+
+
+@pytest.fixture
 async def user_test() -> AsyncIterator[AsyncConnection]:
     async with automatic_rollback(user_database()) as connection:
         yield connection
@@ -85,7 +97,7 @@ async def php_api() -> AsyncIterator[httpx.AsyncClient]:
         yield client
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="session", autouse=True)
 async def app() -> AsyncIterator[FastAPI]:
     config = Configuration(
         openml_database=DatabaseConfiguration(database="openml"),
@@ -103,7 +115,9 @@ async def app() -> AsyncIterator[FastAPI]:
 
 @pytest.fixture
 async def py_api(
-    expdb_test: AsyncConnection, user_test: AsyncConnection, app: FastAPI
+    expdb_test: AsyncConnection,
+    user_test: AsyncConnection,
+    app: FastAPI,
 ) -> AsyncIterator[httpx.AsyncClient]:
     """Create test client which automatically rolls back database updates on teardown."""
     # Using the function-scoped database fixtures automatically benefits the
@@ -122,6 +136,8 @@ async def py_api(
 
     app.dependency_overrides[expdb_connection] = override_expdb
     app.dependency_overrides[userdb_connection] = override_userdb
+
+    routers.dependencies.expdb_connection = override_expdb
 
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),

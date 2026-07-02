@@ -14,8 +14,9 @@ import database.tasks
 from config import get_config
 from core.errors import InternalError, NoResultsError, TagAlreadyExistsError, TaskNotFoundError
 from database.exceptions import DuplicatePrimaryKeyError, ForeignKeyConstraintError
+from database.schema.base import UntypedRow
 from database.users import User
-from routers.dependencies import Pagination, expdb_connection, fetch_user_or_raise
+from routers.dependencies import Pagination, expdb_connection, expdb_session, fetch_user_or_raise
 from routers.types import (
     CasualString128,
     Identifier,
@@ -26,9 +27,7 @@ from routers.types import (
 from schemas.datasets.openml import Task
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
-
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -40,10 +39,10 @@ async def tag_task(
     task_id: Annotated[Identifier, Body()],
     tag: Annotated[TagString, Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> dict[str, dict[str, Any]]:
     try:
-        await database.tasks.tag(task_id, tag, user_id=user.user_id, connection=expdb_db)
+        await database.tasks.tag(task_id, tag, user_id=user.user_id, session=expdb_session)
     except ForeignKeyConstraintError:
         msg = f"Task {task_id} not found."
         raise TaskNotFoundError(msg, code=472) from None
@@ -53,7 +52,7 @@ async def tag_task(
 
     logger.info("Task {task_id} tagged '{tag}'.", task_id=task_id, tag=tag)
 
-    tags = await database.tasks.get_tags(task_id, expdb_db)
+    tags = await database.tasks.get_tags(task_id, expdb_session)
 
     return {
         "task_tag": {"id": str(task_id), "tag": tags},
@@ -71,7 +70,7 @@ def convert_template_xml_to_json(xml_template: str) -> dict[str, JSON]:
 
 async def fill_template(
     template: str,
-    task: Mapping[str, Any],
+    task: UntypedRow,
     task_inputs: dict[str, str | int],
     connection: AsyncConnection,
 ) -> dict[str, JSON]:
@@ -138,7 +137,7 @@ async def fill_template(
 
 async def _fill_json_template(  # noqa: C901
     template: JSON,
-    task: Mapping[str, Any],
+    task: UntypedRow,
     task_inputs: dict[str, str | int],
     fetched_data: dict[str, str],
     connection: AsyncConnection,
@@ -193,7 +192,7 @@ async def _fill_json_template(  # noqa: C901
         template = template.replace(match.group(), fetched_data[field])
     # I believe that the operations below are always part of string output, so
     # we don't need to be careful to avoid losing typedness
-    template = template.replace("[TASK:id]", str(task["task_id"]))
+    template = template.replace("[TASK:id]", str(task.task_id))
     url = get_config().routing.server_url
     server_url = f"{url.scheme}://{url.host}:{url.port}/"
     return template.replace("[CONSTANT:base_url]", server_url)
@@ -452,6 +451,7 @@ async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
 async def get_task(
     task_id: int,
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> Task:
     if not (task := await database.tasks.get(task_id, expdb)):
         msg = f"Task {task_id} not found."
@@ -463,7 +463,7 @@ async def get_task(
     task_input_rows, ttios, tags = await asyncio.gather(
         database.tasks.get_input_for_task(task_id, expdb),
         database.tasks.get_task_type_inout_with_template(task_type.ttid, expdb),
-        database.tasks.get_tags(task_id, expdb),
+        database.tasks.get_tags(task_id, expdb_session),
     )
     task_inputs = {
         row.input: int(row.value) if row.value.isdigit() else row.value for row in task_input_rows
@@ -473,10 +473,7 @@ async def get_task(
         (name, template) for name, io, required, template in templates if io == "input"
     ]
     filled_templates = await asyncio.gather(
-        *[
-            fill_template(template, dict(task), task_inputs, expdb)
-            for name, template in input_templates
-        ],
+        *[fill_template(template, task, task_inputs, expdb) for name, template in input_templates],
     )
     inputs = [
         filled | {"name": name}
