@@ -5,13 +5,13 @@ from typing import TYPE_CHECKING
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
-from database.schema.base import UntypedRow
 from database.exceptions import (
     _DUPLICATE_ENTRY,
     _FOREIGN_KEY_CONSTRAINT_FAILED,
     DuplicatePrimaryKeyError,
     ForeignKeyConstraintError,
 )
+from database.schema.base import UntypedRow
 from routers.types import Identifier, TagString
 
 if TYPE_CHECKING:
