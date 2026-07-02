@@ -48,7 +48,7 @@ async def test_task_tag(user: User, expdb_session: AsyncSession, task_factory: T
     assert result == {"task_tag": {"id": str(task.id), "tag": [tag]}}
 
     tags = await get_tags(task_id=task.id, session=expdb_session)
-    assert tag in tags
+    assert tag in [t.tag for t in tags]
 
 
 @pytest.mark.mut

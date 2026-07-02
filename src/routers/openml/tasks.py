@@ -55,7 +55,7 @@ async def tag_task(
     tags = await database.tasks.get_tags(task_id, expdb_session)
 
     return {
-        "task_tag": {"id": str(task_id), "tag": tags},
+        "task_tag": {"id": str(task_id), "tag": [t.tag for t in tags]},
     }
 
 
@@ -496,5 +496,5 @@ async def get_task(
         task_type=task_type.name,
         input_=inputs,
         output=outputs,
-        tags=tags,
+        tags=[t.tag for t in tags],
     )

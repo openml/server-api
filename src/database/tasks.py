@@ -149,10 +149,9 @@ async def get_task_type_inout_with_template(
     return rows.all()
 
 
-async def get_tags(task_id: Identifier, session: AsyncSession) -> list[TagString]:
+async def get_tags(task_id: Identifier, session: AsyncSession) -> Sequence[TaskTag]:
     stmt = select(TaskTag).where(TaskTag.entity_id == task_id)
-    tags = (await session.scalars(stmt)).all()
-    return [t.tag for t in tags]
+    return (await session.scalars(stmt)).all()
 
 
 async def tag(
