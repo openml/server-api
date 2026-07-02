@@ -13,6 +13,7 @@ from core.errors import (
     TagNotFoundError,
     TagNotOwnedError,
 )
+from database.exceptions import DuplicatePrimaryKeyError, ForeignKeyConstraintError
 from database.users import User
 from routers.dependencies import expdb_connection, fetch_user_or_raise
 from routers.types import Identifier, TagString
@@ -54,22 +55,19 @@ async def tag_setup(
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[str, dict[str, str | list[str]]]:
     """Add tag `tag` to setup with id `setup_id`."""
-    setup, setup_tags = await asyncio.gather(
-        database.setups.get(setup_id, expdb_db),
-        database.setups.get_tags(setup_id, expdb_db),
-    )
-    if not setup:
+    try:
+        await database.setups.tag(setup_id, tag, user.user_id, expdb_db)
+    except ForeignKeyConstraintError:
         msg = f"Setup {setup_id} not found."
-        raise SetupNotFoundError(msg)
-    matched_tag_row = next((t for t in setup_tags if t.tag.casefold() == tag.casefold()), None)
+        raise SetupNotFoundError(msg, code=472) from None
+    except DuplicatePrimaryKeyError:
+        msg = f"Setup {setup_id} already tagged with {tag!r}."
+        raise TagAlreadyExistsError(msg) from None
 
-    if matched_tag_row:
-        msg = f"Setup {setup_id} already has tag {tag!r}."
-        raise TagAlreadyExistsError(msg)
-
-    await database.setups.tag(setup_id, tag, user.user_id, expdb_db)
     logger.info("Setup {setup_id} tagged '{tag}'.", setup_id=setup_id, tag=tag)
-    all_tags = [t.tag for t in setup_tags] + [tag]
+    all_tag_rows = await database.setups.get_tags(setup_id, expdb_db)
+    all_tags = [t.tag for t in all_tag_rows]
+
     return {"setup_tag": {"id": str(setup_id), "tag": all_tags}}
 
 
