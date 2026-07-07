@@ -1,6 +1,5 @@
 """All endpoints that relate to setups."""
 
-import asyncio
 from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Body, Depends, Path
@@ -80,20 +79,18 @@ async def untag_setup(
     expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> dict[str, dict[str, str | list[str]]]:
     """Remove tag `tag` from setup with id `setup_id`."""
-    setup, setup_tags = await asyncio.gather(
-        database.setups.get(setup_id, expdb_db),
-        database.setups.get_tags(setup_id, expdb_session),
-    )
-    if not setup:
-        msg = f"Setup {setup_id} not found."
-        raise SetupNotFoundError(msg)
-    matched_tag_row = next((t for t in setup_tags if t.tag.casefold() == tag.casefold()), None)
-
-    if not matched_tag_row:
+    # Setups don't really have an owner, they are associated with runs.
+    # So only the tagger or admins can remove the tag.
+    tag_orm = await database.setups.get_tag(setup_id, tag, expdb_session)
+    if not tag_orm:
+        setup = await database.setups.get(setup_id, expdb_db)
+        if not setup:
+            msg = f"Setup {setup_id} not found."
+            raise SetupNotFoundError(msg)
         msg = f"Setup {setup_id} does not have tag {tag!r}."
         raise TagNotFoundError(msg)
 
-    if matched_tag_row.uploader_id != user.user_id and not await user.is_admin():
+    if tag_orm.uploader_id != user.user_id and not await user.is_admin():
         msg = (
             f"You may not remove tag {tag!r} of setup {setup_id} because it was not created by you."
         )
@@ -104,9 +101,7 @@ async def untag_setup(
         )
         raise TagNotOwnedError(msg)
 
-    await database.setups.untag(setup_id, matched_tag_row.tag, expdb_session)
+    await database.setups.delete_tag(tag_orm, expdb_session)
     logger.info("Setup {setup_id} had tag '{tag}' removed.", setup_id=setup_id, tag=tag)
-    remaining_tags = [
-        t.tag for t in setup_tags if t.tag.casefold() != matched_tag_row.tag.casefold()
-    ]
+    remaining_tags = [t.tag for t in await database.setups.get_tags(setup_id, expdb_session)]
     return {"setup_untag": {"id": str(setup_id), "tag": remaining_tags}}
