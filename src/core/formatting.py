@@ -2,7 +2,7 @@ import html
 
 from config import get_config
 from database.models.base import UntypedRow
-from schemas.datasets.openml import DatasetFileFormat
+from schemas.datasets import DatasetFileFormat
 
 
 def _str_to_bool(string: str) -> bool:

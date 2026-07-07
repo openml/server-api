@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 
 import database.evaluations
 from routers.dependencies import expdb_connection
-from schemas.datasets.openml import EstimationProcedure
+from schemas.datasets import EstimationProcedure
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection

@@ -1,3 +1,5 @@
+"""Defines schemas for API responses relating to Datasets."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -8,35 +10,51 @@ from pydantic import BaseModel, Field, HttpUrl
 
 
 class DatasetFileFormat(StrEnum):
+    """Allowed file formats for data files."""
+
     ARFF = "arff"
     SPARSE_ARFF = "sparse_arff"
     PARQUET = "parquet"
 
 
 class Visibility(StrEnum):
+    """Possible visibility statuses."""
+
     PUBLIC = "public"
     PRIVATE = "private"
 
 
 class DatasetStatus(StrEnum):
+    """Possible dataset statuses.
+
+    - In Preparation: any uploaded dataset issn't yet successfully processed.
+    - Active: any uploaded dataset that has successfully been processed.
+    - Deactivated: use of the dataset is discouraged.
+    """
+
     ACTIVE = "active"
     DEACTIVATED = "deactivated"
-    IN_PROCESSING = "in processing"
     IN_PREPARATION = "in_preparation"
 
 
 class Quality(BaseModel):
+    """A computed quality (meta-feature) of the dataset."""
+
     name: str
     value: float | None
 
 
 class FeatureType(StrEnum):
+    """The type of a feature (column) in the dataset."""
+
     NUMERIC = "numeric"
     NOMINAL = "nominal"
     STRING = "string"
 
 
 class Feature(BaseModel):
+    """Metadata about a feature (column) in the dataset."""
+
     index: int
     name: str
     data_type: FeatureType
@@ -49,6 +67,8 @@ class Feature(BaseModel):
 
 
 class EstimationProcedure(BaseModel):
+    """Description of an evaluation protocol, e.g., cross-validation."""
+
     id_: int = Field(serialization_alias="id")
     task_type_id: int
     name: str
@@ -60,6 +80,8 @@ class EstimationProcedure(BaseModel):
 
 
 class DatasetMetadata(BaseModel):
+    """Metadata for a dataset."""
+
     id_: int = Field(json_schema_extra={"example": 1}, alias="id")
     visibility: Visibility = Field(json_schema_extra={"example": Visibility.PUBLIC})
     status: DatasetStatus = Field(json_schema_extra={"example": DatasetStatus.ACTIVE})
@@ -137,6 +159,8 @@ class DatasetMetadata(BaseModel):
 
 
 class Task(BaseModel):
+    """Metadata for a task."""
+
     id_: int = Field(serialization_alias="id", json_schema_extra={"example": 59})
     name: str = Field(
         json_schema_extra={"example": "Task 59:  mfeat-pixel (Supervised Classification)"},

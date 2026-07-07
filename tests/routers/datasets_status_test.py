@@ -7,7 +7,7 @@ import pytest
 
 from core.errors import DatasetAdminOnlyError, DatasetNotOwnedError
 from routers.datasets import update_dataset_status
-from schemas.datasets.openml import DatasetStatus
+from schemas.datasets import DatasetStatus
 from tests import constants
 from tests.users import ADMIN_USER, SOME_USER
 

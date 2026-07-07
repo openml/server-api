@@ -26,7 +26,7 @@ from database.exceptions import DuplicatePrimaryKeyError, ForeignKeyConstraintEr
 from database.models.base import UntypedRow
 from database.users import User
 from routers.dependencies import Pagination, expdb_connection, expdb_session, fetch_user_or_raise
-from schemas.datasets.openml import Task
+from schemas.datasets import Task
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession

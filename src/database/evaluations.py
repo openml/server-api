@@ -5,7 +5,7 @@ from sqlalchemy import text
 
 from core.formatting import _str_to_bool
 from database.models.base import UntypedRow
-from schemas.datasets.openml import EstimationProcedure
+from schemas.datasets import EstimationProcedure
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection

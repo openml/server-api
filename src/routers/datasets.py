@@ -58,7 +58,7 @@ from routers.dependencies import (
     userdb_connection,
 )
 from schemas.core import TagInfo
-from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Feature, FeatureType
+from schemas.datasets import DatasetMetadata, DatasetStatus, Feature, FeatureType
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Row
