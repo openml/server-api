@@ -16,7 +16,7 @@ from core.errors import (
     StudyPrivateError,
 )
 from core.formatting import _str_to_bool
-from database.schema.base import UntypedRow
+from database.models.base import UntypedRow
 from database.users import User
 from routers.dependencies import expdb_connection, fetch_user, fetch_user_or_raise
 from routers.types import Identifier

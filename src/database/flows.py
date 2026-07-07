@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import text
 
-from database.schema.base import UntypedRow
+from database.models.base import UntypedRow
 from routers.types import Identifier
 
 if TYPE_CHECKING:

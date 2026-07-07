@@ -1,7 +1,7 @@
 import html
 
 from config import get_config
-from database.schema.base import UntypedRow
+from database.models.base import UntypedRow
 from schemas.datasets.openml import DatasetFileFormat
 
 

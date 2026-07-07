@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import bindparam, text
 
-from database.schema.base import UntypedRow
+from database.models.base import UntypedRow
 from routers.types import Identifier
 
 if TYPE_CHECKING:

@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import FetchedValue
 from sqlalchemy.orm import Mapped, mapped_column
 
-from database.schema.base import Base, ExpDBReflected
+from database.models.base import Base, ExpDBReflected
 from routers.types import Identifier, TagString
 
 

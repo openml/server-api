@@ -12,8 +12,8 @@ from database.exceptions import (
     DuplicatePrimaryKeyError,
     ForeignKeyConstraintError,
 )
-from database.schema.setups import Setup
-from database.schema.tags import SetupTag
+from database.models.setups import Setup
+from database.models.tags import SetupTag
 from routers.types import Identifier, TagString
 
 if TYPE_CHECKING:

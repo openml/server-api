@@ -10,8 +10,8 @@ from database.exceptions import (
     DuplicatePrimaryKeyError,
     ForeignKeyConstraintError,
 )
-from database.schema.base import UntypedRow
-from database.schema.tags import TaskTag
+from database.models.base import UntypedRow
+from database.models.tags import TaskTag
 from routers.types import Identifier, TagString
 
 if TYPE_CHECKING:

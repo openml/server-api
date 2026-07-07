@@ -13,7 +13,7 @@ from database.exceptions import (
     DuplicatePrimaryKeyError,
     ForeignKeyConstraintError,
 )
-from database.schema.base import UntypedRow
+from database.models.base import UntypedRow
 from routers.types import Identifier, TagString
 from schemas.datasets.openml import DatasetStatus, Feature
 

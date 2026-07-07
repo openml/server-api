@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import text
 
 from core.formatting import _str_to_bool
-from database.schema.base import UntypedRow
+from database.models.base import UntypedRow
 from schemas.datasets.openml import EstimationProcedure
 
 if TYPE_CHECKING:
