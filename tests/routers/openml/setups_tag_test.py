@@ -14,7 +14,7 @@ from tests.users import SOME_USER, ApiKey
 
 if TYPE_CHECKING:
     import httpx
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 
 async def test_setup_tag_missing_auth(py_api: httpx.AsyncClient) -> None:
@@ -48,46 +48,39 @@ async def test_setup_tag_api_success(
 # ── Direct call tests: tag_setup ──
 
 
-async def test_setup_tag_unknown_setup(expdb_test: AsyncConnection) -> None:
+async def test_setup_tag_unknown_setup(expdb_session: AsyncSession) -> None:
     with pytest.raises(SetupNotFoundError, match=r"Setup \d+ not found."):
         await tag_setup(
             setup_id=999999,
             tag="test_tag",
             user=SOME_USER,
-            expdb_db=expdb_test,
+            expdb_session=expdb_session,
         )
 
 
 @pytest.mark.mut
-async def test_setup_tag_already_exists(expdb_test: AsyncConnection) -> None:
+async def test_setup_tag_already_exists(expdb_session: AsyncSession) -> None:
     tag = "setup_tag_conflict"
-    await expdb_test.execute(
-        text("INSERT INTO setup_tag (id, tag, uploader) VALUES (1, :tag, 2);"),
-        parameters={"tag": tag},
-    )
+    await tag_setup(setup_id=1, tag=tag, user=SOME_USER, expdb_session=expdb_session)
+
     with pytest.raises(TagAlreadyExistsError, match=rf"Setup 1 already tagged with '{tag}'\."):
-        await tag_setup(
-            setup_id=1,
-            tag=tag,
-            user=SOME_USER,
-            expdb_db=expdb_test,
-        )
+        await tag_setup(setup_id=1, tag=tag, user=SOME_USER, expdb_session=expdb_session)
 
 
 @pytest.mark.mut
-async def test_setup_tag_direct_success(expdb_test: AsyncConnection) -> None:
+async def test_setup_tag_direct_success(expdb_session: AsyncSession) -> None:
     tag = "setup_tag_via_direct"
     result = await tag_setup(
         setup_id=1,
         tag=tag,
         user=SOME_USER,
-        expdb_db=expdb_test,
+        expdb_session=expdb_session,
     )
 
     assert result["setup_tag"]["tag"][-1] == tag
-    rows = await expdb_test.execute(
+    rows = await expdb_session.execute(
         text("SELECT * FROM setup_tag WHERE id = 1 AND tag = :tag"),
-        parameters={"tag": tag},
+        params={"tag": tag},
     )
     assert len(rows.all()) == 1
 

@@ -1,8 +1,9 @@
 """All database operations that directly operate on setups."""
 
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from sqlalchemy import text
+from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 
 from database.exceptions import (
@@ -11,27 +12,18 @@ from database.exceptions import (
     DuplicatePrimaryKeyError,
     ForeignKeyConstraintError,
 )
-from database.schema.base import UntypedRow
+from database.schema.setups import Setup
+from database.schema.tags import SetupTag
 from routers.types import Identifier, TagString
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import RowMapping
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 
-async def get(setup_id: Identifier, connection: AsyncConnection) -> UntypedRow | None:
+async def get(setup_id: Identifier, session: AsyncSession) -> Setup | None:
     """Get the setup with id `setup_id` from the database."""
-    row = await connection.execute(
-        text(
-            """
-            SELECT *
-            FROM algorithm_setup
-            WHERE sid = :setup_id
-            """,
-        ),
-        parameters={"setup_id": setup_id},
-    )
-    return row.first()
+    return await session.get(Setup, setup_id)
 
 
 async def get_parameters(setup_id: Identifier, connection: AsyncConnection) -> list[RowMapping]:
@@ -61,51 +53,33 @@ async def get_parameters(setup_id: Identifier, connection: AsyncConnection) -> l
     return list(rows.mappings().all())
 
 
-async def get_tags(setup_id: Identifier, connection: AsyncConnection) -> list[UntypedRow]:
+async def get_tags(setup_id: Identifier, session: AsyncSession) -> Sequence[SetupTag]:
     """Get all tags for setup with `setup_id` from the database."""
-    rows = await connection.execute(
-        text(
-            """
-            SELECT *
-            FROM setup_tag
-            WHERE id = :setup_id
-            """,
-        ),
-        parameters={"setup_id": setup_id},
-    )
-    return list(rows.all())
+    stmt = select(SetupTag).where(SetupTag.entity_id == setup_id)
+    return (await session.scalars(stmt)).all()
 
 
-async def untag(setup_id: Identifier, tag: TagString, connection: AsyncConnection) -> None:
-    """Remove tag `tag` from setup with id `setup_id`."""
-    await connection.execute(
-        text(
-            """
-            DELETE FROM setup_tag
-            WHERE id = :setup_id AND tag = :tag
-            """,
-        ),
-        parameters={"setup_id": setup_id, "tag": tag},
-    )
+async def get_tag(setup_id: Identifier, tag: TagString, session: AsyncSession) -> SetupTag | None:
+    """Get the tag `tag` for setup with id `setup_id`."""
+    return await session.get(SetupTag, {"tag": tag, "entity_id": setup_id})
+
+
+async def delete_tag(tag: SetupTag, session: AsyncSession) -> None:
+    """Delete a setup tag."""
+    await session.delete(tag)
 
 
 async def tag(
     setup_id: Identifier,
     tag: TagString,
     user_id: Identifier,
-    connection: AsyncConnection,
+    session: AsyncSession,
 ) -> None:
     """Add tag `tag` to setup with id `setup_id`."""
+    tag_ = SetupTag(entity_id=setup_id, tag=tag, uploader_id=user_id)
     try:
-        await connection.execute(
-            text(
-                """
-                INSERT INTO setup_tag (id, tag, uploader)
-                VALUES (:setup_id, :tag, :user_id)
-                """,
-            ),
-            parameters={"setup_id": setup_id, "tag": tag, "user_id": user_id},
-        )
+        session.add(tag_)
+        await session.flush()
     except IntegrityError as e:
         if e.orig is None:
             raise

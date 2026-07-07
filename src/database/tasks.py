@@ -161,8 +161,8 @@ async def tag(
     user_id: Identifier,
     session: AsyncSession,
 ) -> None:
+    tag = TaskTag(entity_id=id_, uploader_id=user_id, tag=tag_)
     try:
-        tag = TaskTag(entity_id=id_, uploader_id=user_id, tag=tag_)
         session.add(tag)
         await session.flush()
     except IntegrityError as e:

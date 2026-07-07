@@ -14,7 +14,8 @@ import database.tasks
 import database.users
 from core.errors import RunNotFoundError, RunTraceNotFoundError
 from database.schema.base import UntypedRow
-from routers.dependencies import expdb_connection, userdb_connection
+from database.schema.setups import Setup
+from routers.dependencies import expdb_connection, expdb_session, userdb_connection
 from routers.types import Identifier
 from schemas.runs import (
     EvaluationScore,
@@ -28,7 +29,7 @@ from schemas.runs import (
 )
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 router = APIRouter(prefix="/run", tags=["run"])
 
@@ -75,15 +76,15 @@ class RunContext:
     evaluation_rows: list[UntypedRow]
     task_type: str | None
     task_evaluation_measure: str | None
-    setup: UntypedRow | None
+    setup: Setup | None
     parameter_rows: list[UntypedRow]
 
 
 async def _load_run_context(
     run: UntypedRow,
-    run_id: int,
     expdb: AsyncConnection,
     userdb: AsyncConnection,
+    expdb_session: AsyncSession,
     engine_ids: list[int],
 ) -> RunContext:
     (
@@ -97,16 +98,16 @@ async def _load_run_context(
         setup,
         parameter_rows,
     ) = cast(
-        "tuple[Any, list[str], list[UntypedRow], list[UntypedRow], list[UntypedRow], str | None, str | None, UntypedRow | None, list[UntypedRow]]",  # noqa: E501
+        "tuple[Any, list[str], list[UntypedRow], list[UntypedRow], list[UntypedRow], str | None, str | None, Setup | None, list[UntypedRow]]",  # noqa: E501
         await asyncio.gather(
             database.users.get_user(user_id=run.uploader, connection=userdb),
-            database.runs.get_tags(run_id, expdb),
-            database.runs.get_input_data(run_id, expdb),
-            database.runs.get_output_files(run_id, expdb),
-            database.runs.get_evaluations(run_id, expdb, evaluation_engine_ids=engine_ids),
+            database.runs.get_tags(run.rid, expdb),
+            database.runs.get_input_data(run.rid, expdb),
+            database.runs.get_output_files(run.rid, expdb),
+            database.runs.get_evaluations(run.rid, expdb, evaluation_engine_ids=engine_ids),
             database.tasks.get_task_type_name(run.task_id, expdb),
             database.tasks.get_task_evaluation_measure(run.task_id, expdb),
-            database.setups.get(run.setup, expdb),
+            database.setups.get(run.setup, expdb_session),
             database.setups.get_parameters(run.setup, expdb),
         ),
     )
@@ -146,6 +147,7 @@ async def get_run(
     run_id: int,
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
     userdb: Annotated[AsyncConnection, Depends(userdb_connection)],
+    expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> Run:
     """Get full metadata for a run by ID.
 
@@ -158,9 +160,9 @@ async def get_run(
         raise RunNotFoundError(msg, code=236)
 
     engine_ids: list[int] = config.get_config().development.run_evaluation_engine_ids
-    ctx = await _load_run_context(run, run_id, expdb, userdb, engine_ids)
+    ctx = await _load_run_context(run, expdb, userdb, expdb_session, engine_ids)
 
-    flow = await database.flows.get(ctx.setup.implementation_id, expdb) if ctx.setup else None
+    flow = await database.flows.get(ctx.setup.flow_id, expdb) if ctx.setup else None
     evaluations = _build_evaluations(ctx.evaluation_rows)
 
     normalised_measure = ctx.task_evaluation_measure or None
@@ -173,7 +175,7 @@ async def get_run(
         task_id=run.task_id,
         task_type=ctx.task_type,
         task_evaluation_measure=normalised_measure,
-        flow_id=ctx.setup.implementation_id if ctx.setup else None,
+        flow_id=ctx.setup.flow_id if ctx.setup else None,
         flow_name=flow.full_name if flow else None,
         setup_id=run.setup,
         setup_string=ctx.setup.setup_string if ctx.setup else None,

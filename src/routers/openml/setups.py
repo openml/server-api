@@ -1,6 +1,5 @@
 """All endpoints that relate to setups."""
 
-import asyncio
 from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Body, Depends, Path
@@ -15,12 +14,12 @@ from core.errors import (
 )
 from database.exceptions import DuplicatePrimaryKeyError, ForeignKeyConstraintError
 from database.users import User
-from routers.dependencies import expdb_connection, fetch_user_or_raise
+from routers.dependencies import expdb_connection, expdb_session, fetch_user_or_raise
 from routers.types import Identifier, TagString
 from schemas.setups import SetupParameters, SetupResponse
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 router = APIRouter(prefix="/setup", tags=["setup"])
 
@@ -29,9 +28,10 @@ router = APIRouter(prefix="/setup", tags=["setup"])
 async def get_setup(
     setup_id: Annotated[Identifier, Path()],
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> SetupResponse:
     """Get setup by id."""
-    setup = await database.setups.get(setup_id, expdb_db)
+    setup = await database.setups.get(setup_id, expdb_session)
     if not setup:
         msg = f"Setup {setup_id} not found."
         raise SetupNotFoundError(msg, code=281)
@@ -40,7 +40,7 @@ async def get_setup(
 
     params_model = SetupParameters(
         setup_id=setup_id,
-        flow_id=setup.implementation_id,
+        flow_id=setup.flow_id,
         parameter=setup_parameters or None,
     )
 
@@ -52,11 +52,11 @@ async def tag_setup(
     setup_id: Annotated[Identifier, Body()],
     tag: Annotated[TagString, Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> dict[str, dict[str, str | list[str]]]:
     """Add tag `tag` to setup with id `setup_id`."""
     try:
-        await database.setups.tag(setup_id, tag, user.user_id, expdb_db)
+        await database.setups.tag(setup_id, tag, user.user_id, expdb_session)
     except ForeignKeyConstraintError:
         msg = f"Setup {setup_id} not found."
         raise SetupNotFoundError(msg, code=472) from None
@@ -65,7 +65,7 @@ async def tag_setup(
         raise TagAlreadyExistsError(msg) from None
 
     logger.info("Setup {setup_id} tagged '{tag}'.", setup_id=setup_id, tag=tag)
-    all_tag_rows = await database.setups.get_tags(setup_id, expdb_db)
+    all_tag_rows = await database.setups.get_tags(setup_id, expdb_session)
     all_tags = [t.tag for t in all_tag_rows]
 
     return {"setup_tag": {"id": str(setup_id), "tag": all_tags}}
@@ -76,23 +76,21 @@ async def untag_setup(
     setup_id: Annotated[Identifier, Body()],
     tag: Annotated[TagString, Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> dict[str, dict[str, str | list[str]]]:
     """Remove tag `tag` from setup with id `setup_id`."""
-    setup, setup_tags = await asyncio.gather(
-        database.setups.get(setup_id, expdb_db),
-        database.setups.get_tags(setup_id, expdb_db),
-    )
-    if not setup:
-        msg = f"Setup {setup_id} not found."
-        raise SetupNotFoundError(msg)
-    matched_tag_row = next((t for t in setup_tags if t.tag.casefold() == tag.casefold()), None)
-
-    if not matched_tag_row:
+    # Setups don't really have an owner, they are associated with runs.
+    # So only the tagger or admins can remove the tag.
+    tag_orm = await database.setups.get_tag(setup_id, tag, expdb_session)
+    if not tag_orm:
+        setup = await database.setups.get(setup_id, expdb_session)
+        if not setup:
+            msg = f"Setup {setup_id} not found."
+            raise SetupNotFoundError(msg)
         msg = f"Setup {setup_id} does not have tag {tag!r}."
         raise TagNotFoundError(msg)
 
-    if matched_tag_row.uploader != user.user_id and not await user.is_admin():
+    if tag_orm.uploader_id != user.user_id and not await user.is_admin():
         msg = (
             f"You may not remove tag {tag!r} of setup {setup_id} because it was not created by you."
         )
@@ -103,9 +101,7 @@ async def untag_setup(
         )
         raise TagNotOwnedError(msg)
 
-    await database.setups.untag(setup_id, matched_tag_row.tag, expdb_db)
+    await database.setups.delete_tag(tag_orm, expdb_session)
     logger.info("Setup {setup_id} had tag '{tag}' removed.", setup_id=setup_id, tag=tag)
-    remaining_tags = [
-        t.tag for t in setup_tags if t.tag.casefold() != matched_tag_row.tag.casefold()
-    ]
+    remaining_tags = [t.tag for t in await database.setups.get_tags(setup_id, expdb_session)]
     return {"setup_untag": {"id": str(setup_id), "tag": remaining_tags}}

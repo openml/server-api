@@ -29,7 +29,7 @@ async def userdb_connection() -> AsyncIterator[AsyncConnection]:
 async def expdb_session(
     connection: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> AsyncIterator[AsyncSession]:
-    async with AsyncSession(connection) as session, session.begin():
+    async with AsyncSession(connection) as session:
         yield session
 
 
