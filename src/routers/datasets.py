@@ -1,9 +1,17 @@
+"""Defines endpoints relating to Datasets.
+
+A dataset includes both the "data", e.g., the table or parquet file, as well as its metadata.
+The metadata is partially provided by the user (for example, the name or description),
+'features' that are partially parsed from the data file (for example, column names),
+and 'qualities' (or meta-features) that describe the data (for example, number of rows or columns).
+"""
+
 import asyncio
 import re
 from datetime import datetime
 from enum import StrEnum
 from http import HTTPStatus
-from typing import TYPE_CHECKING, Annotated, Any, Literal, NamedTuple, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Annotated, Any, Literal, NamedTuple
 
 from fastapi import APIRouter, Body, Depends, Query
 from loguru import logger
@@ -49,6 +57,7 @@ from routers.dependencies import (
     fetch_user_or_raise,
     userdb_connection,
 )
+from schemas.core import TagInfo
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Feature, FeatureType
 
 if TYPE_CHECKING:
@@ -67,6 +76,7 @@ async def tag_dataset(
     user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[str, dict[str, Any]]:
+    """Add a tag to the dataset, this tag is publicly visible to all users."""
     try:
         await database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
     except ForeignKeyConstraintError:
@@ -85,11 +95,6 @@ async def tag_dataset(
     }
 
 
-class TagInfo(TypedDict):
-    id: str
-    tag: NotRequired[TagString | list[TagString]]
-
-
 @router.post(path="/untag", deprecated=True)
 async def untag_dataset_like_php(
     data_id: Annotated[Identifier, Body()],
@@ -97,6 +102,7 @@ async def untag_dataset_like_php(
     user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[Literal["data_untag"], TagInfo]:
+    """Remove a tag from the dataset with a response similar to the old PHP server."""
     await untag_dataset(data_id, tag, user, expdb_db)
     tags = await database.datasets.get_tags_for(id_=data_id, connection=expdb_db)
     tag_info: TagInfo = {"id": str(data_id)}
@@ -114,6 +120,7 @@ async def untag_dataset(
     user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> None:
+    """Remove a tag that you added to a dataset, or from a dataset you uploaded."""
     dataset_tag = await database.datasets.get_tag(identifier, tag, expdb_db)
     if not dataset_tag:
         try:
@@ -130,6 +137,8 @@ async def untag_dataset(
 
 
 class DatasetStatusFilter(StrEnum):
+    """Legal filter values for the Dataset Status filter."""
+
     ACTIVE = DatasetStatus.ACTIVE
     DEACTIVATED = DatasetStatus.DEACTIVATED
     IN_PREPARATION = DatasetStatus.IN_PREPARATION
@@ -182,6 +191,7 @@ async def list_datasets(  # noqa: PLR0913, C901
     status: Annotated[DatasetStatusFilter, Body()] = DatasetStatusFilter.ACTIVE,
     user: Annotated[User | None, Depends(fetch_user)] = None,
 ) -> list[dict[str, Any]]:
+    """List all datasets that match the filters."""
     status_subquery = text(
         """
         SELECT ds1.`did`, ds1.`status`
@@ -308,6 +318,8 @@ async def list_datasets(  # noqa: PLR0913, C901
 
 
 class ProcessingInformation(NamedTuple):
+    """Metadata about an attempt to process a dataset."""
+
     date: datetime | None
     warning: str | None
     error: str | None
@@ -358,6 +370,7 @@ async def get_dataset_features(
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
     user: Annotated[User | None, Depends(fetch_user)] = None,
 ) -> list[Feature]:
+    """Return metadata for each feature (column) in the dataset."""
     assert expdb is not None  # noqa: S101
     await _get_dataset_raise_otherwise(dataset_id, user, expdb)
     features, ontologies = await asyncio.gather(
@@ -402,6 +415,7 @@ async def update_dataset_status(
     user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[str, str | int]:
+    """Update the status of the dataset. Can be used to deactivate a dataset."""
     dataset = await _get_dataset_raise_otherwise(dataset_id, user, expdb)
 
     can_deactivate = dataset.uploader == user.user_id or await user.is_admin()
@@ -456,8 +470,7 @@ async def get_dataset(
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
     user: Annotated[User | None, Depends(fetch_user)] = None,
 ) -> DatasetMetadata:
-    assert user_db is not None  # noqa: S101
-    assert expdb_db is not None  # noqa: S101
+    """Get the user-provided metadata for a dataset."""
     dataset = await _get_dataset_raise_otherwise(dataset_id, user, expdb_db)
     if not (
         dataset_file := await database.datasets.get_file(

@@ -1,3 +1,8 @@
+"""Common dependencies for router endpoints.
+
+See also https://fastapi.tiangolo.com/reference/dependencies/
+"""
+
 from collections.abc import AsyncGenerator, AsyncIterator
 from typing import TYPE_CHECKING, Annotated
 

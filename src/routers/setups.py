@@ -1,4 +1,4 @@
-"""All endpoints that relate to setups."""
+"""Defines endpoints relating to Setups."""
 
 from typing import TYPE_CHECKING, Annotated
 
@@ -54,7 +54,7 @@ async def tag_setup(
     user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> dict[str, dict[str, str | list[str]]]:
-    """Add tag `tag` to setup with id `setup_id`."""
+    """Add a tag to the setup, this tag is publicly visible to all users."""
     try:
         await database.setups.tag(setup_id, tag, user.user_id, expdb_session)
     except ForeignKeyConstraintError:

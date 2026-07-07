@@ -1,3 +1,5 @@
+"""Defines endpoints relating to Tasks."""
+
 import asyncio
 import json
 import re
@@ -41,6 +43,7 @@ async def tag_task(
     user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> dict[str, dict[str, Any]]:
+    """Add a tag to the task, this tag is publicly visible to all users."""
     try:
         await database.tasks.tag(task_id, tag, user_id=user.user_id, session=expdb_session)
     except ForeignKeyConstraintError:
@@ -59,7 +62,7 @@ async def tag_task(
     }
 
 
-def convert_template_xml_to_json(xml_template: str) -> dict[str, JSON]:
+def _convert_template_xml_to_json(xml_template: str) -> dict[str, JSON]:
     json_template = xmltodict.parse(xml_template.replace("oml:", ""))
     json_str = json.dumps(json_template)
     # To account for the differences between PHP and Python conversions:
@@ -122,7 +125,7 @@ async def fill_template(
         ]
     }
     """
-    json_template = convert_template_xml_to_json(template)
+    json_template = _convert_template_xml_to_json(template)
     return cast(
         "dict[str, JSON]",
         await _fill_json_template(
@@ -453,6 +456,7 @@ async def get_task(
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
     expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> Task:
+    """Get a task by identifier."""
     if not (task := await database.tasks.get(task_id, expdb)):
         msg = f"Task {task_id} not found."
         raise TaskNotFoundError(msg)
@@ -480,7 +484,7 @@ async def get_task(
         for (name, _), filled in zip(input_templates, filled_templates, strict=True)
     ]
     outputs = [
-        convert_template_xml_to_json(template) | {"name": name}
+        _convert_template_xml_to_json(template) | {"name": name}
         for name, io, required, template in templates
         if io == "output"
     ]

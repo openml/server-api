@@ -1,4 +1,4 @@
-"""Endpoints for run-related data."""
+"""Endpoints relating to Runs and Traces."""
 
 import asyncio
 from dataclasses import dataclass
@@ -149,11 +149,10 @@ async def get_run(
     userdb: Annotated[AsyncConnection, Depends(userdb_connection)],
     expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> Run:
-    """Get full metadata for a run by ID.
-
-    No authentication or visibility check is performed — all runs are
-    publicly accessible.
-    """
+    """Get full metadata for a run by ID."""
+    # Authentication is not required because runs are always public.
+    # This mimics PHP API behavior, but is unintuitive for runs which have predictions
+    # made on private datasets.
     run = await database.runs.get(run_id, expdb)
     if run is None:
         msg = f"Run {run_id} not found."

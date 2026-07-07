@@ -1,3 +1,5 @@
+"""Defines endpoints relating to Flows."""
+
 import asyncio
 from typing import TYPE_CHECKING, Annotated, Literal
 
@@ -39,6 +41,7 @@ async def get_flow(
     flow_id: Identifier,
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> Flow:
+    """Get a Flow by its identifier."""
     flow = await database.flows.get(flow_id, expdb)
     if not flow:
         msg = f"Flow with id {flow_id} not found."

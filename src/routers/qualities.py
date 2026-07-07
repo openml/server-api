@@ -1,3 +1,9 @@
+"""Defines endpoints relating to Qualities.
+
+Qualities are computed meta-features of datasets, such as the number of rows or columns.
+Qualities are computed automatically by an evaluation engine, they are not provided by users.
+"""
+
 from typing import TYPE_CHECKING, Annotated, Literal
 
 from fastapi import APIRouter, Depends
@@ -26,6 +32,7 @@ router = APIRouter(prefix="/datasets", tags=["datasets"])
 async def list_qualities(
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[Literal["data_qualities_list"], dict[Literal["quality"], list[str]]]:
+    """List names of all computed qualities (dataset metafeatures)."""
     qualities = await database.qualities.list_all_qualities(connection=expdb)
     return {
         "data_qualities_list": {
@@ -40,6 +47,7 @@ async def get_qualities(
     user: Annotated[User | None, Depends(fetch_user)],
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> list[Quality]:
+    """Get computed qualities (metafeatures) for a dataset."""
     dataset = await database.datasets.get(dataset_id, expdb)
     if not dataset or not await _user_has_access(dataset, user):
         msg = f"Dataset with id {dataset_id} not found."

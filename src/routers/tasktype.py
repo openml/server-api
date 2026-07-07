@@ -1,3 +1,9 @@
+"""Defines endpoints for operations relating to task types.
+
+A task type is a prototype for a task that defines the expected input and output for it.
+Examples include Supervised Classification, Supervised Regression, or Clustering.
+"""
+
 import json
 from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 
@@ -35,6 +41,7 @@ async def list_task_types(
     Literal["task_types"],
     dict[Literal["task_type"], list[dict[str, str | None | list[Any]]]],
 ]:
+    """Return a high level description of all task types."""
     task_types: list[dict[str, str | None | list[Any]]] = [
         _normalize_task_type(ttype) for ttype in await get_task_types(expdb)
     ]
@@ -46,6 +53,7 @@ async def get_task_type(
     task_type_id: int,
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[Literal["task_type"], dict[str, str | None | list[str] | list[dict[str, str]]]]:
+    """Return a detailed description for the given task type, including expected inputs."""
     task_type_record = await db_get_task_type(task_type_id, expdb)
     if task_type_record is None:
         msg = f"Task type {task_type_id} not found."

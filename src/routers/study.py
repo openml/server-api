@@ -1,3 +1,5 @@
+"""Defines endpoints relating to studies."""
+
 from typing import TYPE_CHECKING, Annotated, Literal
 
 from fastapi import APIRouter, Body, Depends
@@ -58,6 +60,8 @@ async def _get_study_raise_otherwise(
 
 
 class AttachDetachResponse(BaseModel):
+    """Response format for attaching or detaching an entity from a study."""
+
     study_id: int
     main_entity_type: StudyType
 
@@ -69,7 +73,7 @@ async def attach_to_study(
     user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> AttachDetachResponse:
-    assert expdb is not None  # noqa: S101
+    """Add runs or tasks to a study which is in preparation."""
     if user is None:
         msg = "Authentication required."
         raise AuthenticationRequiredError(msg)
@@ -123,7 +127,7 @@ async def create_study(
     user: Annotated[User, Depends(fetch_user_or_raise)],
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[Literal["study_id"], int]:
-    assert expdb is not None  # noqa: S101
+    """Create a new study."""
     if study.main_entity_type == StudyType.RUN and study.tasks:
         msg = "Cannot create a run study with tasks."
         raise StudyInvalidTypeError(msg)
@@ -160,7 +164,7 @@ async def get_study(
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
     user: Annotated[User | None, Depends(fetch_user)] = None,
 ) -> Study:
-    assert expdb is not None  # noqa: S101
+    """Get a study by id or alias."""
     study = await _get_study_raise_otherwise(alias_or_id, user, expdb)
     study_data = await database.studies.get_study_data(study, expdb)
     return Study(

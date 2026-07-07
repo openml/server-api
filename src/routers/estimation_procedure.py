@@ -1,3 +1,5 @@
+"""Defines endpoints relating to Estimation Procedures."""
+
 from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends
@@ -16,5 +18,9 @@ router = APIRouter(prefix="/estimationprocedure", tags=["estimationprocedure"])
 async def get_estimation_procedures(
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> list[EstimationProcedure]:
+    """Return a list with descriptions of estimation procedures.
+
+    Estimation procedures define how to evaluate a model, e.g., 5-repeated 2-fold cross-validation.
+    """
     procedures = await database.evaluations.get_estimation_procedures(expdb)
     return list(procedures)

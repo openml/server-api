@@ -1,4 +1,4 @@
-"""User account HTTP endpoints."""
+"""Defines endpoints relating to Users."""
 
 from http import HTTPStatus
 from typing import Annotated
