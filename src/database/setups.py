@@ -12,7 +12,7 @@ from database.exceptions import (
     DuplicatePrimaryKeyError,
     ForeignKeyConstraintError,
 )
-from database.schema.base import UntypedRow
+from database.schema.setups import Setup
 from database.schema.tags import SetupTag
 from routers.types import Identifier, TagString
 
@@ -21,19 +21,9 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 
-async def get(setup_id: Identifier, connection: AsyncConnection) -> UntypedRow | None:
+async def get(setup_id: Identifier, session: AsyncSession) -> Setup | None:
     """Get the setup with id `setup_id` from the database."""
-    row = await connection.execute(
-        text(
-            """
-            SELECT *
-            FROM algorithm_setup
-            WHERE sid = :setup_id
-            """,
-        ),
-        parameters={"setup_id": setup_id},
-    )
-    return row.first()
+    return await session.get(Setup, setup_id)
 
 
 async def get_parameters(setup_id: Identifier, connection: AsyncConnection) -> list[RowMapping]:

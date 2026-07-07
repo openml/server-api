@@ -28,9 +28,10 @@ router = APIRouter(prefix="/setup", tags=["setup"])
 async def get_setup(
     setup_id: Annotated[Identifier, Path()],
     expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> SetupResponse:
     """Get setup by id."""
-    setup = await database.setups.get(setup_id, expdb_db)
+    setup = await database.setups.get(setup_id, expdb_session)
     if not setup:
         msg = f"Setup {setup_id} not found."
         raise SetupNotFoundError(msg, code=281)
@@ -39,7 +40,7 @@ async def get_setup(
 
     params_model = SetupParameters(
         setup_id=setup_id,
-        flow_id=setup.implementation_id,
+        flow_id=setup.flow_id,
         parameter=setup_parameters or None,
     )
 
@@ -75,7 +76,6 @@ async def untag_setup(
     setup_id: Annotated[Identifier, Body()],
     tag: Annotated[TagString, Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
     expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> dict[str, dict[str, str | list[str]]]:
     """Remove tag `tag` from setup with id `setup_id`."""
@@ -83,7 +83,7 @@ async def untag_setup(
     # So only the tagger or admins can remove the tag.
     tag_orm = await database.setups.get_tag(setup_id, tag, expdb_session)
     if not tag_orm:
-        setup = await database.setups.get(setup_id, expdb_db)
+        setup = await database.setups.get(setup_id, expdb_session)
         if not setup:
             msg = f"Setup {setup_id} not found."
             raise SetupNotFoundError(msg)
