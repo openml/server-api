@@ -10,7 +10,7 @@ import httpx  # noqa: TC002
 import pytest
 
 from core.conversions import nested_num_to_str, nested_remove_single_element_list
-from routers.openml.runs import _build_evaluations
+from routers.runs import _build_evaluations
 
 # ── Fixtures assume run 24 exists in the test DB (confirmed in research) ──
 _RUN_ID = 24
@@ -149,7 +149,7 @@ async def test_get_run_non_empty_error(py_api: httpx.AsyncClient) -> None:
         error_message="Some error from the backend",
     )
 
-    with patch("routers.openml.runs.database.runs.get", new_callable=AsyncMock) as mock_get:
+    with patch("routers.runs.database.runs.get", new_callable=AsyncMock) as mock_get:
         mock_get.return_value = mock_row
         response = await py_api.get(f"/run/{_RUN_ID}")
         assert response.status_code == HTTPStatus.OK
@@ -181,7 +181,7 @@ async def test_task_evaluation_measure_present_when_configured(
     """task_evaluation_measure is present and matches DB when a measure is configured."""
     # Since the test database does not have a run with an evaluation measure, we mock the DB fetch
     with patch(
-        "routers.openml.runs.database.tasks.get_task_evaluation_measure", new_callable=AsyncMock
+        "routers.runs.database.tasks.get_task_evaluation_measure", new_callable=AsyncMock
     ) as mock_get_measure:
         mock_get_measure.return_value = "predictive_accuracy"
         response = await py_api.get(f"/run/{_RUN_ID}")

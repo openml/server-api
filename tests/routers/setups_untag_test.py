@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy import text
 
 from core.errors import SetupNotFoundError, TagNotFoundError, TagNotOwnedError
-from routers.openml.setups import untag_setup
+from routers.setups import untag_setup
 from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
 
 if TYPE_CHECKING:

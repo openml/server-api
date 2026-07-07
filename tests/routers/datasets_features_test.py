@@ -9,7 +9,7 @@ import pytest
 
 from core.errors import DatasetNoAccessError, DatasetNotFoundError, DatasetProcessingError
 from database.users import User
-from routers.openml.datasets import get_dataset_features
+from routers.datasets import get_dataset_features
 from tests.users import ADMIN_USER, DATASET_130_OWNER
 
 if TYPE_CHECKING:

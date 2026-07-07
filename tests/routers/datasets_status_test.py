@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from core.errors import DatasetAdminOnlyError, DatasetNotOwnedError
-from routers.openml.datasets import update_dataset_status
+from routers.datasets import update_dataset_status
 from schemas.datasets.openml import DatasetStatus
 from tests import constants
 from tests.users import ADMIN_USER, SOME_USER

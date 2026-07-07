@@ -6,10 +6,10 @@ import pytest
 from core.errors import DatasetNotFoundError, TagAlreadyExistsError
 from database.datasets import get_tags_for
 from database.users import User
-from routers.openml.datasets import tag_dataset
+from routers.datasets import tag_dataset
 from tests import constants
 from tests.conftest import DatasetFactory
-from tests.routers.openml.tag_test_helper import assert_tag_response_is_identical
+from tests.routers.tag_test_helper import assert_tag_response_is_identical
 from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
 
 if TYPE_CHECKING:

@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection  # noqa: TC002 used at runtim
 
 from core.errors import AccountHasResourcesError, ForbiddenError, UserNotFoundError
 from database.users import UserGroup
-from routers.openml.users import delete_user_account
+from routers.users import delete_user_account
 from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
 
 
@@ -69,7 +69,7 @@ async def test_delete_user_api_success_self_delete(
     disposable_user: DisposableUser,
     mocker: pytest_mock.MockerFixture,
 ) -> None:
-    log_info = mocker.patch("routers.openml.users.logger.info")
+    log_info = mocker.patch("routers.users.logger.info")
 
     response = await py_api.delete(
         f"/users/{disposable_user.user_id}",
@@ -185,7 +185,7 @@ async def test_delete_user_integrity_error_logs_and_raises_conflict(
             "DELETE FROM users", {"user_id": disposable_user.user_id}, Exception("fk")
         ),
     )
-    log_error = mocker.patch("routers.openml.users.logger.error")
+    log_error = mocker.patch("routers.users.logger.error")
 
     with pytest.raises(AccountHasResourcesError, match="Cannot delete this account") as exc_info:
         await delete_user_account(

@@ -9,7 +9,7 @@ import pytest
 from sqlalchemy import text
 
 from core.errors import SetupNotFoundError, TagAlreadyExistsError
-from routers.openml.setups import tag_setup
+from routers.setups import tag_setup
 from tests.users import SOME_USER, ApiKey
 
 if TYPE_CHECKING:

@@ -20,7 +20,7 @@ import pytest
 from sqlalchemy import text
 
 from core.errors import DatasetNotFoundError, TagNotFoundError, TagNotOwnedError
-from routers.openml.datasets import untag_dataset
+from routers.datasets import untag_dataset
 from tests.users import ADMIN_USER, SOME_USER, ApiKey
 
 if TYPE_CHECKING:

@@ -10,8 +10,8 @@ from hypothesis import strategies as st
 
 from core.errors import NoResultsError
 from database.users import User
+from routers.datasets import DatasetStatusFilter, list_datasets
 from routers.dependencies import LIMIT_DEFAULT, Pagination
-from routers.openml.datasets import DatasetStatusFilter, list_datasets
 from tests import constants
 from tests.users import ADMIN_USER, DATASET_130_OWNER, SOME_USER, ApiKey
 

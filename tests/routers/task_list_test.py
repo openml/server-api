@@ -8,7 +8,7 @@ import pytest
 from core.conversions import nested_remove_single_element_list
 from core.errors import NoResultsError
 from routers.dependencies import LIMIT_MAX, Pagination
-from routers.openml.tasks import TaskStatusFilter, list_tasks
+from routers.tasks import TaskStatusFilter, list_tasks
 
 if TYPE_CHECKING:
     import httpx

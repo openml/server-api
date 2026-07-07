@@ -6,10 +6,10 @@ import pytest
 from core.errors import TASK_NOT_FOUND_DURING_TAG, TagAlreadyExistsError, TaskNotFoundError
 from database.tasks import get_tags
 from database.users import User
-from routers.openml.tasks import tag_task
+from routers.tasks import tag_task
 from tests import constants
 from tests.conftest import TaskFactory
-from tests.routers.openml.tag_test_helper import assert_tag_response_is_identical
+from tests.routers.tag_test_helper import assert_tag_response_is_identical
 from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
 
 if TYPE_CHECKING:

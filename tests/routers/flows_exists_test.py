@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from core.errors import FlowNotFoundError
-from routers.openml.flows import flow_exists
+from routers.flows import flow_exists
 from tests.conftest import Flow
 
 if TYPE_CHECKING:
