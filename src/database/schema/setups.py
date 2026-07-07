@@ -6,7 +6,7 @@ from database.schema.base import Base, ExpDBReflected
 from routers.types import Identifier
 
 
-class Setup(Base, ExpDBReflected):
+class Setup(ExpDBReflected, Base):
     """Specifies the hyperparameter configuration of a Flow used in a Run."""
 
     __tablename__ = "algorithm_setup"
