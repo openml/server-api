@@ -18,7 +18,7 @@ from sqlalchemy import Row
 from sqlalchemy.ext.declarative import DeferredReflection
 from sqlalchemy.orm import DeclarativeBase
 
-from database.setup import expdb_database, user_database
+from database.engine import expdb_database, user_database
 
 UntypedRow = Row[Any]
 

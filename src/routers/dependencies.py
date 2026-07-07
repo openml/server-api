@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.errors import AuthenticationFailedError, AuthenticationRequiredError
-from database.setup import expdb_database, user_database
+from database.engine import expdb_database, user_database
 from database.users import APIKey, User
 
 if TYPE_CHECKING:

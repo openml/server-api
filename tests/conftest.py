@@ -22,7 +22,7 @@ from config import (
     RoutingConfiguration,
 )
 from core.types import Identifier
-from database.setup import expdb_database, user_database
+from database.engine import expdb_database, user_database
 from main import create_api
 from routers.dependencies import expdb_connection, userdb_connection
 from tests.users import OWNER_USER

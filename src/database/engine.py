@@ -1,3 +1,5 @@
+"""Functions relating to the database engines."""
+
 import functools
 
 from loguru import logger
@@ -27,11 +29,13 @@ def _create_engine(db_config: DatabaseConfiguration) -> AsyncEngine:
 
 @functools.cache
 def user_database() -> AsyncEngine:
+    """Get a database engine connected to the `openml` database."""
     return _create_engine(get_config().openml_database)
 
 
 @functools.cache
 def expdb_database() -> AsyncEngine:
+    """Get a database engine connected to the `openml_expdb` database."""
     return _create_engine(get_config().expdb_database)
 
 

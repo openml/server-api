@@ -26,8 +26,8 @@ from core.logging import (
     request_response_logger,
     setup_log_sinks,
 )
+from database.engine import close_databases
 from database.models.base import reflect_db_schemas
-from database.setup import close_databases
 from routers.datasets import router as datasets_router
 from routers.estimation_procedure import router as estimationprocedure_router
 from routers.evaluations import router as evaluationmeasures_router
