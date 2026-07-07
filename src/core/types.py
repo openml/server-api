@@ -1,3 +1,5 @@
+"""Common types used in the definition of schemas and models."""
+
 from typing import Annotated
 
 from pydantic import Field

@@ -13,17 +13,17 @@ import database.datasets
 import database.tasks
 from config import get_config
 from core.errors import InternalError, NoResultsError, TagAlreadyExistsError, TaskNotFoundError
-from database.exceptions import DuplicatePrimaryKeyError, ForeignKeyConstraintError
-from database.models.base import UntypedRow
-from database.users import User
-from routers.dependencies import Pagination, expdb_connection, expdb_session, fetch_user_or_raise
-from routers.types import (
+from core.types import (
     CasualString128,
     Identifier,
     IntegerRange,
     TagString,
     integer_range_regex,
 )
+from database.exceptions import DuplicatePrimaryKeyError, ForeignKeyConstraintError
+from database.models.base import UntypedRow
+from database.users import User
+from routers.dependencies import Pagination, expdb_connection, expdb_session, fetch_user_or_raise
 from schemas.datasets.openml import Task
 
 if TYPE_CHECKING:

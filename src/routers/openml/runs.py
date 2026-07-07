@@ -13,10 +13,10 @@ import database.setups
 import database.tasks
 import database.users
 from core.errors import RunNotFoundError, RunTraceNotFoundError
+from core.types import Identifier
 from database.models.base import UntypedRow
 from database.models.setups import Setup
 from routers.dependencies import expdb_connection, expdb_session, userdb_connection
-from routers.types import Identifier
 from schemas.runs import (
     EvaluationScore,
     InputDataset,

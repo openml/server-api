@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends
 import database.flows
 from core.conversions import _str_to_num
 from core.errors import FlowNotFoundError
+from core.types import Identifier
 from routers.dependencies import expdb_connection
-from routers.types import Identifier
 from schemas.flows import Flow, Parameter, Subflow
 
 if TYPE_CHECKING:

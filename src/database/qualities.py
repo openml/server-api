@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import text
 
-from routers.types import Identifier
+from core.types import Identifier
 from schemas.datasets.openml import Quality
 
 if TYPE_CHECKING:

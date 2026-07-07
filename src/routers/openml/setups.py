@@ -12,10 +12,10 @@ from core.errors import (
     TagNotFoundError,
     TagNotOwnedError,
 )
+from core.types import Identifier, TagString
 from database.exceptions import DuplicatePrimaryKeyError, ForeignKeyConstraintError
 from database.users import User
 from routers.dependencies import expdb_connection, expdb_session, fetch_user_or_raise
-from routers.types import Identifier, TagString
 from schemas.setups import SetupParameters, SetupResponse
 
 if TYPE_CHECKING:

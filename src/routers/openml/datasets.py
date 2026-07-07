@@ -33,6 +33,13 @@ from core.formatting import (
     _format_dataset_url,
     _format_parquet_url,
 )
+from core.types import (
+    CasualString128,
+    Identifier,
+    IntegerRange,
+    TagString,
+    integer_range_regex,
+)
 from database.exceptions import DuplicatePrimaryKeyError, ForeignKeyConstraintError
 from database.users import User
 from routers.dependencies import (
@@ -41,13 +48,6 @@ from routers.dependencies import (
     fetch_user,
     fetch_user_or_raise,
     userdb_connection,
-)
-from routers.types import (
-    CasualString128,
-    Identifier,
-    IntegerRange,
-    TagString,
-    integer_range_regex,
 )
 from schemas.datasets.openml import DatasetMetadata, DatasetStatus, Feature, FeatureType
 

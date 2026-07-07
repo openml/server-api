@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 
+from core.types import Identifier, TagString
 from database.exceptions import (
     _DUPLICATE_ENTRY,
     _FOREIGN_KEY_CONSTRAINT_FAILED,
@@ -12,7 +13,6 @@ from database.exceptions import (
 )
 from database.models.base import UntypedRow
 from database.models.tags import TaskTag
-from routers.types import Identifier, TagString
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession

@@ -11,9 +11,9 @@ from core.errors import (
     DatasetProcessingError,
     NoQualitiesError,
 )
+from core.types import Identifier
 from database.users import User
 from routers.dependencies import expdb_connection, fetch_user
-from routers.types import Identifier
 from schemas.datasets.openml import Quality
 
 if TYPE_CHECKING:

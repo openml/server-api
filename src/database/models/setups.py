@@ -2,8 +2,8 @@
 
 from sqlalchemy.orm import Mapped, mapped_column
 
+from core.types import Identifier
 from database.models.base import Base, ExpDBReflected
-from routers.types import Identifier
 
 
 class Setup(ExpDBReflected, Base):
