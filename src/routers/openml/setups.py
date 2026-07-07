@@ -104,7 +104,7 @@ async def untag_setup(
         )
         raise TagNotOwnedError(msg)
 
-    await database.setups.untag(setup_id, matched_tag_row.tag, expdb_db)
+    await database.setups.untag(setup_id, matched_tag_row.tag, expdb_session)
     logger.info("Setup {setup_id} had tag '{tag}' removed.", setup_id=setup_id, tag=tag)
     remaining_tags = [
         t.tag for t in setup_tags if t.tag.casefold() != matched_tag_row.tag.casefold()

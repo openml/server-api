@@ -3,7 +3,7 @@
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from sqlalchemy import select, text
+from sqlalchemy import delete, select, text
 from sqlalchemy.exc import IntegrityError
 
 from database.exceptions import (
@@ -69,16 +69,10 @@ async def get_tags(setup_id: Identifier, session: AsyncSession) -> Sequence[Setu
     return (await session.scalars(stmt)).all()
 
 
-async def untag(setup_id: Identifier, tag: TagString, connection: AsyncConnection) -> None:
+async def untag(setup_id: Identifier, tag: TagString, session: AsyncSession) -> None:
     """Remove tag `tag` from setup with id `setup_id`."""
-    await connection.execute(
-        text(
-            """
-            DELETE FROM setup_tag
-            WHERE id = :setup_id AND tag = :tag
-            """,
-        ),
-        parameters={"setup_id": setup_id, "tag": tag},
+    await session.execute(
+        delete(SetupTag).where(SetupTag.entity_id == setup_id and SetupTag.tag == tag),
     )
 
 
