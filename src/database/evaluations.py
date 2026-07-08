@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import text
 
-from core.formatting import _str_to_bool
+from core.formatting import str_to_bool
 from database.models.base import UntypedRow
 from schemas.tasks import EstimationProcedure
 
@@ -41,7 +41,7 @@ async def get_estimation_procedures(connection: AsyncConnection) -> list[Estimat
     rows = row.mappings().all()
     typed_rows = [
         {
-            k: v if k != "stratified_sampling" or v is None else _str_to_bool(v)
+            k: v if k != "stratified_sampling" or v is None else str_to_bool(v)
             for k, v in row.items()
         }
         for row in rows

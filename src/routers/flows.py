@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Annotated, Literal
 from fastapi import APIRouter, Depends
 
 import database.flows
-from core.conversions import _str_to_num
+from core.conversions import str_to_num
 from core.errors import FlowNotFoundError
 from core.types import Identifier
 from routers.dependencies import expdb_connection
@@ -58,7 +58,7 @@ async def get_flow(
             # PHP sets the default value to [], not sure where that comes from.
             # In the modern interface, `None` is used instead for now, but I think it might
             # make more sense to omit it if there is none.
-            default_value=_str_to_num(parameter.default_value) if parameter.default_value else None,
+            default_value=str_to_num(parameter.default_value) if parameter.default_value else None,
             data_type=parameter.data_type,
             description=parameter.description,
         )

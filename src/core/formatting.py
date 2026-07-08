@@ -5,7 +5,7 @@ from database.models.base import UntypedRow
 from schemas.datasets import DatasetFileFormat
 
 
-def _str_to_bool(string: str) -> bool:
+def str_to_bool(string: str) -> bool:
     if string.casefold() in ["true", "1", "yes", "y"]:
         return True
     if string.casefold() in ["false", "0", "no", "n"]:
@@ -24,7 +24,7 @@ def _format_parquet_url(dataset: UntypedRow) -> str | None:
     return f"{minio_base_url}datasets/{ten_thousands_prefix}/{padded_id}/dataset_{dataset.did}.pq"
 
 
-def _format_dataset_url(dataset: UntypedRow) -> str:
+def format_dataset_url(dataset: UntypedRow) -> str:
     base_url = get_config().routing.server_url
     filename = f"{html.escape(dataset.name)}.{dataset.format.lower()}"
     return f"{base_url}data/v1/download/{dataset.file_id}/{filename}"
@@ -37,7 +37,7 @@ def _safe_unquote(text: str | None) -> str | None:
     return text.strip("'\"") or None
 
 
-def _csv_as_list(text: str | None, *, unquote_items: bool = True) -> list[str]:
+def csv_as_list(text: str | None, *, unquote_items: bool = True) -> list[str]:
     """Return comma-separated values in `text` as list, optionally remove quotes."""
     if not text:
         return []

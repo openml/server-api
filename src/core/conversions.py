@@ -3,7 +3,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
 
-def _str_to_num(string: str) -> int | float | str:
+def str_to_num(string: str) -> int | float | str:
     """Try to convert the string to integer, otherwise float, otherwise returns the input."""
     if string.isdigit():
         return int(string)
@@ -23,7 +23,7 @@ def nested_str_to_num(obj: Any) -> Any:
     For dictionaries, only the values will be converted.
     """
     if isinstance(obj, str):
-        return _str_to_num(obj)
+        return str_to_num(obj)
     if isinstance(obj, Mapping):
         return {key: nested_str_to_num(val) for key, val in obj.items()}
     if isinstance(obj, Iterable):

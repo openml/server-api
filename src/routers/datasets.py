@@ -19,7 +19,7 @@ from sqlalchemy import bindparam, text
 
 import database.datasets
 import database.qualities
-from core.access import _user_has_access
+from core.access import user_has_access
 from core.errors import (
     DatasetAdminOnlyError,
     DatasetNoAccessError,
@@ -37,9 +37,9 @@ from core.errors import (
     TagNotOwnedError,
 )
 from core.formatting import (
-    _csv_as_list,
-    _format_dataset_url,
     _format_parquet_url,
+    csv_as_list,
+    format_dataset_url,
 )
 from core.types import (
     CasualString128,
@@ -357,7 +357,7 @@ async def _get_dataset_raise_otherwise(
         msg = f"No dataset with id {dataset_id} found."
         raise DatasetNotFoundError(msg)
 
-    if not await _user_has_access(dataset=dataset, user=user):
+    if not await user_has_access(dataset=dataset, user=user):
         msg = f"No access granted to dataset {dataset_id}."
         raise DatasetNoAccessError(msg)
 
@@ -492,15 +492,15 @@ async def get_dataset(
     if description:
         description_ = description.description.replace("\r", "").strip()
 
-    dataset_url = _format_dataset_url(dataset)
+    dataset_url = format_dataset_url(dataset)
     parquet_url = _format_parquet_url(dataset)
 
-    contributors = _csv_as_list(dataset.contributor, unquote_items=True)
-    creators = _csv_as_list(dataset.creator, unquote_items=True)
-    ignore_attribute = _csv_as_list(dataset.ignore_attribute, unquote_items=True)
-    row_id_attribute = _csv_as_list(dataset.row_id_attribute, unquote_items=True)
-    original_data_url = _csv_as_list(dataset.original_data_url, unquote_items=True)
-    default_target_attribute = _csv_as_list(dataset.default_target_attribute, unquote_items=True)
+    contributors = csv_as_list(dataset.contributor, unquote_items=True)
+    creators = csv_as_list(dataset.creator, unquote_items=True)
+    ignore_attribute = csv_as_list(dataset.ignore_attribute, unquote_items=True)
+    row_id_attribute = csv_as_list(dataset.row_id_attribute, unquote_items=True)
+    original_data_url = csv_as_list(dataset.original_data_url, unquote_items=True)
+    default_target_attribute = csv_as_list(dataset.default_target_attribute, unquote_items=True)
 
     return DatasetMetadata(
         id=dataset.did,

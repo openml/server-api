@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from sqlalchemy.engine import Row
 
 
-async def _user_has_access(
+async def user_has_access(
     dataset: Row[Any],
     user: User | None = None,
 ) -> bool:

@@ -17,7 +17,7 @@ from core.errors import (
     StudyNotFoundError,
     StudyPrivateError,
 )
-from core.formatting import _str_to_bool
+from core.formatting import str_to_bool
 from core.types import Identifier
 from database.models.base import UntypedRow
 from database.users import User
@@ -53,7 +53,7 @@ async def _get_study_raise_otherwise(
         if study.creator != user.user_id and not await user.is_admin():
             msg = "Study is private."
             raise StudyPrivateError(msg)
-    if _str_to_bool(study.legacy):
+    if str_to_bool(study.legacy):
         msg = "Legacy studies are no longer supported."
         raise StudyLegacyError(msg)
     return study
@@ -168,7 +168,7 @@ async def get_study(
     study = await _get_study_raise_otherwise(alias_or_id, user, expdb)
     study_data = await database.studies.get_study_data(study, expdb)
     return Study(
-        _legacy=_str_to_bool(study.legacy),
+        _legacy=str_to_bool(study.legacy),
         id_=study.id,
         name=study.name,
         alias=study.alias,

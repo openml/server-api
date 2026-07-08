@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends
 
 import database.datasets
 import database.qualities
-from core.access import _user_has_access
+from core.access import user_has_access
 from core.errors import (
     DatasetNotFoundError,
     DatasetNotProcessedError,
@@ -49,7 +49,7 @@ async def get_qualities(
 ) -> list[Quality]:
     """Get computed qualities (metafeatures) for a dataset."""
     dataset = await database.datasets.get(dataset_id, expdb)
-    if not dataset or not await _user_has_access(dataset, user):
+    if not dataset or not await user_has_access(dataset, user):
         msg = f"Dataset with id {dataset_id} not found."
         raise DatasetNotFoundError(
             msg,
