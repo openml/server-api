@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any
 
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -64,19 +63,6 @@ class Feature(BaseModel):
     is_row_identifier: bool
     number_of_missing_values: int
     nominal_values: list[str] | None
-
-
-class EstimationProcedure(BaseModel):
-    """Description of an evaluation protocol, e.g., cross-validation."""
-
-    id_: int = Field(serialization_alias="id")
-    task_type_id: int
-    name: str
-    type_: str = Field(serialization_alias="type")
-    percentage: int | None
-    repeats: int | None
-    folds: int | None
-    stratified_sampling: bool | None
 
 
 class DatasetMetadata(BaseModel):
@@ -156,17 +142,3 @@ class DatasetMetadata(BaseModel):
         json_schema_extra={"example": "https://www.openml.org/d/2"},
     )
     md5_checksum: str = Field(json_schema_extra={"example": "d01f6ccd68c88b749b20bbe897de3713"})
-
-
-class Task(BaseModel):
-    """Metadata for a task."""
-
-    id_: int = Field(serialization_alias="id", json_schema_extra={"example": 59})
-    name: str = Field(
-        json_schema_extra={"example": "Task 59:  mfeat-pixel (Supervised Classification)"},
-    )
-    task_type_id: int = Field(json_schema_extra={"example": 1})
-    task_type: str = Field(json_schema_extra={"example": "Supervised Classification"})
-    input_: list[dict[str, Any]] = Field(serialization_alias="input")
-    output: list[dict[str, Any]]
-    tags: list[str] = Field(default_factory=list)
