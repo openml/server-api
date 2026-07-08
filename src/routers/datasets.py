@@ -7,6 +7,7 @@ and 'qualities' (or meta-features) that describe the data (for example, number o
 """
 
 import asyncio
+import html
 import re
 from datetime import datetime
 from enum import StrEnum
@@ -19,6 +20,7 @@ from sqlalchemy import bindparam, text
 
 import database.datasets
 import database.qualities
+from config import get_config
 from core.access import user_has_access
 from core.errors import (
     DatasetAdminOnlyError,
@@ -36,11 +38,7 @@ from core.errors import (
     TagNotFoundError,
     TagNotOwnedError,
 )
-from core.formatting import (
-    _format_parquet_url,
-    csv_as_list,
-    format_dataset_url,
-)
+from core.formatting import csv_as_list
 from core.types import (
     CasualString128,
     Identifier,
@@ -49,6 +47,7 @@ from core.types import (
     integer_range_regex,
 )
 from database.exceptions import DuplicatePrimaryKeyError, ForeignKeyConstraintError
+from database.models.base import UntypedRow
 from database.users import User
 from routers.dependencies import (
     Pagination,
@@ -58,13 +57,29 @@ from routers.dependencies import (
     userdb_connection,
 )
 from schemas.core import TagInfo
-from schemas.datasets import DatasetMetadata, DatasetStatus, Feature, FeatureType
+from schemas.datasets import DatasetFileFormat, DatasetMetadata, DatasetStatus, Feature, FeatureType
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Row
     from sqlalchemy.ext.asyncio import AsyncConnection
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
+
+
+def _format_parquet_url(dataset: UntypedRow) -> str | None:
+    if dataset.format.lower() != DatasetFileFormat.ARFF:
+        return None
+
+    minio_base_url = get_config().routing.minio_url
+    ten_thousands_prefix = f"{dataset.did // 10_000:04d}"
+    padded_id = f"{dataset.did:04d}"
+    return f"{minio_base_url}datasets/{ten_thousands_prefix}/{padded_id}/dataset_{dataset.did}.pq"
+
+
+def _format_dataset_url(dataset: UntypedRow) -> str:
+    base_url = get_config().routing.server_url
+    filename = f"{html.escape(dataset.name)}.{dataset.format.lower()}"
+    return f"{base_url}data/v1/download/{dataset.file_id}/{filename}"
 
 
 @router.post(
@@ -492,7 +507,7 @@ async def get_dataset(
     if description:
         description_ = description.description.replace("\r", "").strip()
 
-    dataset_url = format_dataset_url(dataset)
+    dataset_url = _format_dataset_url(dataset)
     parquet_url = _format_parquet_url(dataset)
 
     contributors = csv_as_list(dataset.contributor, unquote_items=True)

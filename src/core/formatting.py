@@ -1,8 +1,4 @@
-import html
-
-from config import get_config
-from database.models.base import UntypedRow
-from schemas.datasets import DatasetFileFormat
+"""Utilities for formatting and converting text data."""
 
 
 def str_to_bool(string: str) -> bool:
@@ -12,29 +8,6 @@ def str_to_bool(string: str) -> bool:
         return False
     msg = f"Could not parse {string=} as bool."
     raise ValueError(msg)
-
-
-def _format_parquet_url(dataset: UntypedRow) -> str | None:
-    if dataset.format.lower() != DatasetFileFormat.ARFF:
-        return None
-
-    minio_base_url = get_config().routing.minio_url
-    ten_thousands_prefix = f"{dataset.did // 10_000:04d}"
-    padded_id = f"{dataset.did:04d}"
-    return f"{minio_base_url}datasets/{ten_thousands_prefix}/{padded_id}/dataset_{dataset.did}.pq"
-
-
-def format_dataset_url(dataset: UntypedRow) -> str:
-    base_url = get_config().routing.server_url
-    filename = f"{html.escape(dataset.name)}.{dataset.format.lower()}"
-    return f"{base_url}data/v1/download/{dataset.file_id}/{filename}"
-
-
-def _safe_unquote(text: str | None) -> str | None:
-    """Remove any open and closing quotes and return the remainder if non-empty."""
-    if not text:
-        return None
-    return text.strip("'\"") or None
 
 
 def csv_as_list(text: str | None, *, unquote_items: bool = True) -> list[str]:
