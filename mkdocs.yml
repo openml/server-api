@@ -25,13 +25,14 @@ nav:
       - Setup: contributing/setup.md
       - Tests: contributing/tests.md
       - Project Overview: contributing/project_overview.md
+      - Documentation: contributing/documentation.md
       - Database:
         - database/index.md
         - openml: database/openml.md
         - openml_expdb: database/openml_expdb.md
   - Contributing:
       - contributing/index.md
-      - Documentation: contributing/documentation.md
+      - Code of Conduct: contributing/code_of_conduct.md
 
 markdown_extensions:
   - attr_list
