@@ -17,18 +17,21 @@ theme:
 nav:
   - OpenML Server:
       - index.md
-      - Getting Started: installation.md
-      - Changes: migration.md
-  - Database:
-      - database/index.md
-      - openml: database/openml.md
-      - openml_expdb: database/openml_expdb.md
-  - Contributing:
-      - contributing/index.md
+      - Migration Guide: migration.md
+      - Roadmap: roadmap.md
+  - Deployment:
+      - installation.md
+  - Development:
       - Setup: contributing/setup.md
       - Tests: contributing/tests.md
-      - Documentation: contributing/documentation.md
       - Project Overview: contributing/project_overview.md
+      - Database:
+        - database/index.md
+        - openml: database/openml.md
+        - openml_expdb: database/openml_expdb.md
+  - Contributing:
+      - contributing/index.md
+      - Documentation: contributing/documentation.md
 
 markdown_extensions:
   - attr_list
