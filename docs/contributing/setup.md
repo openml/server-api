@@ -54,6 +54,11 @@ This will spin up 5 services, as defined in the `compose.yaml` file:
     the REST API documentation. Changes to the code in `src/` will be reflected in this
     container.
 
+!!! note
+
+    The PHP REST API needs Elasticsearch. In some cases, it also needs the ES indices to be built.
+    The current set up does not automatically build ES indices, because that takes a long time.
+
 Exposing ports to the host network isn't needed for development, but may be useful to inspect responses directly from the host machine.
 
 !!! note
