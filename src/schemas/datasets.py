@@ -26,7 +26,7 @@ class Visibility(StrEnum):
 class DatasetStatus(StrEnum):
     """Possible dataset statuses.
 
-    - In Preparation: any uploaded dataset issn't yet successfully processed.
+    - In Preparation: any uploaded dataset isn't yet successfully processed.
     - Active: any uploaded dataset that has successfully been processed.
     - Deactivated: use of the dataset is discouraged.
     """
