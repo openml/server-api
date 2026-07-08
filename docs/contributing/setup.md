@@ -1,14 +1,36 @@
 # Setting up the development environment
 
-First, follow the [installation](../installation.md#local-installation) instructions
-for contributors to install a local fork with optional development dependencies.
-Stop when you reach the section "Setting up a Database Server".
+## Getting the Code
+If you intend to submit your changes to the REST API in a PR,
+then you are required to make your changes in a [fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo).
+
+Then clone the repository (or your fork).
+The remainder of the guide assumes you're working from the cloned repository's root directory (i.e., the one you also see on the repository's homepage).
+
+## Virtual Environment
+We primarily use the docker containers for executing the code and running tests.
+However, we need to install some tools on the host machine for development purposes.
+To install the development dependencies into an isolated environment, first create
+a virtual environment and activate it:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
+
+We can use [`uv`](https://docs.astral.sh/uv/) to easily install the required dependencies from our [pyproject.toml]().
+
+```bash
+python -m pip install uv
+uv pip instal -e ".[dev]"
+```
 
 ## Pre-commit
 
-We use [`pre-commit`](https://pre-commit.com) to ensure certain tools and checks are
-ran before each commit. These tools perform code-formatting, linting, and more. This
-makes the code more consistent across the board, which makes it easier to work with
+We use `git` for version control and we use [`pre-commit`](https://pre-commit.com)
+to ensure certain tools and checks are ran before each commit.
+These tools perform code-formatting, linting, and more.
+This makes the code more consistent across the board, which makes it easier to work with
 each other's code and also can catch common errors. After installing it, it will
 automatically run when you try to make a commit. Install it now and verify that all
 checks pass out of the box:
@@ -58,10 +80,13 @@ This will spin up 5 services, as defined in the `compose.yaml` file:
 
     The PHP REST API needs Elasticsearch. In some cases, it also needs the ES indices to be built.
     The current set up does not automatically build ES indices, because that takes a long time.
+    The enable building ES indices on startup set `INDEX_ES_DURING_STARTUP=true` in `docker/php/.env`,
+    which will trigger the building of ES indices on the next startup of the PHP API service.
 
 Exposing ports to the host network isn't needed for development, but may be useful to inspect responses directly from the host machine.
 
 !!! note
+
     On arm-based Macs, you need to enable Rosetta emulation for Docker for the Elasticsearch container to work.
 
 We can now run the full test suite, which takes about 4 minutes:
@@ -71,7 +96,7 @@ docker compose exec python-api python -m pytest tests
 ```
 There are three important [test markers](https://docs.pytest.org/en/7.1.x/example/markers.html) to be aware of:
 
- - `php_api`: all tests that require the PHP API container. These are tests which
+ - `php_api`: all tests that require the PHP API container.
  - `python_api`: all tests that require the Python API container. That's almost all of them.
  - `slow`: for long-running tests. Currently only one test.
 
@@ -80,7 +105,7 @@ The `not slow` is only needed if a slow test would be included in your test sele
 Examples:
 
  - `docker compose exec python-api python -m pytest tests -m "not php_api and not slow"`, here the test selection is made primarily through markers. This command takes a few seconds.
- - `docker compose exec python-api python -m pytest tests/routers/openml/dataset_tag_test.py`, here the test selection is made through specifying the file with tests. Since this test file naturally includes neither migration tests (in `tests/routers/openml/migration`) nor the slow test (at `tests/routers/openml/datasets_list_datasets_test.py`), excluding tests through markers is unnecessary. This command takes a few seconds.
+ - `docker compose exec python-api python -m pytest tests/routers/dataset_tag_test.py`, here the test selection is made through specifying the file with tests.
 
 
 You don't always need every container, often just having a database and the Python-based
@@ -93,6 +118,7 @@ docker compose up python-api -d
 Refer to the `docker compose` documentation for more uses.
 
 !!! note
+
     We are working on making it easy to run tests from your local shell instead of the container ([#232](https://github.com/openml/server-api/pull/232)). This will likely be limited to the tests that do not need the PHP API. Our CI pipeline runs all tests.
 
 ### Connecting to containers
@@ -135,10 +161,6 @@ For files, we follow the convention of _appending_ `_test`.
 Try to keep tests as small as possible, and only rely on database and/or web connections
 when absolutely necessary.
 
-!!! Failure ""
-
-    Instructions are incomplete. Please have patience while we are adding more documentation.
-
 
 ## YAML validation
 The project contains various [`yaml`](https://yaml.org) files, for example to configure
@@ -163,7 +185,7 @@ The following `yaml` files have schemas:
 
 === "VSCode"
 
-    In VSCode, these can be configured from `settings` > `Extetions` >
+    In VSCode, these can be configured from `settings` > `Extensions` >
     `JSON` > `Edit in settings.json`. There, add mappings per file or
     file pattern. For example:
 
@@ -178,13 +200,3 @@ The following `yaml` files have schemas:
 
       ]
       ```
-
-## Connecting to another database
-In addition to the database setup described in the [installation guide](../installation.md#setting-up-a-database-server),
-we also host a database on our server which may be connected to that is available
-to [OpenML core contributors](https://openml.org/about). If you are a core contributor
-and need access, please reach out to one of the engineers in Eindhoven.
-
-!!! Failure ""
-
-    Instructions are incomplete. Please have patience while we are adding more documentation.

@@ -26,3 +26,10 @@ We can also start supporting different file formats for e.g., task splits or pre
 ## Phase 4: New Features
 
 Richer metadata for assets on OpenML (e.g., structured citation data), collaboration features, OAuth support, and support for other data modalities are just some of the features we want to work on in 2027 and beyond.
+
+
+## Other Services
+Besides the REST API, there are a few other components which need to be developed:
+
+ - A logstash pipeline to populate ES indices based on the database data and/or a message queue. Currently, the PHP-based REST API directly puts documents into ES indices, which makes it prone to getting out of sync, and requires an ES server to run to use/test the API in ways which otherwise to not require an ES index.
+ - Evaluation Engine. A service which computes meta-features for datasets, including the "qualities" and "features" you find with datasets.
