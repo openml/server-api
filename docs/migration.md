@@ -17,8 +17,12 @@ If there is a behavioral change which was not documented but affects you, please
 It is possible this migration guide is out of sync for endpoints not yet deployed to production (currently that includes them all).
 Before an endpoint is deployed to production we will ensure that the documentation is up-to-date to the best of our knowledge.
 
-# RFC 9457 Errors
-Errors will follow the RFC9457 standard. However, the original "code" is preserved through a custom field.
+## Standardized Errors
+The Pyhon-based API will return different HTTP status codes depending on the error (for example, returning `404 NOT FOUND` if a requested dataset does not exist).
+Moreover, the body of the response will contain a JSON body that adheres to the RFC9457 standard.
+
+### Error Response Body
+
 Take for example the "Dataset not found" response for trying to access a dataset that does not exist.
 
 ```diff title="CURL Commands"
@@ -32,15 +36,22 @@ curl -i https://www.openml.org/api/v1/json/data/1000000
 + {"type":"https://openml.org/problems/dataset-not-found","title":"Dataset Not Found","status":404,"detail":"No dataset with id 100000 found.","code":"111"}
 ```
 
-You will notice that the response still contains a "code" of "111" (though as a top level property not embedded in the "error" scope).
-This field is included to support the migration of clients, but should be considered deprecated.
-As per the RFC9457 standard, the "type" field now includes the unique code for the error.
-The "title" field is a human readable summary of the general issue and the "detail" field may provide additional information for the specific request.
-They _will_ be resolvable URIs in the future, providing a page with more information.
+As per the RFC9457 standard, the `type` field now includes the unique code for the error.
+You will notice that the response still contains a `code` of "111" (though as a top level property not embedded in the "error" scope).
 
-In some cases the JSON endpoints previously returned XML ([example](https://github.com/openml/OpenML/issues/1200)), the new API always returns JSON.
+The `title` field is a human readable summary of the general issue and the `detail` field may provide additional information for the specific request.
+The URIs provided through `type` _will_ be resolvable in the future, providing a page with more information.
 
-# Appropriate HTTP Status Codes
+!!! warning
+
+    The`code` field is only included to support the migration of clients, but should be considered **deprecated**. Prefer to use the `type` field to identify the error.
+
+
+!!! info
+
+    In some cases the JSON endpoints previously returned XML ([example](https://github.com/openml/OpenML/issues/1200)), the new API always returns JSON.
+
+### HTTP Status Codes
 There are several cases where the PHP server did not provide semantically correct status codes.
 The Python server aims to correct that.
 The errors that changed which are most likely to occur are probably errors when there is no result, or when the input is incorrect.
@@ -69,15 +80,20 @@ For incorrect input (e.g., providing a string instead of an integer identifier):
 
 !!! warning "Input validation has been added to many end points"
 
-   There are endpoints which previously did not do any input validation.
-   These endpoints now do enforce stricter input constraints.
-   Constraints for each endpoint parameter are documented in the API docs.
+    There are endpoints which previously did not validate input, but now enforce input constraints.
+    Constraints for each endpoint parameter are documented in the API docs.
 
-# Endpoint Specific Notes
+## Endpoint Specific Notes
 
-## Datasets
+!!! warning
 
-### `GET /{dataset_id}`
+    As we develop the REST API, we may make more changes.
+    Notes in this section are likely _currently_ out of date,
+    but will be updated before a production-ready release.
+
+### Datasets
+
+#### `GET /{dataset_id}`
  - Dataset format names are normalized to be all lower-case
    (`"Sparse_ARFF"` ->  `"sparse_arff"`).
  - Non-`arff` datasets will not incorrectly have a `"parquet_url"` ([openml#1189](https://github.com/openml/OpenML/issues/1189)).
@@ -94,7 +110,7 @@ For incorrect input (e.g., providing a string instead of an integer identifier):
   returns a list (which may also be empty or contain a single element).
  - Fields without a set value are no longer automatically removed from the response.
 
-### `GET /data/list/{filters}`
+#### `GET /data/list/{filters}`
 
 The endpoint now accepts the filters in the body of the request, instead of as query parameters.
 ```diff
@@ -112,7 +128,7 @@ includes datasets which are private.
 The `limit` and `offset` parameters can now be used independently, you no longer need
 to provide both if you wish to set only one.
 
-### `POST /datasets/tag`
+#### `POST /datasets/tag`
 When successful, the "tag" property in the returned response is now always a list, even if only one tag exists for the entity.
 For example, after tagging dataset 21 with the tag `"foo"`:
 ```diff
@@ -125,17 +141,17 @@ For example, after tagging dataset 21 with the tag `"foo"`:
 }
 ```
 
-## Setups
+### Setups
 
-### `GET /{id}`
+#### `GET /{id}`
 The endpoint behaves almost identically to the PHP implementation. Note that fields representing integers like `setup_id` and `flow_id` are returned as integers instead of strings to align with typed JSON. Also, if a setup has no parameters, the `parameter` field is omitted entirely from the response.
 
-### `POST /setup/tag` and `POST /setup/untag`
+#### `POST /setup/tag` and `POST /setup/untag`
 When successful, the "tag" property in the returned response is now always a list, even if only one tag exists for the entity. When removing the last tag, the "tag" property will be an empty list `[]` instead of being omitted from the response.
 
-## Studies
+### Studies
 
-### `GET /{id_or_alias}`
+#### `GET /{id_or_alias}`
 
 Old-style "legacy" studies which are solely based on tags are no longer supported.
 
@@ -172,9 +188,9 @@ Old-style "legacy" studies which are solely based on tags are no longer supporte
     |50|	Hyper-parameter tuning of Decision Trees|
     |51|	ensemble on diabetes	|
 
-## Flows
+### Flows
 
-### `GET /flow/exists/{name}/{external_version}/`
+#### `GET /flow/exists/{name}/{external_version}/`
 Behavior has changed slightly. When a flow is found:
 
 ```diff
@@ -191,9 +207,9 @@ and the HTTP header status code is `404` (NOT FOUND) instead of `200` (OK).
 
 In the future the successful case will more likely just return the flow immediately instead (see #170).
 
-## Others
+### Others
 
-### `GET /estimationprocedure/list`
+#### `GET /estimationprocedure/list`
 The `ttid` field has been renamed to `task_type_id`.
 All values are now typed.
 Outer levels of nesting have been removed.
