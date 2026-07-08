@@ -1,1 +1,1 @@
-"""API routers for the OpenML server API."""
+"""Routers for the OpenML API."""

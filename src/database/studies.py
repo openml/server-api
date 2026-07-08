@@ -5,9 +5,9 @@ from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import text
 
-from database.schema.base import UntypedRow
+from core.types import Identifier
+from database.models.base import UntypedRow
 from database.users import User
-from routers.types import Identifier
 from schemas.study import CreateStudy, StudyType
 
 if TYPE_CHECKING:

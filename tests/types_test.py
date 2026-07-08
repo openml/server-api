@@ -11,7 +11,7 @@ import string
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
-from routers.types import CasualString, Identifier, TagString
+from core.types import CasualString, Identifier, TagString
 
 _identifier = TypeAdapter(Identifier)
 

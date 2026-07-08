@@ -21,10 +21,10 @@ from config import (
     LoggingConfiguration,
     RoutingConfiguration,
 )
-from database.setup import expdb_database, user_database
+from core.types import Identifier
+from database.engine import expdb_database, user_database
 from main import create_api
 from routers.dependencies import expdb_connection, userdb_connection
-from routers.types import Identifier
 from tests.users import OWNER_USER
 
 if TYPE_CHECKING:

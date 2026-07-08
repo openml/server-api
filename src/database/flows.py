@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import text
 
-from database.schema.base import UntypedRow
-from routers.types import Identifier
+from core.types import Identifier
+from database.models.base import UntypedRow
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection

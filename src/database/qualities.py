@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import text
 
-from routers.types import Identifier
-from schemas.datasets.openml import Quality
+from core.types import Identifier
+from schemas.datasets import Quality
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection

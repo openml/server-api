@@ -8,7 +8,7 @@ from pydantic import AfterValidator
 from sqlalchemy import text
 
 from config import get_config
-from routers.types import Identifier
+from core.types import Identifier
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection

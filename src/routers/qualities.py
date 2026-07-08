@@ -1,0 +1,73 @@
+"""Defines endpoints relating to Qualities.
+
+Qualities are computed meta-features of datasets, such as the number of rows or columns.
+Qualities are computed automatically by an evaluation engine, they are not provided by users.
+"""
+
+from typing import TYPE_CHECKING, Annotated, Literal
+
+from fastapi import APIRouter, Depends
+
+import database.datasets
+import database.qualities
+from core.access import user_has_access
+from core.errors import (
+    DatasetNotFoundError,
+    DatasetNotProcessedError,
+    DatasetProcessingError,
+    NoQualitiesError,
+)
+from core.types import Identifier
+from database.users import User
+from routers.dependencies import expdb_connection, fetch_user
+from schemas.datasets import Quality
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncConnection
+
+router = APIRouter(prefix="/datasets", tags=["datasets"])
+
+
+@router.get("/qualities/list")
+async def list_qualities(
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+) -> dict[Literal["data_qualities_list"], dict[Literal["quality"], list[str]]]:
+    """List names of all computed qualities (dataset metafeatures)."""
+    qualities = await database.qualities.list_all_qualities(connection=expdb)
+    return {
+        "data_qualities_list": {
+            "quality": qualities,
+        },
+    }
+
+
+@router.get("/qualities/{dataset_id}")
+async def get_qualities(
+    dataset_id: Identifier,
+    user: Annotated[User | None, Depends(fetch_user)],
+    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+) -> list[Quality]:
+    """Get computed qualities (metafeatures) for a dataset."""
+    dataset = await database.datasets.get(dataset_id, expdb)
+    if not dataset or not await user_has_access(dataset, user):
+        msg = f"Dataset with id {dataset_id} not found."
+        raise DatasetNotFoundError(
+            msg,
+            code=361,
+        ) from None
+
+    processing = await database.datasets.get_latest_processing_update(dataset_id, expdb)
+    if processing is None:
+        msg = f"Dataset not processed yet for dataset {dataset_id}."
+        raise DatasetNotProcessedError(msg, code=363)
+
+    if processing.error:
+        msg = processing.error.strip() or "Error occurred during processing."
+        raise DatasetProcessingError(msg, code=364)
+
+    qualities = await database.qualities.get_for_dataset(dataset_id, expdb)
+    if not qualities:
+        msg = f"No qualities found for dataset {dataset_id}."
+        raise NoQualitiesError(msg)
+
+    return qualities
