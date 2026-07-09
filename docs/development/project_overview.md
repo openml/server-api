@@ -73,7 +73,7 @@ The database schema does not accommodate this well, however.
 For example, there is generally no way to tell which data is removed or updated.
 In practice, this means that initially the Logstash pipeline will just recreate the indices periodically.
 
-In [Phase 3](../roadmap.md##phase-3-revisiting-the-database) we can update the schema to work better with Logstash.
+In [Phase 3](../roadmap.md#phase-3-revisiting-the-database) we can update the schema to work better with Logstash.
 
 The REST API _may_ make use of ES in the future for e.g., list operations.
 These operations which list lots of data aggregated from many different tables would be considerably faster if we query them from a preconstructed index instead.

@@ -27,7 +27,7 @@ When you open a bug report, please include:
 
 For minor fixes such as correcting a typo or a broken link, it's fine to make the changes and submit them through a pull request.
 For larger changes, please make sure you are assigned to an issue first as is described
-in the "[Code](#code)" section of this page. Then, visit the "[Documentation](documentation.md)"
+in the "[Code](#code)" section of this page. Then, visit the "[Developer Documentation](../development/project_overview.md)"
 page to learn how to contribute documentation changes.
 
 ### Code
@@ -40,7 +40,7 @@ everything is clear, it's not out of date, and "officially" assign you to the is
 that others know its being worked on. Making sure there is a clear description and clear
 assignment helps prevent a situation where someone makes a large contribution that is
 unwanted, or is simultaneously developed by someone else. With an issue assigned,
-please head over to the "[Setting up the development environment](setup.md)" section.
+please head over to the "[Setting up the development environment](../development/setup.md)" section.
 
 !!! info "Help Wanted?"
 
