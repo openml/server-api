@@ -1,7 +1,7 @@
 # Testing
 
 This page covers running and writing tests for the REST API.
-It assumes you already followed the instructions on the ["Setup"](setup.md) page.
+It assumes you already followed the instructions to set up your [Development Environment](setup.md).
 
 !!! note "Follow the documentation"
 
@@ -37,7 +37,7 @@ in the `docker/php/.env` file to `true` before starting the container.
 
 ## Writing Tests
 
-We use the ubiquitous [Pytest](https://docs.pytest.org) framework when writing tests.
+We use [Pytest](https://docs.pytest.org) for writing and running tests.
 
 ### File Structure
 When writing tests, we have the following additional conventions on the file structure:
@@ -53,10 +53,10 @@ Some guidelines and things to keep in mind when writing tests:
  - Mark tests that update the database in anyway with the `mut` marker (`@pytest.mark.mut`).
  - If the test is excessively slow (>0.1 sec) and does not connect to PHP, use a `slow` marker. Tests that include PHP always require roundtrips through other services which makes them slow by default. PHP tests can be filtered out with the automatically generated "php_api" marker.
  - Four common fixtures you might need when writing tests are:
-    - py_api: an async client for the Python based REST API
-    - php_api: an async client for the PHP based REST API
-    - expdb_test: an AsyncConnection to the "expdb" OpenML database.
-    - user_test: an AsyncConnection to the "openml" OpenML database.
+    - `py_api`: an async client for the Python based REST API
+    - `php_api`: an async client for the PHP based REST API
+    - `expdb_test`: an AsyncConnection to the "expdb" OpenML database.
+    - `user_test`: an AsyncConnection to the "openml" OpenML database.
  - Above fixtures have considerable per-test overhead. Use them only when you need them.
  - When writing assertions the expected value (a constant, or a php response) should be on the right (`assert response == expected`).
 

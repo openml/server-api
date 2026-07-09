@@ -25,7 +25,7 @@ nav:
       - Project Overview: development/project_overview.md
       - Development:
         - "Development Environment": development/setup.md
-        - "Running Tests": development/tests.md
+        - "Writing Tests": development/tests.md
         - Documentation: development/documentation.md
       - Database:
         - development/database/index.md
