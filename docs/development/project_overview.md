@@ -86,11 +86,11 @@ Authentication is currently supported by providing an api key as a query paramet
 To avoid accidentally leaking credentials (e.g., with an HTTP request, or our server access logs), we will move this form of authentication to the HTTP header, see [issue#203](https://github.com/openml/server-api/issues/203).
 Ultimately, it would be good to use a dedicated service for authentication, preferably with OAuth, see [issue#69](https://github.com/openml/server-api/issues/69)(externalizing authentication).
 
-## Repository File Structure
+## Repository Directory Structure
 The diagrams below can be used as a rough indication for the repository file structure.
 Many subdirectories and files are omitted to highlight the structure rather than specific content.
 Omissions are *not* explicitly mentioned in the diagram.
-The `src/` and `tests/` directories are expanded in separate diagrams below.
+The structure of the `src/` directory is documented in ["Writing Code"](code.md) and that of the `tests/` directory in ["Writing Tests"](tests.md).
 
 ```mermaid
 treeView-beta
@@ -118,37 +118,3 @@ treeView-beta
  mkdocs.yaml  ## Documentation Configuration
  pyproject.toml  ## Project metadata, dependencies
 ```
-
-The `src/` directory is then organised as follows (omitted files indicated with `...`):
-
-```mermaid
-treeView-beta
-core/
-  conversions.py  ## Common data conversion (e.g., unwrap single element list)
-  errors.py  ## Map for all REST API errors
-  formatting.py ## Common data formatting (e.g., split csv string to list)
-  logging.py  ## Logging setup and middleware
-  types.py  ## Common types, e.g., Identifier
-database/  ## Anything that interacts with the database
-  models/  ## ORM classes
-    base.py ## Base classes every ORM class should inherit from
-    ...
-  engine.py  ## SQLAlchemy Engine Creation
-  exceptions.py  ## Understandable Exceptions
-  datasets.py ## CRUD operations on datasets
-  ...
-routers/  ## Defines Endpoints
-  dependencies.py ## FastAPI Dependencies (e.g., authentication, database connections)
-  datasets.py  ## Endpoints under `/datasets`
-  ...
-schemas/  ## Classes that define the REST API schema
-  common.py ## Used across different subpaths
-  datasets.py  ## Related to `/datasets` endpoints
-  ...
-config.py  ## For loading/accessing the configuration
-config.toml  ## The configuration file
-main.py ## API Entrypoint
-```
-
-The `tests/` directory largely follows the `src/` directory structure, except that each endpoint has a dedicated file (it's possilbe changes to the `src/` structure were made without updating `tests/`).
-For more information on tests, see ["Writing Tests"](tests.md).

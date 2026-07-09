@@ -10,6 +10,7 @@ theme:
   name: material
   features:
     - content.code.copy
+    - content.code.annotate
     - navigation.indexes
     - navigation.sections
     - navigation.tabs
@@ -24,7 +25,7 @@ nav:
   - Development:
       - Project Overview: development/project_overview.md
       - Development:
-        - "Development Environment": development/setup.md
+        - "Getting Started": development/setup.md
         - "Writing Code": development/code.md
         - "Writing Tests": development/tests.md
         - "CI/CD": development/CI_CD.md
