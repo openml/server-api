@@ -22,14 +22,15 @@ nav:
   - Deployment:
       - installation.md
   - Development:
-      - Setup: contributing/setup.md
-      - Tests: contributing/tests.md
-      - Project Overview: contributing/project_overview.md
-      - Documentation: contributing/documentation.md
+      - Project Overview: development/project_overview.md
+      - Development:
+        - "Development Environment": development/setup.md
+        - "Running Tests": development/tests.md
+        - Documentation: development/documentation.md
       - Database:
-        - database/index.md
-        - openml: database/openml.md
-        - openml_expdb: database/openml_expdb.md
+        - development/database/index.md
+        - openml: development/database/openml.md
+        - openml_expdb: development/database/openml_expdb.md
   - Contributing:
       - contributing/index.md
       - Code of Conduct: contributing/code_of_conduct.md
