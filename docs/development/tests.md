@@ -45,6 +45,25 @@ When writing tests, we have the following additional conventions on the file str
  - Use a `_test` suffix when naming our files (not a `test_` prefix). Our tests already exist in a `tests` directory, and in common tree list side panels it's likely you can only see the start of file names, so this is more informative.
  - One dedicated test file per endpoint
 
+The diagram below shows the structure of the `tests/` directory visually.
+Omitted files are indicated with `...`.
+```mermaid
+treeView-beta
+database/
+  runs_test.py  ## Tests for src/database/runs.py
+  ...
+dependencies/  ## Tests for dependencies of src/routers/dependencies.py
+  ...
+resources/  ## Files required for testing purposes
+  ...
+routers/
+  dataset_tag_test.py  ## tests for src/routers/datasets.py's `/datasets/{IDENTIFIER}/tag` endpoint
+  ...
+config_test.py  ## Tests for config.py
+conftest.py  ## Pytest configuration and fixtures
+constants.py  ## Constants used for multiple tests (e.g.,
+users.py ##  Stubs and constants for user accounts
+```
 
 ### General Test Guidelines
 Some guidelines and things to keep in mind when writing tests:

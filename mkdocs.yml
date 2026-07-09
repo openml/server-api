@@ -25,7 +25,9 @@ nav:
       - Project Overview: development/project_overview.md
       - Development:
         - "Development Environment": development/setup.md
+        - "Writing Code": development/code.md
         - "Writing Tests": development/tests.md
+        - "CI/CD": development/CI_CD.md
         - Documentation: development/documentation.md
       - Database:
         - development/database/index.md
@@ -39,7 +41,11 @@ markdown_extensions:
   - attr_list
   - admonition
   - pymdownx.details
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true
   - pymdownx.emoji
