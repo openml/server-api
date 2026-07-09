@@ -121,6 +121,30 @@ Additional messages may be added at your discretion, following these guidelines:
     During early development, the logging framework wasn't set up yet.
     Some endpoints may lack logging (other than the middleware).
 
+## Routers
+
+We use FastAPI to create routers for specific categories of endpoints (e.g., `/datasets`) as shown in the code example in ["Anatomy of an Endpoint"](#anatomy-of-an-endpoint).
+Additionally, we also make use of [Middleware](https://fastapi.tiangolo.com/reference/middleware/) functions which operate on each request for logging (see [Logging](#logging)) and [exception handlers](https://fastapi.tiangolo.com/tutorial/handling-errors/#install-custom-exception-handlers) for formatting errors.
+
+### Endpoint Paths
+
+The endpoints currently follow the pattern used the PHP-based REST API, but these paths don't always follow modern conventions.
+For example, fetching a dataset's qualities requires a request to `datasets/qualities/{identifier}` even though having it available as `datasets/{identifier}/qualities` would be more conventional.
+
+### Errors
+
+Error responses of the REST API should follow the [RFC9457](https://www.rfc-editor.org/rfc/rfc9457.html) standard.
+Exception handlers take care of the formatting automatically, so long as the exception you raise inherits from the `ProblemDetailError` class defined in `core/errors.py`.
+Reference the class documentation for the attributes the errors should have.
+The current error classes are largely based on the PHP errors, but we will likely consolidate these errors into broader categories eventually (e.g., there are currently multiple errors defined for users accessing data they are not allowed to see, one for a dataset, one for a study, ...).
+
+## Database
+
+Select the [database](database/index.md) pages from the sidebar for information on the database schema.
+
+### SQLAlchemy
+
+
 ### ORM usage
 
 The project currently uses a mix of ORM and SQL queries to interact with the databases.
