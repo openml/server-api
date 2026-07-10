@@ -7,6 +7,8 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field, HttpUrl
 
+from core.types import Identifier
+
 
 class DatasetFileFormat(StrEnum):
     """Allowed file formats for data files."""
@@ -68,7 +70,7 @@ class Feature(BaseModel):
 class DatasetMetadata(BaseModel):
     """Metadata for a dataset."""
 
-    id_: int = Field(json_schema_extra={"example": 1}, alias="id")
+    id: Identifier = Field(json_schema_extra={"example": 1})
     visibility: Visibility = Field(json_schema_extra={"example": Visibility.PUBLIC})
     status: DatasetStatus = Field(json_schema_extra={"example": DatasetStatus.ACTIVE})
 
@@ -115,7 +117,7 @@ class DatasetMetadata(BaseModel):
     description: str = Field(
         json_schema_extra={"example": "The original Annealing dataset from UCI."},
     )
-    description_version: int = Field(json_schema_extra={"example": 2})
+    description_version: Identifier = Field(json_schema_extra={"example": 2})
     tags: list[str] = Field(json_schema_extra={"example": ["study_1", "uci"]}, alias="tag")
     default_target_attribute: list[str] = Field(json_schema_extra={"example": "class"})
     ignore_attribute: list[str] = Field(json_schema_extra={"example": "sensitive_feature"})
@@ -134,9 +136,8 @@ class DatasetMetadata(BaseModel):
         },
     )
     file_id: int = Field(json_schema_extra={"example": 1})
-    format_: DatasetFileFormat = Field(
+    format: DatasetFileFormat = Field(
         json_schema_extra={"example": DatasetFileFormat.ARFF},
-        alias="format",
     )
     original_data_url: list[HttpUrl] | None = Field(
         json_schema_extra={"example": "https://www.openml.org/d/2"},

@@ -32,7 +32,7 @@ async def get_estimation_procedures(connection: AsyncConnection) -> list[Estimat
     row = await connection.execute(
         text(
             """
-            SELECT `id` as 'id_', `ttid` as 'task_type_id', `name`, `type` as 'type_',
+            SELECT `id`, `ttid` as 'task_type_id', `name`, `type` as 'type_',
                    `repeats`, `folds`, `stratified_sampling`, `percentage`
             FROM estimation_procedure
             """,

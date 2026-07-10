@@ -494,7 +494,7 @@ async def get_task(
         name = f"Task {task_id}: {dataset.name} ({task_type.name})"
 
     return Task(
-        id_=task.task_id,
+        id=task.task_id,
         name=name,
         task_type_id=task.ttid,
         task_type=task_type.name,
