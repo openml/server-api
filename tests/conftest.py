@@ -38,10 +38,9 @@ PHP_API_URL = "http://php-api:80/api/v1/json"
 
 
 @contextlib.asynccontextmanager
-async def automatic_rollback(engine: AsyncEngine) -> AsyncIterator[AsyncConnection]:
-    async with engine.connect() as connection:
-        transaction = await connection.begin()
-        yield connection
+async def automatic_rollback(engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
+    async with AsyncSession(engine) as session, session.begin() as transaction:
+        yield session
         if transaction.is_active:
             await transaction.rollback()
 
@@ -70,32 +69,15 @@ async def temporary_records(
 
 
 @pytest.fixture
-async def expdb_test() -> AsyncIterator[AsyncConnection]:
-    async with automatic_rollback(expdb_database()) as connection:
-        yield connection
-
-
-@pytest.fixture
-async def expdb_session(expdb_test: AsyncConnection) -> AsyncIterator[AsyncSession]:
-    # It is possible that this session `commits`, does the connection
-    # rollback then still take effect? Probably not.
-    async with AsyncSession(expdb_test) as session:
+async def expdb_session() -> AsyncIterator[AsyncSession]:
+    async with automatic_rollback(expdb_database()) as session:
         yield session
-        # Do we here again need to do some check on whether there is an active transation?
-        await session.rollback()
 
 
 @pytest.fixture
-async def user_test() -> AsyncIterator[AsyncConnection]:
-    async with automatic_rollback(user_database()) as connection:
-        yield connection
-
-
-@pytest.fixture
-async def userdb_session(user_test: AsyncConnection) -> AsyncIterator[AsyncSession]:
-    async with AsyncSession(user_test) as session:
+async def userdb_session() -> AsyncIterator[AsyncSession]:
+    async with automatic_rollback(user_database()) as session:
         yield session
-        await session.rollback()
 
 
 # The PHP API fixture can be session scoped since they do not need access to
@@ -124,8 +106,8 @@ async def app() -> AsyncIterator[FastAPI]:
 
 @pytest.fixture
 async def py_api(
-    expdb_test: AsyncConnection,
-    user_test: AsyncConnection,
+    expdb_session: AsyncSession,
+    userdb_session: AsyncSession,
     app: FastAPI,
 ) -> AsyncIterator[httpx.AsyncClient]:
     """Create test client which automatically rolls back database updates on teardown."""
@@ -133,17 +115,17 @@ async def py_api(
     # automatic rollbacks, but also lets a test author write to a database
     # transaction that is shared with the app. That is, it enables:
     #
-    # def my_test(expdb_test, py_api):
-    #     expdb_test.execute(...)  # write some data  # noqa: ERA001
+    # def my_test(expdb_session, py_api):
+    #     expdb_session.execute(...)  # write some data  # noqa: ERA001
     #     py_api.get(...)  # read that data           # noqa: ERA001
 
     async def override_expdb() -> AsyncIterator[AsyncSession]:
-        async with AsyncSession(expdb_test) as session:
-            yield session
+        async with expdb_session.begin_nested():
+            yield expdb_session
 
     async def override_userdb() -> AsyncIterator[AsyncSession]:
-        async with AsyncSession(user_test) as session:
-            yield session
+        async with userdb_session.begin_nested():
+            yield userdb_session
 
     app.dependency_overrides[expdb_session_dep] = override_expdb
     app.dependency_overrides[userdb_session_dep] = override_userdb

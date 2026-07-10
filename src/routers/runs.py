@@ -86,30 +86,17 @@ async def _load_run_context(
     userdb: AsyncSession,
     engine_ids: list[int],
 ) -> RunContext:
-    (
-        uploader_user,
-        tags,
-        input_data_rows,
-        output_file_rows,
-        evaluation_rows,
-        task_type,
-        task_evaluation_measure,
-        setup,
-        parameter_rows,
-    ) = cast(
-        "tuple[Any, list[str], list[UntypedRow], list[UntypedRow], list[UntypedRow], str | None, str | None, Setup | None, list[UntypedRow]]",  # noqa: E501
-        await asyncio.gather(
-            database.users.get_user(user_id=run.uploader, session=userdb),
-            database.runs.get_tags(run.rid, expdb),
-            database.runs.get_input_data(run.rid, expdb),
-            database.runs.get_output_files(run.rid, expdb),
-            database.runs.get_evaluations(run.rid, expdb, evaluation_engine_ids=engine_ids),
-            database.tasks.get_task_type_name(run.task_id, expdb),
-            database.tasks.get_task_evaluation_measure(run.task_id, expdb),
-            database.setups.get(run.setup, expdb),
-            database.setups.get_parameters(run.setup, expdb),
-        ),
+    uploader_user = await database.users.get_user(user_id=run.uploader, session=userdb)
+    tags = await database.runs.get_tags(run.rid, expdb)
+    input_data_rows = await database.runs.get_input_data(run.rid, expdb)
+    output_file_rows = await database.runs.get_output_files(run.rid, expdb)
+    evaluation_rows = await database.runs.get_evaluations(
+        run.rid, expdb, evaluation_engine_ids=engine_ids
     )
+    task_type = await database.tasks.get_task_type_name(run.task_id, expdb)
+    task_evaluation_measure = await database.tasks.get_task_evaluation_measure(run.task_id, expdb)
+    setup = await database.setups.get(run.setup, expdb)
+    parameter_rows = await database.setups.get_parameters(run.setup, expdb)
     return RunContext(
         uploader_name=uploader_user.full_name if uploader_user else None,
         tags=tags,

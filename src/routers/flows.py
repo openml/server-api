@@ -9,6 +9,7 @@ import database.flows
 from core.conversions import str_to_num
 from core.errors import FlowNotFoundError
 from core.types import Identifier
+from database.models import tags
 from routers.dependencies import expdb_session
 from routers.schemas.flows import Flow, Parameter, Subflow
 
@@ -47,11 +48,9 @@ async def get_flow(
         msg = f"Flow with id {flow_id} not found."
         raise FlowNotFoundError(msg)
 
-    parameter_rows, tags, subflow_rows = await asyncio.gather(
-        database.flows.get_parameters(flow_id, expdb),
-        database.flows.get_tags(flow_id, expdb),
-        database.flows.get_subflows(flow_id, expdb),
-    )
+    parameter_rows = await database.flows.get_parameters(flow_id, expdb)
+    tags = await database.flows.get_tags(flow_id, expdb)
+    subflow_rows = await database.flows.get_subflows(flow_id, expdb)
     parameters = [
         Parameter(
             name=parameter.name,

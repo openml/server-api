@@ -19,6 +19,7 @@ from loguru import logger
 from sqlalchemy import bindparam, text
 
 import database.datasets
+from database.models import tags
 import database.qualities
 from config import get_config
 from core.access import user_has_access
@@ -394,10 +395,8 @@ async def get_dataset_features(
     """Return metadata for each feature (column) in the dataset."""
     assert expdb is not None  # noqa: S101
     await _get_dataset_raise_otherwise(dataset_id, user, expdb)
-    features, ontologies = await asyncio.gather(
-        database.datasets.get_features(dataset_id, expdb),
-        database.datasets.get_feature_ontologies(dataset_id, expdb),
-    )
+    features = await database.datasets.get_features(dataset_id, expdb)
+    ontologies = await database.datasets.get_feature_ontologies(dataset_id, expdb)
     for feature in features:
         feature.ontology = ontologies.get(feature.index)
 
@@ -487,27 +486,25 @@ async def update_dataset_status(
 )
 async def get_dataset(
     dataset_id: Identifier,
-    user_db: Annotated[AsyncSession, Depends(userdb_session)],
-    expdb_db: Annotated[AsyncSession, Depends(expdb_session)],
+    userdb_session: Annotated[AsyncSession, Depends(userdb_session)],
+    expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
     user: Annotated[User | None, Depends(fetch_user)] = None,
 ) -> DatasetMetadata:
     """Get the user-provided metadata for a dataset."""
-    dataset = await _get_dataset_raise_otherwise(dataset_id, user, expdb_db)
+    dataset = await _get_dataset_raise_otherwise(dataset_id, user, expdb_session)
     if not (
         dataset_file := await database.datasets.get_file(
             file_id=dataset.file_id,
-            session=user_db,
+            session=userdb_session,
         )
     ):
         msg = f"No data file found for dataset {dataset_id}."
         raise DatasetNoDataFileError(msg)
 
-    tags, description, processing_result, status = await asyncio.gather(
-        database.datasets.get_tags_for(dataset_id, expdb_db),
-        database.datasets.get_description(dataset_id, expdb_db),
-        _get_processing_information(dataset_id, expdb_db),
-        database.datasets.get_status(dataset_id, expdb_db),
-    )
+    tags = await database.datasets.get_tags_for(dataset_id, expdb_session)
+    description = await database.datasets.get_description(dataset_id, expdb_session)
+    processing_result = await _get_processing_information(dataset_id, expdb_session)
+    status = await database.datasets.get_status(dataset_id, expdb_session)
 
     description_ = ""
     if description:

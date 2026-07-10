@@ -104,8 +104,8 @@ async def test_get_dataset_not_found(
         await get_dataset(
             dataset_id=dataset_id,
             user=None,
-            user_db=userdb_session,
-            expdb_db=expdb_session,
+            userdb_session=userdb_session,
+            expdb_session=expdb_session,
         )
     assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
     _dataset_get_not_found_code = 111
@@ -129,8 +129,8 @@ async def test_private_dataset_no_access(
         await get_dataset(
             dataset_id=130,
             user=user,
-            user_db=userdb_session,
-            expdb_db=expdb_session,
+            userdb_session=userdb_session,
+            expdb_session=expdb_session,
         )
     assert e.value.status_code == HTTPStatus.FORBIDDEN
     assert e.value.uri == DatasetNoAccessError.uri
@@ -147,8 +147,8 @@ async def test_private_dataset_access(
     dataset = await get_dataset(
         dataset_id=130,
         user=user,
-        user_db=userdb_session,
-        expdb_db=expdb_session,
+        userdb_session=userdb_session,
+        expdb_session=expdb_session,
     )
     assert isinstance(dataset, DatasetMetadata)
 

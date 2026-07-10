@@ -152,8 +152,7 @@ async def _fill_json_template(  # noqa: C901
         }
     if isinstance(template, list):
         return [
-            await _fill_json_template(v, task, task_inputs, fetched_data, session)
-            for v in template
+            await _fill_json_template(v, task, task_inputs, fetched_data, session) for v in template
         ]
     if not isinstance(template, str):
         msg = f"Unexpected type for `template`: {template=}, {type(template)=}"
@@ -414,19 +413,17 @@ async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
         """,
     ).bindparams(bindparam("task_ids", expanding=True))
 
-    inputs_result, qualities_result, tags_result = await asyncio.gather(
-        expdb.execute(
-            inputs_query,
-            params={"task_ids": task_ids, "basic_inputs": BASIC_TASK_INPUTS},
-        ),
-        expdb.execute(
-            qualities_query,
-            params={"dataset_ids": dataset_ids, "quality_names": QUALITIES_TO_SHOW},
-        ),
-        expdb.execute(
-            tags_query,
-            params={"task_ids": task_ids},
-        ),
+    inputs_result = await expdb.execute(
+        inputs_query,
+        params={"task_ids": task_ids, "basic_inputs": BASIC_TASK_INPUTS},
+    )
+    qualities_result = await expdb.execute(
+        qualities_query,
+        params={"dataset_ids": dataset_ids, "quality_names": QUALITIES_TO_SHOW},
+    )
+    tags_result = await expdb.execute(
+        tags_query,
+        params={"task_ids": task_ids},
     )
 
     for row in inputs_result.all():
@@ -463,11 +460,9 @@ async def get_task(
         msg = f"Task {task_id} has task type {task.ttid}, but task type {task.ttid} is not found."
         raise InternalError(msg)
 
-    task_input_rows, ttios, tags = await asyncio.gather(
-        database.tasks.get_input_for_task(task_id, expdb),
-        database.tasks.get_task_type_inout_with_template(task_type.ttid, expdb),
-        database.tasks.get_tags(task_id, expdb),
-    )
+    task_input_rows = await database.tasks.get_input_for_task(task_id, expdb)
+    ttios = await database.tasks.get_task_type_inout_with_template(task_type.ttid, expdb)
+    tags = await database.tasks.get_tags(task_id, expdb)
     task_inputs = {
         row.input: int(row.value) if row.value.isdigit() else row.value for row in task_input_rows
     }
@@ -475,9 +470,9 @@ async def get_task(
     input_templates = [
         (name, template) for name, io, required, template in templates if io == "input"
     ]
-    filled_templates = await asyncio.gather(
-        *[fill_template(template, task, task_inputs, expdb) for name, template in input_templates],
-    )
+    filled_templates = []
+    for name, template in input_templates:
+        filled_templates.append(await fill_template(template, task, task_inputs, expdb))
     inputs = [
         filled | {"name": name}
         for (name, _), filled in zip(input_templates, filled_templates, strict=True)
