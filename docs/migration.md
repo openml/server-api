@@ -18,7 +18,7 @@ It is possible this migration guide is out of sync for endpoints not yet deploye
 Before an endpoint is deployed to production we will ensure that the documentation is up-to-date to the best of our knowledge.
 
 ## Standardized Errors
-The Pyhon-based API will return different HTTP status codes depending on the error (for example, returning `404 NOT FOUND` if a requested dataset does not exist).
+The Python-based API will return different HTTP status codes depending on the error (for example, returning `404 NOT FOUND` if a requested dataset does not exist).
 Moreover, the body of the response will contain a JSON body that adheres to the RFC9457 standard.
 
 ### Error Response Body
