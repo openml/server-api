@@ -74,8 +74,8 @@ async def get_flow(
         )
 
     return Flow(
-        id_=flow.id,
-        uploader=flow.uploader,
+        id=flow.id,
+        uploader_id=flow.uploader,
         name=flow.name,
         class_name=flow.class_name,
         version=flow.version,

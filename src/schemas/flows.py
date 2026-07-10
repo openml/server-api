@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from core.types import Identifier, TagString
 
 
 class Parameter(BaseModel):
@@ -14,8 +16,8 @@ class Parameter(BaseModel):
 
 
 class Flow(BaseModel):
-    id_: int = Field(serialization_alias="id")
-    uploader: int | None
+    id: Identifier
+    uploader_id: Identifier | None = Field(serialization_alias="uploader")
     name: str = Field(max_length=1024)
     class_name: str | None = Field(max_length=256)
     version: int
@@ -26,11 +28,11 @@ class Flow(BaseModel):
     dependencies: str | None
     parameter: list[Parameter]
     subflows: list[Subflow]
-    tag: list[str]
+    tag: list[TagString]
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class Subflow(TypedDict):
-    identifier: str | None
+class Subflow(BaseModel):
+    alias: str | None = Field(alias="identifier")
     flow: Flow
