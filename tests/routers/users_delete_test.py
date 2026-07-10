@@ -9,7 +9,9 @@ import pytest
 import pytest_mock  # noqa: TC002 used at runtime by pytest fixtures
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession  # noqa: TC002 used at runtime by pytest fixtures
+from sqlalchemy.ext.asyncio import (  # noqa: TC002 used at runtime by pytest fixtures
+    AsyncSession,
+)
 
 from core.errors import AccountHasResourcesError, ForbiddenError, UserNotFoundError
 from core.types import Identifier

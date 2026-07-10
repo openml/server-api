@@ -11,7 +11,7 @@ from tests.users import ApiKey
 
 if TYPE_CHECKING:
     import httpx
-    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def _attach_tasks_to_study(

@@ -6,7 +6,6 @@ The metadata is partially provided by the user (for example, the name or descrip
 and 'qualities' (or meta-features) that describe the data (for example, number of rows or columns).
 """
 
-import asyncio
 import html
 import re
 from datetime import datetime
@@ -19,7 +18,6 @@ from loguru import logger
 from sqlalchemy import bindparam, text
 
 import database.datasets
-from database.models import tags
 import database.qualities
 from config import get_config
 from core.access import user_has_access

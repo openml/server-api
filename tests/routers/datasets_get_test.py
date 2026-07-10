@@ -19,7 +19,7 @@ from tests.users import ADMIN_USER, DATASET_130_OWNER, NO_USER, SOME_USER, ApiKe
 
 if TYPE_CHECKING:
     import httpx
-    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def test_get_dataset_via_api(py_api: httpx.AsyncClient) -> None:

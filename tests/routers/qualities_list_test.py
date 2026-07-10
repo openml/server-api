@@ -7,7 +7,7 @@ from sqlalchemy import text
 
 if TYPE_CHECKING:
     import httpx
-    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def _remove_quality_from_database(quality_name: str, expdb_session: AsyncSession) -> None:

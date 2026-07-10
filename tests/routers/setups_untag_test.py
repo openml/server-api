@@ -14,7 +14,7 @@ from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
 
 if TYPE_CHECKING:
     import httpx
-    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def test_setup_untag_missing_auth(py_api: httpx.AsyncClient) -> None:
