@@ -4,12 +4,12 @@ This is the Python-based OpenML REST API server.
 It's a rewrite of our [old backend](http://github.com/openml/openml) built with a
 modern Python-based stack.
 
-### What's changed?
+## What's changed?
 For an overview about how the REST API is changing, visit the
 [migration guide](migration.md).
 
 
-### Why a new REST API?
+## Why a new REST API?
 The current production REST API has been with us for over a decade, and is still trotting along.
 However, it's built on a number of technologies which fell out of favor and some of its design decisions do not match current-day expectations.
 The current REST API would need significant refactoring to bring it up-to-date.

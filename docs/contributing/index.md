@@ -27,7 +27,7 @@ When you open a bug report, please include:
 
 For minor fixes such as correcting a typo or a broken link, it's fine to make the changes and submit them through a pull request.
 For larger changes, please make sure you are assigned to an issue first as is described
-in the "[Code](#code)" section of this page. Then, visit the "[Developer Documentation](../development/project_overview.md)"
+in the "[Code](#code)" section of this page. Then, visit the "[Developer Documentation](../development/documentation.md)"
 page to learn how to contribute documentation changes.
 
 ### Code
@@ -49,7 +49,7 @@ please head over to the "[Setting up the development environment](../development
     While we are entirely grateful that so many people take an interest and want to help,
     the majority of the work is figuring out what the desired behavior and interface of the
     REST API should be. Making these decisions requires a lot of context about the OpenML platform,
-    ecosystem, and its history. For this reason, we restrict community contributions in this
+    ecosystem, and its history. For this reason, we restrict community code contributions in this
     project to issues that are marked "Good First Issue" or "Help Wanted" for now.
 
 

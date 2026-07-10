@@ -1,4 +1,9 @@
-# Documentation with mkdocs-material
+# Documentation with Zensical
+
+!!! tip "Small fixes"
+
+    Small fixes to the documentation can easily be made from GitHub itself.
+    Navigate to the file, click the pencil icon in the top right, edit the document, and open a pull request.
 
 Our documentation is built using [Zensical](https://zensical.org/).
 It's made by the people that created Material for MkDocs, and is "backwards compatible" with that project (in fact, these docs were originally written for that framework).
@@ -42,6 +47,6 @@ This will serve the documentation from the `docs/` directory to [http://localhos
 Any updates you make to files in that directory will be reflected on the website.
 When you are happy with your changes, just commit and set up a pull request!
 
-!! tip "Can't connect to Docker?"
+!!! tip "Can't connect to Docker?"
 
     If the docker container is running but you cannot access it, it's likely that you did not correctly specify the compose files to include `compose.ports.yaml`.

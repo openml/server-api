@@ -18,11 +18,11 @@ python -m venv .venv
 source .venv/bin/activate
 ```
 
-We can use [`uv`](https://docs.astral.sh/uv/) to easily install the required dependencies from our [pyproject.toml]().
+We can use [`uv`](https://docs.astral.sh/uv/) to easily install the required dependencies from our [pyproject.toml](https://github.com/openml/server-api/blob/main/pyproject.toml).
 
 ```bash
 python -m pip install uv
-uv pip instal -e ".[dev]"
+uv pip install -e ".[dev]"
 ```
 
 ## Pre-commit
