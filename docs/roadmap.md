@@ -31,5 +31,5 @@ Richer metadata for assets on OpenML (e.g., structured citation data), collabora
 ## Other Services
 Besides the REST API, there are a few other components which need to be developed:
 
- - A logstash pipeline to populate ES indices based on the database data and/or a message queue. Currently, the PHP-based REST API directly puts documents into ES indices, which makes it prone to getting out of sync, and requires an ES server to run to use/test the API in ways which otherwise to not require an ES index.
+ - A logstash pipeline to populate ES indices based on the database data and/or a message queue. Currently, the PHP-based REST API directly puts documents into ES indices, which makes it prone to getting out of sync, and requires an ES server to run to use/test the API in ways which otherwise would not require an ES index.
  - Evaluation Engine. A service which computes meta-features for datasets, including the "qualities" and "features" you find with datasets.
