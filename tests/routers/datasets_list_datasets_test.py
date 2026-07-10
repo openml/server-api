@@ -9,6 +9,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from core.errors import NoResultsError
+from core.types import Identifier
 from database.users import User
 from routers.datasets import DatasetStatusFilter, list_datasets
 from routers.dependencies import LIMIT_DEFAULT, Pagination
@@ -265,7 +266,7 @@ async def test_list_data_version_no_result(expdb_test: AsyncConnection) -> None:
     [(1, 59), (2, 34), (16, 1)],
 )
 async def test_list_uploader(
-    user_id: int, count: int, user: User, expdb_test: AsyncConnection
+    user_id: Identifier, count: int, user: User, expdb_test: AsyncConnection
 ) -> None:
     # The dataset of user 16 is private, so can not be retrieved by other users.
     owner_user_id = 16

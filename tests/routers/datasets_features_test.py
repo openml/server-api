@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from core.errors import DatasetNoAccessError, DatasetNotFoundError, DatasetProcessingError
+from core.types import Identifier
 from database.users import User
 from routers.datasets import get_dataset_features
 from tests.users import ADMIN_USER, DATASET_130_OWNER
@@ -117,7 +118,7 @@ async def test_dataset_features_dataset_does_not_exist(expdb_test: AsyncConnecti
     list(range(1, 130)),
 )
 async def test_datasets_feature_is_identical(
-    data_id: int,
+    data_id: Identifier,
     py_api: httpx.AsyncClient,
     php_api: httpx.AsyncClient,
 ) -> None:

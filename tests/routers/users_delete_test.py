@@ -12,6 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncConnection  # noqa: TC002 used at runtime by pytest fixtures
 
 from core.errors import AccountHasResourcesError, ForbiddenError, UserNotFoundError
+from core.types import Identifier
 from database.users import UserGroup
 from routers.users import delete_user_account
 from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
@@ -26,7 +27,7 @@ async def test_delete_user_missing_auth(py_api: httpx.AsyncClient) -> None:
 
 
 class DisposableUser(NamedTuple):
-    user_id: int
+    user_id: Identifier
     api_key: str
 
 

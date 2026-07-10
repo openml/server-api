@@ -11,6 +11,7 @@ from sqlalchemy import text
 
 import tests.constants
 from core.errors import DatasetNoAccessError, DatasetNotFoundError
+from core.types import Identifier
 from database.users import User
 from routers.datasets import get_dataset
 from schemas.datasets import DatasetMetadata
@@ -95,7 +96,7 @@ async def test_dataset_no_500_with_multiple_processing_entries(
     [138, 100_000],
 )
 async def test_get_dataset_not_found(
-    dataset_id: int,
+    dataset_id: Identifier,
     expdb_test: AsyncConnection,
     user_test: AsyncConnection,
 ) -> None:
@@ -160,7 +161,7 @@ async def test_private_dataset_access(
     range(1, 132),
 )
 async def test_dataset_response_is_identical(  # noqa: C901, PLR0912
-    dataset_id: int,
+    dataset_id: Identifier,
     py_api: httpx.AsyncClient,
     php_api: httpx.AsyncClient,
 ) -> None:

@@ -5,6 +5,7 @@ import pytest
 from sqlalchemy import text
 
 from core.errors import StudyConflictError
+from core.types import Identifier
 from schemas.study import StudyType
 from tests.users import ApiKey
 
@@ -14,8 +15,8 @@ if TYPE_CHECKING:
 
 
 async def _attach_tasks_to_study(
-    study_id: int,
-    task_ids: list[int],
+    study_id: Identifier,
+    task_ids: list[Identifier],
     api_key: str,
     py_api: httpx.AsyncClient,
     expdb_test: AsyncConnection,

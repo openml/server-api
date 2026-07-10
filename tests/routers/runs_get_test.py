@@ -10,6 +10,7 @@ import httpx  # noqa: TC002
 import pytest
 
 from core.conversions import nested_num_to_str, nested_remove_single_element_list
+from core.types import Identifier
 from routers.runs import _build_evaluations
 
 # ── Fixtures assume run 24 exists in the test DB (confirmed in research) ──
@@ -135,10 +136,10 @@ async def test_get_run_non_empty_error(py_api: httpx.AsyncClient) -> None:
 
     # Since the test database does not have a run with an error, we mock the DB fetch
     class MockRunRow(NamedTuple):
-        rid: int
-        uploader: int
-        setup: int
-        task_id: int
+        rid: Identifier
+        uploader: Identifier
+        setup: Identifier
+        task_id: Identifier
         error_message: str
 
     mock_row = MockRunRow(
@@ -225,7 +226,7 @@ _RUN_IDS = [*range(24, 35), 999_999_999]
 
 @pytest.mark.parametrize("run_id", _RUN_IDS)
 async def test_get_run_equal(
-    run_id: int,
+    run_id: Identifier,
     py_api: httpx.AsyncClient,
     php_api: httpx.AsyncClient,
 ) -> None:

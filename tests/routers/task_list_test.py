@@ -7,6 +7,7 @@ import pytest
 
 from core.conversions import nested_remove_single_element_list
 from core.errors import NoResultsError
+from core.types import Identifier
 from routers.dependencies import LIMIT_MAX, Pagination
 from routers.tasks import TaskStatusFilter, list_tasks
 
@@ -145,7 +146,7 @@ async def test_list_tasks_filter_tag(expdb_test: AsyncConnection) -> None:
 
 @pytest.mark.parametrize("task_id", [1, 59, [1, 2, 3]])
 async def test_list_tasks_filter_task_id(
-    task_id: int | list[int], expdb_test: AsyncConnection
+    task_id: Identifier | list[Identifier], expdb_test: AsyncConnection
 ) -> None:
     """Filter by task_id returns only those tasks (regardless of status)."""
     ids = [task_id] if isinstance(task_id, int) else task_id

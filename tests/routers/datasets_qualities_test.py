@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 import deepdiff
 import pytest
 
+from core.types import Identifier
+
 if TYPE_CHECKING:
     import httpx
 
@@ -131,7 +133,7 @@ async def test_get_quality(py_api: httpx.AsyncClient) -> None:
     [*list(set(range(1, 133))), 9999999],
 )
 async def test_get_quality_identical(
-    data_id: int, py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
+    data_id: Identifier, py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
 ) -> None:
     py_response, php_response = await asyncio.gather(
         py_api.get(f"/datasets/qualities/{data_id}"),

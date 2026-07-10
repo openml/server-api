@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from core.errors import DatasetNotFoundError, TagAlreadyExistsError
+from core.types import Identifier
 from database.datasets import get_tags_for
 from database.users import User
 from routers.datasets import tag_dataset
@@ -117,7 +118,7 @@ async def test_dataset_tag_fails_if_dataset_does_not_exist(expdb_test: AsyncConn
     ids=["typically existing tag", "new tag"],
 )
 async def test_dataset_tag_response_is_identical(
-    dataset_id: int,
+    dataset_id: Identifier,
     tag: str,
     api_key: str,
     py_api: httpx.AsyncClient,

@@ -9,13 +9,14 @@ import pytest
 
 from core.conversions import nested_num_to_str
 from core.errors import RunNotFoundError, RunTraceNotFoundError
+from core.types import Identifier
 
 if TYPE_CHECKING:
     import httpx
 
 
 @pytest.mark.parametrize("run_id", [34])
-async def test_get_run_trace_success(run_id: int, py_api: httpx.AsyncClient) -> None:
+async def test_get_run_trace_success(run_id: Identifier, py_api: httpx.AsyncClient) -> None:
     """Test that trace data is returned for a run that has trace entries."""
     response = await py_api.get(f"/run/trace/{run_id}")
     assert response.status_code == HTTPStatus.OK
@@ -32,7 +33,7 @@ async def test_get_run_trace_success(run_id: int, py_api: httpx.AsyncClient) -> 
 
 
 @pytest.mark.parametrize("run_id", [24])
-async def test_get_run_trace_no_trace(run_id: int, py_api: httpx.AsyncClient) -> None:
+async def test_get_run_trace_no_trace(run_id: Identifier, py_api: httpx.AsyncClient) -> None:
     """Test that 404 is returned for a run that exists but has no trace."""
     response = await py_api.get(f"/run/trace/{run_id}")
     assert response.status_code == HTTPStatus.NOT_FOUND
@@ -44,7 +45,7 @@ async def test_get_run_trace_no_trace(run_id: int, py_api: httpx.AsyncClient) ->
 
 
 @pytest.mark.parametrize("run_id", [999999])
-async def test_get_run_trace_run_not_found(run_id: int, py_api: httpx.AsyncClient) -> None:
+async def test_get_run_trace_run_not_found(run_id: Identifier, py_api: httpx.AsyncClient) -> None:
     """Test that 404 is returned when the run does not exist."""
     response = await py_api.get(f"/run/trace/{run_id}")
     assert response.status_code == HTTPStatus.NOT_FOUND
@@ -60,7 +61,7 @@ _SERVER_RUNS = [*range(24, 40), *range(134, 140), 999_999_999]
 
 @pytest.mark.parametrize("run_id", _SERVER_RUNS)
 async def test_get_run_trace_equal(
-    run_id: int,
+    run_id: Identifier,
     py_api: httpx.AsyncClient,
     php_api: httpx.AsyncClient,
 ) -> None:

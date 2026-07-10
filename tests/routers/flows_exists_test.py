@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from core.errors import FlowNotFoundError
+from core.types import Identifier
 from routers.flows import flow_exists
 from tests.conftest import Flow
 
@@ -62,7 +63,7 @@ async def test_flow_exists_calls_db_correctly(
     [1, 2],
 )
 async def test_flow_exists_processes_found(
-    flow_id: int,
+    flow_id: Identifier,
     mocker: MockerFixture,
     expdb_test: AsyncConnection,
 ) -> None:
