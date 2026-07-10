@@ -9,7 +9,8 @@ import _pytest.mark
 import httpx
 import pytest
 from _pytest.config import Config  # noqa: TC002 used during collection by Pytest
-from _pytest.nodes import Item  # noqa: TC002 used during collection by Pytest
+from _pytest.nodes import Item
+from sqlalchemy.orm import Session  # noqa: TC002 used during collection by Pytest
 from asgi_lifespan import LifespanManager
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +26,8 @@ from core.types import Identifier
 from database.engine import expdb_database, user_database
 from main import create_api
 from routers.dependencies import (
+    expdb_connection as expdb_connection_dep,
+    userdb_connection as userdb_connection_dep,
     expdb_session as expdb_session_dep,
     userdb_session as userdb_session_dep,
 )
@@ -38,16 +41,16 @@ PHP_API_URL = "http://php-api:80/api/v1/json"
 
 
 @contextlib.asynccontextmanager
-async def automatic_rollback(engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
-    async with AsyncSession(engine) as session, session.begin() as transaction:
-        yield session
+async def automatic_rollback(engine: AsyncEngine) -> AsyncIterator[AsyncConnection]:
+    async with engine.connect() as connection, connection.begin() as transaction:
+        yield connection
         if transaction.is_active:
             await transaction.rollback()
 
 
 @contextlib.asynccontextmanager
 async def temporary_records(
-    session: AsyncSession,
+    connection: AsyncConnection,
     insert_queries: Iterable[tuple[str, dict[str, Any] | None]],
     delete_queries: Iterable[tuple[str, dict[str, Any] | None]],
     *,
@@ -55,28 +58,44 @@ async def temporary_records(
 ) -> AsyncIterator[None]:
     """Execute insert queries on enter and their corresponding delete queries on exit."""
     for query, parameters in insert_queries:
-        await session.execute(text(query), params=parameters)
+        await connection.execute(text(query), parameters=parameters)
     if persist:
-        await session.commit()
+        await connection.commit()
 
     try:
         yield
     finally:
         for query, parameters in delete_queries:
-            await session.execute(text(query), params=parameters)
+            await connection.execute(text(query), parameters=parameters)
         if persist:
-            await session.commit()
+            await connection.commit()
 
 
 @pytest.fixture
-async def expdb_session() -> AsyncIterator[AsyncSession]:
-    async with automatic_rollback(expdb_database()) as session:
+async def expdb_connection() -> AsyncIterator[AsyncConnection]:
+    async with automatic_rollback(expdb_database()) as connection:
+        yield connection
+
+
+@pytest.fixture
+async def userdb_connection() -> AsyncIterator[AsyncConnection]:
+    async with automatic_rollback(user_database()) as connection:
+        yield connection
+
+
+@pytest.fixture
+async def expdb_session(expdb_connection: AsyncConnection) -> AsyncIterator[AsyncSession]:
+    async with AsyncSession(
+        bind=expdb_connection, join_transaction_mode="create_savepoint"
+    ) as session:
         yield session
 
 
 @pytest.fixture
-async def userdb_session() -> AsyncIterator[AsyncSession]:
-    async with automatic_rollback(user_database()) as session:
+async def userdb_session(userdb_connection: AsyncConnection) -> AsyncIterator[AsyncSession]:
+    async with AsyncSession(
+        bind=userdb_connection, join_transaction_mode="create_savepoint"
+    ) as session:
         yield session
 
 
@@ -106,6 +125,8 @@ async def app() -> AsyncIterator[FastAPI]:
 
 @pytest.fixture
 async def py_api(
+    expdb_connection: AsyncConnection,
+    userdb_connection: AsyncConnection,
     expdb_session: AsyncSession,
     userdb_session: AsyncSession,
     app: FastAPI,
@@ -119,16 +140,22 @@ async def py_api(
     #     expdb_session.execute(...)  # write some data  # noqa: ERA001
     #     py_api.get(...)  # read that data           # noqa: ERA001
 
-    async def override_expdb() -> AsyncIterator[AsyncSession]:
-        async with expdb_session.begin_nested():
-            yield expdb_session
+    async def override_expdb_connection() -> AsyncIterator[AsyncConnection]:
+        yield expdb_connection
 
-    async def override_userdb() -> AsyncIterator[AsyncSession]:
-        async with userdb_session.begin_nested():
-            yield userdb_session
+    async def override_userdb_connection() -> AsyncIterator[AsyncConnection]:
+        yield userdb_connection
 
-    app.dependency_overrides[expdb_session_dep] = override_expdb
-    app.dependency_overrides[userdb_session_dep] = override_userdb
+    async def override_expdb_session() -> AsyncIterator[AsyncSession]:
+        yield expdb_session
+
+    async def override_userdb_session() -> AsyncIterator[AsyncSession]:
+        yield userdb_session
+
+    app.dependency_overrides[expdb_connection_dep] = override_expdb_connection
+    app.dependency_overrides[userdb_connection_dep] = override_userdb_connection
+    app.dependency_overrides[expdb_session_dep] = override_expdb_session
+    app.dependency_overrides[userdb_session_dep] = override_userdb_session
 
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
@@ -137,8 +164,10 @@ async def py_api(
     ) as client:
         yield client
 
-    app.dependency_overrides[expdb_session_dep] = expdb_session
-    app.dependency_overrides[userdb_session_dep] = userdb_session
+    app.dependency_overrides[expdb_connection_dep] = expdb_connection_dep
+    app.dependency_overrides[userdb_connection_dep] = userdb_connection_dep
+    app.dependency_overrides[expdb_session_dep] = expdb_session_dep
+    app.dependency_overrides[userdb_session_dep] = userdb_session_dep
 
 
 @pytest.fixture
@@ -282,7 +311,7 @@ async def persisted_flow(flow: Flow, expdb_session: AsyncSession) -> AsyncIterat
 
 @pytest.fixture
 def temporary_tags(
-    expdb_session: AsyncSession,
+    expdb_connection: AsyncConnection,
 ) -> Callable[..., contextlib.AbstractAsyncContextManager[None]]:
     @contextlib.asynccontextmanager
     async def _temporary_tags(
@@ -311,7 +340,7 @@ def temporary_tags(
             for tag in tags
         ]
         async with temporary_records(
-            session=expdb_session,
+            connection=expdb_connection,
             insert_queries=insert_queries,
             delete_queries=delete_queries,
             persist=persist,
