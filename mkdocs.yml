@@ -24,12 +24,12 @@ nav:
       - installation.md
   - Development:
       - Project Overview: development/project_overview.md
-      - Development:
+      - Guides:
         - "Getting Started": development/setup.md
         - "Writing Code": development/code.md
         - "Writing Tests": development/tests.md
         - "CI/CD": development/CI_CD.md
-        - Documentation: development/documentation.md
+        - "Documentation": development/documentation.md
       - Database:
         - development/database/index.md
         - openml: development/database/openml.md

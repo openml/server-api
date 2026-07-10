@@ -36,7 +36,7 @@ curl -i https://www.openml.org/api/v1/json/data/1000000
 + {"type":"https://openml.org/problems/dataset-not-found","title":"Dataset Not Found","status":404,"detail":"No dataset with id 100000 found.","code":"111"}
 ```
 
-As per the RFC9457 standard, the `type` field now includes the unique code for the error.
+As per the RFC9457 standard, the `type` field now includes the unique identifier for the error in the form of a URI.
 You will notice that the response still contains a `code` of "111" (though as a top level property not embedded in the "error" scope).
 
 The `title` field is a human readable summary of the general issue and the `detail` field may provide additional information for the specific request.
