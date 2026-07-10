@@ -1,7 +1,7 @@
 # Testing
 
 This page covers running and writing tests for the REST API.
-It assumes you already followed the instructions on the ["Setup"](setup.md) page.
+It assumes you already followed the instructions to set up your [Development Environment](setup.md).
 
 !!! note "Follow the documentation"
 
@@ -37,7 +37,7 @@ in the `docker/php/.env` file to `true` before starting the container.
 
 ## Writing Tests
 
-We use the ubiquitous [Pytest](https://docs.pytest.org) framework when writing tests.
+We use [Pytest](https://docs.pytest.org) for writing and running tests.
 
 ### File Structure
 When writing tests, we have the following additional conventions on the file structure:
@@ -45,6 +45,25 @@ When writing tests, we have the following additional conventions on the file str
  - Use a `_test` suffix when naming our files (not a `test_` prefix). Our tests already exist in a `tests` directory, and in common tree list side panels it's likely you can only see the start of file names, so this is more informative.
  - One dedicated test file per endpoint
 
+The diagram below shows the structure of the `tests/` directory visually.
+Omitted files are indicated with `...`.
+```mermaid
+treeView-beta
+database/
+  runs_test.py  ## Tests for src/database/runs.py
+  ...
+dependencies/  ## Tests for dependencies of src/routers/dependencies.py
+  ...
+resources/  ## Files required for testing purposes
+  ...
+routers/
+  dataset_tag_test.py  ## tests for src/routers/datasets.py's `/datasets/{IDENTIFIER}/tag` endpoint
+  ...
+config_test.py  ## Tests for config.py
+conftest.py  ## Pytest configuration and fixtures
+constants.py  ## Constants used for multiple tests (e.g.,
+users.py ##  Stubs and constants for user accounts
+```
 
 ### General Test Guidelines
 Some guidelines and things to keep in mind when writing tests:
@@ -53,10 +72,10 @@ Some guidelines and things to keep in mind when writing tests:
  - Mark tests that update the database in anyway with the `mut` marker (`@pytest.mark.mut`).
  - If the test is excessively slow (>0.1 sec) and does not connect to PHP, use a `slow` marker. Tests that include PHP always require roundtrips through other services which makes them slow by default. PHP tests can be filtered out with the automatically generated "php_api" marker.
  - Four common fixtures you might need when writing tests are:
-    - py_api: an async client for the Python based REST API
-    - php_api: an async client for the PHP based REST API
-    - expdb_test: an AsyncConnection to the "expdb" OpenML database.
-    - user_test: an AsyncConnection to the "openml" OpenML database.
+    - `py_api`: an async client for the Python based REST API
+    - `php_api`: an async client for the PHP based REST API
+    - `expdb_test`: an AsyncConnection to the "expdb" OpenML database.
+    - `user_test`: an AsyncConnection to the "openml" OpenML database.
  - Above fixtures have considerable per-test overhead. Use them only when you need them.
  - When writing assertions the expected value (a constant, or a php response) should be on the right (`assert response == expected`).
 

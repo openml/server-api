@@ -27,9 +27,11 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+  "pre-commit",
+]
+tests = [
     "coverage",
     "pytest-cov",
-    "pre-commit",
     "pytest",
     "pytest-mock",
     "pytest-asyncio",
@@ -40,8 +42,7 @@ dev = [
     "pytest-xdist",
 ]
 docs = [
-    "mkdocs-material",
-    "mkdocs-section-index",
+    "zensical",
 ]
 
 [project.urls]

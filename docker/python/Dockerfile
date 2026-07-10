@@ -13,7 +13,7 @@ RUN python -m pip install uv
 WORKDIR /app
 COPY pyproject.toml .
 
-RUN uv pip install -e ".[dev]"
+RUN uv pip install -e ".[dev, tests]"
 COPY . /app
 
 RUN mkdir /config

@@ -23,6 +23,13 @@ When you open a bug report, please include:
  - a description of the encountered behavior,
  - and any additional information that you think may be relevant, such as which environment you encountered it in, or when you first encountered the bug.
 
+### Documentation
+
+For minor fixes such as correcting a typo or a broken link, it's fine to make the changes and submit them through a pull request.
+For larger changes, please make sure you are assigned to an issue first as is described
+in the "[Code](#code)" section of this page. Then, visit the "[Developer Documentation](../development/documentation.md)"
+page to learn how to contribute documentation changes.
+
 ### Code
 
 If you want to make code contributions, please first make sure there is an open issue
@@ -33,14 +40,18 @@ everything is clear, it's not out of date, and "officially" assign you to the is
 that others know its being worked on. Making sure there is a clear description and clear
 assignment helps prevent a situation where someone makes a large contribution that is
 unwanted, or is simultaneously developed by someone else. With an issue assigned,
-please head over to the "[Development](contributing.md)" section.
+please head over to the "[Setting up the development environment](../development/setup.md)" section.
 
-### Documentation
+!!! info "Help Wanted?"
 
-For minor fixes, it's fine to make the changes and submit them through a pull request.
-For larger changes, please make sure you are assigned to an issue first as is described
-in the "[Code](#code)" section of this page. Then, visit the "[Documentation](documentation.md)"
-page to learn how to contribute documentation changes.
+    We learned that working with community contributions during the development of
+    the first feature-complete release of the REST API is complicated.
+    While we are entirely grateful that so many people take an interest and want to help,
+    the majority of the work is figuring out what the desired behavior and interface of the
+    REST API should be. Making these decisions requires a lot of context about the OpenML platform,
+    ecosystem, and its history. For this reason, we restrict community code contributions in this
+    project to issues that are marked "Good First Issue" or "Help Wanted" for now.
+
 
 ### Other
 
