@@ -12,7 +12,7 @@ as well as a rough structure of the codebase.
 
 
 The REST API should always be deployed with access to a database.
-In production, these services are deployed in a kubernetes cluster.
+In production, these services are deployed in a Kubernetes cluster.
 A typical request flow would then follow this pattern:
 
 ```mermaid
