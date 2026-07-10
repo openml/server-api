@@ -9,8 +9,7 @@ import _pytest.mark
 import httpx
 import pytest
 from _pytest.config import Config  # noqa: TC002 used during collection by Pytest
-from _pytest.nodes import Item
-from sqlalchemy.orm import Session  # noqa: TC002 used during collection by Pytest
+from _pytest.nodes import Item  # noqa: TC002 used during collection by Pytest
 from asgi_lifespan import LifespanManager
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -27,8 +26,14 @@ from database.engine import expdb_database, user_database
 from main import create_api
 from routers.dependencies import (
     expdb_connection as expdb_connection_dep,
-    userdb_connection as userdb_connection_dep,
+)
+from routers.dependencies import (
     expdb_session as expdb_session_dep,
+)
+from routers.dependencies import (
+    userdb_connection as userdb_connection_dep,
+)
+from routers.dependencies import (
     userdb_session as userdb_session_dep,
 )
 from tests.users import OWNER_USER
@@ -42,10 +47,11 @@ PHP_API_URL = "http://php-api:80/api/v1/json"
 
 @contextlib.asynccontextmanager
 async def automatic_rollback(engine: AsyncEngine) -> AsyncIterator[AsyncConnection]:
-    async with engine.connect() as connection, connection.begin() as transaction:
+    async with engine.connect() as connection:
+        await connection.begin()
         yield connection
-        if transaction.is_active:
-            await transaction.rollback()
+        if connection.in_transaction():
+            await connection.rollback()
 
 
 @contextlib.asynccontextmanager
@@ -290,23 +296,23 @@ async def flow(expdb_session: AsyncSession) -> Flow:
 
 
 @pytest.fixture
-async def persisted_flow(flow: Flow, expdb_session: AsyncSession) -> AsyncIterator[Flow]:
-    await expdb_session.commit()
+async def persisted_flow(flow: Flow, expdb_connection: AsyncConnection) -> AsyncIterator[Flow]:
+    await expdb_connection.commit()
     yield flow
     # We want to ensure the commit below does not accidentally persist new
     # data to the database.
-    await expdb_session.rollback()
+    await expdb_connection.rollback()
 
-    await expdb_session.execute(
+    await expdb_connection.execute(
         text(
             """
             DELETE FROM implementation
             WHERE id = :flow_id
             """,
         ),
-        params={"flow_id": flow.id},
+        parameters={"flow_id": flow.id},
     )
-    await expdb_session.commit()
+    await expdb_connection.commit()
 
 
 @pytest.fixture

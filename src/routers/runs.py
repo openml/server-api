@@ -1,8 +1,7 @@
 """Endpoints relating to Runs and Traces."""
 
-import asyncio
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Annotated, Any, cast
+from typing import TYPE_CHECKING, Annotated, cast
 
 from fastapi import APIRouter, Depends
 
@@ -91,12 +90,17 @@ async def _load_run_context(
     input_data_rows = await database.runs.get_input_data(run.rid, expdb)
     output_file_rows = await database.runs.get_output_files(run.rid, expdb)
     evaluation_rows = await database.runs.get_evaluations(
-        run.rid, expdb, evaluation_engine_ids=engine_ids
+        run.rid,
+        expdb,
+        evaluation_engine_ids=engine_ids,
     )
     task_type = await database.tasks.get_task_type_name(run.task_id, expdb)
     task_evaluation_measure = await database.tasks.get_task_evaluation_measure(run.task_id, expdb)
     setup = await database.setups.get(run.setup, expdb)
-    parameter_rows = await database.setups.get_parameters(run.setup, expdb)
+    parameter_rows = cast(
+        "list[UntypedRow]",
+        await database.setups.get_parameters(run.setup, expdb),
+    )
     return RunContext(
         uploader_name=uploader_user.full_name if uploader_user else None,
         tags=tags,

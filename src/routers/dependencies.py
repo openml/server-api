@@ -9,7 +9,7 @@ from typing import Annotated
 from fastapi import Depends
 from loguru import logger
 from pydantic import BaseModel, Field
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 from core.errors import AuthenticationFailedError, AuthenticationRequiredError
 from database.engine import expdb_database, user_database
