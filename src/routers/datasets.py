@@ -56,8 +56,14 @@ from routers.dependencies import (
     fetch_user_or_raise,
     userdb_connection,
 )
-from schemas.core import TagInfo
-from schemas.datasets import DatasetFileFormat, DatasetMetadata, DatasetStatus, Feature, FeatureType
+from routers.schemas.core import TagInfo
+from routers.schemas.datasets import (
+    DatasetFileFormat,
+    DatasetMetadata,
+    DatasetStatus,
+    Feature,
+    FeatureType,
+)
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Row

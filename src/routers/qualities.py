@@ -20,7 +20,7 @@ from core.errors import (
 from core.types import Identifier
 from database.users import User
 from routers.dependencies import expdb_connection, fetch_user
-from schemas.datasets import Quality
+from routers.schemas.datasets import Quality
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection

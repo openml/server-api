@@ -15,7 +15,7 @@ from database.exceptions import (
     ForeignKeyConstraintError,
 )
 from database.models.base import UntypedRow
-from schemas.datasets import DatasetStatus, Feature
+from routers.schemas.datasets import DatasetStatus, Feature
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection

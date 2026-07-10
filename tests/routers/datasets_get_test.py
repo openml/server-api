@@ -14,7 +14,7 @@ from core.errors import DatasetNoAccessError, DatasetNotFoundError
 from core.types import Identifier
 from database.users import User
 from routers.datasets import get_dataset
-from schemas.datasets import DatasetMetadata
+from routers.schemas.datasets import DatasetMetadata
 from tests.users import ADMIN_USER, DATASET_130_OWNER, NO_USER, SOME_USER, ApiKey
 
 if TYPE_CHECKING:

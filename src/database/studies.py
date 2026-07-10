@@ -8,7 +8,7 @@ from sqlalchemy import text
 from core.types import Identifier
 from database.models.base import UntypedRow
 from database.users import User
-from schemas.study import CreateStudy, StudyType
+from routers.schemas.study import CreateStudy, StudyType
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection

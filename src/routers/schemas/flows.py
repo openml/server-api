@@ -1,3 +1,5 @@
+"""Defines schemas for API responses relating to Flows."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -9,6 +11,8 @@ from core.types import Identifier, TagString
 
 
 class Parameter(BaseModel):
+    """Metadata for a Hyperparameter (e.g., depth of a decision tree)."""
+
     name: str
     default_value: Any
     data_type: str
@@ -16,6 +20,8 @@ class Parameter(BaseModel):
 
 
 class Flow(BaseModel):
+    """Metadata for a Flow: anything that can "solve" a task (e.g., script or algorithm)."""
+
     id: Identifier
     uploader_id: Identifier | None = Field(serialization_alias="uploader")
     name: str = Field(max_length=1024)
@@ -34,5 +40,7 @@ class Flow(BaseModel):
 
 
 class Subflow(BaseModel):
+    """Helper component to denote the alias of subflow components."""
+
     alias: str | None = Field(alias="identifier")
     flow: Flow

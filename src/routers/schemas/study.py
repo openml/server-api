@@ -1,24 +1,32 @@
+"""Defines schemas for API responses relating to Studies."""
+
 from datetime import datetime
 from enum import StrEnum, auto
 
 from pydantic import BaseModel, Field
 
 from core.types import Identifier
-from schemas.core import Visibility
+from routers.schemas.core import Visibility
 
 
 class StudyType(StrEnum):
+    """Studies currently are defined by either tasks or runs."""
+
     RUN = auto()
     TASK = auto()
 
 
 class StudyStatus(StrEnum):
+    """Status of a study."""
+
     ACTIVE = auto()
     DEACTIVATED = auto()
     IN_PREPARATION = auto()
 
 
 class Study(BaseModel):
+    """A Study is a collection of items. Currently restricted to tasks and runs only."""
+
     legacy: bool = Field(default=False, exclude=True)
     id: Identifier
     name: str

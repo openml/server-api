@@ -22,8 +22,8 @@ from core.types import Identifier
 from database.models.base import UntypedRow
 from database.users import User
 from routers.dependencies import expdb_connection, fetch_user, fetch_user_or_raise
-from schemas.core import Visibility
-from schemas.study import CreateStudy, Study, StudyStatus, StudyType
+from routers.schemas.core import Visibility
+from routers.schemas.study import CreateStudy, Study, StudyStatus, StudyType
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection

@@ -16,7 +16,7 @@ from core.types import Identifier, TagString
 from database.exceptions import DuplicatePrimaryKeyError, ForeignKeyConstraintError
 from database.users import User
 from routers.dependencies import expdb_connection, expdb_session, fetch_user_or_raise
-from schemas.setups import SetupParameters, SetupResponse
+from routers.schemas.setups import SetupParameters, SetupResponse
 
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession

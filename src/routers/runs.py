@@ -17,7 +17,7 @@ from core.types import Identifier
 from database.models.base import UntypedRow
 from database.models.setups import Setup
 from routers.dependencies import expdb_connection, expdb_session, userdb_connection
-from schemas.runs import (
+from routers.schemas.runs import (
     EvaluationScore,
     InputDataset,
     OutputData,
