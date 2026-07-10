@@ -62,7 +62,7 @@ async def _get_study_raise_otherwise(
 class AttachDetachResponse(BaseModel):
     """Response format for attaching or detaching an entity from a study."""
 
-    study_id: int
+    study_id: Identifier
     main_entity_type: StudyType
 
 

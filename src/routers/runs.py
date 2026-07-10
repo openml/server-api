@@ -144,7 +144,7 @@ def _build_evaluations(rows: list[UntypedRow]) -> list[EvaluationScore]:
 
 @router.get("/{run_id}", response_model_exclude_none=True)
 async def get_run(
-    run_id: int,
+    run_id: Identifier,
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
     userdb: Annotated[AsyncConnection, Depends(userdb_connection)],
     expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
@@ -169,7 +169,7 @@ async def get_run(
 
     return Run(
         run_id=run_id,
-        uploader=run.uploader,
+        uploader_id=run.uploader,
         uploader_name=ctx.uploader_name,
         task_id=run.task_id,
         task_type=ctx.task_type,

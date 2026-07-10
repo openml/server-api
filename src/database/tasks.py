@@ -58,7 +58,7 @@ async def get_task_type(task_type_id: Identifier, expdb: AsyncConnection) -> Unt
     return row.one_or_none()
 
 
-async def get_task_type_name(task_id: int, expdb: AsyncConnection) -> str | None:
+async def get_task_type_name(task_id: Identifier, expdb: AsyncConnection) -> str | None:
     """Fetch the human-readable task type name for the task associated with a run.
 
     Joins `task` and `task_type` on `ttid` to resolve the name
@@ -79,7 +79,7 @@ async def get_task_type_name(task_id: int, expdb: AsyncConnection) -> str | None
     return result.name if result else None
 
 
-async def get_task_evaluation_measure(task_id: int, expdb: AsyncConnection) -> str | None:
+async def get_task_evaluation_measure(task_id: Identifier, expdb: AsyncConnection) -> str | None:
     """Fetch the evaluation measure configured for a task, if any.
 
     Queries `task_inputs` for the row where `input = 'evaluation_measures'`.

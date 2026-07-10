@@ -452,7 +452,7 @@ async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
 
 @router.get("/{task_id}")
 async def get_task(
-    task_id: int,
+    task_id: Identifier,
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
     expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> Task:

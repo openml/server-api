@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from core.errors import DatasetAdminOnlyError, DatasetNotOwnedError
+from core.types import Identifier
 from routers.datasets import update_dataset_status
 from schemas.datasets import DatasetStatus
 from tests import constants
@@ -28,7 +29,7 @@ async def test_update_status_via_api(py_api: httpx.AsyncClient) -> None:
 @pytest.mark.mut
 @pytest.mark.parametrize("dataset_id", [3, 4])
 async def test_dataset_status_update_active_to_deactivated(
-    dataset_id: int, expdb_test: AsyncConnection
+    dataset_id: Identifier, expdb_test: AsyncConnection
 ) -> None:
     result = await update_dataset_status(
         dataset_id=dataset_id,
@@ -83,7 +84,7 @@ async def test_dataset_status_update_deactivated_to_active(
 
 @pytest.mark.parametrize("dataset_id", [1, 33, 131])
 async def test_dataset_status_non_admin_cannot_activate(
-    dataset_id: int,
+    dataset_id: Identifier,
     expdb_test: AsyncConnection,
 ) -> None:
     with pytest.raises(DatasetAdminOnlyError):
@@ -97,7 +98,7 @@ async def test_dataset_status_non_admin_cannot_activate(
 
 @pytest.mark.parametrize("dataset_id", [1, 2])
 async def test_dataset_status_non_owner_cannot_deactivate(
-    dataset_id: int,
+    dataset_id: Identifier,
     expdb_test: AsyncConnection,
 ) -> None:
     with pytest.raises(DatasetNotOwnedError):

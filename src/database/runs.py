@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import bindparam, text
 
-from core.types import Identifier
+from core.types import Identifier, TagString
 from database.models.base import UntypedRow
 
 if TYPE_CHECKING:
@@ -46,7 +46,7 @@ async def get(run_id: Identifier, expdb: AsyncConnection) -> UntypedRow | None:
     return row.one_or_none()
 
 
-async def get_tags(run_id: int, expdb: AsyncConnection) -> list[str]:
+async def get_tags(run_id: Identifier, expdb: AsyncConnection) -> list[TagString]:
     """Fetch all tags associated with a run from the `run_tag` table.
 
     The `id` column in `run_tag` refers to the run ID
@@ -64,7 +64,7 @@ async def get_tags(run_id: int, expdb: AsyncConnection) -> list[str]:
     return [row.tag for row in rows.all()]
 
 
-async def get_input_data(run_id: int, expdb: AsyncConnection) -> list[UntypedRow]:
+async def get_input_data(run_id: Identifier, expdb: AsyncConnection) -> list[UntypedRow]:
     """Fetch the dataset(s) used as input for a run, with name and url.
 
     Joins `input_data` with `dataset` to include the dataset name and ARFF URL.
@@ -83,7 +83,7 @@ async def get_input_data(run_id: int, expdb: AsyncConnection) -> list[UntypedRow
     return cast("list[UntypedRow]", rows.all())
 
 
-async def get_output_files(run_id: int, expdb: AsyncConnection) -> list[UntypedRow]:
+async def get_output_files(run_id: Identifier, expdb: AsyncConnection) -> list[UntypedRow]:
     """Fetch output files attached to a run from the `runfile` table.
 
     Typical entries include the description XML and predictions ARFF.
@@ -103,10 +103,10 @@ async def get_output_files(run_id: int, expdb: AsyncConnection) -> list[UntypedR
 
 
 async def get_evaluations(
-    run_id: int,
+    run_id: Identifier,
     expdb: AsyncConnection,
     *,
-    evaluation_engine_ids: list[int],
+    evaluation_engine_ids: list[Identifier],
 ) -> list[UntypedRow]:
     """Fetch evaluation metric results for a run.
 
@@ -142,7 +142,7 @@ async def get_evaluations(
     return cast("list[UntypedRow]", rows.all())
 
 
-async def get_trace(run_id: int, expdb: AsyncConnection) -> Sequence[UntypedRow]:
+async def get_trace(run_id: Identifier, expdb: AsyncConnection) -> Sequence[UntypedRow]:
     """Get trace rows for a run from the trace table."""
     rows = await expdb.execute(
         text(

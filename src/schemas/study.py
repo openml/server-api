@@ -55,7 +55,7 @@ class CreateStudy(BaseModel):
         description="Whether it is a collection of runs (study) or tasks (benchmarking suite).",
         examples=[StudyType.TASK],
     )
-    benchmark_suite: int | None = Field(
+    benchmark_suite: Identifier | None = Field(
         # For study, refers to the benchmarking suite
         default=None,
         description="The benchmarking suite this study is based on, if any.",
@@ -77,7 +77,7 @@ class CreateStudy(BaseModel):
         min_length=1,
         max_length=4096,
     )
-    tasks: list[int] = Field(
+    tasks: list[Identifier] = Field(
         default_factory=list,
         description=(
             "Tasks to include in the study, can only be specified if `runs` is empty."
@@ -85,7 +85,7 @@ class CreateStudy(BaseModel):
         ),
         examples=[[1, 2, 3]],
     )
-    runs: list[int] = Field(
+    runs: list[Identifier] = Field(
         default_factory=list,
         description=(
             "Runs to include in the study, can only be specified if `tasks` is empty."

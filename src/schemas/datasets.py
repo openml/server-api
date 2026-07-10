@@ -135,7 +135,7 @@ class DatasetMetadata(BaseModel):
             "description": "URL of the parquet dataset data file.",
         },
     )
-    file_id: int = Field(json_schema_extra={"example": 1})
+    file_id: Identifier = Field(json_schema_extra={"example": 1})
     format: DatasetFileFormat = Field(
         json_schema_extra={"example": DatasetFileFormat.ARFF},
     )

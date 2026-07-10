@@ -148,8 +148,8 @@ async def attach_run(
 
 async def attach_tasks(
     *,
-    study_id: int,
-    task_ids: list[int],
+    study_id: Identifier,
+    task_ids: list[Identifier],
     user: User,
     connection: AsyncConnection,
 ) -> None:

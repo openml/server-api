@@ -47,7 +47,7 @@ async def get_user(
     *,
     connection: AsyncConnection,
     api_key: APIKey | None = None,
-    user_id: int | None = None,
+    user_id: Identifier | None = None,
 ) -> User | None:
     """Fetch the full user by either api_key or user_id."""
     if (api_key is None) == (user_id is None):
@@ -153,7 +153,7 @@ class User:
         return UserGroup.ADMIN in await self.get_groups()
 
 
-async def exists_by_id(*, user_id: int, connection: AsyncConnection) -> bool:
+async def exists_by_id(*, user_id: Identifier, connection: AsyncConnection) -> bool:
     row = await connection.execute(
         text("SELECT 1 FROM users WHERE id = :user_id LIMIT 1"),
         parameters={"user_id": user_id},
@@ -161,7 +161,7 @@ async def exists_by_id(*, user_id: int, connection: AsyncConnection) -> bool:
     return row.one_or_none() is not None
 
 
-async def has_user_references(*, user_id: int, expdb: AsyncConnection) -> bool:
+async def has_user_references(*, user_id: Identifier, expdb: AsyncConnection) -> bool:
     """Return ``True`` if any ``expdb`` row still references ``user_id``."""
     row = await expdb.execute(
         text(
@@ -190,7 +190,7 @@ async def has_user_references(*, user_id: int, expdb: AsyncConnection) -> bool:
     return bool(row.scalar_one())
 
 
-async def delete_user_rows(*, user_id: int, userdb: AsyncConnection) -> None:
+async def delete_user_rows(*, user_id: Identifier, userdb: AsyncConnection) -> None:
     """Remove group memberships then the user row (openml user database)."""
     await userdb.execute(
         text("DELETE FROM users_groups WHERE user_id = :user_id"),

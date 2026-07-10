@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 from fastapi import APIRouter, Depends
 
 from core.errors import TaskTypeNotFoundError
+from core.types import Identifier
 from database.tasks import get_input_for_task_type, get_task_types
 from database.tasks import get_task_type as db_get_task_type
 from routers.dependencies import expdb_connection
@@ -50,7 +51,7 @@ async def list_task_types(
 
 @router.get(path="/{task_type_id}")
 async def get_task_type(
-    task_type_id: int,
+    task_type_id: Identifier,
     expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
 ) -> dict[Literal["task_type"], dict[str, str | None | list[str] | list[dict[str, str]]]]:
     """Return a detailed description for the given task type, including expected inputs."""

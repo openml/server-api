@@ -246,7 +246,7 @@ async def dataset_factory(
 class Flow(NamedTuple):
     """To be replaced by an actual ORM class."""
 
-    id: int
+    id: Identifier
     name: str
     external_version: str
 
@@ -294,7 +294,7 @@ def temporary_tags(
     async def _temporary_tags(
         table: str,
         tags: Iterable[str],
-        identifier: int,
+        identifier: Identifier,
         *,
         persist: bool = False,
     ) -> AsyncIterator[None]:
