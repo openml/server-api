@@ -3,6 +3,7 @@ from enum import StrEnum, auto
 
 from pydantic import BaseModel, Field
 
+from core.types import Identifier
 from schemas.core import Visibility
 
 
@@ -19,7 +20,7 @@ class StudyStatus(StrEnum):
 
 class Study(BaseModel):
     legacy: bool = Field(default=False, exclude=True)
-    id_: int = Field(serialization_alias="id")
+    id: Identifier
     name: str
     alias: str | None
     main_entity_type: StudyType
@@ -27,7 +28,7 @@ class Study(BaseModel):
     visibility: Visibility
     status: StudyStatus
     creation_date: datetime
-    creator: int
+    uploader_id: Identifier = Field(serialization_alias="creator")
     task_ids: list[int]
     run_ids: list[int]
     data_ids: list[int]

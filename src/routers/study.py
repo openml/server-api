@@ -169,7 +169,7 @@ async def get_study(
     study_data = await database.studies.get_study_data(study, expdb)
     return Study(
         _legacy=str_to_bool(study.legacy),
-        id_=study.id,
+        id=study.id,
         name=study.name,
         alias=study.alias,
         main_entity_type=study.type_,
@@ -177,7 +177,7 @@ async def get_study(
         visibility=study.visibility,
         status=study.status,
         creation_date=study.creation_date,
-        creator=study.creator,
+        uploader_id=study.creator,
         data_ids=[row.data_id for row in study_data],
         task_ids=[row.task_id for row in study_data],
         run_ids=[row.run_id for row in study_data] if study.type_ == StudyType.RUN else [],
