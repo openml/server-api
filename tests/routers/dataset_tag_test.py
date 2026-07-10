@@ -49,7 +49,7 @@ async def test_dataset_tag(
     result = await tag_dataset(data_id=dataset_id, tag=tag, user=user, expdb_db=expdb_test)
     assert result == {"data_tag": {"id": str(dataset_id), "tag": [tag]}}
 
-    tags = await get_tags_for(id_=dataset_id, connection=expdb_test)
+    tags = await get_tags_for(dataset_id=dataset_id, connection=expdb_test)
     assert tag in tags
 
 

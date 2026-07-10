@@ -72,7 +72,7 @@ async def get_by_name(
     return row.one_or_none()
 
 
-async def get(id_: Identifier, expdb: AsyncConnection) -> UntypedRow | None:
+async def get(flow_id: Identifier, expdb: AsyncConnection) -> UntypedRow | None:
     row = await expdb.execute(
         text(
             """
@@ -81,6 +81,6 @@ async def get(id_: Identifier, expdb: AsyncConnection) -> UntypedRow | None:
             WHERE id = :flow_id
             """,
         ),
-        parameters={"flow_id": id_},
+        parameters={"flow_id": flow_id},
     )
     return row.one_or_none()

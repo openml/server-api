@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection
 
 
-async def exist(id_: Identifier, expdb: AsyncConnection) -> bool:
+async def exist(run_id: Identifier, expdb: AsyncConnection) -> bool:
     """Check if a run exists by ID."""
     row = await expdb.execute(
         text(
@@ -22,7 +22,7 @@ async def exist(id_: Identifier, expdb: AsyncConnection) -> bool:
             WHERE `rid` = :run_id
             """,
         ),
-        parameters={"run_id": id_},
+        parameters={"run_id": run_id},
     )
     return bool(row.one_or_none())
 

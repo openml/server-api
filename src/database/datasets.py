@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection
 
 
-async def get(id_: Identifier, connection: AsyncConnection) -> UntypedRow | None:
+async def get(dataset_id: Identifier, connection: AsyncConnection) -> UntypedRow | None:
     row = await connection.execute(
         text(
             """
@@ -30,7 +30,7 @@ async def get(id_: Identifier, connection: AsyncConnection) -> UntypedRow | None
     WHERE did = :dataset_id
     """,
         ),
-        parameters={"dataset_id": id_},
+        parameters={"dataset_id": dataset_id},
     )
     return row.one_or_none()
 
@@ -80,7 +80,7 @@ async def delete_tag(dataset_id: Identifier, tag: TagString, connection: AsyncCo
     )
 
 
-async def get_tags_for(id_: Identifier, connection: AsyncConnection) -> list[str]:
+async def get_tags_for(dataset_id: Identifier, connection: AsyncConnection) -> list[str]:
     row = await connection.execute(
         text(
             """
@@ -89,13 +89,19 @@ async def get_tags_for(id_: Identifier, connection: AsyncConnection) -> list[str
     WHERE id = :dataset_id
     """,
         ),
-        parameters={"dataset_id": id_},
+        parameters={"dataset_id": dataset_id},
     )
     rows = row.all()
     return [row.tag for row in rows]
 
 
-async def tag(id_: int, tag_: str, *, user_id: int, connection: AsyncConnection) -> None:
+async def tag(
+    dataset_id: Identifier,
+    tag: str,
+    *,
+    user_id: Identifier,
+    connection: AsyncConnection,
+) -> None:
     try:
         await connection.execute(
             text(
@@ -105,9 +111,9 @@ async def tag(id_: int, tag_: str, *, user_id: int, connection: AsyncConnection)
         """,
             ),
             parameters={
-                "dataset_id": id_,
+                "dataset_id": dataset_id,
                 "user_id": user_id,
-                "tag": tag_,
+                "tag": tag,
             },
         )
     except IntegrityError as e:
@@ -122,7 +128,7 @@ async def tag(id_: int, tag_: str, *, user_id: int, connection: AsyncConnection)
 
 
 async def get_description(
-    id_: Identifier,
+    dataset_id: Identifier,
     connection: AsyncConnection,
 ) -> UntypedRow | None:
     """Get the most recent description for the dataset."""
@@ -135,12 +141,12 @@ async def get_description(
     ORDER BY version DESC
     """,
         ),
-        parameters={"dataset_id": id_},
+        parameters={"dataset_id": dataset_id},
     )
     return row.first()
 
 
-async def get_status(id_: Identifier, connection: AsyncConnection) -> DatasetStatus:
+async def get_status(dataset_id: Identifier, connection: AsyncConnection) -> DatasetStatus:
     """Get most recent status for the dataset."""
     row = (
         await connection.execute(
@@ -153,7 +159,7 @@ async def get_status(id_: Identifier, connection: AsyncConnection) -> DatasetSta
     LIMIT 1
     """,
             ),
-            parameters={"dataset_id": id_},
+            parameters={"dataset_id": dataset_id},
         )
     ).first()
     return DatasetStatus(row.status) if row else DatasetStatus.IN_PREPARATION

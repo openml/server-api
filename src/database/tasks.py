@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 
-async def get(id_: Identifier, expdb: AsyncConnection) -> UntypedRow | None:
+async def get(task_id: Identifier, expdb: AsyncConnection) -> UntypedRow | None:
     row = await expdb.execute(
         text(
             """
@@ -27,7 +27,7 @@ async def get(id_: Identifier, expdb: AsyncConnection) -> UntypedRow | None:
             WHERE `task_id` = :task_id
             """,
         ),
-        parameters={"task_id": id_},
+        parameters={"task_id": task_id},
     )
     return row.one_or_none()
 
@@ -102,7 +102,7 @@ async def get_task_evaluation_measure(task_id: int, expdb: AsyncConnection) -> s
 
 
 async def get_input_for_task_type(
-    task_type_id: int,
+    task_type_id: Identifier,
     expdb: AsyncConnection,
 ) -> Sequence[UntypedRow]:
     rows = await expdb.execute(
@@ -118,7 +118,7 @@ async def get_input_for_task_type(
     return rows.all()
 
 
-async def get_input_for_task(id_: Identifier, expdb: AsyncConnection) -> Sequence[UntypedRow]:
+async def get_input_for_task(task_id: Identifier, expdb: AsyncConnection) -> Sequence[UntypedRow]:
     rows = await expdb.execute(
         text(
             """
@@ -127,7 +127,7 @@ async def get_input_for_task(id_: Identifier, expdb: AsyncConnection) -> Sequenc
             WHERE task_id = :task_id
             """,
         ),
-        parameters={"task_id": id_},
+        parameters={"task_id": task_id},
     )
     return rows.all()
 
@@ -155,13 +155,13 @@ async def get_tags(task_id: Identifier, session: AsyncSession) -> Sequence[TaskT
 
 
 async def tag(
-    id_: Identifier,
+    task_id: Identifier,
     tag_: TagString,
     *,
     user_id: Identifier,
     session: AsyncSession,
 ) -> None:
-    tag = TaskTag(entity_id=id_, uploader_id=user_id, tag=tag_)
+    tag = TaskTag(entity_id=task_id, uploader_id=user_id, tag=tag_)
     try:
         session.add(tag)
         await session.flush()

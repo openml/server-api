@@ -119,7 +119,7 @@ async def untag_dataset_like_php(
 ) -> dict[Literal["data_untag"], TagInfo]:
     """Remove a tag from the dataset with a response similar to the old PHP server."""
     await untag_dataset(data_id, tag, user, expdb_db)
-    tags = await database.datasets.get_tags_for(id_=data_id, connection=expdb_db)
+    tags = await database.datasets.get_tags_for(dataset_id=data_id, connection=expdb_db)
     tag_info: TagInfo = {"id": str(data_id)}
     if len(tags) == 1:
         tag_info["tag"] = tags[0]

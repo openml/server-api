@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncConnection
 
 
-async def get_by_id(id_: Identifier, connection: AsyncConnection) -> UntypedRow | None:
+async def get_by_id(study_id: Identifier, connection: AsyncConnection) -> UntypedRow | None:
     row = await connection.execute(
         text(
             """
@@ -23,7 +23,7 @@ async def get_by_id(id_: Identifier, connection: AsyncConnection) -> UntypedRow 
             WHERE id = :study_id
             """,
         ),
-        parameters={"study_id": id_},
+        parameters={"study_id": study_id},
     )
     return row.one_or_none()
 
