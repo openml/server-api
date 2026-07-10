@@ -1,5 +1,5 @@
 The REST API is currently under development.
-It's does not yet have feature parity with the PHP-based REST API.
+It does not yet have feature parity with the PHP-based REST API.
 We are currently working on Phase 1 and Phase 2 in parallel, and to deploy to production before the end of 2026.
 The sunset date of the PHP-based REST API will depend on the progress of this reimplementation and that of some other required server services.
 
