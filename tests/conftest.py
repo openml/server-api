@@ -24,7 +24,10 @@ from config import (
 from core.types import Identifier
 from database.engine import expdb_database, user_database
 from main import create_api
-from routers.dependencies import expdb_connection, userdb_connection
+from routers.dependencies import (
+    expdb_session as expdb_session_dep,
+    userdb_session as userdb_session_dep,
+)
 from tests.users import OWNER_USER
 
 if TYPE_CHECKING:
@@ -45,7 +48,7 @@ async def automatic_rollback(engine: AsyncEngine) -> AsyncIterator[AsyncConnecti
 
 @contextlib.asynccontextmanager
 async def temporary_records(
-    connection: AsyncConnection,
+    session: AsyncSession,
     insert_queries: Iterable[tuple[str, dict[str, Any] | None]],
     delete_queries: Iterable[tuple[str, dict[str, Any] | None]],
     *,
@@ -53,17 +56,17 @@ async def temporary_records(
 ) -> AsyncIterator[None]:
     """Execute insert queries on enter and their corresponding delete queries on exit."""
     for query, parameters in insert_queries:
-        await connection.execute(text(query), parameters=parameters)
+        await session.execute(text(query), params=parameters)
     if persist:
-        await connection.commit()
+        await session.commit()
 
     try:
         yield
     finally:
         for query, parameters in delete_queries:
-            await connection.execute(text(query), parameters=parameters)
+            await session.execute(text(query), params=parameters)
         if persist:
-            await connection.commit()
+            await session.commit()
 
 
 @pytest.fixture
@@ -86,6 +89,13 @@ async def expdb_session(expdb_test: AsyncConnection) -> AsyncIterator[AsyncSessi
 async def user_test() -> AsyncIterator[AsyncConnection]:
     async with automatic_rollback(user_database()) as connection:
         yield connection
+
+
+@pytest.fixture
+async def userdb_session(user_test: AsyncConnection) -> AsyncIterator[AsyncSession]:
+    async with AsyncSession(user_test) as session:
+        yield session
+        await session.rollback()
 
 
 # The PHP API fixture can be session scoped since they do not need access to
@@ -127,14 +137,16 @@ async def py_api(
     #     expdb_test.execute(...)  # write some data  # noqa: ERA001
     #     py_api.get(...)  # read that data           # noqa: ERA001
 
-    async def override_expdb() -> AsyncIterator[AsyncConnection]:
-        yield expdb_test
+    async def override_expdb() -> AsyncIterator[AsyncSession]:
+        async with AsyncSession(expdb_test) as session:
+            yield session
 
-    async def override_userdb() -> AsyncIterator[AsyncConnection]:
-        yield user_test
+    async def override_userdb() -> AsyncIterator[AsyncSession]:
+        async with AsyncSession(user_test) as session:
+            yield session
 
-    app.dependency_overrides[expdb_connection] = override_expdb
-    app.dependency_overrides[userdb_connection] = override_userdb
+    app.dependency_overrides[expdb_session_dep] = override_expdb
+    app.dependency_overrides[userdb_session_dep] = override_userdb
 
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app),
@@ -143,8 +155,8 @@ async def py_api(
     ) as client:
         yield client
 
-    app.dependency_overrides[expdb_connection] = expdb_connection
-    app.dependency_overrides[userdb_connection] = userdb_connection
+    app.dependency_overrides[expdb_session_dep] = expdb_session
+    app.dependency_overrides[userdb_session_dep] = userdb_session
 
 
 @pytest.fixture
@@ -188,7 +200,7 @@ _identifier_factory = _create_identifier_factory()
 
 @pytest.fixture
 async def task_factory(
-    expdb_test: AsyncConnection,
+    expdb_session: AsyncSession,
 ) -> TaskFactory:
     async def create_task(
         *,
@@ -198,11 +210,11 @@ async def task_factory(
     ) -> Task:
         task_id = task_id or _identifier_factory()
 
-        await expdb_test.execute(
+        await expdb_session.execute(
             text("""
                 INSERT INTO task (task_id, ttid, creator) VALUES (:task_id, :ttid, :creator);
             """),
-            parameters={"task_id": task_id, "ttid": task_type, "creator": creator},
+            params={"task_id": task_id, "ttid": task_type, "creator": creator},
         )
         return Task(task_id, task_type, creator)
 
@@ -217,13 +229,13 @@ class DatasetFactory(Protocol):
 
 @pytest.fixture
 async def dataset_factory(
-    expdb_test: AsyncConnection,
+    expdb_session: AsyncSession,
 ) -> DatasetFactory:
     async def create_dataset(
         *, dataset_id: Identifier | None = None, creator: Identifier = OWNER_USER.user_id
     ) -> Identifier:
         dataset_id = dataset_id or _identifier_factory()
-        await expdb_test.execute(
+        await expdb_session.execute(
             text("""
                 INSERT INTO dataset
                 (did, uploader, name, version, format, upload_date, licence, url, visibility)
@@ -231,7 +243,7 @@ async def dataset_factory(
                 (:dataset_id, :creator, :name, 'dataset-version', 'dataset-format',
                 :now, 'public', 'dataset-url', 'public');
             """),
-            parameters={
+            params={
                 "dataset_id": dataset_id,
                 "creator": creator,
                 "now": datetime.datetime.now(tz=datetime.UTC),
@@ -252,8 +264,8 @@ class Flow(NamedTuple):
 
 
 @pytest.fixture
-async def flow(expdb_test: AsyncConnection) -> Flow:
-    await expdb_test.execute(
+async def flow(expdb_session: AsyncSession) -> Flow:
+    await expdb_session.execute(
         text(
             """
             INSERT INTO implementation(fullname,name,version,external_version,uploadDate)
@@ -261,34 +273,34 @@ async def flow(expdb_test: AsyncConnection) -> Flow:
             """,
         ),
     )
-    result = await expdb_test.execute(text("""SELECT LAST_INSERT_ID();"""))
+    result = await expdb_session.execute(text("""SELECT LAST_INSERT_ID();"""))
     (flow_id,) = result.one()
     return Flow(id=flow_id, name="name", external_version="external_version")
 
 
 @pytest.fixture
-async def persisted_flow(flow: Flow, expdb_test: AsyncConnection) -> AsyncIterator[Flow]:
-    await expdb_test.commit()
+async def persisted_flow(flow: Flow, expdb_session: AsyncSession) -> AsyncIterator[Flow]:
+    await expdb_session.commit()
     yield flow
     # We want to ensure the commit below does not accidentally persist new
     # data to the database.
-    await expdb_test.rollback()
+    await expdb_session.rollback()
 
-    await expdb_test.execute(
+    await expdb_session.execute(
         text(
             """
             DELETE FROM implementation
             WHERE id = :flow_id
             """,
         ),
-        parameters={"flow_id": flow.id},
+        params={"flow_id": flow.id},
     )
-    await expdb_test.commit()
+    await expdb_session.commit()
 
 
 @pytest.fixture
 def temporary_tags(
-    expdb_test: AsyncConnection,
+    expdb_session: AsyncSession,
 ) -> Callable[..., contextlib.AbstractAsyncContextManager[None]]:
     @contextlib.asynccontextmanager
     async def _temporary_tags(
@@ -317,7 +329,7 @@ def temporary_tags(
             for tag in tags
         ]
         async with temporary_records(
-            connection=expdb_test,
+            session=expdb_session,
             insert_queries=insert_queries,
             delete_queries=delete_queries,
             persist=persist,

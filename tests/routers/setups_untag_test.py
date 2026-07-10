@@ -26,12 +26,12 @@ async def test_setup_untag_missing_auth(py_api: httpx.AsyncClient) -> None:
 
 @pytest.mark.mut
 async def test_setup_untag_api_success(
-    py_api: httpx.AsyncClient, expdb_test: AsyncConnection
+    py_api: httpx.AsyncClient, expdb_session: AsyncSession
 ) -> None:
     tag = "setup_untag_via_http"
-    await expdb_test.execute(
+    await expdb_session.execute(
         text("INSERT INTO setup_tag (id, tag, uploader) VALUES (1, :tag, 2);"),
-        parameters={"tag": tag},
+        params={"tag": tag},
     )
 
     response = await py_api.post(
@@ -43,9 +43,9 @@ async def test_setup_untag_api_success(
     expected = {"setup_untag": {"id": "1", "tag": []}}
     assert response.json() == expected
 
-    rows = await expdb_test.execute(
+    rows = await expdb_session.execute(
         text("SELECT * FROM setup_tag WHERE id = 1 AND tag = :tag"),
-        parameters={"tag": tag},
+        params={"tag": tag},
     )
     assert len(rows.all()) == 0
 

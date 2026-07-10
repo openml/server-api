@@ -7,27 +7,27 @@ from sqlalchemy import text
 
 if TYPE_CHECKING:
     import httpx
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 
 
-async def _remove_quality_from_database(quality_name: str, expdb_test: AsyncConnection) -> None:
-    await expdb_test.execute(
+async def _remove_quality_from_database(quality_name: str, expdb_session: AsyncSession) -> None:
+    await expdb_session.execute(
         text(
             """
         DELETE FROM data_quality
         WHERE `quality`=:deleted_quality
         """,
         ),
-        parameters={"deleted_quality": quality_name},
+        params={"deleted_quality": quality_name},
     )
-    await expdb_test.execute(
+    await expdb_session.execute(
         text(
             """
         DELETE FROM quality
         WHERE `name`=:deleted_quality
         """,
         ),
-        parameters={"deleted_quality": quality_name},
+        params={"deleted_quality": quality_name},
     )
 
 
@@ -44,7 +44,7 @@ async def test_list_qualities_identical(
 
 
 @pytest.mark.mut
-async def test_list_qualities(py_api: httpx.AsyncClient, expdb_test: AsyncConnection) -> None:
+async def test_list_qualities(py_api: httpx.AsyncClient, expdb_session: AsyncSession) -> None:
     response = await py_api.get("/datasets/qualities/list")
     assert response.status_code == HTTPStatus.OK
     expected = {
@@ -163,7 +163,7 @@ async def test_list_qualities(py_api: httpx.AsyncClient, expdb_test: AsyncConnec
     assert response.json() == expected
 
     deleted = expected["data_qualities_list"]["quality"].pop()
-    await _remove_quality_from_database(quality_name=deleted, expdb_test=expdb_test)
+    await _remove_quality_from_database(quality_name=deleted, expdb_session=expdb_session)
 
     response = await py_api.get("/datasets/qualities/list")
     assert response.status_code == HTTPStatus.OK

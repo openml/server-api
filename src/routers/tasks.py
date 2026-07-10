@@ -25,11 +25,11 @@ from core.types import (
 from database.exceptions import DuplicatePrimaryKeyError, ForeignKeyConstraintError
 from database.models.base import UntypedRow
 from database.users import User
-from routers.dependencies import Pagination, expdb_connection, expdb_session, fetch_user_or_raise
+from routers.dependencies import Pagination, expdb_session, fetch_user_or_raise
 from routers.schemas.tasks import Task
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -75,7 +75,7 @@ async def fill_template(
     template: str,
     task: UntypedRow,
     task_inputs: dict[str, str | int],
-    connection: AsyncConnection,
+    session: AsyncSession,
 ) -> dict[str, JSON]:
     """Fill in the XML template as used for task descriptions and return the result.
 
@@ -133,7 +133,7 @@ async def fill_template(
             task,
             task_inputs,
             fetched_data={},
-            connection=connection,
+            session=session,
         ),
     )
 
@@ -143,16 +143,16 @@ async def _fill_json_template(  # noqa: C901
     task: UntypedRow,
     task_inputs: dict[str, str | int],
     fetched_data: dict[str, str],
-    connection: AsyncConnection,
+    session: AsyncSession,
 ) -> JSON:
     if isinstance(template, dict):
         return {
-            k: await _fill_json_template(v, task, task_inputs, fetched_data, connection)
+            k: await _fill_json_template(v, task, task_inputs, fetched_data, session)
             for k, v in template.items()
         }
     if isinstance(template, list):
         return [
-            await _fill_json_template(v, task, task_inputs, fetched_data, connection)
+            await _fill_json_template(v, task, task_inputs, fetched_data, session)
             for v in template
         ]
     if not isinstance(template, str):
@@ -171,7 +171,7 @@ async def _fill_json_template(  # noqa: C901
         (field,) = match.groups()
         if field not in fetched_data:
             table, _ = field.split(".")
-            result = await connection.execute(
+            result = await session.execute(
                 text(
                     f"""
                     SELECT *
@@ -181,7 +181,7 @@ async def _fill_json_template(  # noqa: C901
                 ),
                 # Not sure how parametrize table names, as the parametrization adds
                 # quotes which is not legal.
-                parameters={"id_": int(task_inputs[table])},
+                params={"id_": int(task_inputs[table])},
             )
             rows = result.mappings()
             row_data = next(rows, None)
@@ -260,7 +260,7 @@ def _quality_clause(quality: str, range_: str | None) -> str:
 @router.post(path="/list", description="Provided for convenience, same as `GET` endpoint.")
 @router.get(path="/list")
 async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session)],
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     task_type_id: Annotated[Identifier | None, Body(description="Filter by task type id.")] = None,
     tag: Annotated[TagString | None, Body()] = None,
@@ -369,7 +369,7 @@ async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
     if data_id is not None:
         main_query = main_query.bindparams(bindparam("data_ids", expanding=True))
 
-    result = await expdb.execute(main_query, parameters=parameters)
+    result = await expdb.execute(main_query, params=parameters)
     rows = result.mappings().all()
 
     if not rows:
@@ -417,15 +417,15 @@ async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
     inputs_result, qualities_result, tags_result = await asyncio.gather(
         expdb.execute(
             inputs_query,
-            parameters={"task_ids": task_ids, "basic_inputs": BASIC_TASK_INPUTS},
+            params={"task_ids": task_ids, "basic_inputs": BASIC_TASK_INPUTS},
         ),
         expdb.execute(
             qualities_query,
-            parameters={"dataset_ids": dataset_ids, "quality_names": QUALITIES_TO_SHOW},
+            params={"dataset_ids": dataset_ids, "quality_names": QUALITIES_TO_SHOW},
         ),
         expdb.execute(
             tags_query,
-            parameters={"task_ids": task_ids},
+            params={"task_ids": task_ids},
         ),
     )
 
@@ -453,8 +453,7 @@ async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
 @router.get("/{task_id}")
 async def get_task(
     task_id: Identifier,
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
-    expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> Task:
     """Get a task by identifier."""
     if not (task := await database.tasks.get(task_id, expdb)):
@@ -467,7 +466,7 @@ async def get_task(
     task_input_rows, ttios, tags = await asyncio.gather(
         database.tasks.get_input_for_task(task_id, expdb),
         database.tasks.get_task_type_inout_with_template(task_type.ttid, expdb),
-        database.tasks.get_tags(task_id, expdb_session),
+        database.tasks.get_tags(task_id, expdb),
     )
     task_inputs = {
         row.input: int(row.value) if row.value.isdigit() else row.value for row in task_input_rows

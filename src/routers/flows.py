@@ -9,11 +9,11 @@ import database.flows
 from core.conversions import str_to_num
 from core.errors import FlowNotFoundError
 from core.types import Identifier
-from routers.dependencies import expdb_connection
+from routers.dependencies import expdb_session
 from routers.schemas.flows import Flow, Parameter, Subflow
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/flows", tags=["flows"])
 
@@ -22,7 +22,7 @@ router = APIRouter(prefix="/flows", tags=["flows"])
 async def flow_exists(
     name: str,
     external_version: str,
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> dict[Literal["flow_id"], int]:
     """Check if a Flow with the name and version exists, if so, return the flow id."""
     flow = await database.flows.get_by_name(
@@ -39,7 +39,7 @@ async def flow_exists(
 @router.get("/{flow_id}")
 async def get_flow(
     flow_id: Identifier,
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> Flow:
     """Get a Flow by its identifier."""
     flow = await database.flows.get(flow_id, expdb)

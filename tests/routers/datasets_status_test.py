@@ -14,7 +14,7 @@ from tests.users import ADMIN_USER, SOME_USER
 
 if TYPE_CHECKING:
     import httpx
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def test_update_status_via_api(py_api: httpx.AsyncClient) -> None:
@@ -29,55 +29,55 @@ async def test_update_status_via_api(py_api: httpx.AsyncClient) -> None:
 @pytest.mark.mut
 @pytest.mark.parametrize("dataset_id", [3, 4])
 async def test_dataset_status_update_active_to_deactivated(
-    dataset_id: Identifier, expdb_test: AsyncConnection
+    dataset_id: Identifier, expdb_session: AsyncSession
 ) -> None:
     result = await update_dataset_status(
         dataset_id=dataset_id,
         status=DatasetStatus.DEACTIVATED,
         user=ADMIN_USER,
-        expdb=expdb_test,
+        expdb=expdb_session,
     )
     assert result == {"dataset_id": dataset_id, "status": DatasetStatus.DEACTIVATED}
 
 
 @pytest.mark.mut
 async def test_dataset_status_update_in_preparation_to_active(
-    expdb_test: AsyncConnection,
+    expdb_session: AsyncSession,
 ) -> None:
     dataset_id = next(iter(constants.IN_PREPARATION_ID))
     result = await update_dataset_status(
         dataset_id=dataset_id,
         status=DatasetStatus.ACTIVE,
         user=ADMIN_USER,
-        expdb=expdb_test,
+        expdb=expdb_session,
     )
     assert result == {"dataset_id": dataset_id, "status": DatasetStatus.ACTIVE}
 
 
 @pytest.mark.mut
 async def test_dataset_status_update_in_preparation_to_deactivated(
-    expdb_test: AsyncConnection,
+    expdb_session: AsyncSession,
 ) -> None:
     dataset_id = next(iter(constants.IN_PREPARATION_ID))
     result = await update_dataset_status(
         dataset_id=dataset_id,
         status=DatasetStatus.DEACTIVATED,
         user=ADMIN_USER,
-        expdb=expdb_test,
+        expdb=expdb_session,
     )
     assert result == {"dataset_id": dataset_id, "status": DatasetStatus.DEACTIVATED}
 
 
 @pytest.mark.mut
 async def test_dataset_status_update_deactivated_to_active(
-    expdb_test: AsyncConnection,
+    expdb_session: AsyncSession,
 ) -> None:
     dataset_id = next(iter(constants.DEACTIVATED_DATASETS))
     result = await update_dataset_status(
         dataset_id=dataset_id,
         status=DatasetStatus.ACTIVE,
         user=ADMIN_USER,
-        expdb=expdb_test,
+        expdb=expdb_session,
     )
     assert result == {"dataset_id": dataset_id, "status": DatasetStatus.ACTIVE}
 
@@ -85,26 +85,26 @@ async def test_dataset_status_update_deactivated_to_active(
 @pytest.mark.parametrize("dataset_id", [1, 33, 131])
 async def test_dataset_status_non_admin_cannot_activate(
     dataset_id: Identifier,
-    expdb_test: AsyncConnection,
+    expdb_session: AsyncSession,
 ) -> None:
     with pytest.raises(DatasetAdminOnlyError):
         await update_dataset_status(
             dataset_id=dataset_id,
             status=DatasetStatus.ACTIVE,
             user=SOME_USER,
-            expdb=expdb_test,
+            expdb=expdb_session,
         )
 
 
 @pytest.mark.parametrize("dataset_id", [1, 2])
 async def test_dataset_status_non_owner_cannot_deactivate(
     dataset_id: Identifier,
-    expdb_test: AsyncConnection,
+    expdb_session: AsyncSession,
 ) -> None:
     with pytest.raises(DatasetNotOwnedError):
         await update_dataset_status(
             dataset_id=dataset_id,
             status=DatasetStatus.DEACTIVATED,
             user=SOME_USER,
-            expdb=expdb_test,
+            expdb=expdb_session,
         )

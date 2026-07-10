@@ -15,7 +15,7 @@ from tests.users import ADMIN_USER, DATASET_130_OWNER
 
 if TYPE_CHECKING:
     import httpx
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def test_get_features_via_api(py_api: httpx.AsyncClient) -> None:
@@ -71,8 +71,8 @@ async def test_get_features_via_api(py_api: httpx.AsyncClient) -> None:
     ]
 
 
-async def test_dataset_features_with_ontology(expdb_test: AsyncConnection) -> None:
-    features = await get_dataset_features(dataset_id=11, user=None, expdb=expdb_test)
+async def test_dataset_features_with_ontology(expdb_session: AsyncSession) -> None:
+    features = await get_dataset_features(dataset_id=11, user=None, expdb=expdb_session)
     by_index = {f.index: f for f in features}
     assert by_index[1].ontology == ["https://en.wikipedia.org/wiki/Service_(motor_vehicle)"]
     assert by_index[2].ontology == [
@@ -86,28 +86,28 @@ async def test_dataset_features_with_ontology(expdb_test: AsyncConnection) -> No
     assert by_index[4].ontology is None
 
 
-async def test_dataset_features_no_access(expdb_test: AsyncConnection) -> None:
+async def test_dataset_features_no_access(expdb_session: AsyncSession) -> None:
     with pytest.raises(DatasetNoAccessError):
-        await get_dataset_features(dataset_id=130, user=None, expdb=expdb_test)
+        await get_dataset_features(dataset_id=130, user=None, expdb=expdb_session)
 
 
 @pytest.mark.parametrize("user", [ADMIN_USER, DATASET_130_OWNER])
-async def test_dataset_features_access_to_private(user: User, expdb_test: AsyncConnection) -> None:
-    features = await get_dataset_features(dataset_id=130, user=user, expdb=expdb_test)
+async def test_dataset_features_access_to_private(user: User, expdb_session: AsyncSession) -> None:
+    features = await get_dataset_features(dataset_id=130, user=user, expdb=expdb_session)
     assert isinstance(features, list)
 
 
-async def test_dataset_features_with_processing_error(expdb_test: AsyncConnection) -> None:
+async def test_dataset_features_with_processing_error(expdb_session: AsyncSession) -> None:
     dataset_id = 55
     with pytest.raises(DatasetProcessingError) as e:
-        await get_dataset_features(dataset_id=dataset_id, user=None, expdb=expdb_test)
+        await get_dataset_features(dataset_id=dataset_id, user=None, expdb=expdb_session)
     assert "No features found" in e.value.detail
     assert str(dataset_id) in e.value.detail
 
 
-async def test_dataset_features_dataset_does_not_exist(expdb_test: AsyncConnection) -> None:
+async def test_dataset_features_dataset_does_not_exist(expdb_session: AsyncSession) -> None:
     with pytest.raises(DatasetNotFoundError):
-        await get_dataset_features(dataset_id=1000, user=None, expdb=expdb_test)
+        await get_dataset_features(dataset_id=1000, user=None, expdb=expdb_session)
 
 
 # -- migration tests --

@@ -15,11 +15,11 @@ from core.errors import (
 from core.types import Identifier, TagString
 from database.exceptions import DuplicatePrimaryKeyError, ForeignKeyConstraintError
 from database.users import User
-from routers.dependencies import expdb_connection, expdb_session, fetch_user_or_raise
+from routers.dependencies import expdb_session, fetch_user_or_raise
 from routers.schemas.setups import SetupParameters, SetupResponse
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/setup", tags=["setup"])
 
@@ -27,7 +27,6 @@ router = APIRouter(prefix="/setup", tags=["setup"])
 @router.get(path="/{setup_id}", response_model_exclude_none=True)
 async def get_setup(
     setup_id: Annotated[Identifier, Path()],
-    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
     expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> SetupResponse:
     """Get setup by id."""
@@ -36,7 +35,7 @@ async def get_setup(
         msg = f"Setup {setup_id} not found."
         raise SetupNotFoundError(msg, code=281)
 
-    setup_parameters = await database.setups.get_parameters(setup_id, expdb_db)
+    setup_parameters = await database.setups.get_parameters(setup_id, expdb_session)
 
     params_model = SetupParameters(
         setup_id=setup_id,

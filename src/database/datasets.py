@@ -18,11 +18,11 @@ from database.models.base import UntypedRow
 from routers.schemas.datasets import DatasetStatus, Feature
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def get(dataset_id: Identifier, connection: AsyncConnection) -> UntypedRow | None:
-    row = await connection.execute(
+async def get(dataset_id: Identifier, session: AsyncSession) -> UntypedRow | None:
+    row = await session.execute(
         text(
             """
     SELECT *
@@ -30,13 +30,13 @@ async def get(dataset_id: Identifier, connection: AsyncConnection) -> UntypedRow
     WHERE did = :dataset_id
     """,
         ),
-        parameters={"dataset_id": dataset_id},
+        params={"dataset_id": dataset_id},
     )
     return row.one_or_none()
 
 
-async def get_file(*, file_id: Identifier, connection: AsyncConnection) -> UntypedRow | None:
-    row = await connection.execute(
+async def get_file(*, file_id: Identifier, session: AsyncSession) -> UntypedRow | None:
+    row = await session.execute(
         text(
             """
     SELECT *
@@ -44,7 +44,7 @@ async def get_file(*, file_id: Identifier, connection: AsyncConnection) -> Untyp
     WHERE id = :file_id
     """,
         ),
-        parameters={"file_id": file_id},
+        params={"file_id": file_id},
     )
     return row.one_or_none()
 
@@ -52,10 +52,10 @@ async def get_file(*, file_id: Identifier, connection: AsyncConnection) -> Untyp
 async def get_tag(
     dataset_id: Identifier,
     tag: TagString,
-    connection: AsyncConnection,
+    session: AsyncSession,
 ) -> UntypedRow | None:
     return (
-        await connection.execute(
+        await session.execute(
             text(
                 """
     SELECT *
@@ -63,25 +63,25 @@ async def get_tag(
     WHERE id = :dataset_id AND tag = :tag
     """,
             ),
-            parameters={"dataset_id": dataset_id, "tag": tag},
+            params={"dataset_id": dataset_id, "tag": tag},
         )
     ).first()
 
 
-async def delete_tag(dataset_id: Identifier, tag: TagString, connection: AsyncConnection) -> None:
-    await connection.execute(
+async def delete_tag(dataset_id: Identifier, tag: TagString, session: AsyncSession) -> None:
+    await session.execute(
         text(
             """
     DELETE FROM dataset_tag
     WHERE id = :dataset_id AND tag = :tag
     """,
         ),
-        parameters={"dataset_id": dataset_id, "tag": tag},
+        params={"dataset_id": dataset_id, "tag": tag},
     )
 
 
-async def get_tags_for(dataset_id: Identifier, connection: AsyncConnection) -> list[str]:
-    row = await connection.execute(
+async def get_tags_for(dataset_id: Identifier, session: AsyncSession) -> list[str]:
+    row = await session.execute(
         text(
             """
     SELECT *
@@ -89,7 +89,7 @@ async def get_tags_for(dataset_id: Identifier, connection: AsyncConnection) -> l
     WHERE id = :dataset_id
     """,
         ),
-        parameters={"dataset_id": dataset_id},
+        params={"dataset_id": dataset_id},
     )
     rows = row.all()
     return [row.tag for row in rows]
@@ -100,17 +100,17 @@ async def tag(
     tag: str,
     *,
     user_id: Identifier,
-    connection: AsyncConnection,
+    session: AsyncSession,
 ) -> None:
     try:
-        await connection.execute(
+        await session.execute(
             text(
                 """
         INSERT INTO dataset_tag(`id`, `tag`, `uploader`)
         VALUES (:dataset_id, :tag, :user_id)
         """,
             ),
-            parameters={
+            params={
                 "dataset_id": dataset_id,
                 "user_id": user_id,
                 "tag": tag,
@@ -129,10 +129,10 @@ async def tag(
 
 async def get_description(
     dataset_id: Identifier,
-    connection: AsyncConnection,
+    session: AsyncSession,
 ) -> UntypedRow | None:
     """Get the most recent description for the dataset."""
-    row = await connection.execute(
+    row = await session.execute(
         text(
             """
     SELECT *
@@ -141,15 +141,15 @@ async def get_description(
     ORDER BY version DESC
     """,
         ),
-        parameters={"dataset_id": dataset_id},
+        params={"dataset_id": dataset_id},
     )
     return row.first()
 
 
-async def get_status(dataset_id: Identifier, connection: AsyncConnection) -> DatasetStatus:
+async def get_status(dataset_id: Identifier, session: AsyncSession) -> DatasetStatus:
     """Get most recent status for the dataset."""
     row = (
-        await connection.execute(
+        await session.execute(
             text(
                 """
     SELECT status
@@ -159,7 +159,7 @@ async def get_status(dataset_id: Identifier, connection: AsyncConnection) -> Dat
     LIMIT 1
     """,
             ),
-            parameters={"dataset_id": dataset_id},
+            params={"dataset_id": dataset_id},
         )
     ).first()
     return DatasetStatus(row.status) if row else DatasetStatus.IN_PREPARATION
@@ -167,9 +167,9 @@ async def get_status(dataset_id: Identifier, connection: AsyncConnection) -> Dat
 
 async def get_latest_processing_update(
     dataset_id: Identifier,
-    connection: AsyncConnection,
+    session: AsyncSession,
 ) -> UntypedRow | None:
-    row = await connection.execute(
+    row = await session.execute(
         text(
             """
     SELECT *
@@ -178,13 +178,13 @@ async def get_latest_processing_update(
     ORDER BY processing_date DESC
     """,
         ),
-        parameters={"dataset_id": dataset_id},
+        params={"dataset_id": dataset_id},
     )
     return row.first()
 
 
-async def get_features(dataset_id: Identifier, connection: AsyncConnection) -> list[Feature]:
-    row = await connection.execute(
+async def get_features(dataset_id: Identifier, session: AsyncSession) -> list[Feature]:
+    row = await session.execute(
         text(
             """
             SELECT `index`,`name`,`data_type`,`is_target`,
@@ -193,7 +193,7 @@ async def get_features(dataset_id: Identifier, connection: AsyncConnection) -> l
             WHERE `did` = :dataset_id
             """,
         ),
-        parameters={"dataset_id": dataset_id},
+        params={"dataset_id": dataset_id},
     )
     rows = row.mappings().all()
     return [Feature(**row, nominal_values=None) for row in rows]
@@ -201,9 +201,9 @@ async def get_features(dataset_id: Identifier, connection: AsyncConnection) -> l
 
 async def get_feature_ontologies(
     dataset_id: Identifier,
-    connection: AsyncConnection,
+    session: AsyncSession,
 ) -> dict[int, list[str]]:
-    rows = await connection.execute(
+    rows = await session.execute(
         text(
             """
             SELECT `index`, `value`
@@ -211,7 +211,7 @@ async def get_feature_ontologies(
             WHERE `did` = :dataset_id AND `description_type` = 'ontology'
             """,
         ),
-        parameters={"dataset_id": dataset_id},
+        params={"dataset_id": dataset_id},
     )
     ontologies: dict[int, list[str]] = defaultdict(list)
     for row in rows.mappings():
@@ -223,9 +223,9 @@ async def get_feature_values(
     dataset_id: Identifier,
     *,
     feature_index: int,
-    connection: AsyncConnection,
+    session: AsyncSession,
 ) -> list[str]:
-    row = await connection.execute(
+    row = await session.execute(
         text(
             """
             SELECT `value`
@@ -233,7 +233,7 @@ async def get_feature_values(
             WHERE `did` = :dataset_id AND `index` = :feature_index
             """,
         ),
-        parameters={"dataset_id": dataset_id, "feature_index": feature_index},
+        params={"dataset_id": dataset_id, "feature_index": feature_index},
     )
     rows = row.all()
     return [row.value for row in rows]
@@ -244,16 +244,16 @@ async def update_status(
     status: Literal[DatasetStatus.ACTIVE, DatasetStatus.DEACTIVATED],
     *,
     user_id: Identifier,
-    connection: AsyncConnection,
+    session: AsyncSession,
 ) -> None:
-    await connection.execute(
+    await session.execute(
         text(
             """
             INSERT INTO dataset_status(`did`,`status`,`status_date`,`user_id`)
             VALUES (:dataset, :status, :date, :user)
             """,
         ),
-        parameters={
+        params={
             "dataset": dataset_id,
             "status": status,
             "date": datetime.datetime.now(datetime.UTC),
@@ -262,13 +262,13 @@ async def update_status(
     )
 
 
-async def remove_deactivated_status(dataset_id: Identifier, connection: AsyncConnection) -> None:
-    await connection.execute(
+async def remove_deactivated_status(dataset_id: Identifier, session: AsyncSession) -> None:
+    await session.execute(
         text(
             """
             DELETE FROM dataset_status
             WHERE `did` = :data AND `status`='deactivated'
             """,
         ),
-        parameters={"data": dataset_id},
+        params={"data": dataset_id},
     )

@@ -5,18 +5,18 @@ from typing import TYPE_CHECKING, Annotated
 from fastapi import APIRouter, Depends
 
 import database.evaluations
-from routers.dependencies import expdb_connection
+from routers.dependencies import expdb_session
 from routers.schemas.tasks import EstimationProcedure
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/estimationprocedure", tags=["estimationprocedure"])
 
 
 @router.get("/list", response_model_exclude_none=True)
 async def get_estimation_procedures(
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> list[EstimationProcedure]:
     """Return a list with descriptions of estimation procedures.
 

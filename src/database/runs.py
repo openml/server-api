@@ -9,10 +9,10 @@ from core.types import Identifier, TagString
 from database.models.base import UntypedRow
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def exist(run_id: Identifier, expdb: AsyncConnection) -> bool:
+async def exist(run_id: Identifier, expdb: AsyncSession) -> bool:
     """Check if a run exists by ID."""
     row = await expdb.execute(
         text(
@@ -22,12 +22,12 @@ async def exist(run_id: Identifier, expdb: AsyncConnection) -> bool:
             WHERE `rid` = :run_id
             """,
         ),
-        parameters={"run_id": run_id},
+        params={"run_id": run_id},
     )
     return bool(row.one_or_none())
 
 
-async def get(run_id: Identifier, expdb: AsyncConnection) -> UntypedRow | None:
+async def get(run_id: Identifier, expdb: AsyncSession) -> UntypedRow | None:
     """Fetch the core run row from the `run` table.
 
     Returns the row if found, or None if no run with `run_id` exists.
@@ -41,12 +41,12 @@ async def get(run_id: Identifier, expdb: AsyncConnection) -> UntypedRow | None:
             WHERE `rid` = :run_id
             """,
         ),
-        parameters={"run_id": run_id},
+        params={"run_id": run_id},
     )
     return row.one_or_none()
 
 
-async def get_tags(run_id: Identifier, expdb: AsyncConnection) -> list[TagString]:
+async def get_tags(run_id: Identifier, expdb: AsyncSession) -> list[TagString]:
     """Fetch all tags associated with a run from the `run_tag` table.
 
     The `id` column in `run_tag` refers to the run ID
@@ -59,12 +59,12 @@ async def get_tags(run_id: Identifier, expdb: AsyncConnection) -> list[TagString
             WHERE `id` = :run_id
             """,
         ),
-        parameters={"run_id": run_id},
+        params={"run_id": run_id},
     )
     return [row.tag for row in rows.all()]
 
 
-async def get_input_data(run_id: Identifier, expdb: AsyncConnection) -> list[UntypedRow]:
+async def get_input_data(run_id: Identifier, expdb: AsyncSession) -> list[UntypedRow]:
     """Fetch the dataset(s) used as input for a run, with name and url.
 
     Joins `input_data` with `dataset` to include the dataset name and ARFF URL.
@@ -78,12 +78,12 @@ async def get_input_data(run_id: Identifier, expdb: AsyncConnection) -> list[Unt
             WHERE `id`.`run` = :run_id
             """,
         ),
-        parameters={"run_id": run_id},
+        params={"run_id": run_id},
     )
     return cast("list[UntypedRow]", rows.all())
 
 
-async def get_output_files(run_id: Identifier, expdb: AsyncConnection) -> list[UntypedRow]:
+async def get_output_files(run_id: Identifier, expdb: AsyncSession) -> list[UntypedRow]:
     """Fetch output files attached to a run from the `runfile` table.
 
     Typical entries include the description XML and predictions ARFF.
@@ -97,14 +97,14 @@ async def get_output_files(run_id: Identifier, expdb: AsyncConnection) -> list[U
             WHERE `source` = :run_id
             """,
         ),
-        parameters={"run_id": run_id},
+        params={"run_id": run_id},
     )
     return cast("list[UntypedRow]", rows.all())
 
 
 async def get_evaluations(
     run_id: Identifier,
-    expdb: AsyncConnection,
+    expdb: AsyncSession,
     *,
     evaluation_engine_ids: list[Identifier],
 ) -> list[UntypedRow]:
@@ -137,12 +137,12 @@ async def get_evaluations(
     ).bindparams(bindparam("engine_ids", expanding=True))
     rows = await expdb.execute(
         query,
-        parameters={"run_id": run_id, "engine_ids": evaluation_engine_ids},
+        params={"run_id": run_id, "engine_ids": evaluation_engine_ids},
     )
     return cast("list[UntypedRow]", rows.all())
 
 
-async def get_trace(run_id: Identifier, expdb: AsyncConnection) -> Sequence[UntypedRow]:
+async def get_trace(run_id: Identifier, expdb: AsyncSession) -> Sequence[UntypedRow]:
     """Get trace rows for a run from the trace table."""
     rows = await expdb.execute(
         text(
@@ -152,6 +152,6 @@ async def get_trace(run_id: Identifier, expdb: AsyncConnection) -> Sequence[Unty
             WHERE `run_id` = :run_id
             """,
         ),
-        parameters={"run_id": run_id},
+        params={"run_id": run_id},
     )
     return rows.all()

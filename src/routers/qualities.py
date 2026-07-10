@@ -19,21 +19,21 @@ from core.errors import (
 )
 from core.types import Identifier
 from database.users import User
-from routers.dependencies import expdb_connection, fetch_user
+from routers.dependencies import expdb_session, fetch_user
 from routers.schemas.datasets import Quality
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 
 
 @router.get("/qualities/list")
 async def list_qualities(
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> dict[Literal["data_qualities_list"], dict[Literal["quality"], list[str]]]:
     """List names of all computed qualities (dataset metafeatures)."""
-    qualities = await database.qualities.list_all_qualities(connection=expdb)
+    qualities = await database.qualities.list_all_qualities(session=expdb)
     return {
         "data_qualities_list": {
             "quality": qualities,
@@ -45,7 +45,7 @@ async def list_qualities(
 async def get_qualities(
     dataset_id: Identifier,
     user: Annotated[User | None, Depends(fetch_user)],
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> list[Quality]:
     """Get computed qualities (metafeatures) for a dataset."""
     dataset = await database.datasets.get(dataset_id, expdb)

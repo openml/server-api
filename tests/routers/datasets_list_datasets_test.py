@@ -17,7 +17,7 @@ from tests import constants
 from tests.users import ADMIN_USER, DATASET_130_OWNER, SOME_USER, ApiKey
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def test_list_route(py_api: httpx.AsyncClient) -> None:
@@ -134,13 +134,13 @@ async def test_list_data_identical(
     ],
 )
 async def test_list_filter_active(
-    status: DatasetStatusFilter, amount: int, expdb_test: AsyncConnection
+    status: DatasetStatusFilter, amount: int, expdb_session: AsyncSession
 ) -> None:
     result = await list_datasets(
         pagination=Pagination(limit=constants.NUMBER_OF_DATASETS),
         status=status,
         user=None,
-        expdb_db=expdb_test,
+        expdb_db=expdb_session,
     )
     assert len(result) == amount
 
@@ -155,13 +155,13 @@ async def test_list_filter_active(
     ],
 )
 async def test_list_accounts_privacy(
-    user: User | None, amount: int, expdb_test: AsyncConnection
+    user: User | None, amount: int, expdb_session: AsyncSession
 ) -> None:
     result = await list_datasets(
         pagination=Pagination(limit=1000),
         status=DatasetStatusFilter.ALL,
         user=user,
-        expdb_db=expdb_test,
+        expdb_db=expdb_session,
     )
     assert len(result) == amount
 
@@ -170,14 +170,14 @@ async def test_list_accounts_privacy(
     ("name", "count"),
     [("abalone", 1), ("iris", 2)],
 )
-async def test_list_data_name_present(name: str, count: int, expdb_test: AsyncConnection) -> None:
+async def test_list_data_name_present(name: str, count: int, expdb_session: AsyncSession) -> None:
     # The second iris dataset is private, so we need an admin user.
     result = await list_datasets(
         pagination=Pagination(),
         status=DatasetStatusFilter.ALL,
         data_name=name,
         user=ADMIN_USER,
-        expdb_db=expdb_test,
+        expdb_db=expdb_session,
     )
     assert len(result) == count
     assert all(dataset["name"] == name for dataset in result)
@@ -187,21 +187,21 @@ async def test_list_data_name_present(name: str, count: int, expdb_test: AsyncCo
     "name",
     ["ir", "long_name_without_overlap"],
 )
-async def test_list_data_name_absent(name: str, expdb_test: AsyncConnection) -> None:
+async def test_list_data_name_absent(name: str, expdb_session: AsyncSession) -> None:
     with pytest.raises(NoResultsError):
         await list_datasets(
             pagination=Pagination(),
             status=DatasetStatusFilter.ALL,
             data_name=name,
             user=ADMIN_USER,
-            expdb_db=expdb_test,
+            expdb_db=expdb_session,
         )
 
 
 @pytest.mark.parametrize("limit", [None, 5, 10, 200])
 @pytest.mark.parametrize("offset", [None, 0, 5, 129, 140])
 async def test_list_pagination(
-    limit: int | None, offset: int | None, expdb_test: AsyncConnection
+    limit: int | None, offset: int | None, expdb_session: AsyncSession
 ) -> None:
     # dataset ids are contiguous until 131, then there are 161, 162, and 163.
     extra_datasets = [161, 162, 163]
@@ -222,7 +222,7 @@ async def test_list_pagination(
             pagination=pagination,
             status=DatasetStatusFilter.ALL,
             user=None,
-            expdb_db=expdb_test,
+            expdb_db=expdb_session,
         )
     except NoResultsError:
         expect_empty_offset = 140
@@ -236,19 +236,19 @@ async def test_list_pagination(
     ("version", "count"),
     [(1, 100), (2, 7), (5, 1)],
 )
-async def test_list_data_version(version: int, count: int, expdb_test: AsyncConnection) -> None:
+async def test_list_data_version(version: int, count: int, expdb_session: AsyncSession) -> None:
     result = await list_datasets(
         pagination=Pagination(),
         status=DatasetStatusFilter.ALL,
         data_version=version,
         user=ADMIN_USER,
-        expdb_db=expdb_test,
+        expdb_db=expdb_session,
     )
     assert len(result) == count
     assert {dataset["version"] for dataset in result} == {version}
 
 
-async def test_list_data_version_no_result(expdb_test: AsyncConnection) -> None:
+async def test_list_data_version_no_result(expdb_session: AsyncSession) -> None:
     version_with_no_datasets = 42
     with pytest.raises(NoResultsError):
         await list_datasets(
@@ -256,7 +256,7 @@ async def test_list_data_version_no_result(expdb_test: AsyncConnection) -> None:
             status=DatasetStatusFilter.ALL,
             data_version=version_with_no_datasets,
             user=ADMIN_USER,
-            expdb_db=expdb_test,
+            expdb_db=expdb_session,
         )
 
 
@@ -266,7 +266,7 @@ async def test_list_data_version_no_result(expdb_test: AsyncConnection) -> None:
     [(1, 59), (2, 34), (16, 1)],
 )
 async def test_list_uploader(
-    user_id: Identifier, count: int, user: User, expdb_test: AsyncConnection
+    user_id: Identifier, count: int, user: User, expdb_session: AsyncSession
 ) -> None:
     # The dataset of user 16 is private, so can not be retrieved by other users.
     owner_user_id = 16
@@ -276,7 +276,7 @@ async def test_list_uploader(
             status=DatasetStatusFilter.ALL,
             uploader=user_id,
             user=user,
-            expdb_db=expdb_test,
+            expdb_db=expdb_session,
         )
         assert len(result) == count
     except NoResultsError:
@@ -288,13 +288,13 @@ async def test_list_uploader(
     "data_id",
     [[1], [1, 2, 3], [1, 2, 3, 3000], [1, 2, 3, 130]],
 )
-async def test_list_data_id(data_id: list[int], expdb_test: AsyncConnection) -> None:
+async def test_list_data_id(data_id: list[int], expdb_session: AsyncSession) -> None:
     result = await list_datasets(
         pagination=Pagination(),
         status=DatasetStatusFilter.ALL,
         data_id=data_id,
         user=None,
-        expdb_db=expdb_test,
+        expdb_db=expdb_session,
     )
     private_or_not_exist = {130, 3000}
     expected = set(data_id) - private_or_not_exist
@@ -306,25 +306,25 @@ async def test_list_data_id(data_id: list[int], expdb_test: AsyncConnection) -> 
     ("tag", "count"),
     [("study_14", 100), ("study_15", 1)],
 )
-async def test_list_data_tag(tag: str, count: int, expdb_test: AsyncConnection) -> None:
+async def test_list_data_tag(tag: str, count: int, expdb_session: AsyncSession) -> None:
     result = await list_datasets(
         pagination=Pagination(limit=101),
         status=DatasetStatusFilter.ALL,
         tag=tag,
         user=None,
-        expdb_db=expdb_test,
+        expdb_db=expdb_session,
     )
     assert len(result) == count
 
 
-async def test_list_data_tag_empty(expdb_test: AsyncConnection) -> None:
+async def test_list_data_tag_empty(expdb_session: AsyncSession) -> None:
     with pytest.raises(NoResultsError):
         await list_datasets(
             pagination=Pagination(),
             status=DatasetStatusFilter.ALL,
             tag="not-a-tag",
             user=None,
-            expdb_db=expdb_test,
+            expdb_db=expdb_session,
         )
 
 
@@ -342,13 +342,13 @@ async def test_list_data_tag_empty(expdb_test: AsyncConnection) -> None:
     ],
 )
 async def test_list_data_quality(
-    quality: str, range_: str, count: int, expdb_test: AsyncConnection
+    quality: str, range_: str, count: int, expdb_session: AsyncSession
 ) -> None:
     result = await list_datasets(
         pagination=Pagination(),
         status=DatasetStatusFilter.ALL,
         user=None,
-        expdb_db=expdb_test,
+        expdb_db=expdb_session,
         **{quality: range_},  # type: ignore[arg-type]
     )
     assert len(result) == count

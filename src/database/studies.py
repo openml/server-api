@@ -11,10 +11,10 @@ from database.users import User
 from routers.schemas.study import CreateStudy, StudyType
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def get_by_id(study_id: Identifier, connection: AsyncConnection) -> UntypedRow | None:
+async def get_by_id(study_id: Identifier, connection: AsyncSession) -> UntypedRow | None:
     row = await connection.execute(
         text(
             """
@@ -23,12 +23,12 @@ async def get_by_id(study_id: Identifier, connection: AsyncConnection) -> Untype
             WHERE id = :study_id
             """,
         ),
-        parameters={"study_id": study_id},
+        params={"study_id": study_id},
     )
     return row.one_or_none()
 
 
-async def get_by_alias(alias: str, connection: AsyncConnection) -> UntypedRow | None:
+async def get_by_alias(alias: str, connection: AsyncSession) -> UntypedRow | None:
     row = await connection.execute(
         text(
             """
@@ -37,12 +37,12 @@ async def get_by_alias(alias: str, connection: AsyncConnection) -> UntypedRow | 
             WHERE alias = :study_id
             """,
         ),
-        parameters={"study_id": alias},
+        params={"study_id": alias},
     )
     return row.one_or_none()
 
 
-async def get_study_data(study: UntypedRow, expdb: AsyncConnection) -> Sequence[UntypedRow]:
+async def get_study_data(study: UntypedRow, expdb: AsyncSession) -> Sequence[UntypedRow]:
     """Return data related to the study, content depends on the study type.
 
     For task studies: (task id, dataset id)
@@ -57,7 +57,7 @@ async def get_study_data(study: UntypedRow, expdb: AsyncConnection) -> Sequence[
                 WHERE ts.study_id = :study_id AND ti.input = 'source_data'
                 """,
             ),
-            parameters={"study_id": study.id},
+            params={"study_id": study.id},
         )
         return rows.all()
 
@@ -77,12 +77,12 @@ async def get_study_data(study: UntypedRow, expdb: AsyncConnection) -> Sequence[
             WHERE rs.study_id = :study_id AND ti.input = 'source_data'
             """,
         ),
-        parameters={"study_id": study.id},
+        params={"study_id": study.id},
     )
     return rows.all()
 
 
-async def create(study: CreateStudy, user: User, expdb: AsyncConnection) -> int:
+async def create(study: CreateStudy, user: User, expdb: AsyncSession) -> int:
     await expdb.execute(
         text(
             """
@@ -96,7 +96,7 @@ async def create(study: CreateStudy, user: User, expdb: AsyncConnection) -> int:
             )
             """,
         ),
-        parameters={
+        params={
             "name": study.name,
             "alias": study.alias,
             "main_entity_type": study.main_entity_type,
@@ -115,7 +115,7 @@ async def attach_task(
     task_id: Identifier,
     study_id: Identifier,
     user: User,
-    expdb: AsyncConnection,
+    expdb: AsyncSession,
 ) -> None:
     await expdb.execute(
         text(
@@ -124,7 +124,7 @@ async def attach_task(
             VALUES (:study_id, :task_id, :user_id)
             """,
         ),
-        parameters={"study_id": study_id, "task_id": task_id, "user_id": user.user_id},
+        params={"study_id": study_id, "task_id": task_id, "user_id": user.user_id},
     )
 
 
@@ -133,7 +133,7 @@ async def attach_run(
     run_id: Identifier,
     study_id: Identifier,
     user: User,
-    expdb: AsyncConnection,
+    expdb: AsyncSession,
 ) -> None:
     await expdb.execute(
         text(
@@ -142,7 +142,7 @@ async def attach_run(
             VALUES (:study_id, :run_id, :user_id)
             """,
         ),
-        parameters={"study_id": study_id, "run_id": run_id, "user_id": user.user_id},
+        params={"study_id": study_id, "run_id": run_id, "user_id": user.user_id},
     )
 
 
@@ -151,18 +151,18 @@ async def attach_tasks(
     study_id: Identifier,
     task_ids: list[Identifier],
     user: User,
-    connection: AsyncConnection,
+    session: AsyncSession,
 ) -> None:
     to_link = [(study_id, task_id, user.user_id) for task_id in task_ids]
     try:
-        await connection.execute(
+        await session.execute(
             text(
                 """
                 INSERT INTO task_study (study_id, task_id, uploader)
                 VALUES (:study_id, :task_id, :user_id)
                 """,
             ),
-            parameters=[{"study_id": s, "task_id": t, "user_id": u} for s, t, u in to_link],
+            params=[{"study_id": s, "task_id": t, "user_id": u} for s, t, u in to_link],
         )
     except Exception as e:
         (msg,) = e.args
@@ -182,6 +182,6 @@ async def attach_runs(
     study_id: Identifier,
     run_ids: list[Identifier],
     user: User,
-    connection: AsyncConnection,
+    session: AsyncSession,
 ) -> None:
     raise NotImplementedError
