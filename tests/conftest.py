@@ -25,13 +25,7 @@ from core.types import Identifier
 from database.engine import expdb_database, user_database
 from main import create_api
 from routers.dependencies import (
-    expdb_connection as expdb_connection_dep,
-)
-from routers.dependencies import (
     expdb_session as expdb_session_dep,
-)
-from routers.dependencies import (
-    userdb_connection as userdb_connection_dep,
 )
 from routers.dependencies import (
     userdb_session as userdb_session_dep,
@@ -131,8 +125,6 @@ async def app() -> AsyncIterator[FastAPI]:
 
 @pytest.fixture
 async def py_api(
-    expdb_connection: AsyncConnection,
-    userdb_connection: AsyncConnection,
     expdb_session: AsyncSession,
     userdb_session: AsyncSession,
     app: FastAPI,
@@ -146,20 +138,12 @@ async def py_api(
     #     expdb_session.execute(...)  # write some data  # noqa: ERA001
     #     py_api.get(...)  # read that data           # noqa: ERA001
 
-    async def override_expdb_connection() -> AsyncIterator[AsyncConnection]:
-        yield expdb_connection
-
-    async def override_userdb_connection() -> AsyncIterator[AsyncConnection]:
-        yield userdb_connection
-
     async def override_expdb_session() -> AsyncIterator[AsyncSession]:
         yield expdb_session
 
     async def override_userdb_session() -> AsyncIterator[AsyncSession]:
         yield userdb_session
 
-    app.dependency_overrides[expdb_connection_dep] = override_expdb_connection
-    app.dependency_overrides[userdb_connection_dep] = override_userdb_connection
     app.dependency_overrides[expdb_session_dep] = override_expdb_session
     app.dependency_overrides[userdb_session_dep] = override_userdb_session
 
@@ -170,8 +154,6 @@ async def py_api(
     ) as client:
         yield client
 
-    app.dependency_overrides[expdb_connection_dep] = expdb_connection_dep
-    app.dependency_overrides[userdb_connection_dep] = userdb_connection_dep
     app.dependency_overrides[expdb_session_dep] = expdb_session_dep
     app.dependency_overrides[userdb_session_dep] = userdb_session_dep
 
