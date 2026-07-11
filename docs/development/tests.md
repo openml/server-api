@@ -93,7 +93,7 @@ async def test_python(py_api: httpx.AsyncClient, expdb_session: AsyncSession) ->
     # after the test is done, the fixture clean up will ensure the change is not committed to the database, no extra code needed
 
 async def test_python_and_php(py_api: httpx.AsyncClient, php_api: httpx.AsyncClient, expdb_connection: AsyncConnection) -> None:
-    await expdb_connection.execute(text("INSERT INTO dataset ..."), params=...)  # Insert dataset with id 42
+    await expdb_connection.execute(text("INSERT INTO dataset ..."), parameters=...)  # Insert dataset with id 42
     await expdb_connection.commit()  # We need to persist the data in the database, because the PHP REST API cannot see our transaction
 
     response = await php_api.get("/datasets/42")  # The PHP REST API can see the dataset, because it exists in the database
@@ -101,7 +101,7 @@ async def test_python_and_php(py_api: httpx.AsyncClient, php_api: httpx.AsyncCli
 
     # We need to clean up after ourselves, otherwise the test has side effects.
     # This isn't a great pattern, prefer instead the use of context managers which will execute the delete statements even if unexpected exceptions occur.
-    await expdb_connection.execute(text("DELETE FROM dataset ..."), params=...)
+    await expdb_connection.execute(text("DELETE FROM dataset ..."), parameters=...)
     await expdb_connection.commit()
 
 ```
