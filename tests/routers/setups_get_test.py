@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from core.conversions import nested_remove_values, nested_str_to_num
+from core.types import Identifier
 
 if TYPE_CHECKING:
     import httpx
@@ -45,7 +46,7 @@ async def test_get_setup_response_is_identical_setup_doesnt_exist(
 
 @pytest.mark.parametrize("setup_id", range(1, 125))
 async def test_get_setup_response_is_identical(
-    setup_id: int,
+    setup_id: Identifier,
     py_api: httpx.AsyncClient,
     php_api: httpx.AsyncClient,
 ) -> None:

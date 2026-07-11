@@ -1,6 +1,5 @@
 """Defines endpoints relating to Flows."""
 
-import asyncio
 from typing import TYPE_CHECKING, Annotated, Literal
 
 from fastapi import APIRouter, Depends
@@ -9,11 +8,11 @@ import database.flows
 from core.conversions import str_to_num
 from core.errors import FlowNotFoundError
 from core.types import Identifier
-from routers.dependencies import expdb_connection
-from schemas.flows import Flow, Parameter, Subflow
+from routers.dependencies import expdb_session
+from routers.schemas.flows import Flow, Parameter, Subflow
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/flows", tags=["flows"])
 
@@ -22,7 +21,7 @@ router = APIRouter(prefix="/flows", tags=["flows"])
 async def flow_exists(
     name: str,
     external_version: str,
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> dict[Literal["flow_id"], int]:
     """Check if a Flow with the name and version exists, if so, return the flow id."""
     flow = await database.flows.get_by_name(
@@ -39,7 +38,7 @@ async def flow_exists(
 @router.get("/{flow_id}")
 async def get_flow(
     flow_id: Identifier,
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> Flow:
     """Get a Flow by its identifier."""
     flow = await database.flows.get(flow_id, expdb)
@@ -47,11 +46,9 @@ async def get_flow(
         msg = f"Flow with id {flow_id} not found."
         raise FlowNotFoundError(msg)
 
-    parameter_rows, tags, subflow_rows = await asyncio.gather(
-        database.flows.get_parameters(flow_id, expdb),
-        database.flows.get_tags(flow_id, expdb),
-        database.flows.get_subflows(flow_id, expdb),
-    )
+    parameter_rows = await database.flows.get_parameters(flow_id, expdb)
+    tags = await database.flows.get_tags(flow_id, expdb)
+    subflow_rows = await database.flows.get_subflows(flow_id, expdb)
     parameters = [
         Parameter(
             name=parameter.name,
@@ -74,8 +71,8 @@ async def get_flow(
         )
 
     return Flow(
-        id_=flow.id,
-        uploader=flow.uploader,
+        id=flow.id,
+        uploader_id=flow.uploader,
         name=flow.name,
         class_name=flow.class_name,
         version=flow.version,

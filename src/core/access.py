@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Any
 
 from database.users import User
-from schemas.datasets import Visibility
+from routers.schemas.datasets import Visibility
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Row

@@ -5,13 +5,14 @@ from typing import TYPE_CHECKING
 import pytest
 
 from core.conversions import nested_remove_single_element_list
+from core.types import Identifier
 
 if TYPE_CHECKING:
     import httpx
 
 
 async def assert_tag_response_is_identical(  # noqa: PLR0913
-    identifier: int,
+    identifier: Identifier,
     tag: str,
     api_key: str,
     entity: str,

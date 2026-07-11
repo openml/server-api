@@ -1,25 +1,34 @@
+"""Defines schemas for API responses relating to Studies."""
+
 from datetime import datetime
 from enum import StrEnum, auto
 
 from pydantic import BaseModel, Field
 
-from schemas.core import Visibility
+from core.types import Identifier
+from routers.schemas.core import Visibility
 
 
 class StudyType(StrEnum):
+    """Studies currently are defined by either tasks or runs."""
+
     RUN = auto()
     TASK = auto()
 
 
 class StudyStatus(StrEnum):
+    """Status of a study."""
+
     ACTIVE = auto()
     DEACTIVATED = auto()
     IN_PREPARATION = auto()
 
 
 class Study(BaseModel):
+    """A Study is a collection of items. Currently restricted to tasks and runs only."""
+
     legacy: bool = Field(default=False, exclude=True)
-    id_: int = Field(serialization_alias="id")
+    id: Identifier
     name: str
     alias: str | None
     main_entity_type: StudyType
@@ -27,7 +36,7 @@ class Study(BaseModel):
     visibility: Visibility
     status: StudyStatus
     creation_date: datetime
-    creator: int
+    uploader_id: Identifier = Field(serialization_alias="creator")
     task_ids: list[int]
     run_ids: list[int]
     data_ids: list[int]
@@ -54,7 +63,7 @@ class CreateStudy(BaseModel):
         description="Whether it is a collection of runs (study) or tasks (benchmarking suite).",
         examples=[StudyType.TASK],
     )
-    benchmark_suite: int | None = Field(
+    benchmark_suite: Identifier | None = Field(
         # For study, refers to the benchmarking suite
         default=None,
         description="The benchmarking suite this study is based on, if any.",
@@ -76,7 +85,7 @@ class CreateStudy(BaseModel):
         min_length=1,
         max_length=4096,
     )
-    tasks: list[int] = Field(
+    tasks: list[Identifier] = Field(
         default_factory=list,
         description=(
             "Tasks to include in the study, can only be specified if `runs` is empty."
@@ -84,7 +93,7 @@ class CreateStudy(BaseModel):
         ),
         examples=[[1, 2, 3]],
     )
-    runs: list[int] = Field(
+    runs: list[Identifier] = Field(
         default_factory=list,
         description=(
             "Runs to include in the study, can only be specified if `tasks` is empty."

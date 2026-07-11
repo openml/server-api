@@ -21,12 +21,12 @@ from core.formatting import str_to_bool
 from core.types import Identifier
 from database.models.base import UntypedRow
 from database.users import User
-from routers.dependencies import expdb_connection, fetch_user, fetch_user_or_raise
-from schemas.core import Visibility
-from schemas.study import CreateStudy, Study, StudyStatus, StudyType
+from routers.dependencies import expdb_session, fetch_user, fetch_user_or_raise
+from routers.schemas.core import Visibility
+from routers.schemas.study import CreateStudy, Study, StudyStatus, StudyType
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/studies", tags=["studies"])
 
@@ -34,7 +34,7 @@ router = APIRouter(prefix="/studies", tags=["studies"])
 async def _get_study_raise_otherwise(
     id_or_alias: Identifier | str,
     user: User | None,
-    expdb: AsyncConnection,
+    expdb: AsyncSession,
 ) -> UntypedRow:
     search_by_id = isinstance(id_or_alias, int) or id_or_alias.isdigit()
     if search_by_id:
@@ -62,7 +62,7 @@ async def _get_study_raise_otherwise(
 class AttachDetachResponse(BaseModel):
     """Response format for attaching or detaching an entity from a study."""
 
-    study_id: int
+    study_id: Identifier
     main_entity_type: StudyType
 
 
@@ -71,7 +71,7 @@ async def attach_to_study(
     study_id: Annotated[Identifier, Body()],
     entity_ids: Annotated[list[Identifier], Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> AttachDetachResponse:
     """Add runs or tasks to a study which is in preparation."""
     if user is None:
@@ -100,14 +100,14 @@ async def attach_to_study(
                 task_ids=entity_ids,
                 study_id=study_id,
                 user=user,
-                connection=expdb,
+                session=expdb,
             )
         else:
             await database.studies.attach_runs(
                 run_ids=entity_ids,
                 study_id=study_id,
                 user=user,
-                connection=expdb,
+                session=expdb,
             )
     except ValueError as e:
         msg = str(e)
@@ -125,7 +125,7 @@ async def attach_to_study(
 async def create_study(
     study: CreateStudy,
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> dict[Literal["study_id"], int]:
     """Create a new study."""
     if study.main_entity_type == StudyType.RUN and study.tasks:
@@ -161,7 +161,7 @@ async def create_study(
 @router.get("/{alias_or_id}")
 async def get_study(
     alias_or_id: Identifier | str,
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session)],
     user: Annotated[User | None, Depends(fetch_user)] = None,
 ) -> Study:
     """Get a study by id or alias."""
@@ -169,7 +169,7 @@ async def get_study(
     study_data = await database.studies.get_study_data(study, expdb)
     return Study(
         _legacy=str_to_bool(study.legacy),
-        id_=study.id,
+        id=study.id,
         name=study.name,
         alias=study.alias,
         main_entity_type=study.type_,
@@ -177,7 +177,7 @@ async def get_study(
         visibility=study.visibility,
         status=study.status,
         creation_date=study.creation_date,
-        creator=study.creator,
+        uploader_id=study.creator,
         data_ids=[row.data_id for row in study_data],
         task_ids=[row.task_id for row in study_data],
         run_ids=[row.run_id for row in study_data] if study.type_ == StudyType.RUN else [],

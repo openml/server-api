@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from core.errors import TASK_NOT_FOUND_DURING_TAG, TagAlreadyExistsError, TaskNotFoundError
+from core.types import Identifier
 from database.tasks import get_tags
 from database.users import User
 from routers.tasks import tag_task
@@ -109,7 +110,7 @@ async def test_task_tag_fails_if_task_does_not_exist(expdb_session: AsyncSession
     ids=["typically existing tag", "new tag"],
 )
 async def test_task_tag_response_is_identical(
-    task_id: int,
+    task_id: Identifier,
     tag: str,
     api_key: str,
     py_api: httpx.AsyncClient,

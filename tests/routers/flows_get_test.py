@@ -9,6 +9,7 @@ from core.conversions import (
     nested_remove_single_element_list,
     nested_str_to_num,
 )
+from core.types import Identifier
 
 if TYPE_CHECKING:
     import httpx
@@ -322,7 +323,7 @@ async def test_get_flow_with_subflow(py_api: httpx.AsyncClient) -> None:
     range(1, 16),
 )
 async def test_get_flow_equal(
-    flow_id: int, py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
+    flow_id: Identifier, py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
 ) -> None:
     py_response, php_response = await asyncio.gather(
         py_api.get(f"/flows/{flow_id}"),

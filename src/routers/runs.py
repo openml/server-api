@@ -1,8 +1,7 @@
 """Endpoints relating to Runs and Traces."""
 
-import asyncio
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Annotated, Any, cast
+from typing import TYPE_CHECKING, Annotated, cast
 
 from fastapi import APIRouter, Depends
 
@@ -16,8 +15,8 @@ from core.errors import RunNotFoundError, RunTraceNotFoundError
 from core.types import Identifier
 from database.models.base import UntypedRow
 from database.models.setups import Setup
-from routers.dependencies import expdb_connection, expdb_session, userdb_connection
-from schemas.runs import (
+from routers.dependencies import expdb_session, userdb_session
+from routers.schemas.runs import (
     EvaluationScore,
     InputDataset,
     OutputData,
@@ -29,7 +28,7 @@ from schemas.runs import (
 )
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/run", tags=["run"])
 
@@ -37,7 +36,7 @@ router = APIRouter(prefix="/run", tags=["run"])
 @router.get("/trace/{run_id}")
 async def get_run_trace(
     run_id: Identifier,
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> RunTrace:
     """Get trace data for a run by run ID."""
     if not await database.runs.exist(run_id, expdb):
@@ -82,34 +81,25 @@ class RunContext:
 
 async def _load_run_context(
     run: UntypedRow,
-    expdb: AsyncConnection,
-    userdb: AsyncConnection,
-    expdb_session: AsyncSession,
+    expdb: AsyncSession,
+    userdb: AsyncSession,
     engine_ids: list[int],
 ) -> RunContext:
-    (
-        uploader_user,
-        tags,
-        input_data_rows,
-        output_file_rows,
-        evaluation_rows,
-        task_type,
-        task_evaluation_measure,
-        setup,
-        parameter_rows,
-    ) = cast(
-        "tuple[Any, list[str], list[UntypedRow], list[UntypedRow], list[UntypedRow], str | None, str | None, Setup | None, list[UntypedRow]]",  # noqa: E501
-        await asyncio.gather(
-            database.users.get_user(user_id=run.uploader, connection=userdb),
-            database.runs.get_tags(run.rid, expdb),
-            database.runs.get_input_data(run.rid, expdb),
-            database.runs.get_output_files(run.rid, expdb),
-            database.runs.get_evaluations(run.rid, expdb, evaluation_engine_ids=engine_ids),
-            database.tasks.get_task_type_name(run.task_id, expdb),
-            database.tasks.get_task_evaluation_measure(run.task_id, expdb),
-            database.setups.get(run.setup, expdb_session),
-            database.setups.get_parameters(run.setup, expdb),
-        ),
+    uploader_user = await database.users.get_user(user_id=run.uploader, session=userdb)
+    tags = await database.runs.get_tags(run.rid, expdb)
+    input_data_rows = await database.runs.get_input_data(run.rid, expdb)
+    output_file_rows = await database.runs.get_output_files(run.rid, expdb)
+    evaluation_rows = await database.runs.get_evaluations(
+        run.rid,
+        expdb,
+        evaluation_engine_ids=engine_ids,
+    )
+    task_type = await database.tasks.get_task_type_name(run.task_id, expdb)
+    task_evaluation_measure = await database.tasks.get_task_evaluation_measure(run.task_id, expdb)
+    setup = await database.setups.get(run.setup, expdb)
+    parameter_rows = cast(
+        "list[UntypedRow]",
+        await database.setups.get_parameters(run.setup, expdb),
     )
     return RunContext(
         uploader_name=uploader_user.full_name if uploader_user else None,
@@ -144,10 +134,9 @@ def _build_evaluations(rows: list[UntypedRow]) -> list[EvaluationScore]:
 
 @router.get("/{run_id}", response_model_exclude_none=True)
 async def get_run(
-    run_id: int,
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
-    userdb: Annotated[AsyncConnection, Depends(userdb_connection)],
-    expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
+    run_id: Identifier,
+    expdb: Annotated[AsyncSession, Depends(expdb_session)],
+    userdb: Annotated[AsyncSession, Depends(userdb_session)],
 ) -> Run:
     """Get full metadata for a run by ID."""
     # Authentication is not required because runs are always public.
@@ -159,7 +148,7 @@ async def get_run(
         raise RunNotFoundError(msg, code=236)
 
     engine_ids: list[int] = config.get_config().development.run_evaluation_engine_ids
-    ctx = await _load_run_context(run, expdb, userdb, expdb_session, engine_ids)
+    ctx = await _load_run_context(run, expdb, userdb, engine_ids)
 
     flow = await database.flows.get(ctx.setup.flow_id, expdb) if ctx.setup else None
     evaluations = _build_evaluations(ctx.evaluation_rows)
@@ -169,7 +158,7 @@ async def get_run(
 
     return Run(
         run_id=run_id,
-        uploader=run.uploader,
+        uploader_id=run.uploader,
         uploader_name=ctx.uploader_name,
         task_id=run.task_id,
         task_type=ctx.task_type,

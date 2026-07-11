@@ -5,17 +5,17 @@ from sqlalchemy import text
 
 from core.formatting import str_to_bool
 from database.models.base import UntypedRow
-from schemas.tasks import EstimationProcedure
+from routers.schemas.tasks import EstimationProcedure
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def get_math_functions(
     function_type: str,
-    connection: AsyncConnection,
+    session: AsyncSession,
 ) -> Sequence[UntypedRow]:
-    rows = await connection.execute(
+    rows = await session.execute(
         text(
             """
             SELECT *
@@ -23,16 +23,16 @@ async def get_math_functions(
             WHERE `functionType` = :function_type
             """,
         ),
-        parameters={"function_type": function_type},
+        params={"function_type": function_type},
     )
     return rows.all()
 
 
-async def get_estimation_procedures(connection: AsyncConnection) -> list[EstimationProcedure]:
-    row = await connection.execute(
+async def get_estimation_procedures(session: AsyncSession) -> list[EstimationProcedure]:
+    row = await session.execute(
         text(
             """
-            SELECT `id` as 'id_', `ttid` as 'task_type_id', `name`, `type` as 'type_',
+            SELECT `id`, `ttid` as 'task_type_id', `name`, `type` as 'type_',
                    `repeats`, `folds`, `stratified_sampling`, `percentage`
             FROM estimation_procedure
             """,

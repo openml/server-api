@@ -7,10 +7,10 @@ from core.types import Identifier
 from database.models.base import UntypedRow
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def get_subflows(for_flow: Identifier, expdb: AsyncConnection) -> Sequence[UntypedRow]:
+async def get_subflows(for_flow: Identifier, expdb: AsyncSession) -> Sequence[UntypedRow]:
     rows = await expdb.execute(
         text(
             """
@@ -19,12 +19,12 @@ async def get_subflows(for_flow: Identifier, expdb: AsyncConnection) -> Sequence
             WHERE parent = :flow_id
             """,
         ),
-        parameters={"flow_id": for_flow},
+        params={"flow_id": for_flow},
     )
     return rows.all()
 
 
-async def get_tags(flow_id: Identifier, expdb: AsyncConnection) -> list[str]:
+async def get_tags(flow_id: Identifier, expdb: AsyncSession) -> list[str]:
     rows = await expdb.execute(
         text(
             """
@@ -33,13 +33,13 @@ async def get_tags(flow_id: Identifier, expdb: AsyncConnection) -> list[str]:
             WHERE id = :flow_id
             """,
         ),
-        parameters={"flow_id": flow_id},
+        params={"flow_id": flow_id},
     )
     tag_rows = rows.all()
     return [tag.tag for tag in tag_rows]
 
 
-async def get_parameters(flow_id: Identifier, expdb: AsyncConnection) -> Sequence[UntypedRow]:
+async def get_parameters(flow_id: Identifier, expdb: AsyncSession) -> Sequence[UntypedRow]:
     rows = await expdb.execute(
         text(
             """
@@ -48,7 +48,7 @@ async def get_parameters(flow_id: Identifier, expdb: AsyncConnection) -> Sequenc
             WHERE implementation_id = :flow_id
             """,
         ),
-        parameters={"flow_id": flow_id},
+        params={"flow_id": flow_id},
     )
     return rows.all()
 
@@ -56,7 +56,7 @@ async def get_parameters(flow_id: Identifier, expdb: AsyncConnection) -> Sequenc
 async def get_by_name(
     name: str,
     external_version: str,
-    expdb: AsyncConnection,
+    expdb: AsyncSession,
 ) -> UntypedRow | None:
     """Get flow by name and external version."""
     row = await expdb.execute(
@@ -67,12 +67,12 @@ async def get_by_name(
             WHERE name = :name AND external_version = :external_version
             """,
         ),
-        parameters={"name": name, "external_version": external_version},
+        params={"name": name, "external_version": external_version},
     )
     return row.one_or_none()
 
 
-async def get(id_: Identifier, expdb: AsyncConnection) -> UntypedRow | None:
+async def get(flow_id: Identifier, expdb: AsyncSession) -> UntypedRow | None:
     row = await expdb.execute(
         text(
             """
@@ -81,6 +81,6 @@ async def get(id_: Identifier, expdb: AsyncConnection) -> UntypedRow | None:
             WHERE id = :flow_id
             """,
         ),
-        parameters={"flow_id": id_},
+        params={"flow_id": flow_id},
     )
     return row.one_or_none()

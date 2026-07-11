@@ -2,6 +2,8 @@
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from core.types import Identifier, TagString
+
 
 class TraceIteration(BaseModel):
     """A single trace iteration for a run."""
@@ -17,7 +19,7 @@ class TraceIteration(BaseModel):
 class RunTrace(BaseModel):
     """Trace data for a run."""
 
-    run_id: int
+    run_id: Identifier
     trace: list[TraceIteration]
 
 
@@ -31,7 +33,7 @@ class ParameterSetting(BaseModel):
 
     name: str
     value: str | None
-    component: int  # = input.implementation_id (flow_id of the owning component)
+    component: Identifier  # = input.implementation_id (flow_id of the owning component)
 
 
 class InputDataset(BaseModel):
@@ -41,7 +43,7 @@ class InputDataset(BaseModel):
     from the `dataset` table and match the values PHP returns.
     """
 
-    did: int
+    did: Identifier
     name: str
     url: str  # ARFF download URL stored in dataset.url
 
@@ -57,7 +59,7 @@ class OutputFile(BaseModel):
     could create new datasets. It is intentionally omitted in this implementation.
     """
 
-    file_id: int
+    file_id: Identifier
     name: str  # label as stored in runfile.field, e.g. "description", "predictions"
 
 
@@ -89,20 +91,20 @@ class Run(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    run_id: int
-    uploader: int  # user ID of the uploader
+    run_id: Identifier
+    uploader_id: Identifier = Field(serialization_alias="uploader")
     uploader_name: str | None
-    task_id: int
+    task_id: Identifier
     task_type: str | None  # e.g. "Supervised Classification"
     task_evaluation_measure: str | None
-    flow_id: int | None = None
+    flow_id: Identifier | None = None
     flow_name: str | None
-    setup_id: int | None = None
+    setup_id: Identifier | None = None
     setup_string: str | None  # human-readable description of the setup
     parameter_setting: list[ParameterSetting]
     # Serialized as "error" in JSON to match the PHP response key.
     # At the Python level we keep the name error_message for clarity.
     error_message: list[str] = Field(serialization_alias="error")
-    tag: list[str]
+    tag: list[TagString]
     input_data: list[InputDataset]
     output_data: OutputData

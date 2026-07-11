@@ -6,13 +6,14 @@ from typing import TYPE_CHECKING
 import pytest
 
 from core.errors import FlowNotFoundError
+from core.types import Identifier
 from routers.flows import flow_exists
 from tests.conftest import Flow
 
 if TYPE_CHECKING:
     import httpx
     from pytest_mock import MockerFixture
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def test_flow_exists(flow: Flow, py_api: httpx.AsyncClient) -> None:
@@ -42,14 +43,14 @@ async def test_flow_exists_not_exists(py_api: httpx.AsyncClient) -> None:
 async def test_flow_exists_calls_db_correctly(
     name: str,
     external_version: str,
-    expdb_test: AsyncConnection,
+    expdb_session: AsyncSession,
     mocker: MockerFixture,
 ) -> None:
     mocked_db = mocker.patch(
         "database.flows.get_by_name",
         new_callable=mocker.AsyncMock,
     )
-    await flow_exists(name, external_version, expdb_test)
+    await flow_exists(name, external_version, expdb_session)
     mocked_db.assert_called_once_with(
         name=name,
         external_version=external_version,
@@ -62,9 +63,9 @@ async def test_flow_exists_calls_db_correctly(
     [1, 2],
 )
 async def test_flow_exists_processes_found(
-    flow_id: int,
+    flow_id: Identifier,
     mocker: MockerFixture,
-    expdb_test: AsyncConnection,
+    expdb_session: AsyncSession,
 ) -> None:
     fake_flow = mocker.MagicMock(id=flow_id)
     mocker.patch(
@@ -72,16 +73,16 @@ async def test_flow_exists_processes_found(
         new_callable=mocker.AsyncMock,
         return_value=fake_flow,
     )
-    response = await flow_exists("name", "external_version", expdb_test)
+    response = await flow_exists("name", "external_version", expdb_session)
     assert response == {"flow_id": fake_flow.id}
 
 
 async def test_flow_exists_handles_flow_not_found(
-    mocker: MockerFixture, expdb_test: AsyncConnection
+    mocker: MockerFixture, expdb_session: AsyncSession
 ) -> None:
     mocker.patch("database.flows.get_by_name", return_value=None)
     with pytest.raises(FlowNotFoundError) as error:
-        await flow_exists("foo", "bar", expdb_test)
+        await flow_exists("foo", "bar", expdb_session)
     assert error.value.status_code == HTTPStatus.NOT_FOUND
     assert error.value.uri == FlowNotFoundError.uri
 

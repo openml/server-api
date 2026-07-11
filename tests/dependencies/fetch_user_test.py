@@ -9,7 +9,7 @@ from routers.dependencies import fetch_user, fetch_user_or_raise
 from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.mark.parametrize(
@@ -20,8 +20,8 @@ if TYPE_CHECKING:
         (ApiKey.SOME_USER, SOME_USER),
     ],
 )
-async def test_fetch_user(api_key: str, user: User, user_test: AsyncConnection) -> None:
-    async with aclosing(fetch_user(api_key, user_data=user_test)) as agen:
+async def test_fetch_user(api_key: str, user: User, userdb_session: AsyncSession) -> None:
+    async with aclosing(fetch_user(api_key, user_data=userdb_session)) as agen:
         db_user = await anext(agen)
     assert isinstance(db_user, User)
     assert db_user.user_id == user.user_id
@@ -33,9 +33,9 @@ async def test_fetch_user_no_key_no_user() -> None:
         assert await anext(agen) is None
 
 
-async def test_fetch_user_invalid_key_raises(user_test: AsyncConnection) -> None:
+async def test_fetch_user_invalid_key_raises(userdb_session: AsyncSession) -> None:
     with pytest.raises(AuthenticationFailedError):
-        async with aclosing(fetch_user(api_key=ApiKey.INVALID, user_data=user_test)) as agen:
+        async with aclosing(fetch_user(api_key=ApiKey.INVALID, user_data=userdb_session)) as agen:
             await anext(agen)
 
 

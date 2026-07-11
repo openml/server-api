@@ -10,6 +10,7 @@ from core.conversions import (
     nested_remove_single_element_list,
     nested_remove_values,
 )
+from core.types import Identifier
 
 if TYPE_CHECKING:
     import httpx
@@ -68,7 +69,7 @@ async def test_get_task(py_api: httpx.AsyncClient) -> None:
     range(1, 1306),
 )
 async def test_get_task_equal(
-    task_id: int, py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
+    task_id: Identifier, py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
 ) -> None:
     py_response, php_response = await asyncio.gather(
         py_api.get(f"/tasks/{task_id}"),

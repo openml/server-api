@@ -15,10 +15,10 @@ from database.models.base import UntypedRow
 from database.models.tags import TaskTag
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def get(id_: Identifier, expdb: AsyncConnection) -> UntypedRow | None:
+async def get(task_id: Identifier, expdb: AsyncSession) -> UntypedRow | None:
     row = await expdb.execute(
         text(
             """
@@ -27,12 +27,12 @@ async def get(id_: Identifier, expdb: AsyncConnection) -> UntypedRow | None:
             WHERE `task_id` = :task_id
             """,
         ),
-        parameters={"task_id": id_},
+        params={"task_id": task_id},
     )
     return row.one_or_none()
 
 
-async def get_task_types(expdb: AsyncConnection) -> Sequence[UntypedRow]:
+async def get_task_types(expdb: AsyncSession) -> Sequence[UntypedRow]:
     rows = await expdb.execute(
         text(
             """
@@ -44,7 +44,7 @@ async def get_task_types(expdb: AsyncConnection) -> Sequence[UntypedRow]:
     return rows.all()
 
 
-async def get_task_type(task_type_id: Identifier, expdb: AsyncConnection) -> UntypedRow | None:
+async def get_task_type(task_type_id: Identifier, expdb: AsyncSession) -> UntypedRow | None:
     row = await expdb.execute(
         text(
             """
@@ -53,12 +53,12 @@ async def get_task_type(task_type_id: Identifier, expdb: AsyncConnection) -> Unt
         WHERE `ttid`=:ttid
         """,
         ),
-        parameters={"ttid": task_type_id},
+        params={"ttid": task_type_id},
     )
     return row.one_or_none()
 
 
-async def get_task_type_name(task_id: int, expdb: AsyncConnection) -> str | None:
+async def get_task_type_name(task_id: Identifier, expdb: AsyncSession) -> str | None:
     """Fetch the human-readable task type name for the task associated with a run.
 
     Joins `task` and `task_type` on `ttid` to resolve the name
@@ -73,13 +73,13 @@ async def get_task_type_name(task_id: int, expdb: AsyncConnection) -> str | None
             WHERE `t`.`task_id` = :task_id
             """,
         ),
-        parameters={"task_id": task_id},
+        params={"task_id": task_id},
     )
     result = row.one_or_none()
     return result.name if result else None
 
 
-async def get_task_evaluation_measure(task_id: int, expdb: AsyncConnection) -> str | None:
+async def get_task_evaluation_measure(task_id: Identifier, expdb: AsyncSession) -> str | None:
     """Fetch the evaluation measure configured for a task, if any.
 
     Queries `task_inputs` for the row where `input = 'evaluation_measures'`.
@@ -95,15 +95,15 @@ async def get_task_evaluation_measure(task_id: int, expdb: AsyncConnection) -> s
               AND `input` = 'evaluation_measures'
             """,
         ),
-        parameters={"task_id": task_id},
+        params={"task_id": task_id},
     )
     result = row.one_or_none()
     return result.value if result else None
 
 
 async def get_input_for_task_type(
-    task_type_id: int,
-    expdb: AsyncConnection,
+    task_type_id: Identifier,
+    expdb: AsyncSession,
 ) -> Sequence[UntypedRow]:
     rows = await expdb.execute(
         text(
@@ -113,12 +113,12 @@ async def get_input_for_task_type(
         WHERE `ttid`=:ttid AND `io`='input'
         """,
         ),
-        parameters={"ttid": task_type_id},
+        params={"ttid": task_type_id},
     )
     return rows.all()
 
 
-async def get_input_for_task(id_: Identifier, expdb: AsyncConnection) -> Sequence[UntypedRow]:
+async def get_input_for_task(task_id: Identifier, expdb: AsyncSession) -> Sequence[UntypedRow]:
     rows = await expdb.execute(
         text(
             """
@@ -127,14 +127,14 @@ async def get_input_for_task(id_: Identifier, expdb: AsyncConnection) -> Sequenc
             WHERE task_id = :task_id
             """,
         ),
-        parameters={"task_id": id_},
+        params={"task_id": task_id},
     )
     return rows.all()
 
 
 async def get_task_type_inout_with_template(
     task_type: Identifier,
-    expdb: AsyncConnection,
+    expdb: AsyncSession,
 ) -> Sequence[UntypedRow]:
     rows = await expdb.execute(
         text(
@@ -144,7 +144,7 @@ async def get_task_type_inout_with_template(
             WHERE `ttid`=:ttid AND `template_api` IS NOT NULL
             """,
         ),
-        parameters={"ttid": task_type},
+        params={"ttid": task_type},
     )
     return rows.all()
 
@@ -155,13 +155,13 @@ async def get_tags(task_id: Identifier, session: AsyncSession) -> Sequence[TaskT
 
 
 async def tag(
-    id_: Identifier,
+    task_id: Identifier,
     tag_: TagString,
     *,
     user_id: Identifier,
     session: AsyncSession,
 ) -> None:
-    tag = TaskTag(entity_id=id_, uploader_id=user_id, tag=tag_)
+    tag = TaskTag(entity_id=task_id, uploader_id=user_id, tag=tag_)
     try:
         session.add(tag)
         await session.flush()

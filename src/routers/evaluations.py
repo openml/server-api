@@ -5,17 +5,17 @@ from typing import TYPE_CHECKING, Annotated
 from fastapi import APIRouter, Depends
 
 import database.evaluations
-from routers.dependencies import expdb_connection
+from routers.dependencies import expdb_session
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/evaluationmeasure", tags=["evaluationmeasure"])
 
 
 @router.get("/list")
 async def get_evaluation_measures(
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> list[str]:
     """Return a list of evaluation measure names.
 
@@ -27,6 +27,6 @@ async def get_evaluation_measures(
     """
     functions = await database.evaluations.get_math_functions(
         function_type="EvaluationFunction",
-        connection=expdb,
+        session=expdb,
     )
     return [function.name for function in functions]

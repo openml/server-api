@@ -6,6 +6,7 @@ import deepdiff.diff
 import pytest
 
 from core.errors import TaskTypeNotFoundError
+from core.types import Identifier
 
 if TYPE_CHECKING:
     import httpx
@@ -16,7 +17,7 @@ if TYPE_CHECKING:
     list(range(1, 12)),
 )
 async def test_get_task_type(
-    ttype_id: int, py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
+    ttype_id: Identifier, py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
 ) -> None:
     py_response, php_response = await asyncio.gather(
         py_api.get(f"/tasktype/{ttype_id}"),

@@ -6,12 +6,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Path, Response
 from loguru import logger
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncConnection  # noqa: TC002 used at runtime by FastAPI Depends
+from sqlalchemy.ext.asyncio import AsyncSession  # noqa: TC002 used at runtime by FastAPI Depends
 
 import database.users
 from core.errors import AccountHasResourcesError, ForbiddenError, UserNotFoundError
 from database.users import User
-from routers.dependencies import expdb_connection, fetch_user_or_raise, userdb_connection
+from routers.dependencies import expdb_session, fetch_user_or_raise, userdb_session
 
 _ACCOUNT_HAS_RESOURCES_MSG = (
     "Cannot delete this account while records still reference the user "
@@ -36,8 +36,8 @@ router = APIRouter(prefix="/users", tags=["users"])
 async def delete_user_account(
     user_id: Annotated[int, Path(description="Numeric user id to delete.", gt=0)],
     current_user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
-    userdb: Annotated[AsyncConnection, Depends(userdb_connection)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session)],
+    userdb: Annotated[AsyncSession, Depends(userdb_session)],
 ) -> Response:
     """Delete the user account if they have no associated resources.
 
@@ -51,7 +51,7 @@ async def delete_user_account(
         msg = "You may only delete your own user account."
         raise ForbiddenError(msg)
 
-    if not await database.users.exists_by_id(user_id=user_id, connection=userdb):
+    if not await database.users.exists_by_id(user_id=user_id, session=userdb):
         msg = f"User {user_id} not found."
         raise UserNotFoundError(msg)
 

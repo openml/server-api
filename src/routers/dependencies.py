@@ -4,7 +4,7 @@ See also https://fastapi.tiangolo.com/reference/dependencies/
 """
 
 from collections.abc import AsyncGenerator, AsyncIterator
-from typing import TYPE_CHECKING, Annotated
+from typing import Annotated
 
 from fastapi import Depends
 from loguru import logger
@@ -15,32 +15,22 @@ from core.errors import AuthenticationFailedError, AuthenticationRequiredError
 from database.engine import expdb_database, user_database
 from database.users import APIKey, User
 
-if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection
 
-
-async def expdb_connection() -> AsyncIterator[AsyncConnection]:
+async def expdb_session() -> AsyncIterator[AsyncSession]:
     engine = expdb_database()
-    async with engine.connect() as connection, connection.begin():
-        yield connection
+    async with AsyncSession(engine) as session, session.begin():
+        yield session
 
 
-async def userdb_connection() -> AsyncIterator[AsyncConnection]:
+async def userdb_session() -> AsyncIterator[AsyncSession]:
     engine = user_database()
-    async with engine.connect() as connection, connection.begin():
-        yield connection
-
-
-async def expdb_session(
-    connection: Annotated[AsyncConnection, Depends(expdb_connection)],
-) -> AsyncIterator[AsyncSession]:
-    async with AsyncSession(connection) as session:
+    async with AsyncSession(engine) as session, session.begin():
         yield session
 
 
 async def fetch_user(
     api_key: APIKey | None = None,
-    user_data: Annotated[AsyncConnection | None, Depends(userdb_connection)] = None,
+    user_data: Annotated[AsyncSession | None, Depends(userdb_session)] = None,
 ) -> AsyncGenerator[User | None]:
     if not (api_key and user_data):
         yield None

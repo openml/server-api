@@ -5,14 +5,14 @@ from typing import TYPE_CHECKING
 from sqlalchemy import text
 
 from core.types import Identifier
-from schemas.datasets import Quality
+from routers.schemas.datasets import Quality
 
 if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def get_for_dataset(dataset_id: Identifier, connection: AsyncConnection) -> list[Quality]:
-    row = await connection.execute(
+async def get_for_dataset(dataset_id: Identifier, session: AsyncSession) -> list[Quality]:
+    row = await session.execute(
         text(
             """
         SELECT `quality`,`value`
@@ -20,7 +20,7 @@ async def get_for_dataset(dataset_id: Identifier, connection: AsyncConnection) -
         WHERE `data`=:dataset_id
         """,
         ),
-        parameters={"dataset_id": dataset_id},
+        params={"dataset_id": dataset_id},
     )
     rows = row.all()
     return [Quality(name=row.quality, value=row.value) for row in rows]
@@ -29,7 +29,7 @@ async def get_for_dataset(dataset_id: Identifier, connection: AsyncConnection) -
 async def get_for_datasets(
     dataset_ids: Iterable[Identifier],
     quality_names: Iterable[str],
-    connection: AsyncConnection,
+    session: AsyncSession,
 ) -> dict[int, list[Quality]]:
     """Don't call with user-provided input, as query is not parameterized."""
     qualities_filter = ",".join(f"'{q}'" for q in quality_names)
@@ -41,7 +41,7 @@ async def get_for_datasets(
         WHERE `data` in ({dids}) AND `quality` IN ({qualities_filter})
         """,  # noqa: S608 - dids and qualities are not user-provided
     )
-    row = await connection.execute(qualities_query)
+    row = await session.execute(qualities_query)
     rows = row.all()
     qualities_by_id = defaultdict(list)
     for did, quality, value in rows:
@@ -50,10 +50,10 @@ async def get_for_datasets(
     return dict(qualities_by_id)
 
 
-async def list_all_qualities(connection: AsyncConnection) -> list[str]:
+async def list_all_qualities(session: AsyncSession) -> list[str]:
     # The current implementation only fetches *used* qualities, otherwise you should
     # query: SELECT `name` FROM `quality` WHERE `type`='DataQuality'
-    rows = await connection.execute(
+    rows = await session.execute(
         text(
             """
         SELECT DISTINCT(`quality`)

@@ -7,12 +7,13 @@ import pytest
 
 from core.conversions import nested_remove_single_element_list
 from core.errors import NoResultsError
+from core.types import Identifier
 from routers.dependencies import LIMIT_MAX, Pagination
 from routers.tasks import TaskStatusFilter, list_tasks
 
 if TYPE_CHECKING:
     import httpx
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def test_list_tasks_default(py_api: httpx.AsyncClient) -> None:
@@ -129,52 +130,52 @@ async def test_list_tasks_no_results_api_mapping(py_api: httpx.AsyncClient) -> N
 # ── Direct call tests: list_tasks ──
 
 
-async def test_list_tasks_filter_type(expdb_test: AsyncConnection) -> None:
+async def test_list_tasks_filter_type(expdb_session: AsyncSession) -> None:
     """Filter by task_type_id returns only tasks of that type."""
-    tasks = await list_tasks(pagination=Pagination(), task_type_id=1, expdb=expdb_test)
+    tasks = await list_tasks(pagination=Pagination(), task_type_id=1, expdb=expdb_session)
     assert len(tasks) > 0
     assert all(t["task_type_id"] == 1 for t in tasks)
 
 
-async def test_list_tasks_filter_tag(expdb_test: AsyncConnection) -> None:
+async def test_list_tasks_filter_tag(expdb_session: AsyncSession) -> None:
     """Filter by tag returns only tasks with that tag."""
-    tasks = await list_tasks(pagination=Pagination(), tag="OpenML100", expdb=expdb_test)
+    tasks = await list_tasks(pagination=Pagination(), tag="OpenML100", expdb=expdb_session)
     assert len(tasks) > 0
     assert all("OpenML100" in t["tag"] for t in tasks)
 
 
 @pytest.mark.parametrize("task_id", [1, 59, [1, 2, 3]])
 async def test_list_tasks_filter_task_id(
-    task_id: int | list[int], expdb_test: AsyncConnection
+    task_id: Identifier | list[Identifier], expdb_session: AsyncSession
 ) -> None:
     """Filter by task_id returns only those tasks (regardless of status)."""
     ids = [task_id] if isinstance(task_id, int) else task_id
     tasks = await list_tasks(
-        pagination=Pagination(), task_id=ids, status=TaskStatusFilter.ALL, expdb=expdb_test
+        pagination=Pagination(), task_id=ids, status=TaskStatusFilter.ALL, expdb=expdb_session
     )
     returned_ids = sorted(t["task_id"] for t in tasks)
     assert returned_ids == sorted(ids)
 
 
-async def test_list_tasks_filter_data_id(expdb_test: AsyncConnection) -> None:
+async def test_list_tasks_filter_data_id(expdb_session: AsyncSession) -> None:
     """Filter by data_id returns only tasks that use that dataset."""
     data_id = 10
-    tasks = await list_tasks(pagination=Pagination(), data_id=[data_id], expdb=expdb_test)
+    tasks = await list_tasks(pagination=Pagination(), data_id=[data_id], expdb=expdb_session)
     assert len(tasks) > 0
     assert all(t["did"] == data_id for t in tasks)
 
 
-async def test_list_tasks_filter_data_name(expdb_test: AsyncConnection) -> None:
+async def test_list_tasks_filter_data_name(expdb_session: AsyncSession) -> None:
     """Filter by data_name returns only tasks whose dataset matches."""
-    tasks = await list_tasks(pagination=Pagination(), data_name="mfeat-pixel", expdb=expdb_test)
+    tasks = await list_tasks(pagination=Pagination(), data_name="mfeat-pixel", expdb=expdb_session)
     assert len(tasks) > 0
     assert all(t["name"] == "mfeat-pixel" for t in tasks)
 
 
-async def test_list_tasks_filter_status_deactivated(expdb_test: AsyncConnection) -> None:
+async def test_list_tasks_filter_status_deactivated(expdb_session: AsyncSession) -> None:
     """Filter by status='deactivated' returns tasks with that status."""
     tasks = await list_tasks(
-        pagination=Pagination(), status=TaskStatusFilter.DEACTIVATED, expdb=expdb_test
+        pagination=Pagination(), status=TaskStatusFilter.DEACTIVATED, expdb=expdb_session
     )
     assert len(tasks) > 0
     assert all(t["status"] == "deactivated" for t in tasks)
@@ -184,23 +185,23 @@ async def test_list_tasks_filter_status_deactivated(expdb_test: AsyncConnection)
     ("limit", "offset"),
     [(5, 0), (10, 0), (5, 5)],
 )
-async def test_list_tasks_pagination(limit: int, offset: int, expdb_test: AsyncConnection) -> None:
+async def test_list_tasks_pagination(limit: int, offset: int, expdb_session: AsyncSession) -> None:
     """Pagination limit and offset are respected."""
-    tasks = await list_tasks(pagination=Pagination(limit=limit, offset=offset), expdb=expdb_test)
+    tasks = await list_tasks(pagination=Pagination(limit=limit, offset=offset), expdb=expdb_session)
     assert len(tasks) <= limit
 
     # Precise verification: compare IDs against a corresponding slice from an offset=0 baseline
     baseline = await list_tasks(
-        pagination=Pagination(limit=limit + offset, offset=0), expdb=expdb_test
+        pagination=Pagination(limit=limit + offset, offset=0), expdb=expdb_session
     )
     expected_ids = [t["task_id"] for t in baseline][offset : offset + limit]
     assert [t["task_id"] for t in tasks] == expected_ids
 
 
-async def test_list_tasks_pagination_order_stable(expdb_test: AsyncConnection) -> None:
+async def test_list_tasks_pagination_order_stable(expdb_session: AsyncSession) -> None:
     """Results are ordered by task_id — consecutive pages are in ascending order."""
-    tasks1 = await list_tasks(pagination=Pagination(limit=5, offset=0), expdb=expdb_test)
-    tasks2 = await list_tasks(pagination=Pagination(limit=5, offset=5), expdb=expdb_test)
+    tasks1 = await list_tasks(pagination=Pagination(limit=5, offset=0), expdb=expdb_session)
+    tasks2 = await list_tasks(pagination=Pagination(limit=5, offset=5), expdb=expdb_session)
     ids1 = [t["task_id"] for t in tasks1]
     ids2 = [t["task_id"] for t in tasks2]
     assert ids1 == sorted(ids1)
@@ -209,13 +210,13 @@ async def test_list_tasks_pagination_order_stable(expdb_test: AsyncConnection) -
         assert max(ids1) < min(ids2)
 
 
-async def test_list_tasks_number_instances_range(expdb_test: AsyncConnection) -> None:
+async def test_list_tasks_number_instances_range(expdb_session: AsyncSession) -> None:
     """number_instances range filter returns tasks whose dataset matches."""
     min_instances, max_instances = 100, 1000
     tasks = await list_tasks(
         pagination=Pagination(),
         number_instances=f"{min_instances}..{max_instances}",
-        expdb=expdb_test,
+        expdb=expdb_session,
     )
     assert len(tasks) > 0
     for task in tasks:
@@ -224,19 +225,19 @@ async def test_list_tasks_number_instances_range(expdb_test: AsyncConnection) ->
         assert min_instances <= float(qualities["NumberOfInstances"]) <= max_instances
 
 
-async def test_list_tasks_inputs_are_basic_subset(expdb_test: AsyncConnection) -> None:
+async def test_list_tasks_inputs_are_basic_subset(expdb_session: AsyncSession) -> None:
     """Input entries only contain the expected basic input names."""
     basic_inputs = {"source_data", "target_feature", "estimation_procedure", "evaluation_measures"}
-    tasks = await list_tasks(pagination=Pagination(limit=5, offset=0), expdb=expdb_test)
+    tasks = await list_tasks(pagination=Pagination(limit=5, offset=0), expdb=expdb_session)
     assert any(task["input"] for task in tasks), "Expected at least one task to have inputs"
     for task in tasks:
         for inp in task["input"]:
             assert inp["name"] in basic_inputs
 
 
-async def test_list_tasks_quality_values_are_strings(expdb_test: AsyncConnection) -> None:
+async def test_list_tasks_quality_values_are_strings(expdb_session: AsyncSession) -> None:
     """Quality values must be strings (to match PHP API behaviour)."""
-    tasks = await list_tasks(pagination=Pagination(limit=5, offset=0), expdb=expdb_test)
+    tasks = await list_tasks(pagination=Pagination(limit=5, offset=0), expdb=expdb_session)
     assert any(task["quality"] for task in tasks), "Expected at least one task to have qualities"
     qualities = [quality for task in tasks for quality in task["quality"]]
     assert all(isinstance(quality["value"], str) for quality in qualities)
@@ -251,10 +252,10 @@ async def test_list_tasks_quality_values_are_strings(expdb_test: AsyncConnection
     ],
     ids=["bad_tag", "bad_task_id", "bad_data_name"],
 )
-async def test_list_tasks_no_results(payload: dict[str, Any], expdb_test: AsyncConnection) -> None:
+async def test_list_tasks_no_results(payload: dict[str, Any], expdb_session: AsyncSession) -> None:
     """Filters matching nothing return 404 NoResultsError."""
     with pytest.raises(NoResultsError):
-        await list_tasks(pagination=Pagination(), expdb=expdb_test, **payload)
+        await list_tasks(pagination=Pagination(), expdb=expdb_session, **payload)
 
 
 _TASK_LIST_NO_RESULTS_CODE = "482"

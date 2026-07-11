@@ -10,7 +10,7 @@ from core.types import Identifier
 class Task(BaseModel):
     """Metadata for a task."""
 
-    id_: Identifier = Field(serialization_alias="id", json_schema_extra={"example": 59})
+    id: Identifier = Field(json_schema_extra={"example": 59})
     name: str = Field(
         json_schema_extra={"example": "Task 59:  mfeat-pixel (Supervised Classification)"},
     )
@@ -24,7 +24,7 @@ class Task(BaseModel):
 class EstimationProcedure(BaseModel):
     """Description of an evaluation protocol, e.g., cross-validation."""
 
-    id_: Identifier = Field(serialization_alias="id")
+    id: Identifier
     task_type_id: Identifier
     name: str
     type_: str = Field(serialization_alias="type")

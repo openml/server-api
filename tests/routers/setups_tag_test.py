@@ -14,7 +14,7 @@ from tests.users import SOME_USER, ApiKey
 
 if TYPE_CHECKING:
     import httpx
-    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def test_setup_tag_missing_auth(py_api: httpx.AsyncClient) -> None:
@@ -26,7 +26,7 @@ async def test_setup_tag_missing_auth(py_api: httpx.AsyncClient) -> None:
 
 @pytest.mark.mut
 async def test_setup_tag_api_success(
-    py_api: httpx.AsyncClient, expdb_test: AsyncConnection
+    py_api: httpx.AsyncClient, expdb_session: AsyncSession
 ) -> None:
     tag = "setup_tag_via_http"
     response = await py_api.post(
@@ -38,9 +38,9 @@ async def test_setup_tag_api_success(
     expected = {"setup_tag": {"id": "1", "tag": ["setup_tag_via_http"]}}
     assert response.json() == expected
 
-    rows = await expdb_test.execute(
+    rows = await expdb_session.execute(
         text("SELECT * FROM setup_tag WHERE id = 1 AND tag = :tag"),
-        parameters={"tag": tag},
+        params={"tag": tag},
     )
     assert len(rows.all()) == 1
 
@@ -101,7 +101,7 @@ async def test_setup_tag_response_is_identical_when_tag_doesnt_exist(  # noqa: P
     other_tags: list[str],
     py_api: httpx.AsyncClient,
     php_api: httpx.AsyncClient,
-    expdb_test: AsyncConnection,
+    expdb_session: AsyncSession,
     temporary_tags: Callable[..., AbstractAsyncContextManager[None]],
 ) -> None:
     setup_id = 1
@@ -115,11 +115,11 @@ async def test_setup_tag_response_is_identical_when_tag_doesnt_exist(  # noqa: P
             data={"api_key": api_key, "tag": tag, "setup_id": setup_id},
         )
 
-        await expdb_test.execute(
+        await expdb_session.execute(
             text("DELETE FROM setup_tag WHERE `id`=:setup_id AND `tag`=:tag"),
-            parameters={"setup_id": setup_id, "tag": tag},
+            params={"setup_id": setup_id, "tag": tag},
         )
-        await expdb_test.commit()
+        await expdb_session.commit()
 
     async with temporary_tags(table="setup_tag", tags=other_tags, identifier=setup_id):
         py_response = await py_api.post(

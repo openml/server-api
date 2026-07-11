@@ -11,14 +11,15 @@ from sqlalchemy import text
 
 import tests.constants
 from core.errors import DatasetNoAccessError, DatasetNotFoundError
+from core.types import Identifier
 from database.users import User
 from routers.datasets import get_dataset
-from schemas.datasets import DatasetMetadata
+from routers.schemas.datasets import DatasetMetadata
 from tests.users import ADMIN_USER, DATASET_130_OWNER, NO_USER, SOME_USER, ApiKey
 
 if TYPE_CHECKING:
     import httpx
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def test_get_dataset_via_api(py_api: httpx.AsyncClient) -> None:
@@ -74,13 +75,13 @@ async def test_rfc9457_error_format(py_api: httpx.AsyncClient) -> None:
 @pytest.mark.mut
 async def test_dataset_no_500_with_multiple_processing_entries(
     py_api: httpx.AsyncClient,
-    expdb_test: AsyncConnection,
+    expdb_session: AsyncSession,
 ) -> None:
     """Regression test for issue #145: multiple processing entries caused 500."""
-    await expdb_test.execute(
+    await expdb_session.execute(
         text("INSERT INTO evaluation_engine(id, name, description) VALUES (99, 'test_engine', '')"),
     )
-    await expdb_test.execute(
+    await expdb_session.execute(
         text(
             "INSERT INTO data_processed(did, evaluation_engine_id, user_id, processing_date) "
             "VALUES (1, 99, 2, '2020-01-01 00:00:00')",
@@ -95,16 +96,16 @@ async def test_dataset_no_500_with_multiple_processing_entries(
     [138, 100_000],
 )
 async def test_get_dataset_not_found(
-    dataset_id: int,
-    expdb_test: AsyncConnection,
-    user_test: AsyncConnection,
+    dataset_id: Identifier,
+    expdb_session: AsyncSession,
+    userdb_session: AsyncSession,
 ) -> None:
     with pytest.raises(DatasetNotFoundError) as exc_info:
         await get_dataset(
             dataset_id=dataset_id,
             user=None,
-            user_db=user_test,
-            expdb_db=expdb_test,
+            userdb_session=userdb_session,
+            expdb_session=expdb_session,
         )
     assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
     _dataset_get_not_found_code = 111
@@ -121,15 +122,15 @@ async def test_get_dataset_not_found(
 )
 async def test_private_dataset_no_access(
     user: User | None,
-    expdb_test: AsyncConnection,
-    user_test: AsyncConnection,
+    expdb_session: AsyncSession,
+    userdb_session: AsyncSession,
 ) -> None:
     with pytest.raises(DatasetNoAccessError) as e:
         await get_dataset(
             dataset_id=130,
             user=user,
-            user_db=user_test,
-            expdb_db=expdb_test,
+            userdb_session=userdb_session,
+            expdb_session=expdb_session,
         )
     assert e.value.status_code == HTTPStatus.FORBIDDEN
     assert e.value.uri == DatasetNoAccessError.uri
@@ -141,13 +142,13 @@ async def test_private_dataset_no_access(
     "user", [DATASET_130_OWNER, ADMIN_USER, pytest.param(SOME_USER, marks=pytest.mark.xfail)]
 )
 async def test_private_dataset_access(
-    user: User, expdb_test: AsyncConnection, user_test: AsyncConnection
+    user: User, expdb_session: AsyncSession, userdb_session: AsyncSession
 ) -> None:
     dataset = await get_dataset(
         dataset_id=130,
         user=user,
-        user_db=user_test,
-        expdb_db=expdb_test,
+        userdb_session=userdb_session,
+        expdb_session=expdb_session,
     )
     assert isinstance(dataset, DatasetMetadata)
 
@@ -160,7 +161,7 @@ async def test_private_dataset_access(
     range(1, 132),
 )
 async def test_dataset_response_is_identical(  # noqa: C901, PLR0912
-    dataset_id: int,
+    dataset_id: Identifier,
     py_api: httpx.AsyncClient,
     php_api: httpx.AsyncClient,
 ) -> None:

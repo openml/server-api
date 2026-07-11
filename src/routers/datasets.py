@@ -6,7 +6,6 @@ The metadata is partially provided by the user (for example, the name or descrip
 and 'qualities' (or meta-features) that describe the data (for example, number of rows or columns).
 """
 
-import asyncio
 import html
 import re
 from datetime import datetime
@@ -51,17 +50,23 @@ from database.models.base import UntypedRow
 from database.users import User
 from routers.dependencies import (
     Pagination,
-    expdb_connection,
+    expdb_session,
     fetch_user,
     fetch_user_or_raise,
-    userdb_connection,
+    userdb_session,
 )
-from schemas.core import TagInfo
-from schemas.datasets import DatasetFileFormat, DatasetMetadata, DatasetStatus, Feature, FeatureType
+from routers.schemas.core import TagInfo
+from routers.schemas.datasets import (
+    DatasetFileFormat,
+    DatasetMetadata,
+    DatasetStatus,
+    Feature,
+    FeatureType,
+)
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import Row
-    from sqlalchemy.ext.asyncio import AsyncConnection
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 
@@ -89,11 +94,11 @@ async def tag_dataset(
     data_id: Annotated[Identifier, Body()],
     tag: Annotated[TagString, Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb_db: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> dict[str, dict[str, Any]]:
     """Add a tag to the dataset, this tag is publicly visible to all users."""
     try:
-        await database.datasets.tag(data_id, tag, user_id=user.user_id, connection=expdb_db)
+        await database.datasets.tag(data_id, tag, user_id=user.user_id, session=expdb_db)
     except ForeignKeyConstraintError:
         msg = f"Dataset {data_id} not found."
         raise DatasetNotFoundError(msg, code=472) from None
@@ -115,11 +120,11 @@ async def untag_dataset_like_php(
     data_id: Annotated[Identifier, Body()],
     tag: Annotated[TagString, Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb_db: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> dict[Literal["data_untag"], TagInfo]:
     """Remove a tag from the dataset with a response similar to the old PHP server."""
     await untag_dataset(data_id, tag, user, expdb_db)
-    tags = await database.datasets.get_tags_for(id_=data_id, connection=expdb_db)
+    tags = await database.datasets.get_tags_for(dataset_id=data_id, session=expdb_db)
     tag_info: TagInfo = {"id": str(data_id)}
     if len(tags) == 1:
         tag_info["tag"] = tags[0]
@@ -133,7 +138,7 @@ async def untag_dataset(
     identifier: Identifier,
     tag: Annotated[TagString, Query()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb_db: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> None:
     """Remove a tag that you added to a dataset, or from a dataset you uploaded."""
     dataset_tag = await database.datasets.get_tag(identifier, tag, expdb_db)
@@ -180,7 +185,7 @@ def _quality_clause(quality: str, range_: str | None) -> str:
 @router.post(path="/list", description="Provided for convenience, same as `GET` endpoint.")
 @router.get(path="/list")
 async def list_datasets(  # noqa: PLR0913, C901
-    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb_db: Annotated[AsyncSession, Depends(expdb_session)],
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     data_name: Annotated[CasualString128 | None, Body()] = None,
     tag: Annotated[TagString | None, Body()] = None,
@@ -290,7 +295,7 @@ async def list_datasets(  # noqa: PLR0913, C901
         matching_filter.bindparams(bindparam("data_ids", expanding=True))
     result = await expdb_db.execute(
         matching_filter,
-        parameters=parameters,
+        params=parameters,
     )
     rows = result.all()
     datasets: dict[int, dict[str, Any]] = {
@@ -325,7 +330,7 @@ async def list_datasets(  # noqa: PLR0913, C901
     qualities_by_dataset = await database.qualities.get_for_datasets(
         dataset_ids=datasets.keys(),
         quality_names=qualities_to_show,
-        connection=expdb_db,
+        session=expdb_db,
     )
     for did, qualities in qualities_by_dataset.items():
         datasets[did]["quality"] = qualities
@@ -342,13 +347,13 @@ class ProcessingInformation(NamedTuple):
 
 async def _get_processing_information(
     dataset_id: Identifier,
-    connection: AsyncConnection,
+    session: AsyncSession,
 ) -> ProcessingInformation:
     """Return processing information, if any. Otherwise, all fields `None`."""
     if not (
         data_processed := await database.datasets.get_latest_processing_update(
             dataset_id,
-            connection,
+            session,
         )
     ):
         return ProcessingInformation(date=None, warning=None, error=None)
@@ -362,7 +367,7 @@ async def _get_processing_information(
 async def _get_dataset_raise_otherwise(
     dataset_id: Identifier,
     user: User | None,
-    expdb: AsyncConnection,
+    expdb: AsyncSession,
 ) -> Row[Any]:
     """Fetch the dataset from the database if it exists and the user has permissions.
 
@@ -382,16 +387,14 @@ async def _get_dataset_raise_otherwise(
 @router.get("/features/{dataset_id}", response_model_exclude_none=True)
 async def get_dataset_features(
     dataset_id: Identifier,
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session)],
     user: Annotated[User | None, Depends(fetch_user)] = None,
 ) -> list[Feature]:
     """Return metadata for each feature (column) in the dataset."""
     assert expdb is not None  # noqa: S101
     await _get_dataset_raise_otherwise(dataset_id, user, expdb)
-    features, ontologies = await asyncio.gather(
-        database.datasets.get_features(dataset_id, expdb),
-        database.datasets.get_feature_ontologies(dataset_id, expdb),
-    )
+    features = await database.datasets.get_features(dataset_id, expdb)
+    ontologies = await database.datasets.get_feature_ontologies(dataset_id, expdb)
     for feature in features:
         feature.ontology = ontologies.get(feature.index)
 
@@ -399,7 +402,7 @@ async def get_dataset_features(
         feature.nominal_values = await database.datasets.get_feature_values(
             dataset_id,
             feature_index=feature.index,
-            connection=expdb,
+            session=expdb,
         )
 
     if not features:
@@ -428,7 +431,7 @@ async def update_dataset_status(
     dataset_id: Annotated[Identifier, Body()],
     status: Annotated[Literal[DatasetStatus.ACTIVE, DatasetStatus.DEACTIVATED], Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb: Annotated[AsyncConnection, Depends(expdb_connection)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> dict[str, str | int]:
     """Update the status of the dataset. Can be used to deactivate a dataset."""
     dataset = await _get_dataset_raise_otherwise(dataset_id, user, expdb)
@@ -458,7 +461,7 @@ async def update_dataset_status(
             dataset_id,
             status,
             user_id=user.user_id,
-            connection=expdb,
+            session=expdb,
         )
     elif current_status == DatasetStatus.DEACTIVATED:
         await database.datasets.remove_deactivated_status(dataset_id, expdb)
@@ -481,27 +484,25 @@ async def update_dataset_status(
 )
 async def get_dataset(
     dataset_id: Identifier,
-    user_db: Annotated[AsyncConnection, Depends(userdb_connection)],
-    expdb_db: Annotated[AsyncConnection, Depends(expdb_connection)],
+    userdb_session: Annotated[AsyncSession, Depends(userdb_session)],
+    expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
     user: Annotated[User | None, Depends(fetch_user)] = None,
 ) -> DatasetMetadata:
     """Get the user-provided metadata for a dataset."""
-    dataset = await _get_dataset_raise_otherwise(dataset_id, user, expdb_db)
+    dataset = await _get_dataset_raise_otherwise(dataset_id, user, expdb_session)
     if not (
         dataset_file := await database.datasets.get_file(
             file_id=dataset.file_id,
-            connection=user_db,
+            session=userdb_session,
         )
     ):
         msg = f"No data file found for dataset {dataset_id}."
         raise DatasetNoDataFileError(msg)
 
-    tags, description, processing_result, status = await asyncio.gather(
-        database.datasets.get_tags_for(dataset_id, expdb_db),
-        database.datasets.get_description(dataset_id, expdb_db),
-        _get_processing_information(dataset_id, expdb_db),
-        database.datasets.get_status(dataset_id, expdb_db),
-    )
+    tags = await database.datasets.get_tags_for(dataset_id, expdb_session)
+    description = await database.datasets.get_description(dataset_id, expdb_session)
+    processing_result = await _get_processing_information(dataset_id, expdb_session)
+    status = await database.datasets.get_status(dataset_id, expdb_session)
 
     description_ = ""
     if description:

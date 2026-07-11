@@ -18,7 +18,7 @@ from database.models.tags import SetupTag
 
 if TYPE_CHECKING:
     from sqlalchemy.engine import RowMapping
-    from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def get(setup_id: Identifier, session: AsyncSession) -> Setup | None:
@@ -26,9 +26,9 @@ async def get(setup_id: Identifier, session: AsyncSession) -> Setup | None:
     return await session.get(Setup, setup_id)
 
 
-async def get_parameters(setup_id: Identifier, connection: AsyncConnection) -> list[RowMapping]:
+async def get_parameters(setup_id: Identifier, session: AsyncSession) -> list[RowMapping]:
     """Get all parameters for setup with `setup_id` from the database."""
-    rows = await connection.execute(
+    rows = await session.execute(
         text(
             """
             SELECT
@@ -48,7 +48,7 @@ async def get_parameters(setup_id: Identifier, connection: AsyncConnection) -> l
             ORDER BY t_impl.id, t_input.id
             """,
         ),
-        parameters={"setup_id": setup_id},
+        params={"setup_id": setup_id},
     )
     return list(rows.mappings().all())
 

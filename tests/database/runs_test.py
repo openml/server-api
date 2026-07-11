@@ -1,6 +1,6 @@
 """Tests for database layer of runs."""
 
-from sqlalchemy.ext.asyncio import AsyncConnection  # noqa: TC002
+from sqlalchemy.ext.asyncio import AsyncSession  # noqa: TC002
 
 import database.runs
 import database.tasks
@@ -17,9 +17,9 @@ _DESCRIPTION_FILE_ID = 182
 _PREDICTIONS_FILE_ID = 183
 
 
-async def test_db_get_run_exists(expdb_test: AsyncConnection) -> None:
+async def test_db_get_run_exists(expdb_session: AsyncSession) -> None:
     """database.runs.get returns a row for run 24."""
-    row = await database.runs.get(_RUN_ID, expdb_test)
+    row = await database.runs.get(_RUN_ID, expdb_session)
     assert row is not None
     assert row.rid == _RUN_ID
     assert row.uploader == _RUN_UPLOADER_ID
@@ -28,80 +28,80 @@ async def test_db_get_run_exists(expdb_test: AsyncConnection) -> None:
     assert row.error_message is None  # no error for this run
 
 
-async def test_db_get_run_missing(expdb_test: AsyncConnection) -> None:
+async def test_db_get_run_missing(expdb_session: AsyncSession) -> None:
     """database.runs.get returns None for a non-existent run."""
-    row = await database.runs.get(_MISSING_RUN_ID, expdb_test)
+    row = await database.runs.get(_MISSING_RUN_ID, expdb_session)
     assert row is None
 
 
-async def test_db_exist_true(expdb_test: AsyncConnection) -> None:
+async def test_db_exist_true(expdb_session: AsyncSession) -> None:
     """database.runs.exist returns True for run 24."""
-    assert await database.runs.exist(_RUN_ID, expdb_test) is True
+    assert await database.runs.exist(_RUN_ID, expdb_session) is True
 
 
-async def test_db_exist_false(expdb_test: AsyncConnection) -> None:
+async def test_db_exist_false(expdb_session: AsyncSession) -> None:
     """database.runs.exist returns False for a missing run."""
-    assert await database.runs.exist(_MISSING_RUN_ID, expdb_test) is False
+    assert await database.runs.exist(_MISSING_RUN_ID, expdb_session) is False
 
 
-async def test_db_get_tags(expdb_test: AsyncConnection) -> None:
+async def test_db_get_tags(expdb_session: AsyncSession) -> None:
     """database.runs.get_tags returns expected tags for run 24."""
-    tags = await database.runs.get_tags(_RUN_ID, expdb_test)
+    tags = await database.runs.get_tags(_RUN_ID, expdb_session)
     assert isinstance(tags, list)
     assert "openml-python" in tags
 
 
-async def test_db_get_input_data(expdb_test: AsyncConnection) -> None:
+async def test_db_get_input_data(expdb_session: AsyncSession) -> None:
     """database.runs.get_input_data returns did=20 (diabetes) for run 24."""
-    rows = await database.runs.get_input_data(_RUN_ID, expdb_test)
+    rows = await database.runs.get_input_data(_RUN_ID, expdb_session)
     assert len(rows) >= 1
     dids = [r.did for r in rows]
     assert _RUN_DATASET_ID in dids
 
 
-async def test_db_get_output_files(expdb_test: AsyncConnection) -> None:
+async def test_db_get_output_files(expdb_session: AsyncSession) -> None:
     """database.runs.get_output_files returns description and predictions files."""
-    rows = await database.runs.get_output_files(_RUN_ID, expdb_test)
+    rows = await database.runs.get_output_files(_RUN_ID, expdb_session)
     file_map = {r.field: r.file_id for r in rows}
     assert file_map.get("description") == _DESCRIPTION_FILE_ID
     assert file_map.get("predictions") == _PREDICTIONS_FILE_ID
 
 
-async def test_db_get_evaluations(expdb_test: AsyncConnection) -> None:
+async def test_db_get_evaluations(expdb_session: AsyncSession) -> None:
     """database.runs.get_evaluations returns metrics including area_under_roc_curve."""
-    rows = await database.runs.get_evaluations(_RUN_ID, expdb_test, evaluation_engine_ids=[1])
+    rows = await database.runs.get_evaluations(_RUN_ID, expdb_session, evaluation_engine_ids=[1])
     assert len(rows) > 0
     names = {r.name for r in rows}
     assert "area_under_roc_curve" in names
 
 
-async def test_db_get_evaluations_empty_engine_list(expdb_test: AsyncConnection) -> None:
+async def test_db_get_evaluations_empty_engine_list(expdb_session: AsyncSession) -> None:
     """get_evaluations with no engine IDs returns an empty list (not an error)."""
-    rows = await database.runs.get_evaluations(_RUN_ID, expdb_test, evaluation_engine_ids=[])
+    rows = await database.runs.get_evaluations(_RUN_ID, expdb_session, evaluation_engine_ids=[])
     assert rows == []
 
 
-async def test_db_get_task_type(expdb_test: AsyncConnection) -> None:
+async def test_db_get_task_type(expdb_session: AsyncSession) -> None:
     """database.runs.get_task_type returns 'Supervised Classification' for task 115."""
-    task_type = await database.tasks.get_task_type_name(_RUN_TASK_ID, expdb_test)
+    task_type = await database.tasks.get_task_type_name(_RUN_TASK_ID, expdb_session)
     assert task_type == "Supervised Classification"
 
 
-async def test_db_get_task_evaluation_measure_missing(expdb_test: AsyncConnection) -> None:
+async def test_db_get_task_evaluation_measure_missing(expdb_session: AsyncSession) -> None:
     """get_task_evaluation_measure returns None (not '') when absent."""
-    measure = await database.tasks.get_task_evaluation_measure(_RUN_TASK_ID, expdb_test)
+    measure = await database.tasks.get_task_evaluation_measure(_RUN_TASK_ID, expdb_session)
     assert measure is None
 
 
-async def test_db_get_uploader_name(user_test: AsyncConnection) -> None:
+async def test_db_get_uploader_name(userdb_session: AsyncSession) -> None:
     """database.runs.get_uploader_name returns 'Cynthia Glover' for user 1159."""
-    user = await database.users.get_user(user_id=_RUN_UPLOADER_ID, connection=user_test)
+    user = await database.users.get_user(user_id=_RUN_UPLOADER_ID, session=userdb_session)
     assert user is not None
     assert user.full_name == "Cynthia Glover"
     assert user.user_id == _RUN_UPLOADER_ID
 
 
-async def test_db_get_uploader_name_missing(user_test: AsyncConnection) -> None:
+async def test_db_get_uploader_name_missing(userdb_session: AsyncSession) -> None:
     """get_uploader_name returns None for a non-existent user."""
-    user = await database.users.get_user(user_id=_MISSING_USER_ID, connection=user_test)
+    user = await database.users.get_user(user_id=_MISSING_USER_ID, session=userdb_session)
     assert user is None

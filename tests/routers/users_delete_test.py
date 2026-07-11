@@ -9,9 +9,12 @@ import pytest
 import pytest_mock  # noqa: TC002 used at runtime by pytest fixtures
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncConnection  # noqa: TC002 used at runtime by pytest fixtures
+from sqlalchemy.ext.asyncio import (  # noqa: TC002 used at runtime by pytest fixtures
+    AsyncSession,
+)
 
 from core.errors import AccountHasResourcesError, ForbiddenError, UserNotFoundError
+from core.types import Identifier
 from database.users import UserGroup
 from routers.users import delete_user_account
 from tests.users import ADMIN_USER, OWNER_USER, SOME_USER, ApiKey
@@ -26,18 +29,18 @@ async def test_delete_user_missing_auth(py_api: httpx.AsyncClient) -> None:
 
 
 class DisposableUser(NamedTuple):
-    user_id: int
+    user_id: Identifier
     api_key: str
 
 
 @pytest.fixture
-async def disposable_user(user_test: AsyncConnection) -> DisposableUser:
+async def disposable_user(userdb_session: AsyncSession) -> DisposableUser:
     api_key = uuid.uuid4().hex
     suffix = uuid.uuid4().hex[:10]
     username = f"tmp_user_{suffix}"
     email = f"{suffix}@openml-delete.test"
 
-    await user_test.execute(
+    await userdb_session.execute(
         text(
             """
             INSERT INTO users (
@@ -49,13 +52,13 @@ async def disposable_user(user_test: AsyncConnection) -> DisposableUser:
             )
             """,
         ),
-        parameters={"username": username, "email": email, "api_key": api_key},
+        params={"username": username, "email": email, "api_key": api_key},
     )
-    uid_row = await user_test.execute(text("SELECT LAST_INSERT_ID() AS id"))
+    uid_row = await userdb_session.execute(text("SELECT LAST_INSERT_ID() AS id"))
     (new_id,) = uid_row.one()
-    await user_test.execute(
+    await userdb_session.execute(
         text("INSERT INTO users_groups (user_id, group_id) VALUES (:uid, :gid)"),
-        parameters={"uid": new_id, "gid": UserGroup.READ_WRITE.value},
+        params={"uid": new_id, "gid": UserGroup.READ_WRITE.value},
     )
     return DisposableUser(user_id=new_id, api_key=api_key)
     # No explicit teardown: the ``user_test`` fixture rolls back at the end
@@ -65,7 +68,7 @@ async def disposable_user(user_test: AsyncConnection) -> DisposableUser:
 @pytest.mark.mut
 async def test_delete_user_api_success_self_delete(
     py_api: httpx.AsyncClient,
-    user_test: AsyncConnection,
+    userdb_session: AsyncSession,
     disposable_user: DisposableUser,
     mocker: pytest_mock.MockerFixture,
 ) -> None:
@@ -78,9 +81,9 @@ async def test_delete_user_api_success_self_delete(
     assert response.status_code == HTTPStatus.NO_CONTENT
     assert response.content == b""
 
-    exists = await user_test.execute(
+    exists = await userdb_session.execute(
         text("SELECT 1 FROM users WHERE id = :id LIMIT 1"),
-        parameters={"id": disposable_user.user_id},
+        params={"id": disposable_user.user_id},
     )
     assert exists.one_or_none() is None
 
@@ -93,7 +96,7 @@ async def test_delete_user_api_success_self_delete(
 @pytest.mark.mut
 async def test_delete_user_api_success_admin_deletes_disposable_user(
     py_api: httpx.AsyncClient,
-    user_test: AsyncConnection,
+    userdb_session: AsyncSession,
     disposable_user: DisposableUser,
 ) -> None:
     response = await py_api.delete(
@@ -103,9 +106,9 @@ async def test_delete_user_api_success_admin_deletes_disposable_user(
     assert response.status_code == HTTPStatus.NO_CONTENT
     assert response.content == b""
 
-    exists = await user_test.execute(
+    exists = await userdb_session.execute(
         text("SELECT 1 FROM users WHERE id = :id LIMIT 1"),
-        parameters={"id": disposable_user.user_id},
+        params={"id": disposable_user.user_id},
     )
     assert exists.one_or_none() is None
 
@@ -114,23 +117,23 @@ async def test_delete_user_api_success_admin_deletes_disposable_user(
 
 
 async def test_delete_user_direct_not_found(
-    user_test: AsyncConnection,
-    expdb_test: AsyncConnection,
+    userdb_session: AsyncSession,
+    expdb_session: AsyncSession,
 ) -> None:
     with pytest.raises(UserNotFoundError, match=r"User 888888888 not found\.") as exc_info:
         await delete_user_account(
             user_id=888888888,
             current_user=ADMIN_USER,
-            expdb=expdb_test,
-            userdb=user_test,
+            expdb=expdb_session,
+            userdb=userdb_session,
         )
     assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
     assert exc_info.value.uri == UserNotFoundError.uri
 
 
 async def test_delete_user_direct_forbidden(
-    user_test: AsyncConnection,
-    expdb_test: AsyncConnection,
+    expdb_session: AsyncSession,
+    userdb_session: AsyncSession,
 ) -> None:
     with pytest.raises(
         ForbiddenError, match=r"You may only delete your own user account\."
@@ -138,44 +141,44 @@ async def test_delete_user_direct_forbidden(
         await delete_user_account(
             user_id=ADMIN_USER.user_id,
             current_user=SOME_USER,
-            expdb=expdb_test,
-            userdb=user_test,
+            expdb=expdb_session,
+            userdb=userdb_session,
         )
     assert exc_info.value.status_code == HTTPStatus.FORBIDDEN
     assert exc_info.value.uri == ForbiddenError.uri
 
-    admin_row = await user_test.execute(
+    admin_row = await userdb_session.execute(
         text("SELECT 1 FROM users WHERE id = :id LIMIT 1"),
-        parameters={"id": ADMIN_USER.user_id},
+        params={"id": ADMIN_USER.user_id},
     )
     assert admin_row.one_or_none() is not None
 
 
 async def test_delete_user_direct_conflict_has_resources(
-    user_test: AsyncConnection,
-    expdb_test: AsyncConnection,
+    expdb_session: AsyncSession,
+    userdb_session: AsyncSession,
 ) -> None:
     with pytest.raises(AccountHasResourcesError, match="Cannot delete this account") as exc_info:
         await delete_user_account(
             user_id=OWNER_USER.user_id,
             current_user=ADMIN_USER,
-            expdb=expdb_test,
-            userdb=user_test,
+            expdb=expdb_session,
+            userdb=userdb_session,
         )
     assert exc_info.value.status_code == HTTPStatus.CONFLICT
     assert exc_info.value.uri == AccountHasResourcesError.uri
 
-    owner_row = await user_test.execute(
+    owner_row = await userdb_session.execute(
         text("SELECT 1 FROM users WHERE id = :id LIMIT 1"),
-        parameters={"id": OWNER_USER.user_id},
+        params={"id": OWNER_USER.user_id},
     )
     assert owner_row.one_or_none() is not None
 
 
 @pytest.mark.mut
 async def test_delete_user_integrity_error_logs_and_raises_conflict(
-    user_test: AsyncConnection,
-    expdb_test: AsyncConnection,
+    expdb_session: AsyncSession,
+    userdb_session: AsyncSession,
     disposable_user: DisposableUser,
     mocker: pytest_mock.MockerFixture,
 ) -> None:
@@ -191,8 +194,8 @@ async def test_delete_user_integrity_error_logs_and_raises_conflict(
         await delete_user_account(
             user_id=disposable_user.user_id,
             current_user=ADMIN_USER,
-            expdb=expdb_test,
-            userdb=user_test,
+            expdb=expdb_session,
+            userdb=userdb_session,
         )
 
     assert exc_info.value.status_code == HTTPStatus.CONFLICT
