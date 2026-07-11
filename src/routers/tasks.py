@@ -470,7 +470,7 @@ async def get_task(
         (name, template) for name, io, required, template in templates if io == "input"
     ]
     filled_templates = []
-    for name, template in input_templates:
+    for _, template in input_templates:
         filled_templates.append(await fill_template(template, task, task_inputs, expdb))
     inputs = [
         filled | {"name": name}
