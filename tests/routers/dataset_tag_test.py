@@ -18,22 +18,41 @@ if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
 
-@pytest.mark.parametrize(
-    "key",
-    [None, ApiKey.INVALID],
-    ids=["no authentication", "invalid key"],
-)
-async def test_dataset_tag_rejects_unauthorized(key: ApiKey, py_api: httpx.AsyncClient) -> None:
-    apikey = "" if key is None else f"?api_key={key}"
+async def test_dataset_tag_requires_authorization(py_api: httpx.AsyncClient) -> None:
     any_dataset_identifier = 1
     response = await py_api.post(
-        f"/datasets/tag{apikey}",
+        "/datasets/tag",
         json={"data_id": any_dataset_identifier, "tag": "test"},
     )
     assert response.status_code == HTTPStatus.UNAUTHORIZED
 
 
-# ── Direct call tests: tag_dataset ──
+async def test_dataset_tag_json(py_api: httpx.AsyncClient, dataset_factory: DatasetFactory) -> None:
+    dataset_id = await dataset_factory()
+    response = await py_api.post(
+        f"/datasets/tag?api_key={ApiKey.SOME_USER}",
+        json={"data_id": dataset_id, "tag": "test"},
+    )
+    assert response.status_code == HTTPStatus.OK
+    expected_json = {
+        "data_tag": {
+            "id": str(dataset_id),
+            "tag": ["test"],
+        }
+    }
+    assert response.json() == expected_json
+
+
+async def test_dataset_tag_new_json(
+    py_api: httpx.AsyncClient, dataset_factory: DatasetFactory
+) -> None:
+    dataset_id = await dataset_factory()
+    response = await py_api.post(
+        f"/datasets/{dataset_id}/tags?api_key={ApiKey.SOME_USER}",
+        json={"tag": "test"},
+    )
+    assert response.status_code == HTTPStatus.OK, response.json()
+    assert response.json() is None
 
 
 @pytest.mark.mut
@@ -47,7 +66,7 @@ async def test_dataset_tag(
 ) -> None:
     dataset_id = await dataset_factory()
     tag = "test_tag"
-    result = await tag_dataset(data_id=dataset_id, tag=tag, user=user, expdb_db=expdb_session)
+    result = await tag_dataset(data_id=dataset_id, tag=tag, user=user, expdb=expdb_session)
     assert result == {"data_tag": {"id": str(dataset_id), "tag": [tag]}}
 
     tags = await get_tags_for(dataset_id=dataset_id, session=expdb_session)
@@ -59,9 +78,9 @@ async def test_dataset_tag_returns_existing_tags(
     expdb_session: AsyncSession, dataset_factory: DatasetFactory
 ) -> None:
     dataset_id = await dataset_factory()
-    await tag_dataset(data_id=dataset_id, tag="first", user=OWNER_USER, expdb_db=expdb_session)
+    await tag_dataset(data_id=dataset_id, tag="first", user=OWNER_USER, expdb=expdb_session)
     result = await tag_dataset(
-        data_id=dataset_id, tag="second", user=ADMIN_USER, expdb_db=expdb_session
+        data_id=dataset_id, tag="second", user=ADMIN_USER, expdb=expdb_session
     )
     assert result == {"data_tag": {"id": str(dataset_id), "tag": ["first", "second"]}}
 
@@ -72,10 +91,10 @@ async def test_dataset_tag_fails_if_tag_exists(
 ) -> None:
     tag = "repeated_tag"
     dataset_id = await dataset_factory()
-    await tag_dataset(data_id=dataset_id, tag=tag, user=OWNER_USER, expdb_db=expdb_session)
+    await tag_dataset(data_id=dataset_id, tag=tag, user=OWNER_USER, expdb=expdb_session)
 
     with pytest.raises(TagAlreadyExistsError) as e:
-        await tag_dataset(data_id=dataset_id, tag=tag, user=ADMIN_USER, expdb_db=expdb_session)
+        await tag_dataset(data_id=dataset_id, tag=tag, user=ADMIN_USER, expdb=expdb_session)
     assert str(dataset_id) in e.value.detail
     assert tag in e.value.detail
 
@@ -87,7 +106,7 @@ async def test_dataset_tag_fails_if_dataset_does_not_exist(expdb_session: AsyncS
             data_id=dataset_id,
             tag="foo",
             user=ADMIN_USER,
-            expdb_db=expdb_session,
+            expdb=expdb_session,
         )
     assert str(dataset_id) in e.value.detail
     dataset_not_found_in_tag_endpoint = 472

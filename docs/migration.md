@@ -129,6 +129,13 @@ The `limit` and `offset` parameters can now be used independently, you no longer
 to provide both if you wish to set only one.
 
 #### `POST /datasets/tag`
+
+???+ warning "This endpoint is deprecated"
+
+    The new tag endpoint is `POST` `/datasets/{identifier}/tags`.
+    The dataset identifier is provided as part of the path, the tag is still provided in the body.
+    This endpoint is provided for easier migration in case the response matters to you.
+
 When successful, the "tag" property in the returned response is now always a list, even if only one tag exists for the entity.
 For example, after tagging dataset 21 with the tag `"foo"`:
 ```diff
