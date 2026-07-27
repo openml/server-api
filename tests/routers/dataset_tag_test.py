@@ -51,8 +51,8 @@ async def test_dataset_tag_new_json(
         f"/datasets/{dataset_id}/tags?api_key={ApiKey.SOME_USER}",
         json={"tag": "test"},
     )
-    assert response.status_code == HTTPStatus.OK, response.json()
-    assert response.json() is None
+    assert response.status_code == HTTPStatus.NO_CONTENT, response.json()
+    assert not response.content
 
 
 @pytest.mark.mut

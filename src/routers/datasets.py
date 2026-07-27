@@ -109,6 +109,7 @@ async def tag_dataset(
 
 @router.post(
     path="/{identifier}/tags",
+    status_code=HTTPStatus.NO_CONTENT,
 )
 async def tag_dataset_new(
     identifier: Annotated[Identifier, Path()],
