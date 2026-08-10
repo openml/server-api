@@ -22,9 +22,9 @@ if TYPE_CHECKING:
 router = APIRouter(prefix="/tasktype", tags=["tasks"])
 
 
-def _normalize_task_type(task_type: Row[Any]) -> dict[str, str | None | list[Any]]:
+def _normalize_task_type(task_type: Row[Any]) -> dict[str, str | list[Any] | None]:
     # Task types may contain multi-line fields which have either \r\n or \n line endings
-    ttype: dict[str, str | None | list[Any]] = {
+    ttype: dict[str, str | list[Any] | None] = {
         k: str(v).replace("\r\n", "\n").strip() if v is not None else v
         for k, v in task_type._mapping.items()  # noqa: SLF001
         if k != "id"
@@ -40,10 +40,10 @@ async def list_task_types(
     expdb: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> dict[
     Literal["task_types"],
-    dict[Literal["task_type"], list[dict[str, str | None | list[Any]]]],
+    dict[Literal["task_type"], list[dict[str, str | list[Any] | None]]],
 ]:
     """Return a high level description of all task types."""
-    task_types: list[dict[str, str | None | list[Any]]] = [
+    task_types: list[dict[str, str | list[Any] | None]] = [
         _normalize_task_type(ttype) for ttype in await get_task_types(expdb)
     ]
     return {"task_types": {"task_type": task_types}}
@@ -53,7 +53,7 @@ async def list_task_types(
 async def get_task_type(
     task_type_id: Identifier,
     expdb: Annotated[AsyncSession, Depends(expdb_session)],
-) -> dict[Literal["task_type"], dict[str, str | None | list[str] | list[dict[str, str]]]]:
+) -> dict[Literal["task_type"], dict[str, str | list[str] | list[dict[str, str]] | None]]:
     """Return a detailed description for the given task type, including expected inputs."""
     task_type_record = await db_get_task_type(task_type_id, expdb)
     if task_type_record is None:
