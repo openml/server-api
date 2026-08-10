@@ -96,7 +96,7 @@ async def test_setup_tag_direct_success(expdb_session: AsyncSession) -> None:
     [[], ["some_other_tag"], ["foo_some_other_tag", "bar_some_other_tag"]],
     ids=["none", "one tag", "two tags"],
 )
-async def test_setup_tag_response_is_identical_when_tag_doesnt_exist(  # noqa: PLR0913
+async def test_setup_tag_response_is_identical_when_tag_doesnt_exist(  # noqa: PLR0913, PLR0917
     api_key: str,
     other_tags: list[str],
     py_api: httpx.AsyncClient,

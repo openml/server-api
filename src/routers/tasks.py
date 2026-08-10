@@ -259,6 +259,7 @@ def _quality_clause(quality: str, range_: str | None) -> str:
 @router.get(path="/list")
 async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
     expdb: Annotated[AsyncSession, Depends(expdb_session)],
+    *,
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     task_type_id: Annotated[Identifier | None, Body(description="Filter by task type id.")] = None,
     tag: Annotated[TagString | None, Body()] = None,

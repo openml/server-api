@@ -186,6 +186,7 @@ def _quality_clause(quality: str, range_: str | None) -> str:
 @router.get(path="/list")
 async def list_datasets(  # noqa: PLR0913, C901
     expdb_db: Annotated[AsyncSession, Depends(expdb_session)],
+    *,
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     data_name: Annotated[CasualString128 | None, Body()] = None,
     tag: Annotated[TagString | None, Body()] = None,

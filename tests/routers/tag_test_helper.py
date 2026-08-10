@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     import httpx
 
 
-async def assert_tag_response_is_identical(  # noqa: PLR0913
+async def assert_tag_response_is_identical(  # noqa: PLR0913, PLR0917
     identifier: Identifier,
     tag: str,
     api_key: str,
