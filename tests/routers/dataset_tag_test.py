@@ -124,4 +124,11 @@ async def test_dataset_tag_response_is_identical(
     py_api: httpx.AsyncClient,
     php_api: httpx.AsyncClient,
 ) -> None:
-    await assert_tag_response_is_identical(dataset_id, tag, api_key, "dataset", py_api, php_api)
+    await assert_tag_response_is_identical(
+        identifier=dataset_id,
+        tag=tag,
+        api_key=api_key,
+        entity="dataset",
+        py_api=py_api,
+        php_api=php_api,
+    )

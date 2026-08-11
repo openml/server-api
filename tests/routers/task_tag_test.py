@@ -116,4 +116,6 @@ async def test_task_tag_response_is_identical(
     py_api: httpx.AsyncClient,
     php_api: httpx.AsyncClient,
 ) -> None:
-    await assert_tag_response_is_identical(task_id, tag, api_key, "task", py_api, php_api)
+    await assert_tag_response_is_identical(
+        identifier=task_id, tag=tag, api_key=api_key, entity="task", py_api=py_api, php_api=php_api
+    )
