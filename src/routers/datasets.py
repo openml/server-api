@@ -13,7 +13,7 @@ from enum import StrEnum
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Annotated, Any, Literal, NamedTuple
 
-from fastapi import APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Body, Depends, Path, Query
 from loguru import logger
 from sqlalchemy import bindparam, text
 
@@ -89,30 +89,45 @@ def _format_dataset_url(dataset: UntypedRow) -> str:
 
 @router.post(
     path="/tag",
+    deprecated=True,
 )
 async def tag_dataset(
     data_id: Annotated[Identifier, Body()],
     tag: Annotated[TagString, Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb_db: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session)],
 ) -> dict[str, dict[str, Any]]:
     """Add a tag to the dataset, this tag is publicly visible to all users."""
-    try:
-        await database.datasets.tag(data_id, tag, user_id=user.user_id, session=expdb_db)
-    except ForeignKeyConstraintError:
-        msg = f"Dataset {data_id} not found."
-        raise DatasetNotFoundError(msg, code=472) from None
-    except DuplicatePrimaryKeyError:
-        msg = f"Dataset {data_id} already tagged with {tag!r}."
-        raise TagAlreadyExistsError(msg) from None
+    await tag_dataset_new(data_id, tag, user, expdb)
 
-    logger.info("Dataset {data_id} tagged '{tag}'.", data_id=data_id, tag=tag)
-
-    tags = await database.datasets.get_tags_for(data_id, expdb_db)
+    tags = await database.datasets.get_tags_for(data_id, expdb)
 
     return {
         "data_tag": {"id": str(data_id), "tag": tags},
     }
+
+
+@router.post(
+    path="/{identifier}/tags",
+    status_code=HTTPStatus.NO_CONTENT,
+)
+async def tag_dataset_new(
+    identifier: Annotated[Identifier, Path()],
+    tag: Annotated[TagString, Body(embed=True)],
+    user: Annotated[User, Depends(fetch_user_or_raise)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session)],
+) -> None:
+    """Add a tag to the dataset, this tag is publicly visible to all users."""
+    try:
+        await database.datasets.tag(identifier, tag, user_id=user.user_id, session=expdb)
+    except ForeignKeyConstraintError:
+        msg = f"Dataset {identifier} not found."
+        raise DatasetNotFoundError(msg, code=472) from None
+    except DuplicatePrimaryKeyError:
+        msg = f"Dataset {identifier} already tagged with {tag!r}."
+        raise TagAlreadyExistsError(msg) from None
+
+    logger.info("Dataset {identifier} tagged '{tag}'.", identifier=identifier, tag=tag)
 
 
 @router.post(path="/untag", deprecated=True)

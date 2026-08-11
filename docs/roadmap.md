@@ -6,8 +6,12 @@ The sunset date of the PHP-based REST API will depend on the progress of this re
 ## Phase 1: Achieve Feature Parity
 
 The first goal is _rough_ feature parity.
-This means that we want to expose the same endpoints with the same general responses.
-We may deviate in case the original implementation had an oversight or a bug, and fix those along the way.
+This means that we want to expose the same endpoints with the same general responses, but:
+
+- we may deviate in case the original implementation had an oversight or a bug, and fix those along the way.
+- we may drop support for some admin-only or previously undocumented endpoints.
+- we may make other alterations at our discretion, e.g., improve consistency in responses or [RFC9457](https://www.rfc-editor.org/rfc/rfc9457.html) error handling. But we do not significantly restructure "happy path" responses or endpoint structure.
+
 We can be pragmatic about this, for example, copying over a complex query from the PHP API.
 This phase is considered complete when the output of the new REST API can be mapped to output of the old REST API for all endpoints the PHP-based API has and the [migration guide](migration.md) is done.
 
@@ -15,6 +19,7 @@ This phase is considered complete when the output of the new REST API can be map
 ## Phase 2: Modernizing the API
 
 We are also working on incorporating modern standards like [RFC9457](https://www.rfc-editor.org/rfc/rfc9457.html) for error reporting, better use of JSON types, including authentication in the request's HTTP header instead of the URL, or changing HTTP methods or paths to better reflect the behavior of the endpoint.
+We may also consider schema changes to responses to improve e.g., usability or performance.
 
 ## Phase 3: Revisiting the Data(base)
 
