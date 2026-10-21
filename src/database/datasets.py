@@ -1,6 +1,6 @@
 """Translation from https://github.com/openml/OpenML/blob/c19c9b99568c0fabb001e639ff6724b9a754bbc9/openml_OS/models/api/v1/Api_data.php#L707."""
 
-import datetime
+import datetime as dt
 from collections import defaultdict
 from typing import TYPE_CHECKING, Literal
 
@@ -256,7 +256,7 @@ async def update_status(
         params={
             "dataset": dataset_id,
             "status": status,
-            "date": datetime.datetime.now(datetime.UTC),
+            "date": dt.datetime.now(dt.UTC),
             "user": user_id,
         },
     )

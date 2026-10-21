@@ -1,5 +1,5 @@
 import contextlib
-import datetime
+import datetime as dt
 import json
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterable, Iterator
 from pathlib import Path
@@ -245,7 +245,7 @@ async def dataset_factory(
             params={
                 "dataset_id": dataset_id,
                 "creator": creator,
-                "now": datetime.datetime.now(tz=datetime.UTC),
+                "now": dt.datetime.now(tz=dt.UTC),
                 "name": f"dataset-name-{dataset_id}",
             },
         )
