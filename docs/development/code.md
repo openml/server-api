@@ -45,8 +45,8 @@ The following (simplified) code for tagging a dataset (from `src/routers/dataset
 Click the (+) icon for information.
 
 ```python  title="src/routers/datasets.py"
-
 router = APIRouter(prefix="/datasets", tags=["datasets"])  # (1)!
+
 
 @router.post(path="/tag")  # (2)!
 async def tag_dataset(
@@ -65,7 +65,7 @@ async def tag_dataset(
         msg = f"Dataset {data_id} already tagged with {tag!r}."
         raise TagAlreadyExistsError(msg) from None
 
-    logger.info("Dataset {data_id} tagged '{tag}'.", data_id=data_id, tag=tag) # (11)!
+    logger.info("Dataset {data_id} tagged '{tag}'.", data_id=data_id, tag=tag)  # (11)!
 
     tags = await database.datasets.get_tags_for(data_id, expdb_db)
 
