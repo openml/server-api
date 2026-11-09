@@ -83,27 +83,36 @@ There are a number of fixtures in `conftest.py`, here is a quick rundown of the 
 The pseudocode below shows how you might combine these for a test of the new REST API, either as standalone or when compared to the PHP API:
 
 ```python
-
 async def test_python(py_api: httpx.AsyncClient, expdb_session: AsyncSession) -> None:
-    await expdb_session.execute(text("INSERT INTO dataset ..."), params=...)  # Insert dataset with id 42
+    await expdb_session.execute(
+        text("INSERT INTO dataset ..."), params=...
+    )  # Insert dataset with id 42
 
-    response = await py_api.get("/datasets/42")  # Since this call shares the session, it should retrieve this data
+    response = await py_api.get(
+        "/datasets/42"
+    )  # Since this call shares the session, it should retrieve this data
 
     assert ...
     # after the test is done, the fixture clean up will ensure the change is not committed to the database, no extra code needed
 
-async def test_python_and_php(py_api: httpx.AsyncClient, php_api: httpx.AsyncClient, expdb_connection: AsyncConnection) -> None:
-    await expdb_connection.execute(text("INSERT INTO dataset ..."), parameters=...)  # Insert dataset with id 42
+
+async def test_python_and_php(
+    py_api: httpx.AsyncClient, php_api: httpx.AsyncClient, expdb_connection: AsyncConnection
+) -> None:
+    await expdb_connection.execute(
+        text("INSERT INTO dataset ..."), parameters=...
+    )  # Insert dataset with id 42
     await expdb_connection.commit()  # We need to persist the data in the database, because the PHP REST API cannot see our transaction
 
-    response = await php_api.get("/datasets/42")  # The PHP REST API can see the dataset, because it exists in the database
+    response = await php_api.get(
+        "/datasets/42"
+    )  # The PHP REST API can see the dataset, because it exists in the database
     response = await py_api.get("/datasets/42")  # The Python REST API can see the dataset also
 
     # We need to clean up after ourselves, otherwise the test has side effects.
     # This isn't a great pattern, prefer instead the use of context managers which will execute the delete statements even if unexpected exceptions occur.
     await expdb_connection.execute(text("DELETE FROM dataset ..."), parameters=...)
     await expdb_connection.commit()
-
 ```
 
 ???- "Why not always use the `*_connection`?"
@@ -142,17 +151,32 @@ def test_get_dataset_success(py_api: httpx.AsyncClient) -> None:
 For all other tests, do not use `py_api` but call the implementing function directly. For example, do not call `client.get("/datasets/1")` but instead `get_dataset`:
 
 ```python
-async def test_get_dataset_private_success(expdb_session: AsyncSession, userdb_session: AsyncSession) -> None:
+async def test_get_dataset_private_success(
+    expdb_session: AsyncSession, userdb_session: AsyncSession
+) -> None:
     private_dataset = 42
     owner_of_that_dataset = OWNER_USER
-    dataset = await get_dataset(dataset_id=42, user=owner_of_that_dataset, userdb_session=userdb_session, expdb_session=expdb_session)
+    dataset = await get_dataset(
+        dataset_id=42,
+        user=owner_of_that_dataset,
+        userdb_session=userdb_session,
+        expdb_session=expdb_session,
+    )
     assert dataset.id == private_dataset
 
-async def test_get_dataset_private_access_denied(expdb_session: AsyncSession, userdb_session: AsyncSession) -> None:
+
+async def test_get_dataset_private_access_denied(
+    expdb_session: AsyncSession, userdb_session: AsyncSession
+) -> None:
     private_dataset = 42
     owner_of_that_dataset = SOME_USER  # Test User defined in a common file
     with pytest.raises(DatasetNoAccessError) as e:
-        await get_dataset(dataset_id=42, user=owner_of_that_dataset, userdb_session=userdb_session, expdb_session=expdb_session)
+        await get_dataset(
+            dataset_id=42,
+            user=owner_of_that_dataset,
+            userdb_session=userdb_session,
+            expdb_session=expdb_session,
+        )
     assert e.value.status_code == HTTPStatus.FORBIDDEN
 ```
 
@@ -177,6 +201,7 @@ async def test_get_dataset(py_api: httpx.AsyncClient, php_api: httpx.AsyncClient
     else:
         _assert_error_response_equal(py_response, php_response)
 
+
 def _assert_success_response_equal(py_json, php_json) -> None:
     # PHP API returns numbers as strings
     py_json = nested_num_to_str(py_json)
@@ -185,6 +210,7 @@ def _assert_success_response_equal(py_json, php_json) -> None:
     # ...
     # and then finally we compare the results to ensure the remaining data is identical
     assert py_json == php_json
+
 
 def _assert_error_response_equal(py_response, php_response) -> None:
     # There might be some translation of error codes
@@ -197,7 +223,6 @@ def _assert_error_response_equal(py_response, php_response) -> None:
 
     # Python follows RFC9457 while PHP has a custom system:
     assert py_response.json()["code"] == php_response.json()["error"]["code"]
-
 ```
 
 ### Usage of the Database
