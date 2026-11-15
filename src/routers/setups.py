@@ -27,7 +27,7 @@ router = APIRouter(prefix="/setup", tags=["setup"])
 @router.get(path="/{setup_id}", response_model_exclude_none=True)
 async def get_setup(
     setup_id: Annotated[Identifier, Path()],
-    expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb_session: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
 ) -> SetupResponse:
     """Get setup by id."""
     setup = await database.setups.get(setup_id, expdb_session)
@@ -51,7 +51,7 @@ async def tag_setup(
     setup_id: Annotated[Identifier, Body()],
     tag: Annotated[TagString, Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb_session: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
 ) -> dict[str, dict[str, str | list[str]]]:
     """Add a tag to the setup, this tag is publicly visible to all users."""
     try:
@@ -75,7 +75,7 @@ async def untag_setup(
     setup_id: Annotated[Identifier, Body()],
     tag: Annotated[TagString, Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb_session: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
 ) -> dict[str, dict[str, str | list[str]]]:
     """Remove tag `tag` from setup with id `setup_id`."""
     # Setups don't really have an owner, they are associated with runs.

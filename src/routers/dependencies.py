@@ -30,7 +30,7 @@ async def userdb_session() -> AsyncIterator[AsyncSession]:
 
 async def fetch_user(
     api_key: APIKey | None = None,
-    user_data: Annotated[AsyncSession | None, Depends(userdb_session)] = None,
+    user_data: Annotated[AsyncSession | None, Depends(userdb_session, scope="function")] = None,
 ) -> AsyncGenerator[User | None]:
     if not (api_key and user_data):
         yield None
@@ -53,7 +53,7 @@ async def fetch_user(
 
 
 def fetch_user_or_raise(
-    user: Annotated[User | None, Depends(fetch_user)] = None,
+    user: Annotated[User | None, Depends(fetch_user, scope="function")] = None,
 ) -> User:
     if user is None:
         logger.info("Unauthenticated user tried to access endpoint that requires authentication.")

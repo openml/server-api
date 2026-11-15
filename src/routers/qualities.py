@@ -30,7 +30,7 @@ router = APIRouter(prefix="/datasets", tags=["datasets"])
 
 @router.get("/qualities/list")
 async def list_qualities(
-    expdb: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
 ) -> dict[Literal["data_qualities_list"], dict[Literal["quality"], list[str]]]:
     """List names of all computed qualities (dataset metafeatures)."""
     qualities = await database.qualities.list_all_qualities(session=expdb)
@@ -44,8 +44,8 @@ async def list_qualities(
 @router.get("/qualities/{dataset_id}")
 async def get_qualities(
     dataset_id: Identifier,
-    user: Annotated[User | None, Depends(fetch_user)],
-    expdb: Annotated[AsyncSession, Depends(expdb_session)],
+    user: Annotated[User | None, Depends(fetch_user, scope="function")],
+    expdb: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
 ) -> list[Quality]:
     """Get computed qualities (metafeatures) for a dataset."""
     dataset = await database.datasets.get(dataset_id, expdb)

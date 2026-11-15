@@ -36,7 +36,7 @@ router = APIRouter(prefix="/run", tags=["run"])
 @router.get("/trace/{run_id}")
 async def get_run_trace(
     run_id: Identifier,
-    expdb: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
 ) -> RunTrace:
     """Get trace data for a run by run ID."""
     if not await database.runs.exist(run_id, expdb):
@@ -135,8 +135,8 @@ def _build_evaluations(rows: list[UntypedRow]) -> list[EvaluationScore]:
 @router.get("/{run_id}", response_model_exclude_none=True)
 async def get_run(
     run_id: Identifier,
-    expdb: Annotated[AsyncSession, Depends(expdb_session)],
-    userdb: Annotated[AsyncSession, Depends(userdb_session)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
+    userdb: Annotated[AsyncSession, Depends(userdb_session, scope="function")],
 ) -> Run:
     """Get full metadata for a run by ID."""
     # Authentication is not required because runs are always public.
