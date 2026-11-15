@@ -16,7 +16,7 @@ router = APIRouter(prefix="/estimationprocedure", tags=["estimationprocedure"])
 
 @router.get("/list", response_model_exclude_none=True)
 async def get_estimation_procedures(
-    expdb: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
 ) -> list[EstimationProcedure]:
     """Return a list with descriptions of estimation procedures.
 

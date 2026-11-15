@@ -15,7 +15,7 @@ router = APIRouter(prefix="/evaluationmeasure", tags=["evaluationmeasure"])
 
 @router.get("/list")
 async def get_evaluation_measures(
-    expdb: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
 ) -> list[str]:
     """Return a list of evaluation measure names.
 

@@ -71,7 +71,7 @@ async def attach_to_study(
     study_id: Annotated[Identifier, Body()],
     entity_ids: Annotated[list[Identifier], Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
 ) -> AttachDetachResponse:
     """Add runs or tasks to a study which is in preparation."""
     if user is None:
@@ -125,7 +125,7 @@ async def attach_to_study(
 async def create_study(
     study: CreateStudy,
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
 ) -> dict[Literal["study_id"], int]:
     """Create a new study."""
     if study.main_entity_type == StudyType.RUN and study.tasks:
@@ -161,8 +161,8 @@ async def create_study(
 @router.get("/{alias_or_id}")
 async def get_study(
     alias_or_id: Identifier | str,
-    expdb: Annotated[AsyncSession, Depends(expdb_session)],
-    user: Annotated[User | None, Depends(fetch_user)] = None,
+    expdb: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
+    user: Annotated[User | None, Depends(fetch_user, scope="function")] = None,
 ) -> Study:
     """Get a study by id or alias."""
     study = await _get_study_raise_otherwise(alias_or_id, user, expdb)

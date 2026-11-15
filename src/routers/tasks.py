@@ -40,7 +40,7 @@ async def tag_task(
     task_id: Annotated[Identifier, Body()],
     tag: Annotated[TagString, Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb_session: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
 ) -> dict[str, dict[str, Any]]:
     """Add a tag to the task, this tag is publicly visible to all users."""
     try:
@@ -259,7 +259,7 @@ def _quality_clause(quality: str, range_: str | None) -> str:
 @router.get(path="/list")
 async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
     *,
-    expdb: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     task_type_id: Annotated[Identifier | None, Body(description="Filter by task type id.")] = None,
     tag: Annotated[TagString | None, Body()] = None,
@@ -450,7 +450,7 @@ async def list_tasks(  # noqa: PLR0913, PLR0912, C901, PLR0915
 @router.get("/{task_id}")
 async def get_task(
     task_id: Identifier,
-    expdb: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
 ) -> Task:
     """Get a task by identifier."""
     if not (task := await database.tasks.get(task_id, expdb)):

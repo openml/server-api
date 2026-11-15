@@ -94,7 +94,7 @@ async def tag_dataset(
     data_id: Annotated[Identifier, Body()],
     tag: Annotated[TagString, Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb_db: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb_db: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
 ) -> dict[str, dict[str, Any]]:
     """Add a tag to the dataset, this tag is publicly visible to all users."""
     try:
@@ -120,7 +120,7 @@ async def untag_dataset_like_php(
     data_id: Annotated[Identifier, Body()],
     tag: Annotated[TagString, Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb_db: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb_db: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
 ) -> dict[Literal["data_untag"], TagInfo]:
     """Remove a tag from the dataset with a response similar to the old PHP server."""
     await untag_dataset(data_id, tag, user, expdb_db)
@@ -138,7 +138,7 @@ async def untag_dataset(
     identifier: Identifier,
     tag: Annotated[TagString, Query()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb_db: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb_db: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
 ) -> None:
     """Remove a tag that you added to a dataset, or from a dataset you uploaded."""
     dataset_tag = await database.datasets.get_tag(identifier, tag, expdb_db)
@@ -186,7 +186,7 @@ def _quality_clause(quality: str, range_: str | None) -> str:
 @router.get(path="/list")
 async def list_datasets(  # noqa: PLR0913, C901
     *,
-    expdb_db: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb_db: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
     pagination: Annotated[Pagination, Body(default_factory=Pagination)],
     data_name: Annotated[CasualString128 | None, Body()] = None,
     tag: Annotated[TagString | None, Body()] = None,
@@ -210,7 +210,7 @@ async def list_datasets(  # noqa: PLR0913, C901
     number_classes: Annotated[IntegerRange | None, Body()] = None,
     number_missing_values: Annotated[IntegerRange | None, Body()] = None,
     status: Annotated[DatasetStatusFilter, Body()] = DatasetStatusFilter.ACTIVE,
-    user: Annotated[User | None, Depends(fetch_user)] = None,
+    user: Annotated[User | None, Depends(fetch_user, scope="function")] = None,
 ) -> list[dict[str, Any]]:
     """List all datasets that match the filters."""
     status_subquery = text(
@@ -388,8 +388,8 @@ async def _get_dataset_raise_otherwise(
 @router.get("/features/{dataset_id}", response_model_exclude_none=True)
 async def get_dataset_features(
     dataset_id: Identifier,
-    expdb: Annotated[AsyncSession, Depends(expdb_session)],
-    user: Annotated[User | None, Depends(fetch_user)] = None,
+    expdb: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
+    user: Annotated[User | None, Depends(fetch_user, scope="function")] = None,
 ) -> list[Feature]:
     """Return metadata for each feature (column) in the dataset."""
     assert expdb is not None  # noqa: S101
@@ -432,7 +432,7 @@ async def update_dataset_status(
     dataset_id: Annotated[Identifier, Body()],
     status: Annotated[Literal[DatasetStatus.ACTIVE, DatasetStatus.DEACTIVATED], Body()],
     user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
 ) -> dict[str, str | int]:
     """Update the status of the dataset. Can be used to deactivate a dataset."""
     dataset = await _get_dataset_raise_otherwise(dataset_id, user, expdb)
@@ -485,9 +485,9 @@ async def update_dataset_status(
 )
 async def get_dataset(
     dataset_id: Identifier,
-    userdb_session: Annotated[AsyncSession, Depends(userdb_session)],
-    expdb_session: Annotated[AsyncSession, Depends(expdb_session)],
-    user: Annotated[User | None, Depends(fetch_user)] = None,
+    userdb_session: Annotated[AsyncSession, Depends(userdb_session, scope="function")],
+    expdb_session: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
+    user: Annotated[User | None, Depends(fetch_user, scope="function")] = None,
 ) -> DatasetMetadata:
     """Get the user-provided metadata for a dataset."""
     dataset = await _get_dataset_raise_otherwise(dataset_id, user, expdb_session)

@@ -21,7 +21,7 @@ router = APIRouter(prefix="/flows", tags=["flows"])
 async def flow_exists(
     name: str,
     external_version: str,
-    expdb: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
 ) -> dict[Literal["flow_id"], int]:
     """Check if a Flow with the name and version exists, if so, return the flow id."""
     flow = await database.flows.get_by_name(
@@ -38,7 +38,7 @@ async def flow_exists(
 @router.get("/{flow_id}")
 async def get_flow(
     flow_id: Identifier,
-    expdb: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
 ) -> Flow:
     """Get a Flow by its identifier."""
     flow = await database.flows.get(flow_id, expdb)

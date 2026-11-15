@@ -36,8 +36,8 @@ router = APIRouter(prefix="/users", tags=["users"])
 async def delete_user_account(
     user_id: Annotated[int, Path(description="Numeric user id to delete.", gt=0)],
     current_user: Annotated[User, Depends(fetch_user_or_raise)],
-    expdb: Annotated[AsyncSession, Depends(expdb_session)],
-    userdb: Annotated[AsyncSession, Depends(userdb_session)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
+    userdb: Annotated[AsyncSession, Depends(userdb_session, scope="function")],
 ) -> Response:
     """Delete the user account if they have no associated resources.
 

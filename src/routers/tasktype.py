@@ -37,7 +37,7 @@ def _normalize_task_type(task_type: Row[Any]) -> dict[str, str | list[Any] | Non
 
 @router.get(path="/list")
 async def list_task_types(
-    expdb: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
 ) -> dict[
     Literal["task_types"],
     dict[Literal["task_type"], list[dict[str, str | list[Any] | None]]],
@@ -52,7 +52,7 @@ async def list_task_types(
 @router.get(path="/{task_type_id}")
 async def get_task_type(
     task_type_id: Identifier,
-    expdb: Annotated[AsyncSession, Depends(expdb_session)],
+    expdb: Annotated[AsyncSession, Depends(expdb_session, scope="function")],
 ) -> dict[Literal["task_type"], dict[str, str | list[str] | list[dict[str, str]] | None]]:
     """Return a detailed description for the given task type, including expected inputs."""
     task_type_record = await db_get_task_type(task_type_id, expdb)

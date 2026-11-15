@@ -87,6 +87,12 @@ async def tag_dataset(
 11. Log statements give observability to what's happening in the REST API (see [Logging](#logging)).
 12. Return values are coerced into JSON form by FastAPI.
 
+## Database sessions
+The `expdb_session` and `userdb_session` dependencies commit the transaction when the endpoint finishes.
+Always declare them (and `fetch_user`, which uses a session) with `scope="function"`, for example `Depends(expdb_session, scope="function")`.
+Without it, FastAPI commits *after* the response is sent, so a client can get a success response for data that is not saved yet.
+A test checks that every router follows this rule.
+
 ## Logging
 We use [`loguru`](https://loguru.readthedocs.io/en/stable/) for logging.
 A [middleware](https://fastapi.tiangolo.com/reference/middleware/) layer automatically provides the following context to each log entry (see `core/logging.py::add_request_context_to_log`):
